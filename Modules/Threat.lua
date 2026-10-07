@@ -1,6 +1,7 @@
 local _, KHQOL = ...
 local Threat = KHQOL.modules.threat
 local INTERVAL = .20
+local AGGRO_SOUND = "Interface\\AddOns\\KHQOL\\Media\\aggro.wav"
 local COLORS = {{.3,1,.4}, {1,.85,.1}, {1,.5,.1}, {1,.15,.15}}
 local ICONS = {
   caution="Interface\\AddOns\\KHQOL\\Media\\threat-caution-yellow",
@@ -15,6 +16,7 @@ Threat.defaults = {
   colorByStatus=true, soloPetEnabled=true, locked=true,
   showTargetName=true, showThreatHint=true,
   iconEnabled=true, iconSize=18, iconPosition="LEFT", showCautionIcon=false,
+  aggroSoundEnabled=true,
   position={point="CENTER",relativePoint="CENTER",x=0,y=-120},
 }
 local function readable(value)
@@ -180,6 +182,28 @@ function Threat:IconPath(info)
   if risk and risk>=2 then return ICONS.danger end
   if risk==1 and self.db.showCautionIcon then return ICONS.caution end
 end
+function Threat:ResetAggroAlert()
+  self.alertState=nil; self.alertGUID=nil
+end
+function Threat:UpdateAggroAlert(info)
+  if not self.db.aggroSoundEnabled then self:ResetAggroAlert(); return end
+  -- Track only live, continuous samples of the same selected enemy. Target
+  -- events reset this state even if the client's GUID is unavailable/secret.
+  local guid=call(UnitGUID,"target")
+  if type(guid)~="string" then guid=nil end
+  if guid and self.alertGUID and guid~=self.alertGUID then self:ResetAggroAlert() end
+  self.alertGUID=guid
+  local holding=info.isTanking==true or info.status==2 or info.status==3
+  local risk=self:Risk(info)
+  local current=holding and "AGGRO" or (risk and risk>=2 and "DANGER" or "OTHER")
+  local previous=self.alertState
+  -- Commit before playback: API failure/muting cannot repeat the alert on
+  -- every poll. An initial AGGRO sample has no DANGER predecessor and is silent.
+  self.alertState=current
+  if previous=="DANGER" and current=="AGGRO" and type(PlaySoundFile)=="function" then
+    pcall(PlaySoundFile,AGGRO_SOUND,"Dialog")
+  end
+end
 -- A single, non-secure HUD owned by UIParent. No nameplate frame is consulted
 -- or altered, so another addon can replace/hide its own bars independently.
 function Threat:CreateFrames()
@@ -273,6 +297,7 @@ function Threat:ResetPosition()
   self:Changed()
 end
 function Threat:HideHUD()
+  self:ResetAggroAlert()
   if not self.root then return end
   self.text:SetText(""); self.nameText:SetText(""); self.hint:SetText("")
   self.icon:Hide(); self.previewText:Hide()
@@ -312,6 +337,7 @@ function Threat:UpdateHUD()
   local strata=(self.testing or not self.db.locked) and "FULLSCREEN_DIALOG" or "HIGH"
   self.root:SetFrameStrata(strata); self.anchor:SetFrameStrata(strata)
   if self.testing then
+    self:ResetAggroAlert()
     self.hiddenReason="TEST_PREVIEW"
     self:ShowInfo(self.testInfo,"테스트 대상 (가상 데이터)","테스트 · "..({"여유","주의","위험","어그로 보유"})[self.testInfo.testLevel+1],"테스트 · 가상 데이터")
     return
@@ -328,9 +354,10 @@ function Threat:UpdateHUD()
     if type(name)~="string" then name="현재 대상" end
     local _,hint=self:Risk(info)
     if not self.db.locked then hint="위치 이동 · 드래그 후 잠금" end
-    if self:ShowInfo(info,name,hint) then self.hiddenReason="VISIBLE"; return end
+    if self:ShowInfo(info,name,hint) then self.hiddenReason="VISIBLE"; self:UpdateAggroAlert(info); return end
     if self.db.displayMode=="percent" and info.percent==nil then self.hiddenReason="SCALED_PERCENT_UNAVAILABLE" end
   end
+  self:ResetAggroAlert()
   if not self.db.locked then
     self:ShowInfo(self.testInfo,"위치 미리보기 (가상 데이터)","KHQOL Threat · 드래그로 이동","위치 미리보기 · 가상 데이터")
   else self:HideHUD() end
@@ -382,6 +409,7 @@ function Threat:PrintStatus()
   printLine("Active: "..yn(self.active).." / Combat: "..yn(self.combat).." / Hostile Target: "..yn(self:SelectedUnit()).." / Ticker: "..(self.ticker and "RUNNING" or "STOPPED"))
   printLine("API: Detailed="..yn(self.detailAPI)..", Status="..yn(type(UnitThreatSituation)=="function")..", Ticker="..yn(self.timerAPI))
   printLine(string.format("Icon: %s / Size=%d / Position=%s / Caution=%s",yn(self.db.iconEnabled),self.db.iconSize,self.db.iconPosition,yn(self.db.showCautionIcon)))
+  printLine("Aggro Voice: "..yn(self.db.aggroSoundEnabled).." / Transition: DANGER -> AGGRO / Channel: Dialog")
   local p=self.db.position
   printLine(string.format("Position: %s / X=%.0f / Y=%.0f / Locked=%s / Test=%s",p.point,p.x,p.y,yn(self.db.locked),yn(self.testing)))
   printLine("DisplayReason: "..(self.hiddenReason or "UNKNOWN"))
@@ -465,6 +493,8 @@ function Threat:BuildSettings(content,y)
   b:Slider("아이콘 크기",12,32,1,function() return db.iconSize end,function(v) change("iconSize",v) end,function(v) return v.." px" end,function() return db.iconEnabled end)
   b:Dropdown("아이콘 위치",{{value="LEFT",text="수치 앞"},{value="TOP",text="수치 위"}},function() return db.iconPosition end,function(v) change("iconPosition",v) end,function() return db.iconEnabled end)
   b:Description("기본은 위험 + 어그로 보유 단계입니다. 주의 단계는 선택할 수 있으며, 여유 단계에서는 아이콘을 숨깁니다.")
+  b:Checkbox("어그로 획득 음성",function() return db.aggroSoundEnabled end,function(v) change("aggroSoundEnabled",v) end)
+  b:Description("전투 중 위험 → 어그로 보유 전환에 한 번 재생합니다. 처음부터 보유한 경우와 가상 테스트에서는 재생하지 않습니다.")
   b:Section("솔로 표시")
   b:Flush()
   KHQOL.UI:CreateCheckbox(content,"사냥꾼 / 흑마법사 + 소환수 보유 시 활성",0,b.y,function() return db.soloPetEnabled end,function(v) change("soloPetEnabled",v) end)
@@ -487,15 +517,17 @@ function Threat:BuildSettings(content,y)
 end
 function Threat:OnEvent(event,unit)
   if not readable(unit) then return end
-  if event=="PLAYER_REGEN_DISABLED" then self.combat=true; self:StopTest(); self:RefreshState()
-  elseif event=="PLAYER_REGEN_ENABLED" then self.combat=false; self:StopTest(); self:StopTicker(); self:UpdateHUD()
+  if event=="PLAYER_REGEN_DISABLED" then self:ResetAggroAlert(); self.combat=true; self:StopTest(); self:RefreshState()
+  elseif event=="PLAYER_REGEN_ENABLED" then self:ResetAggroAlert(); self.combat=false; self:StopTest(); self:StopTicker(); self:UpdateHUD()
   elseif event=="PLAYER_LEAVING_WORLD" then
     if self.dragging then self:SavePosition() end
     self.inWorld=false; self.active=false; self:StopTest(); self:StopTicker(); self:HideHUD()
   elseif event=="PLAYER_ENTERING_WORLD" then
+    self:ResetAggroAlert()
     self.inWorld=true; self.combat=yes(UnitAffectingCombat,"player"); self:RefreshState()
   elseif event=="GROUP_ROSTER_UPDATE" or event=="UNIT_PET" or (event=="UNIT_FLAGS" and unit=="pet") then self:RefreshState()
   elseif event=="PLAYER_TARGET_CHANGED" then
+    self:ResetAggroAlert()
     if self.debug then self:DebugSnapshot() end
     self:RefreshLoop()
   elseif (event=="UNIT_FACTION" or event=="UNIT_FLAGS") and unit=="target" then self:RefreshLoop()
