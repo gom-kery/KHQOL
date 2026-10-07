@@ -120,6 +120,7 @@ function QN:OnUpdate(elapsed)
 end
 function QN:SetEnabled(enabled)
   self:GetDB()
+  self:SetObjectiveTrackerEnabled(enabled)
   if not self.events then
     self.events=CreateFrame("Frame")
     self.updateHandler=function(_,elapsed) self:OnUpdate(elapsed) end
@@ -188,6 +189,7 @@ function QN:GetDebugSnapshot()
 end
 function QN:HandleCommand(message)
   local command=(message or ""):lower():match("^%s*%S+%s+(%S+)")
+  if command=="layout" then self:PrintTrackerLayout(); return end
   if command~="status" and command~="debug" then KHQOL:OpenModule("questNavigator"); return end
   local s=self:GetDebugSnapshot()
   local function emit(text)

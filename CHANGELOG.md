@@ -1,3 +1,14 @@
+# KHQOL 1.9.5
+
+- 기본 Quest Watch 목록의 지역별 그룹화·접기/펼치기 및 지역 내 레벨 안정 정렬.
+- 기본 제목 색상을 유지한 [레벨] [던전]/[정예] 표시. 던전 우선.
+- Quest Navigator 공통 설정에 글씨 10~20, 실제 내용 폭 200~500 추가.
+- 기존 Quest Block·Item Button·클릭/메뉴·진행률/완료 흐름 재사용.
+- 독립 지역 접힘 상태 저장, 이벤트 기반 갱신·헤더/기본 풀 재사용.
+- 전투 중 퀘스트 구조 갱신 보류, 전투 종료 후 적용. 다른 추적 모듈 폭과 Navigation 계산 유지.
+- `/khqol quest layout` 배치 디버그 추가.
+- STATIC CHECK PASS: 모의 55개, 전체 Lua 55개 문법/TOC 확인. IN-GAME NEEDS TEST.
+
 # KHQOL 1.9.4
 
 2026-10-07 · Threat alert icon settings

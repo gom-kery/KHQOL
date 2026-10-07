@@ -1,3 +1,165 @@
+# KHQOL 1.9.5 — 퀘스트 목표 추적창 개선 보고서
+
+기준본: 사용자 제공 KHQOL-1.9.4.zip. 애드온 버전: 1.9.5 / Interface: 16001.
+
+지역별 그룹화, 지역 접기·펼치기, 낮은 레벨순 정렬, [던전]·[정예] 표시, 글씨 크기 10~20, 내용 표시 폭 200~500을 기존 Quest Navigator 설정에 추가했습니다. `/khqol quest`에서 설정하고 `/khqol quest layout`으로 배치 정보를 확인합니다. 기본 퀘스트 블록을 재사용하며 Navigation/Arrow 계산은 변경하지 않았습니다.
+
+**STATIC CHECK: PASS** — 실제 Forever 기본 블록·모듈·퀘스트 추적기 소스를 사용한 모의 검사 55개, 전체 Lua 55개 Lua 5.1 문법 검사, TOC 51개 로드 파일 확인.
+
+**IN-GAME: NEEDS TEST** — 실제 Forever 클라이언트는 실행하지 않았습니다. 모의 글꼴 높이 계산은 근사값이며 실제 화면·아이템 사용·보호 프레임·taint 검증을 대신하지 않습니다.
+
+## 1. 수정한 파일
+
+| 파일 | 변경 내용 |
+|---|---|
+| `QuestNavigator/Tracker.lua` | 기존 길안내 코드 앞에 퀘스트 목록 표시 기능 추가: 지역·정렬·태그·글씨·폭·기본 블록 연동·전투 후 배치·디버그 |
+| `QuestNavigator/Core.lua` | 모듈 활성화에 목록 표시 연결, `quest layout` 명령 분기 추가 |
+| `QuestNavigator/Settings.lua` | 기존 공통 설정 Builder로 목록 표시 설정 추가 |
+| `Bootstrap.lua` | KHQOL 버전 1.9.5 |
+| `KHQOL.toc` | 버전 1.9.5; 파일 로드 순서 및 SavedVariables 선언 유지 |
+| `QuestNavigator/README.md` | 이번 구현 보고서와 인게임 체크리스트 추가 |
+| `README.md` | 1.9.5 사용·설치 안내 추가, 이전 내용 보존 |
+| `CHANGELOG.md` | 1.9.5 변경 이력 추가, 이전 이력 보존 |
+
+`QuestNavigator/Arrow.lua`, `QuestNavigator/UI.lua`, 기존 Tracker의 길안내 본문과 다른 모듈·미디어는 기준본 바이트와 비교합니다. 비교 결과는 validation JSON과 manifest에 포함합니다.
+
+## 2. 추가 파일과 책임 분리
+
+애드온 내부에 신규 실행 파일이나 신규 TOC 항목을 추가하지 않았습니다. 기존 `Tracker.lua`에 표시 책임을 모아 두었습니다. 배포 ZIP 밖의 이 보고서·검증 JSON·파일 비교 manifest는 검토용 산출물입니다.
+
+## 3. 지역 판정
+
+`C_QuestLog.GetHeaderIndexForQuest(questID)` → `C_QuestLog.GetInfo(headerIndex)`의 실제 헤더 제목을 사용합니다. 현재 플레이어 지도, NPC 위치, 외부 DB를 사용하지 않습니다. 유효한 헤더가 없으면 마지막 `기타` 그룹으로 분류합니다. API의 `QuestInfo`에는 영속 헤더 ID가 없으므로 저장 키는 `header:<헤더명>`이며, 매번 바뀔 수 있는 로그 행 번호는 저장하지 않습니다.
+
+## 4. 추적 퀘스트 수집
+
+Forever의 `QuestObjectiveTracker:BuildQuestWatchInfos()`를 그대로 호출합니다. 이 함수는 `GetNumQuestWatches()` / `GetQuestIDForQuestWatchIndex()`로 Watch ID를 읽고, `QuestCache` 및 기본 `ShouldDisplayQuest()` 필터를 적용합니다. 전체 Quest Log를 순회하거나 헤더를 강제로 펼치지 않습니다. 캠페인·월드 퀘스트·보너스 목표 등 다른 기본 모듈 대상은 기존 분류를 따릅니다. 기존 Navigation이 사용하는 world-watch 포함 캐시와 목록 표시용 컬렉션은 분리되어 있습니다.
+
+## 5. 지역 순서
+
+현재 헤더 인덱스 오름차순으로 배치해 기본 Quest Log / Quest Map의 목록 순서를 따릅니다. 가나다순으로 바꾸지 않습니다. 같은 헤더명을 사용하는 항목은 하나의 그룹으로 묶고 가장 앞선 헤더 순서를 사용합니다. 판정 불가 그룹은 마지막에 둡니다.
+
+## 6. 레벨 순서
+
+Forever 지도 제목과 동일한 `QuestInfo.difficultyLevel`을 우선 사용하고, 없으면 `GetQuestDifficultyLevel()` 및 `info.level` 순으로 읽습니다. 지역 내부는 Level ASC → 원래 Watch index ASC입니다. 판정 불가 레벨은 뒤에 둡니다. 지역별 그룹화를 끄면 헤더 없이 추적 퀘스트 전체를 같은 레벨 정책으로 정렬합니다.
+
+## 7. Dungeon / Elite 판정과 제목
+
+`C_QuestLog.GetQuestTagInfo()`의 `tagID`를 실제 `Enum.QuestTag.Dungeon` / `Heroic` 값과 비교합니다. Raid나 제목 문자열에서 던전을 추측하지 않습니다. `C_QuestLog.IsEliteQuest()`로 정예를 판정합니다. 둘 다 해당하면 던전만 우선합니다. 던전 표시를 껐다고 던전·정예 퀘스트에 정예 태그를 대신 붙이지 않습니다.
+
+제목은 원본 `GetTitleForQuestID()`에서 `[레벨] [유형] 제목`으로 작성해 기본 레벨 접두어와 `+`를 중복하지 않습니다. 기본 `SetQuestTitleLevelAndDifficultyColor()` 결과의 색상 코드를 보존하고, 기본 블록의 hover/난이도 색상 정책을 사용합니다. 별도 난이도 색상표를 추가하지 않았습니다.
+
+## 8. Region Header / Collapse
+
+지역 헤더는 `ContentsFrame`의 독립 Button row이며 기본 퀘스트의 linked list, Quest ID, POI 및 퀘스트 메뉴 동작에 포함하지 않습니다. 헤더는 최대 동시 표시 지역 수만큼 재사용합니다. 기본 모듈의 공간 판정·블록 앵커 흐름에 헤더 높이와 간격을 반영하며, 접힌 지역은 Quest Block을 아예 배치하지 않습니다. 미사용 블록·아이템·목표 줄은 기본 풀로 반환됩니다. Quest Watch나 지도 헤더 상태는 변경하지 않습니다.
+
+모듈 전체를 끄면 기본 레이아웃·글꼴·블록 메서드를 복원합니다. 기본 추적기 내부 상태를 전역 mixin 수정으로 바꾸지 않고 `QuestObjectiveTracker` 인스턴스에만 연결합니다.
+
+## 9. Font Size
+
+첫 설정은 실행 중인 `ObjectiveTrackerLineFont:GetFont()` 크기를 읽습니다(소스 기본 한국어 크기 12). 제목·목표·dash에 기존 글꼴 파일과 flags를 유지해 설정 크기를 적용합니다. 줄 사이 간격도 크기에 따라 조절합니다. 크기는 기본 `SetStringText()`가 높이를 측정하기 전에 적용합니다. 제목은 최대 2줄 제한을 해제하고 전체 높이를 사용하며 HeaderButton의 기본 앵커가 클릭 영역을 따라갑니다. 풀 반환·모듈 OFF 시 기존 FontObject와 관련 속성을 복원합니다.
+
+## 10. Content Width / Wrapping
+
+첫 폭은 실행 중인 Quest Module 폭에서 기본 블록 왼쪽 여백을 뺀 실제 기본 폭으로 저장합니다(소스 기본 모듈 260 → 블록 240). UI에 기본 모듈이 아직 없으면 235를 임시 표시하며, 설치 시 실제 폭을 읽습니다. 설정 범위는 200~500입니다.
+
+`ObjectiveTrackerFrame`이나 다른 모듈 폭은 변경하지 않습니다. 퀘스트 블록만 고정 폭으로 만들고 오른쪽 끝을 유지하여 폭이 커지면 왼쪽으로 확장합니다. 기본 제목·목표 앵커의 실제 폭을 먼저 결정한 뒤, 기본 Text Height → Line Height → Block Height → 다음 Block → Module Height → Container Height 흐름을 재사용합니다. 진행률 막대는 기본 수치·동작을 유지하고, 좁은 폭에서는 오른쪽 장식과 아이템 여백 안에 들어가게 폭만 제한합니다.
+
+## 11. Quest Item Button / 전투
+
+기본 `AddRightEdgeFrame()` / `rightEdgeOffset`을 유지해 제목과 모든 목표 줄에서 아이템·그룹 버튼 폭을 확보합니다. 블록 높이는 오른쪽 버튼 높이와 여백보다 작아지지 않게 합니다. 기존 버튼의 cooldown, tooltip, 아이템 식별 정보와 클릭 구현을 교체하지 않습니다.
+
+보수적으로 전투 중에는 이 기능이 적용된 Quest Module의 재배치 전체를 보류하고 `PLAYER_REGEN_ENABLED` 후 기본 Dirty 흐름으로 다시 구성합니다. 설정·접힘 상태는 즉시 저장되지만 화면 적용은 전투 종료 후입니다. **이 보류에는 추적 목록·진행·완료 표시의 구조 갱신도 포함됩니다.** 전투 중 다른 추적 모듈은 기존 흐름을 유지하고, 기존 아이템 버튼의 자체 cooldown/tooltip 갱신은 남습니다. 기본 컨테이너나 게임 자체의 보호 동작까지 보장한 것은 아니므로 실제 taint 및 blocked action 검사가 필요합니다.
+
+## 12. SavedVariables
+
+기존 `KHQOLDB.modules.questNavigator` 안에 `questTracker`를 추가합니다.
+
+```lua
+questTracker = {
+  groupByRegion = true,
+  collapsibleRegions = true,
+  showDungeonTag = true,
+  showEliteTag = true,
+  fontSize = 12,       -- 최초 실행의 기본 글꼴에서 읽음
+  contentWidth = 240, -- 최초 실행의 기본 블록 폭에서 읽음
+  collapsedRegions = { ["header:은빛소나무 숲"] = true },
+}
+```
+
+기존 자동 선택·화살표·위치·반납 안내 설정을 초기화하지 않습니다. 별도 SavedVariables 전역을 추가하지 않았으며, 접힘 상태는 같은 DB에 저장되어 `/reload`·재접속 후 다시 읽습니다. 실제 클라이언트 저장·복원은 인게임 체크리스트 대상입니다.
+
+## 13. CPU / 메모리
+
+새 상시 OnUpdate / Quest Log polling / 타이머를 추가하지 않았습니다. 기본 추적기의 Quest Watch·Quest Log·POI·완료 이벤트, 설정 변경, 헤더 클릭, 전투 종료를 사용합니다. 다른 모듈만 Dirty이며 기존 퀘스트 배치를 그대로 사용할 수 있으면 수집·정렬을 생략합니다. 처리량은 추적 대상 W에 대해 수집 O(W), 정렬 O(W log W) 수준입니다. 헤더는 슬롯 재사용, 퀘스트·목표·아이템은 기본 풀을 사용합니다. 모의 반복 검사에서 접기·펼치기 50회와 Watch 변경 100회 동안 프레임 수가 반복마다 증가하지 않았습니다. 실제 장시간 게임 메모리 측정은 하지 않았습니다.
+
+## 14. 정적·모의 검증 결과
+
+- STATIC CHECK: PASS
+- Lua 5.1 문법: 전체 55개 파일 PASS
+- TOC: 51개 로드 파일 존재 PASS
+- 실제 Forever 기본 Block / Module / QuestObjectiveTracker Lua를 실행한 모의 검증: 55개 PASS
+- 지역 순서, 안정 정렬, Watch 필터, 캠페인 제외, 태그 우선순위·난이도 색상, 접힘 공간 제외, native completion 상태, 글씨·폭 재측정, 아이템 여백, 진행률 막대 폭, 풀 재사용, 변경 없는 Dirty 배치 생략, 전투 보류·복원, 기본 메서드 복원, 기존 설정 보존을 검사했습니다.
+- 화면 렌더링, 실제 UI 상호작용, secure/taint, 실제 아이템 사용, `/reload`·재접속은 실행하지 않았습니다.
+- `KHQOL-1.9.5-validation.json`에 검사 목록, `KHQOL-1.9.5-manifest.json`에 ZIP 해시와 기준본 대비 파일별 변경/보존 결과를 기록합니다.
+
+## 15. 실제 Forever에서 반드시 확인할 항목
+
+1. 지역 헤더가 기본 Objective Tracker의 높이 제한·전체 접기·Edit Mode·퀘스트 추가 팝업·완료 애니메이션과 공존하는지.
+2. 아이템이 있는 퀘스트를 전투 중 추적/해제·완료·포기하고 설정/지역 접힘도 변경했을 때, 종료 후 배치와 아이템 대상이 정확하며 blocked action/taint가 없는지.
+3. 한국어 긴 제목·목표, Font 10/20, Width 200/500, UI Scale·추적기 배율별 잘림·겹침 여부.
+4. 오른쪽 끝을 유지하는 폭 조절이 사용자의 추적기 위치에서 다른 UI와 겹치지 않는지.
+5. 재접속 저장, 퀘스트 좌/우클릭·링크·공유·상세·지도·수동 Navigation 선택 유지 여부.
+
+## 16. 인게임 테스트 체크리스트
+
+아래 모든 항목의 상태는 **NEEDS TEST**입니다.
+
+- [ ] 1. 서로 다른 3개 Quest Log 지역의 추적 퀘스트가 3개 그룹으로 표시됨
+- [ ] 2. 같은 지역 18/12/15 레벨이 12/15/18로 표시됨
+- [ ] 3. 같은 레벨은 원래 Quest Watch 순서를 유지함
+- [ ] 4. 지역 헤더 클릭으로 접힘
+- [ ] 5. 접힌 지역의 퀘스트가 배치 공간을 차지하지 않음
+- [ ] 6. 다시 클릭하면 정상 펼침
+- [ ] 7. `/reload` 및 재접속 후 지역 접힘 유지; 지도 헤더와 독립
+- [ ] 8. 전투 밖 추적 해제 시 다음 기본 Dirty 갱신에서 즉시 제거됨
+- [ ] 9. 새 추적 퀘스트가 올바른 지역·레벨 위치에 삽입됨
+- [ ] 10. 일반 퀘스트가 `[16] 제목` 형식으로 표시됨
+- [ ] 11. 정예 퀘스트가 `[15] [정예] 제목` 형식으로 표시됨
+- [ ] 12. 던전 퀘스트가 `[15] [던전] 제목` 형식으로 표시됨
+- [ ] 13. 던전+정예는 던전 태그만 표시하며 태그 옵션도 적용됨
+- [ ] 14. 글씨 증가 시 제목·목표·전체 높이가 늘고 겹치지 않음
+- [ ] 15. 글씨 감소 시 배치 높이가 줄어듦
+- [ ] 16. 폭 증가 시 줄바꿈이 감소하고 다음 블록 위치가 재계산됨
+- [ ] 17. 폭 감소 시 줄바꿈이 증가하고 잘리지 않음
+- [ ] 18. 아이템 버튼·HotKey·목표·진행률 막대 겹침 및 잘림 없음
+- [ ] 19. 제목 좌클릭·Modified Click·퀘스트 링크·상세·지도 동작 유지
+- [ ] 20. 제목 우클릭 메뉴·추적 해제·공유 동작 유지
+- [ ] 21. 전투 밖 목표 진행이 기본 이벤트로 갱신되며, 전투 중 보류분은 종료 후 반영됨
+- [ ] 22. 완료·Ready for Turn-In·Completion/Waypoint Text 정상 표시
+- [ ] 23. 반납 후 목록 정리 및 기존 반납/자동 Navigation 동작 유지
+- [ ] 24. 업적·시나리오·캠페인·보너스·월드 퀘스트·전문기술 추적과 다른 KHQOL 모듈 유지
+- [ ] 25. 전투 중 아이템 사용·cooldown·tooltip 유지, 변경 보류 및 종료 후 적용, blocked action/taint 없음
+- [ ] 26. 추적 추가/제거·접기/펼치기 장시간 반복 시 프레임/메모리 지속 누적 없음
+
+## 설치
+
+ZIP 내부 `KHQOL` 폴더를 기존 애드온 폴더에 덮어쓰고 `/reload`하세요. SavedVariables를 삭제할 필요가 없습니다. Quest Navigator 모듈을 켜야 목록 표시 개선이 적용됩니다. 모듈 OFF 시 기본 추적기로 돌아갑니다.
+
+## 확인한 Forever 공개 UI 소스
+
+참조 브랜치: `forever`, 커밋 `15666a6e67938a1ab5caf041406464251db111ca`, 버전 `1.60.1.70245`. 최신 Retail 브랜치를 기준으로 구현하지 않았습니다. 공개 소스를 읽어 기존 API·배치에 맞춰 연결했으며 Blizzard 런타임 소스를 애드온 ZIP에 복사해 넣지 않았습니다.
+
+- [Quest Log API / QuestInfo 구조](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_APIDocumentationGenerated/QuestLogDocumentation.lua)
+- [기본 Quest Objective Tracker](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_QuestObjectiveTracker.lua)
+- [기본 Module의 높이·블록·풀·배치](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerModule.lua)
+- [기본 Block의 글씨 측정·아이템 여백](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerBlock.lua)
+- [Forever 지도 레벨·정예 제목](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_UIPanels_Game/Camelot/QuestMapFrameOverrides.lua)
+- [기존 레벨·난이도 색상 함수](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_FrameXMLUtil/Mainline/DifficultyUtil.lua)
+
+
+---
+
 # KHQOL 1.9.3 — 추적 퀘스트 후보 제한 / 완료 후 동작 선택
 
 2026-10-07 · Quest Navigator v0.2.0
