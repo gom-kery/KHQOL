@@ -14,6 +14,7 @@ Threat.defaults = {
   displayMode="percent", percentDisplayVersion=1, fontSize=15,
   colorByStatus=true, soloPetEnabled=true, locked=true,
   showTargetName=true, showThreatHint=true,
+  iconEnabled=true, iconSize=18, iconPosition="LEFT", showCautionIcon=false,
   position={point="CENTER",relativePoint="CENTER",x=0,y=-120},
 }
 local function readable(value)
@@ -64,6 +65,9 @@ end
 function Threat:GetDB()
   local db=KHQOL.db.modules.threat
   if type(db)~="table" then db={}; KHQOL.db.modules.threat=db end
+  -- Seed a missing independent size once from the previously displayed font
+  -- size. Fresh profiles use 18; an explicit saved icon size is never replaced.
+  local oldIconSize,oldFontSize=db.iconSize,number(db.fontSize)
   -- Migrate the existing cumulative-number HUD once. Capture the marker before
   -- default merging so missing fields do not disguise an older installation.
   local migrate=db.percentDisplayVersion~=1
@@ -71,6 +75,9 @@ function Threat:GetDB()
   if migrate then db.displayMode="percent"; db.percentDisplayVersion=1 end
   if not MODES[db.displayMode] then db.displayMode="percent" end
   db.fontSize=clamp(db.fontSize,10,24,15)
+  if oldIconSize==nil and oldFontSize then db.iconSize=oldFontSize end
+  db.iconSize=math.floor(clamp(db.iconSize,12,32,18)+.5)
+  if db.iconPosition~="LEFT" and db.iconPosition~="TOP" then db.iconPosition="LEFT" end
   local p=db.position
   if not POINTS[p.point] then p.point="CENTER" end
   if not POINTS[p.relativePoint] then p.relativePoint="CENTER" end
@@ -167,10 +174,11 @@ function Threat:Color(info)
   return 1,1,1
 end
 function Threat:IconPath(info)
+  if not self.db.iconEnabled then return end
   if info.isTanking==true or info.status==2 or info.status==3 then return ICONS.aggro end
   local risk=self:Risk(info)
   if risk and risk>=2 then return ICONS.danger end
-  if risk==1 then return ICONS.caution end
+  if risk==1 and self.db.showCautionIcon then return ICONS.caution end
 end
 -- A single, non-secure HUD owned by UIParent. No nameplate frame is consulted
 -- or altered, so another addon can replace/hide its own bars independently.
@@ -224,9 +232,26 @@ function Threat:ApplyLayout()
   self.text:SetFont(font,self.db.fontSize,"OUTLINE")
   self.nameText:SetFont(font,12,"OUTLINE"); self.hint:SetFont(font,11,"OUTLINE")
   self.previewText:SetFont(font,11,"OUTLINE")
-  self.icon:SetSize(self.db.fontSize,self.db.fontSize)
+  self.icon:SetSize(self.db.iconSize,self.db.iconSize)
   self.icon:ClearAllPoints()
-  self.icon:SetPoint("RIGHT",self.text,"LEFT",-math.max(2,math.floor(self.db.fontSize*.2+.5)),0)
+  self.nameText:ClearAllPoints()
+  local gap=math.max(2,math.floor(self.db.iconSize*.2+.5))
+  if self.db.iconEnabled and self.db.iconPosition=="TOP" then
+    self.icon:SetPoint("BOTTOM",self.text,"TOP",0,gap)
+    -- Reserve the upper lane even while the alert is hidden. The number and
+    -- name must not jump or collide when the risk changes during polling.
+    self.nameText:SetPoint("BOTTOM",self.icon,"TOP",0,6)
+    local top=self.db.fontSize/2+gap+self.db.iconSize+(self.db.showTargetName and 20 or 0)+8
+    self.root:SetHeight(math.max(88,top*2))
+  else
+    self.icon:SetPoint("RIGHT",self.text,"LEFT",-gap,0)
+    self.root:SetHeight(88)
+    self.nameText:SetPoint("TOP",self.root,"TOP",0,-8)
+  end
+  -- Keep the existing lower message/preview positions when the upper lane
+  -- expands. The selected text's center and saved HUD coordinates are fixed.
+  self.hint:ClearAllPoints(); self.hint:SetPoint("BOTTOM",self.root,"CENTER",0,-36)
+  self.previewText:ClearAllPoints(); self.previewText:SetPoint("BOTTOM",self.root,"CENTER",0,-52)
   self.anchor:SetShown(self:IsEnabled() and not self.db.locked)
 end
 function Threat:RefreshControls()
@@ -356,6 +381,7 @@ function Threat:PrintStatus()
   printLine("In Group: "..yn(self.inGroup).." / In Raid: "..yn(self.inRaid).." / Class: "..self.class.." / Pet: "..yn(self.pet))
   printLine("Active: "..yn(self.active).." / Combat: "..yn(self.combat).." / Hostile Target: "..yn(self:SelectedUnit()).." / Ticker: "..(self.ticker and "RUNNING" or "STOPPED"))
   printLine("API: Detailed="..yn(self.detailAPI)..", Status="..yn(type(UnitThreatSituation)=="function")..", Ticker="..yn(self.timerAPI))
+  printLine(string.format("Icon: %s / Size=%d / Position=%s / Caution=%s",yn(self.db.iconEnabled),self.db.iconSize,self.db.iconPosition,yn(self.db.showCautionIcon)))
   local p=self.db.position
   printLine(string.format("Position: %s / X=%.0f / Y=%.0f / Locked=%s / Test=%s",p.point,p.x,p.y,yn(self.db.locked),yn(self.testing)))
   printLine("DisplayReason: "..(self.hiddenReason or "UNKNOWN"))
@@ -379,7 +405,12 @@ function Threat:HandleCommand(message)
   local command=(message or ""):lower():match("^%s*threat%s+(%S+)")
   if not command then KHQOL:OpenModule("threat")
   elseif command=="status" then self:PrintStatus()
-  elseif command=="test" then self:ToggleTest()
+  elseif command=="test" then
+    local argument=(message or ""):lower():match("^%s*threat%s+test%s+(%S+)")
+    if argument then
+      local level=tonumber(argument)
+      if not level or not self:TestStatus(level) then printLine("모듈을 켠 상태에서 /khqol threat test [0|1|2|3]을 사용하세요.") end
+    else self:ToggleTest() end
   elseif command=="unlock" then self.db.locked=false; self:Changed(); self:RefreshControls()
   elseif command=="lock" then self.db.locked=true; self:Changed(); self:RefreshControls()
   elseif command=="reset" then self:ResetPosition(); self:RefreshControls()
@@ -393,9 +424,12 @@ function Threat:ToggleTest()
   self.testing=not self.testing; self:RefreshLoop()
 end
 function Threat:TestStatus(s)
+  s=number(s)
+  if not self:IsEnabled() or not s or s>3 or s~=math.floor(s) then return false end
   self.testInfo.testLevel=s; self.testInfo.status=s==3 and 3 or 0; self.testInfo.isTanking=s==3
   self.testInfo.percent=({35,78,95,100})[s+1]
   self.testing=true; self:RefreshLoop()
+  return true
 end
 function Threat:StopTest() self.testing=false end
 
@@ -423,9 +457,14 @@ function Threat:BuildSettings(content,y)
   b:Checkbox("어그로 위험도 색상",function() return db.colorByStatus end,function(v) change("colorByStatus",v) end)
   b:Checkbox("대상명 표시",function() return db.showTargetName end,function(v) change("showTargetName",v) end)
   b:Checkbox("하단 어그로 안내 표시",function() return db.showThreatHint end,function(v) change("showThreatHint",v) end)
-  b:Description("주의·위험·어그로 보유 아이콘을 수치 왼쪽에 표시합니다. 아이콘 크기는 글씨 크기에 맞춰집니다.")
   b:Description("100%는 어그로 전환 기준입니다. 70%부터 주의(노랑), 90%부터 위험(주황), 어그로 보유 중은 빨강입니다.")
   b:Description("70%와 90%는 안내 구간입니다. 게임의 전환 비율을 확인할 수 없으면 퍼센트 표시를 숨깁니다.")
+  b:Section("위협 수준 알림")
+  b:Checkbox("위협 아이콘 표시",function() return db.iconEnabled end,function(v) change("iconEnabled",v) end)
+  b:Checkbox("주의 단계에서도 아이콘 표시",function() return db.showCautionIcon end,function(v) change("showCautionIcon",v) end,function() return db.iconEnabled end)
+  b:Slider("아이콘 크기",12,32,1,function() return db.iconSize end,function(v) change("iconSize",v) end,function(v) return v.." px" end,function() return db.iconEnabled end)
+  b:Dropdown("아이콘 위치",{{value="LEFT",text="수치 앞"},{value="TOP",text="수치 위"}},function() return db.iconPosition end,function(v) change("iconPosition",v) end,function() return db.iconEnabled end)
+  b:Description("기본은 위험 + 어그로 보유 단계입니다. 주의 단계는 선택할 수 있으며, 여유 단계에서는 아이콘을 숨깁니다.")
   b:Section("솔로 표시")
   b:Flush()
   KHQOL.UI:CreateCheckbox(content,"사냥꾼 / 흑마법사 + 소환수 보유 시 활성",0,b.y,function() return db.soloPetEnabled end,function(v) change("soloPetEnabled",v) end)
@@ -436,7 +475,7 @@ function Threat:BuildSettings(content,y)
   b:Button("현재 상태 출력",function() self:PrintStatus() end)
   for s=0,3 do
     local testStatus=s
-    b:Button(({"여유","주의","위험","어그로 보유"})[s+1].." 색상 테스트",function() self:TestStatus(testStatus) end)
+    b:Button(({"여유","주의","위험","어그로 보유"})[s+1].." 표시 테스트",function() self:TestStatus(testStatus) end)
   end
   b:Description("테스트는 실제 표시 위치에 가상 데이터를 띄웁니다. 테스트 중 실제 Threat 조회와 반복 갱신은 중지합니다.")
   b:Description("퍼센트는 게임의 어그로 전환 기준 대비 비율입니다. 진단: /khqol threat debug. 누적 수치는 API 원시 단위입니다.")
