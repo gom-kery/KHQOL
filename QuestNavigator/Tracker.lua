@@ -5,6 +5,38 @@ local QN=KHQOL.modules.questNavigator
 local trackerDefaults={groupByRegion=true,collapsibleRegions=true,showDungeonTag=true,
   showEliteTag=true,collapsedRegions={},contentWidth=0}
 local function inCombat() return QN.IsTrue(QN.Call(InCombatLockdown)) end
+function QN:RefreshObjectiveQuestCount()
+  local frame=ObjectiveTrackerFrame
+  local text=frame and frame.Header and frame.Header.Text
+  if not text then return end
+  if not self.trackerEnabled then
+    if self.trackerQuestCountLabel and text:GetText()==self.trackerQuestCountLabel then
+      text:SetText(frame.headerText or self.trackerQuestCountBase)
+    end
+    self.trackerQuestCountLabel=nil
+    return
+  end
+  if self.questCountHeaderFrame~=frame then
+    self.questCountHeaderFrame=frame
+    self.trackerQuestCountBase=frame.headerText or text:GetText()
+    -- The native container can initialize/reset its label after ADDON_LOADED.
+    -- Hook only this frame, preserving its update, buttons, size and font behavior.
+    if type(frame.Update)=="function" and type(hooksecurefunc)=="function" then
+      hooksecurefunc(frame,"Update",function() self:RefreshObjectiveQuestCount() end)
+    end
+  end
+  local base=frame.headerText or self.trackerQuestCountBase
+  if not QN.IsText(base) or base=="" then return end
+  -- Same values as Camelot QuestLogQuests_ShowQuestCount; first return counts headers too.
+  local _,count=QN.Call(C_QuestLog and C_QuestLog.GetNumQuestLogEntries)
+  local maximum=Constants and Constants.QuestLogConsts and Constants.QuestLogConsts.MAXIMUM_NUM_QUESTS_LOG_CAN_ACCEPT
+  local label=base
+  if QN.IsNumber(count) and count>=0 and count%1==0 and QN.IsID(maximum) then
+    label=string.format("%s ( %d / %d )",base,count,maximum)
+  end
+  if text:GetText()~=label then text:SetText(label) end
+  self.trackerQuestCountLabel=label
+end
 function QN:GetTrackerDB()
   local db=self:GetDB()
   if type(db.questTracker)~="table" then db.questTracker={} end
@@ -320,13 +352,21 @@ function QN:SetObjectiveTrackerEnabled(enabled)
   if not self.trackerEvents then
     local frame=CreateFrame("Frame"); self.trackerEvents=frame
     frame:RegisterEvent("ADDON_LOADED"); frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    for _,event in ipairs({"PLAYER_ENTERING_WORLD","QUEST_LOG_UPDATE","QUEST_ACCEPTED","QUEST_REMOVED","QUEST_TURNED_IN"}) do
+      frame:RegisterEvent(event)
+    end
     frame:SetScript("OnEvent",function(_,event,name)
-      if event=="ADDON_LOADED" and name~="Blizzard_ObjectiveTracker" then return end
-      if event=="PLAYER_REGEN_ENABLED" and not self.trackerPending then return end
-      self:RequestTrackerLayout()
+      if event=="ADDON_LOADED" then
+        if name~="Blizzard_ObjectiveTracker" then return end
+        self:RequestTrackerLayout()
+      elseif event=="PLAYER_REGEN_ENABLED" and self.trackerPending then
+        self:RequestTrackerLayout()
+      end
+      self:RefreshObjectiveQuestCount()
     end)
   end
   self:RequestTrackerLayout()
+  self:RefreshObjectiveQuestCount()
 end
 function QN:PrintTrackerLayout()
   self:GetTrackerDB(); self:InstallObjectiveTracker()

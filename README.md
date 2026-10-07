@@ -1,3 +1,48 @@
+# KHQOL 1.9.5.7 — 모든 목표에 전체 퀘스트 수 표시
+
+기준본: 사용자 제공 최신 `KHQOL-1.9.5.6.zip`.
+
+목표 추적기의 상단 제목을 `모든 목표 ( 34 / 40 )` 형식으로 표시합니다. 수치는 추적 중인 목록 개수가 아니라 **현재 수락한 전체 퀘스트 수**입니다. 별도 설정은 추가하지 않았으며 Quest Navigator 모듈을 켜면 적용됩니다.
+
+기본 지도 및 퀘스트 목록의 Forever 구현과 같이 `C_QuestLog.GetNumQuestLogEntries()`의 두 번째 반환값(퀘스트 수)과 `Constants.QuestLogConsts.MAXIMUM_NUM_QUESTS_LOG_CAN_ACCEPT`(현재 40)를 사용합니다. 헤더까지 포함하는 첫 번째 반환값이나 Quest Watch 개수는 사용하지 않습니다. 게임 상한이 바뀌면 게임이 제공하는 상한을 따릅니다.
+
+수락·포기·반납·Quest Log 변경·접속 시 이벤트로 갱신합니다. 기본 추적기가 제목을 다시 설정해도 수치가 붙도록 해당 프레임의 Update에 후처리를 연결합니다. 숫자가 같으면 텍스트를 다시 설정하지 않으며 상시 polling·새 UI 프레임·저장 설정을 추가하지 않았습니다. 퀘스트 API를 읽지 못하면 기본 제목만 표시합니다.
+
+기존 상단 제목 FontString에 텍스트만 추가해 글꼴·색상·너비·접기 버튼·다른 추적 모듈 배치를 유지합니다. 전투 중에도 수치 텍스트만 갱신하고 퀘스트 블록·아이템 버튼은 재배치하지 않습니다. 모듈을 끄면 기본 제목을 복원합니다.
+
+## 변경 파일
+
+- `QuestNavigator/Tracker.lua`: 상단 퀘스트 수 집계·표시, 기본 제목 갱신 후처리와 이벤트 연결.
+- `Bootstrap.lua`, `KHQOL.toc`: 버전 1.9.5.7.
+- `README.md`, `CHANGELOG.md`, `QuestNavigator/README.md`: 이번 변경 안내 추가, 이전 기록 유지.
+
+1.9.5.6의 인스턴스 역할별 위협 설정, 95% 음성, 미니맵 아이콘, 길안내·화살표, 지역 헤더·유형 기호와 기타 코드·미디어는 기준 ZIP과 바이트 비교하여 보존합니다. SavedVariables를 초기화하거나 변경하지 않습니다.
+
+## 검증
+
+**STATIC CHECK: PASS** — 기존 퀘스트 추적기 모의 회귀 55개와 퀘스트 수 연동 검사 13개(총 68개), 전체 Lua 55개 Lua 5.1 문법·TOC 확인. ZIP 무결성 및 기준본 파일 보존 검사를 수행했습니다. 이번 작업에서 이전 Threat 모듈의 397개 검사를 다시 실행했다고 보고하지 않습니다.
+
+**IN-GAME: NEEDS TEST** — 실제 Forever 클라이언트는 실행하지 않았습니다. 제목의 실제 글꼴 배율별 표시, 보호 동작은 게임에서 확인해야 합니다.
+
+- [ ] 기본 지도 오른쪽 상단 수치가 34/40이면 `모든 목표 ( 34 / 40 )`로 표시됨.
+- [ ] 퀘스트 수락 시 증가, 포기·반납 시 감소, 진행 목표 달성만으로는 감소하지 않음.
+- [ ] 추적 해제·지역 접기와 관계없이 전체 수락 개수를 유지함.
+- [ ] 추적기 전체 접기·펼치기, 지도 열기·닫기, `/reload` 후 수치 유지.
+- [ ] UI 배율과 기본 추적기 글씨 크기를 바꿔도 제목·숫자·접기 버튼이 겹치지 않음.
+- [ ] 전투 중 수치 갱신 시 기존 아이템 사용·보호 동작에 오류가 없음.
+- [ ] Quest Navigator OFF 시 기본 `모든 목표` 제목으로 복원됨.
+
+## 설치
+
+ZIP 내부 `KHQOL` 폴더를 기존 애드온 폴더에 덮어쓰고 `/reload`하세요. SavedVariables 삭제는 필요하지 않습니다.
+
+## 확인한 기본 UI 소스
+
+- [Forever 지도 및 퀘스트 목록의 집계](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_UIPanels_Game/Camelot/QuestMapFrameUtils.lua)
+- [기본 상단 제목·갱신](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTracker.lua)
+
+---
+
 # KHQOL 1.9.5.6 — 인스턴스 역할별 위협 표시
 
 1.9.5.5에 던전·레이드 역할별 위협 표시와 음성 사용 설정을 추가했습니다.
