@@ -10,6 +10,7 @@ local ICONS = {
   aggro="Interface\\AddOns\\KHQOL\\Media\\threat-aggro-red",
 }
 local MODES = {value=true, percent=true, both=true}
+local ROLE_KEYS = {TANK="instanceTankEnabled", DAMAGER="instanceDamageEnabled", HEALER="instanceHealerEnabled"}
 local POINTS = {CENTER=true,TOP=true,BOTTOM=true,LEFT=true,RIGHT=true,TOPLEFT=true,TOPRIGHT=true,BOTTOMLEFT=true,BOTTOMRIGHT=true}
 
 Threat.defaults = {
@@ -18,6 +19,8 @@ Threat.defaults = {
   showTargetName=true, showThreatHint=true,
   iconEnabled=true, iconSize=18, iconPosition="LEFT", showCautionIcon=false,
   aggroSoundEnabled=true,
+  instanceTankEnabled=false, instanceDamageEnabled=true, instanceHealerEnabled=true,
+  instanceRole="AUTO",
   position={point="CENTER",relativePoint="CENTER",x=0,y=-120},
 }
 local function readable(value)
@@ -81,6 +84,7 @@ function Threat:GetDB()
   if oldIconSize==nil and oldFontSize then db.iconSize=oldFontSize end
   db.iconSize=math.floor(clamp(db.iconSize,12,32,18)+.5)
   if db.iconPosition~="LEFT" and db.iconPosition~="TOP" then db.iconPosition="LEFT" end
+  if db.instanceRole~="AUTO" and not ROLE_KEYS[db.instanceRole] then db.instanceRole="AUTO" end
   local p=db.position
   if not POINTS[p.point] then p.point="CENTER" end
   if not POINTS[p.relativePoint] then p.relativePoint="CENTER" end
@@ -105,6 +109,47 @@ function Threat:Eligible()
   self.pet=yes(UnitExists,"pet")
   local validPet=self.pet and not yes(UnitIsDeadOrGhost,"pet")
   return self.inGroup or (self.db.soloPetEnabled and validPet and (class=="HUNTER" or class=="WARLOCK")) or false
+end
+function Threat:ResolveRole()
+  if ROLE_KEYS[self.db.instanceRole] then return self.db.instanceRole,"MANUAL" end
+  local role=call(UnitGroupRolesAssigned,"player")
+  if type(role)=="string" and ROLE_KEYS[role] then return role,"GROUP" end
+  -- An unassigned party role may still be resolved from the active spec.
+  -- Guard both older globals and the modern namespace used by some clients.
+  local api=type(C_SpecializationInfo)=="table" and C_SpecializationInfo or nil
+  local spec=number(call(GetSpecialization or (api and api.GetSpecialization)))
+  if spec and spec>=1 and spec==math.floor(spec) then
+    role=call(GetSpecializationRole,spec)
+    if type(role)=="string" and ROLE_KEYS[role] then return role,"SPEC" end
+    local getInfo=GetSpecializationInfo or (api and api.GetSpecializationInfo)
+    if type(getInfo)=="function" then
+      local ok,_,_,_,_,specRole=pcall(getInfo,spec)
+      if ok and readable(specRole) and type(specRole)=="string" and ROLE_KEYS[specRole] then return specRole,"SPEC" end
+    end
+  end
+  return "NONE","UNKNOWN"
+end
+function Threat:RefreshRoleFilter()
+  local previousRole,previousType=self.playerRole,self.instanceType
+  self.instanceType="none"
+  if type(IsInInstance)=="function" then
+    local ok,inside,kind=pcall(IsInInstance)
+    if ok and readable(inside) and inside==true and readable(kind) and type(kind)=="string" then self.instanceType=kind end
+  end
+  self.inRoleInstance=self.instanceType=="party" or self.instanceType=="raid"
+  self.playerRole,self.roleSource=self:ResolveRole()
+  self.roleAllowed=true
+  if self.inRoleInstance then
+    local key=ROLE_KEYS[self.playerRole]
+    if key then self.roleAllowed=self.db[key]==true
+    else
+      -- With every role selected there is no filter. Otherwise an unknown
+      -- role must not accidentally enable a tank's alerts as a guessed DPS.
+      self.roleAllowed=self.db.instanceTankEnabled and self.db.instanceDamageEnabled and self.db.instanceHealerEnabled
+    end
+  end
+  if previousRole~=self.playerRole or previousType~=self.instanceType then self:ResetAggroAlert() end
+  self.active=self:IsEnabled() and self.inWorld and self.eligible and self.detailAPI and self.roleAllowed or false
 end
 function Threat:IsHostileNPC(unit)
   if not yes(UnitExists,unit) then return false,"NO_TARGET" end
@@ -349,6 +394,7 @@ function Threat:UpdateHUD()
   end
   local unit,reason=self:SelectedUnit()
   if not self.eligible then self.hiddenReason="GROUP_OR_PET_REQUIRED"
+  elseif not self.roleAllowed then self.hiddenReason=self.playerRole=="NONE" and "INSTANCE_ROLE_UNKNOWN" or "INSTANCE_ROLE_DISABLED"
   elseif not self.detailAPI then self.hiddenReason="THREAT_API_UNAVAILABLE"
   elseif not self.combat then self.hiddenReason="OUT_OF_COMBAT"
   elseif not unit then self.hiddenReason=reason
@@ -371,17 +417,18 @@ function Threat:StopTicker()
   if self.ticker then self.ticker:Cancel(); self.ticker=nil end
 end
 function Threat:Tick()
+  self:RefreshRoleFilter()
   if not self:ShouldPoll() then self:StopTicker(); self:UpdateHUD(); return end
   self:UpdateHUD()
 end
 function Threat:RefreshLoop()
+  self:RefreshRoleFilter()
   if not self:ShouldPoll() then self:StopTicker(); self:UpdateHUD(); return end
   self:UpdateHUD()
   if self.timerAPI and not self.ticker then self.ticker=C_Timer.NewTicker(INTERVAL,function() self:Tick() end) end
 end
 function Threat:RefreshState()
   self:Capabilities(); self.eligible=self:Eligible()
-  self.active=self:IsEnabled() and self.inWorld and self.eligible and self.detailAPI or false
   self:RefreshLoop()
 end
 function Threat:Changed()
@@ -415,6 +462,8 @@ function Threat:PrintStatus()
   printLine("API: Detailed="..yn(self.detailAPI)..", Status="..yn(type(UnitThreatSituation)=="function")..", Ticker="..yn(self.timerAPI))
   printLine(string.format("Icon: %s / Size=%d / Position=%s / Caution=%s",yn(self.db.iconEnabled),self.db.iconSize,self.db.iconPosition,yn(self.db.showCautionIcon)))
   printLine("Aggro Voice: "..yn(self.db.aggroSoundEnabled).." / Threshold: "..AGGRO_SOUND_THRESHOLD.."% / Channel: Dialog (WoW dialogue volume)")
+  printLine("Instance: "..self.instanceType.." / Role: "..self.playerRole.." ("..self.roleSource..") / Role Allowed: "..yn(self.roleAllowed))
+  printLine("Instance Roles: TANK="..yn(self.db.instanceTankEnabled)..", DAMAGER="..yn(self.db.instanceDamageEnabled)..", HEALER="..yn(self.db.instanceHealerEnabled))
   local p=self.db.position
   printLine(string.format("Position: %s / X=%.0f / Y=%.0f / Locked=%s / Test=%s",p.point,p.x,p.y,yn(self.db.locked),yn(self.testing)))
   printLine("DisplayReason: "..(self.hiddenReason or "UNKNOWN"))
@@ -492,6 +541,20 @@ function Threat:BuildSettings(content,y)
   b:Checkbox("하단 어그로 안내 표시",function() return db.showThreatHint end,function(v) change("showThreatHint",v) end)
   b:Description("100%는 어그로 전환 기준입니다. 70%부터 주의(노랑), 90%부터 위험(주황), 어그로 보유 중은 빨강입니다.")
   b:Description("70%와 90%는 안내 구간입니다. 게임의 전환 비율을 확인할 수 없으면 퍼센트 표시를 숨깁니다.")
+  b:Section("인스턴스 내 위협 수치 설정")
+  local function roleCheckbox(title,key)
+    local theme=KHQOL.UI.Theme
+    local x,y,width=b:Cell("instance-role",3,theme.RowHeight+theme.RowGap)
+    local control=KHQOL.UI:CreateCheckbox(content,title,x,y,function() return db[key] end,function(v) change(key,v) end)
+    control.text:SetWidth(width-theme.CheckboxSize-theme.CheckboxLabelGap)
+  end
+  roleCheckbox("탱","instanceTankEnabled")
+  roleCheckbox("딜","instanceDamageEnabled")
+  roleCheckbox("힐","instanceHealerEnabled")
+  b:Description("던전·레이드에서 체크한 역할일 때만 위협 수치·아이콘·음성을 사용합니다. 기본은 탱 OFF, 딜·힐 ON입니다.")
+  b:Dropdown("역할 판정",{{value="AUTO",text="자동 (파티 역할 / 전문화)"},{value="TANK",text="탱"},{value="DAMAGER",text="딜"},{value="HEALER",text="힐"}},function() return db.instanceRole end,function(v) change("instanceRole",v) end)
+  b:Description("자동 인식이 안 되면 역할을 직접 선택하세요. 역할 미확인 시에는 숨기며, 세 역할을 모두 체크하면 표시합니다.")
+  b:Description("필드의 기존 표시 조건은 유지합니다. 위치 미리보기와 가상 테스트는 역할 설정과 관계없이 사용할 수 있습니다.")
   b:Section("위협 수준 알림")
   b:Checkbox("위협 아이콘 표시",function() return db.iconEnabled end,function(v) change("iconEnabled",v) end)
   b:Checkbox("주의 단계에서도 아이콘 표시",function() return db.showCautionIcon end,function(v) change("showCautionIcon",v) end,function() return db.iconEnabled end)
@@ -532,6 +595,7 @@ function Threat:OnEvent(event,unit)
     self:ResetAggroAlert()
     self.inWorld=true; self.combat=yes(UnitAffectingCombat,"player"); self:RefreshState()
   elseif event=="GROUP_ROSTER_UPDATE" or event=="UNIT_PET" or (event=="UNIT_FLAGS" and unit=="pet") then self:RefreshState()
+  elseif event=="PLAYER_ROLES_ASSIGNED" or event=="ROLE_CHANGED_INFORM" or event=="PLAYER_SPECIALIZATION_CHANGED" or event=="ACTIVE_TALENT_GROUP_CHANGED" or event=="PLAYER_TALENT_UPDATE" or event=="ZONE_CHANGED_NEW_AREA" then self:RefreshState()
   elseif event=="PLAYER_TARGET_CHANGED" then
     self:ResetAggroAlert()
     if self.debug then self:DebugSnapshot() end
@@ -544,7 +608,7 @@ function Threat:Initialize()
   self.initialized=true; self.inWorld=true; self:GetDB(); self:CreateFrames(); self:ApplyLayout()
   self.combat=yes(UnitAffectingCombat,"player")
   local frame=CreateFrame("Frame"); self.events=frame
-  for _,event in ipairs({"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","GROUP_ROSTER_UPDATE","UNIT_PET","UNIT_FLAGS","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","UNIT_FACTION","PLAYER_TARGET_CHANGED"}) do
+  for _,event in ipairs({"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","GROUP_ROSTER_UPDATE","UNIT_PET","UNIT_FLAGS","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","UNIT_FACTION","PLAYER_TARGET_CHANGED","PLAYER_ROLES_ASSIGNED","ROLE_CHANGED_INFORM","PLAYER_SPECIALIZATION_CHANGED","ACTIVE_TALENT_GROUP_CHANGED","PLAYER_TALENT_UPDATE","ZONE_CHANGED_NEW_AREA"}) do
     pcall(frame.RegisterEvent,frame,event)
   end
   frame:SetScript("OnEvent",function(_,event,unit) self:OnEvent(event,unit) end)
