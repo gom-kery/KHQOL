@@ -1,0 +1,60 @@
+## Interface: 16001
+## Title: KHQOL
+## Notes: Unified quality-of-life settings for WoW Forever.
+## Author: KHQOL
+## Version: 1.9.1
+## SavedVariables: KHQOLDB, ForeverClockDB, ForeverBuffReminderDB, ForeverWeaponGuideDB, KHQOLResourceSwingDB, CampfireAlertDB
+## SavedVariablesPerCharacter: FRangeDB, KHQOLCursorTrailCharDB
+
+Bootstrap.lua
+Bindings.xml
+UI.lua
+GeneralOptions.lua
+Clock/Locale.lua
+Clock/Core.lua
+Clock/Clock.lua
+Clock/ClockTools.lua
+Clock/Modules.lua
+Clock/Professions.lua
+Clock/Calendar.lua
+Clock/Minimap.lua
+Clock/Todo.lua
+Clock/Settings.lua
+BuffReminder/Core.lua
+BuffReminder/UI.lua
+BuffReminder/Settings.lua
+Range/Database.lua
+Range/Range.lua
+Range/Display.lua
+Range/Mouseover.lua
+Range/Settings.lua
+Range/Core.lua
+Tooltip/Core.lua
+Tooltip/WeaponGuideData.lua
+Tooltip/WeaponGuideProvider.lua
+Tooltip/PlayerInfo.lua
+Tooltip/Settings.lua
+ResourceSwing/KHQOLResourceSwing.lua
+Campfire/Core.lua
+Campfire/Aura.lua
+Campfire/UI.lua
+Campfire/Debug.lua
+CursorTrail/Core.lua
+CursorTrail/Settings.lua
+CastBar/Core.lua
+CastBar/Settings.lua
+Modules/CombatStatus.lua
+Modules/Threat.lua
+Modules/PvPAlert/Core.lua
+Modules/PvPAlert/Range.lua
+Modules/PvPAlert/Scanner.lua
+Modules/PvPAlert/ThreatEngine.lua
+Modules/PvPAlert/Alerts.lua
+Modules/PvPAlert/Settings.lua
+QuestNavigator/Core.lua
+QuestNavigator/Tracker.lua
+QuestNavigator/Arrow.lua
+QuestNavigator/UI.lua
+QuestNavigator/Settings.lua
+Core.lua
+SettingsUI.lua

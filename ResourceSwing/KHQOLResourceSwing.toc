@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: KHQOL Resource / Swing Bar
+## Notes: A movable combined resource and weapon swing bar for WoW: Forever.
+## Author: KHQOL
+## Version: 0.1.4
+## SavedVariables: KHQOLResourceSwingDB
+
+KHQOLResourceSwing.lua

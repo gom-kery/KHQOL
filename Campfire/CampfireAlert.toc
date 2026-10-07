@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: CampfireAlert
+## Notes: Detect nearby campfires and help acquire Camp Benefits in WoW Forever.
+## Author: CampfireAlert
+## Version: 1.0.13
+## SavedVariables: CampfireAlertDB
+
+Core.lua
+Aura.lua
+UI.lua
+Debug.lua
