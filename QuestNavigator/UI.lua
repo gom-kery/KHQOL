@@ -120,8 +120,8 @@ function QN:RenderArrow()
 end
 function QN:RenderDistance()
   local text=""
-  if self.state=="NO_WAYPOINT" then text="경로 없음"
-  elseif self.state=="NAVIGATION_UNAVAILABLE" then text="경로 안내 불가"
+  if self.state=="NO_WAYPOINT" then text=self.navigationMode=="TURN_IN_LOCATION" and "반납 위치 없음" or "경로 없음"
+  elseif self.state=="NAVIGATION_UNAVAILABLE" then text=self.navigationMode=="TURN_IN_LOCATION" and "반납 위치 안내 불가" or "경로 안내 불가"
   elseif self.state=="TRACKING" and self.db.showDistance then
     if self.distanceYards~=nil then
       local meters=self.db.distanceUnit=="meters"
@@ -140,12 +140,12 @@ function QN:RenderDistance()
 end
 function QN:Render()
   if not self.root then return end
-  local shown=self.active and self.currentQuestID~=nil and self.state~="IDLE"
+  local shown=self.active and (self.currentQuestID~=nil or self.phase~=nil) and self.state~="IDLE"
   self.root:SetShown(shown or (self.active and not self.db.locked))
   self.hud:SetShown(shown)
   local completed=self.state=="COMPLETED" or self.state=="SWITCHING"
   self.completionFrame:SetShown(shown and completed)
-  setText(self.completionTitle,self.db.showTitle and (self.questTitle or "") or "")
+  setText(self.completionTitle,self.db.showTitle and (self.completionTitleText or self.questTitle or "") or "")
   setText(self.titleText,self.questTitle or ""); setText(self.objectiveText,self.progressText or "")
   self.titleText:SetShown(shown and not completed and self.db.showTitle)
   self.objectiveText:SetShown(shown and not completed and self.db.showProgress)

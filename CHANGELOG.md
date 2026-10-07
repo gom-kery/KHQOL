@@ -1,3 +1,21 @@
+# KHQOL 1.9.3
+
+2026-10-07 · Quest Navigator v0.2.0 · Watched candidates / turn-in behavior
+
+- 전체 퀘스트 로그 후보 탐색을 추적창의 Quest Watch ID 집합 순회로 변경. 추적 해제 이벤트를 즉시 반영하고 주요 이벤트/선택 직전에 재동기화합니다.
+- ReadyForTurnIn 우선, IsComplete 호환 폴백. 진행 숫자로 완료를 추측하지 않습니다.
+- 완료 후 반납 위치 안내 / 다음 추적 퀘스트 자동 선택 옵션 추가. 새 설정은 turnin, 기존 명시적 autoTrack=true는 next로 이전합니다.
+- 완료 퀘스트 수동 선택과 사용자 핀을 보호합니다. 실제 반납 시 캐시를 비운 뒤 다른 추적 후보를 선택하며, 포기와 중복 반납 이벤트를 구분합니다.
+- 반납 상태에서 위치를 새로 조회하며 직전 목표와 같은 응답/위치 미제공 시 화살표를 숨깁니다. 지도·NPC·좌표를 임의 생성하지 않습니다.
+- `/khqol quest status` / `/kh quest debug` 진단 추가. 기존 Arrow.lua·미디어·다른 기능 모듈과 SavedVariables 선언 보존.
+- 108개 정적·모의 검사, 55개 Lua 문법/TOC 및 공통 설정 UI 검사 PASS. 실제 Forever 클라이언트 검증 NEEDS TEST.
+
+# KHQOL 1.9.2
+
+2026-10-07 · ForeverNote binding loader fix
+
+- Forever 클라이언트가 `Bindings.xml`을 일반 UI XML로 읽어 경고를 내던 TOC 등록을 제거했습니다. 바인딩 파일은 애드온 루트에서 클라이언트가 표준 방식으로 자동 인식합니다.
+
 # KHQOL 1.9.1
 
 2026-10-07 · ForeverNote usability

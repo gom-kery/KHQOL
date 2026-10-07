@@ -1,8 +1,8 @@
 local _, KHQOL = ...
 local QN = KHQOL.modules.questNavigator
-QN.VERSION = "0.1.5"
+QN.VERSION = "0.2.0"
 QN.defaults = {
-  autoTrack=true, preferSameRegion=false, showArrow=true, arrowSize=64, arrowAlpha=1, arrowTilt=55,
+  autoTrack=true, completionBehavior="turnin", preferSameRegion=false, showArrow=true, arrowSize=64, arrowAlpha=1, arrowTilt=55,
   smoothRotation=true, showDistance=true, showTitle=true, showProgress=true,
   progressMode="numeric", distanceUnit="yards", locked=true, positionX=0, positionY=180,
   arrowUpdateInterval=.10, distanceUpdateInterval=.25, smoothingFactor=.25,
@@ -36,6 +36,8 @@ end
 function QN:GetDB()
   local db=KHQOL.db.modules.questNavigator
   if type(db)~="table" then db={}; KHQOL.db.modules.questNavigator=db end
+  -- Existing explicit autoTrack=true profiles keep their old completion UX.
+  if db.completionBehavior==nil then db.completionBehavior=db.autoTrack==true and "next" or "turnin" end
   KHQOL.MergeDefaults(db,self.defaults,"types")
   db.arrowSize=clamp(db.arrowSize,32,128,64); db.arrowAlpha=clamp(db.arrowAlpha,.1,1,1)
   db.arrowTilt=clamp(db.arrowTilt,0,70,55)
@@ -45,6 +47,7 @@ function QN:GetDB()
   db.smoothingFactor=clamp(db.smoothingFactor,.01,1,.25)
   if db.progressMode~="numeric" and db.progressMode~="text" then db.progressMode="numeric" end
   if db.distanceUnit~="yards" and db.distanceUnit~="meters" then db.distanceUnit="yards" end
+  if db.completionBehavior~="turnin" and db.completionBehavior~="next" then db.completionBehavior="turnin" end
   self.db=db; return db
 end
 function QN:IsEnabled() return self.active==true end
@@ -64,29 +67,27 @@ function QN:MarkDirty(questChanged)
   if questChanged then self.questDirty=true end
   self:UpdateDriver()
 end
-function QN:OnEvent(event, questID)
+function QN:OnEvent(event, questID, added)
   if not self.active then return end
-  if event=="SUPER_TRACKING_CHANGED" then
+  if event=="QUEST_WATCH_LIST_CHANGED" then self:WatchChanged(questID,added)
+  elseif event=="QUEST_REMOVED" and QN.IsID(questID) then
+    self:WatchChanged(questID,false)
+    if questID==self.currentQuestID then
+      self.removedSelectedQuestID=questID
+      self:CancelTransition(); self:AdoptQuest(nil)
+    end
+  elseif event=="QUEST_TURNED_IN" and QN.IsID(questID) then
+    self:QuestTurnedIn(questID)
+  elseif event=="SUPER_TRACKING_CHANGED" then
     if self.settingSuperTrack then return end
     local id=self:GetTrackedQuest()
-    -- A user selection wins during the completion pause; clearing a turned-in
-    -- quest does not cancel the queued next-quest selection.
-    if self.phase then
-      if (id and id~=self.completedQuestID) or self:OtherNavigationActive() then
-        self:CancelTransition(); self:AdoptQuest(id)
-      end
-    elseif not id and self.currentQuestID and not self:OtherNavigationActive() then
-      -- Blizzard may synchronously clear SuperTrack BEFORE delivering our
-      -- QUEST_TURNED_IN handler. Keep the old ID through this debounce window.
-      self:MarkDirty(true)
-    else self:AdoptQuest(id) end
-  elseif event=="QUEST_TURNED_IN" and QN.IsID(questID) and questID==self.currentQuestID then
-    self:BeginCompletion(questID)
+    if id then self:CancelTransition(); self:AdoptQuest(id,true)
+    elseif self:OtherNavigationActive() then self:CancelTransition(); self:AdoptQuest(nil,true)
+    elseif not self.phase then self:MarkDirty(true) end
   end
-  if event=="PLAYER_ENTERING_WORLD" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
-    self.sizeMapID=nil
-  end
-  local waypointOnly=event=="QUEST_POI_UPDATE" or event=="SUPER_TRACKING_PATH_UPDATED" or event=="ZONE_CHANGED" or event=="ZONE_CHANGED_NEW_AREA" or event=="SUPER_TRACKING_CHANGED"
+  if event=="PLAYER_ENTERING_WORLD" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then self.sizeMapID=nil end
+  local waypointOnly=event=="QUEST_POI_UPDATE" or event=="SUPER_TRACKING_PATH_UPDATED" or event=="SUPER_TRACKING_CHANGED"
+  if not waypointOnly then self.trackedDirty=true end
   self:MarkDirty(not waypointOnly)
 end
 function QN:OnUpdate(elapsed)
@@ -130,7 +131,10 @@ function QN:SetEnabled(enabled)
   self.events:UnregisterAllEvents(); self.events:SetScript("OnUpdate",nil)
   self.driverRunning=false
   self:CancelTransition(); self.dirty=false; self.questDirty=false; self.currentQuestID=nil; self.targetQuestID=nil
-  self.currentRotation=nil; self.state="IDLE"; self.arrowElapsed=0; self.distanceElapsed=0
+  self:ClearNavigation(); self.readyForTurnIn=nil; self.manualTurnIn=false; self.manualSelection=false
+  self.objectiveMapID,self.objectiveX,self.objectiveY=nil,nil,nil
+  self.removedSelectedQuestID=nil; self.trackedQuestIDs={}; self.watchOverrides={}; self.trackedLoaded=false; self.trackedDirty=true
+  self.state="IDLE"; self.arrowElapsed=0; self.distanceElapsed=0
   self:ApplyLayout(); self:Render()
   if not self.active then return end
   for _,event in ipairs(EVENTS) do
@@ -138,24 +142,65 @@ function QN:SetEnabled(enabled)
     local valid=QN.Call(C_EventUtils and C_EventUtils.IsEventValid,event)
     if not QN.IsFalse(valid) then QN.Call(self.events.RegisterEvent,self.events,event) end
   end
-  self:RefreshQuest(); self:UpdateDriver()
+  self:GetTrackedQuests(true); self:AdoptQuest(self:GetTrackedQuest(),true); self:UpdateDriver()
 end
 function QN:Changed(key)
   if self.dragging and (key=="locked" or key=="position") then self:SavePosition() end
   self:ApplyLayout()
   if not self.active then return end
-  if key=="progressMode" then self:RefreshProgress() end
+  if key=="completionBehavior" or key=="autoTrack" then
+    self:CancelTransition(); self:RefreshQuest(); self:UpdateDriver(); return
+  end
+  if key=="progressMode" and not QN.IsTrue(self.readyForTurnIn) then self:RefreshProgress() end
   if not self.phase and self.currentQuestID and self.state~="COMPLETED" then self:UpdateNavigation(true,true) end
   self:Render(); self:UpdateDriver()
 end
 -- Explicit developer inspection only; release operation never emits chat output.
 function QN:GetDebugSnapshot()
+  self:GetDB()
+  local tracked,ready,candidates={},{},{}
+  for id in pairs(self:GetTrackedQuests(true)) do
+    tracked[#tracked+1]=id
+    local value=self:IsQuestReadyForTurnIn(id)
+    ready[id]=value==nil and "UNKNOWN" or (value and "YES" or "NO")
+    if QN.IsFalse(value) and not QN.IsFalse(QN.Call(C_QuestLog and C_QuestLog.IsOnQuest,id)) then
+      local sq,onContinent=QN.Call(C_QuestLog and C_QuestLog.GetDistanceSqToQuest,id)
+      if QN.IsNumber(sq) and sq>0 and QN.IsTrue(onContinent) then candidates[#candidates+1]=id end
+    end
+  end
+  table.sort(tracked); table.sort(candidates)
   return {
     version=self.VERSION, state=self.state, currentQuestID=self.currentQuestID,
+    completionBehavior=self.db and self.db.completionBehavior, navigationMode=self.navigationMode,
+    readyForTurnIn=self.readyForTurnIn, watchSource=self.watchSource, trackedQuestIDs=tracked,
+    trackedReadyForTurnIn=ready, autoCandidates=candidates,
+    locationReason=self.locationReason, manualTurnIn=self.manualTurnIn,
+    objectiveMapID=self.objectiveMapID, objectiveX=self.objectiveX, objectiveY=self.objectiveY,
+    turnInMapID=self.navigationMode=="TURN_IN_LOCATION" and self.targetMapID or nil,
+    turnInX=self.navigationMode=="TURN_IN_LOCATION" and self.targetX or nil,
+    turnInY=self.navigationMode=="TURN_IN_LOCATION" and self.targetY or nil,
     targetQuestID=self.targetQuestID, lastCompletedQuestID=self.lastCompletedQuestID,
     playerMapID=self.playerMapID, targetMapID=self.targetMapID, waypointSource=self.waypointSource,
     playerX=self.playerX, playerY=self.playerY, targetX=self.targetX, targetY=self.targetY,
     distanceSq=self.distanceSq, playerFacing=self.playerFacing, targetAngle=self.targetAngle,
     relativeAngle=self.relativeAngle, currentRotation=self.currentRotation,
   }
+end
+function QN:HandleCommand(message)
+  local command=(message or ""):lower():match("^%s*%S+%s+(%S+)")
+  if command~="status" and command~="debug" then KHQOL:OpenModule("questNavigator"); return end
+  local s=self:GetDebugSnapshot()
+  local function emit(text)
+    if DEFAULT_CHAT_FRAME and type(DEFAULT_CHAT_FRAME.AddMessage)=="function" then DEFAULT_CHAT_FRAME:AddMessage("KHQOL Quest: "..text) end
+  end
+  emit("Version: "..self.VERSION.." / Selected Quest: "..(s.currentQuestID or "NONE"))
+  emit("Tracked: "..(#s.trackedQuestIDs>0 and table.concat(s.trackedQuestIDs,", ") or "NONE").." / Source: "..(s.watchSource or "unavailable"))
+  for _,id in ipairs(s.trackedQuestIDs) do emit("ReadyForTurnIn: "..id.." = "..s.trackedReadyForTurnIn[id]) end
+  emit("Completion Behavior: "..s.completionBehavior:upper().." / Auto Select: "..(self.db.autoTrack and "ON" or "OFF"))
+  emit("Navigation Mode: "..(s.navigationMode or "NONE").." / Location: "..(s.locationReason or "NONE"))
+  emit("Selected ReadyForTurnIn: "..(s.readyForTurnIn==nil and "UNKNOWN" or (s.readyForTurnIn and "YES" or "NO")))
+  emit("Auto Candidates: "..(#s.autoCandidates>0 and table.concat(s.autoCandidates,", ") or "NONE"))
+  if QN.IsID(s.targetMapID) and QN.IsNumber(s.targetX) and QN.IsNumber(s.targetY) then
+    emit(string.format("Target Map: %d / XY: %.2f, %.2f",s.targetMapID,s.targetX*100,s.targetY*100))
+  end
 end

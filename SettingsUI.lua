@@ -15,7 +15,7 @@ local definitions = {
   {"cursorTrail", "Cursor Trail", "마우스 이동 경로에 잔상을 표시합니다."},
   {"castBar", "Cast Bar", "플레이어의 주문 시전을 표시합니다."},
   {"combatStatus", "Combat Status", "전투 시작과 종료를 검 애니메이션으로 알립니다."},
-  {"questNavigator", "Quest Navigator", "퀘스트 목표 완료 후 가까운 다음 퀘스트를 선택하고 방향을 안내합니다."},
+  {"questNavigator", "Quest Navigator", "추적 중인 퀘스트의 목표·반납 위치를 안내하고 다음 퀘스트를 선택합니다."},
   {"threat", "Threat", "현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다."},
   {"pvpAlert", "PvP Alert", "적 플레이어의 주시, 접근, 나를 향한 시전을 단계적으로 알립니다. 기본적으로 비전투 중에만 동작합니다."},
 }

@@ -115,6 +115,7 @@ events:SetScript("OnEvent", function()
   SlashCmdList.KHQOL = function(message)
     local page = (message or ""):lower():match("^%s*(%S*)")
     if page == "threat" and KHQOL.modules.threat then KHQOL.modules.threat:HandleCommand(message); return end
+    if (page == "quest" or page == "questnavigator") and KHQOL.modules.questNavigator then KHQOL.modules.questNavigator:HandleCommand(message); return end
     KHQOL:OpenModule(commandPages[page] or "general")
   end
 end)
