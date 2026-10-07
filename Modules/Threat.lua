@@ -1,6 +1,7 @@
 local _, KHQOL = ...
 local Threat = KHQOL.modules.threat
 local INTERVAL = .20
+local AGGRO_SOUND_THRESHOLD = 95
 local AGGRO_SOUND = "Interface\\AddOns\\KHQOL\\Media\\aggro.wav"
 local COLORS = {{.3,1,.4}, {1,.85,.1}, {1,.5,.1}, {1,.15,.15}}
 local ICONS = {
@@ -194,13 +195,17 @@ function Threat:UpdateAggroAlert(info)
   if guid and self.alertGUID and guid~=self.alertGUID then self:ResetAggroAlert() end
   self.alertGUID=guid
   local holding=info.isTanking==true or info.status==2 or info.status==3
-  local risk=self:Risk(info)
-  local current=holding and "AGGRO" or (risk and risk>=2 and "DANGER" or "OTHER")
+  -- Only the HUD's scaled percentage has the pull-threshold meaning. Raw
+  -- threat or raw percent cannot substitute when that reading is unavailable.
+  local percent=info.percentBasis=="scaled" and number(info.percent) or nil
+  if percent==nil then self:ResetAggroAlert(); return end
+  local above=percent>=AGGRO_SOUND_THRESHOLD
   local previous=self.alertState
-  -- Commit before playback: API failure/muting cannot repeat the alert on
-  -- every poll. An initial AGGRO sample has no DANGER predecessor and is silent.
-  self.alertState=current
-  if previous=="DANGER" and current=="AGGRO" and type(PlaySoundFile)=="function" then
+  -- Latch the whole >=95% range, including ownership, before playback. An
+  -- initial owned sample stays silent; a jump from below 95% still counts.
+  self.alertState=(above or holding) and "ABOVE" or "BELOW"
+  if above and previous~="ABOVE" and (previous=="BELOW" or not holding) and type(PlaySoundFile)=="function" then
+    -- Dialog uses WoW's dialogue volume; never change the user's sound CVars.
     pcall(PlaySoundFile,AGGRO_SOUND,"Dialog")
   end
 end
@@ -409,7 +414,7 @@ function Threat:PrintStatus()
   printLine("Active: "..yn(self.active).." / Combat: "..yn(self.combat).." / Hostile Target: "..yn(self:SelectedUnit()).." / Ticker: "..(self.ticker and "RUNNING" or "STOPPED"))
   printLine("API: Detailed="..yn(self.detailAPI)..", Status="..yn(type(UnitThreatSituation)=="function")..", Ticker="..yn(self.timerAPI))
   printLine(string.format("Icon: %s / Size=%d / Position=%s / Caution=%s",yn(self.db.iconEnabled),self.db.iconSize,self.db.iconPosition,yn(self.db.showCautionIcon)))
-  printLine("Aggro Voice: "..yn(self.db.aggroSoundEnabled).." / Transition: DANGER -> AGGRO / Channel: Dialog")
+  printLine("Aggro Voice: "..yn(self.db.aggroSoundEnabled).." / Threshold: "..AGGRO_SOUND_THRESHOLD.."% / Channel: Dialog (WoW dialogue volume)")
   local p=self.db.position
   printLine(string.format("Position: %s / X=%.0f / Y=%.0f / Locked=%s / Test=%s",p.point,p.x,p.y,yn(self.db.locked),yn(self.testing)))
   printLine("DisplayReason: "..(self.hiddenReason or "UNKNOWN"))
@@ -493,8 +498,9 @@ function Threat:BuildSettings(content,y)
   b:Slider("아이콘 크기",12,32,1,function() return db.iconSize end,function(v) change("iconSize",v) end,function(v) return v.." px" end,function() return db.iconEnabled end)
   b:Dropdown("아이콘 위치",{{value="LEFT",text="수치 앞"},{value="TOP",text="수치 위"}},function() return db.iconPosition end,function(v) change("iconPosition",v) end,function() return db.iconEnabled end)
   b:Description("기본은 위험 + 어그로 보유 단계입니다. 주의 단계는 선택할 수 있으며, 여유 단계에서는 아이콘을 숨깁니다.")
-  b:Checkbox("어그로 획득 음성",function() return db.aggroSoundEnabled end,function(v) change("aggroSoundEnabled",v) end)
-  b:Description("전투 중 위험 → 어그로 보유 전환에 한 번 재생합니다. 처음부터 보유한 경우와 가상 테스트에서는 재생하지 않습니다.")
+  b:Checkbox("어그로 95% 경고 음성",function() return db.aggroSoundEnabled end,function(v) change("aggroSoundEnabled",v) end)
+  b:Description("전투 중 95% 이상 도달 시 한 번 재생합니다. 처음부터 어그로를 보유한 경우와 가상 테스트는 제외합니다.")
+  b:Description("음량은 와우 소리 설정의 대화 음량으로 조절합니다. 95% 미만으로 내려갔다가 다시 도달하면 재생합니다.")
   b:Section("솔로 표시")
   b:Flush()
   KHQOL.UI:CreateCheckbox(content,"사냥꾼 / 흑마법사 + 소환수 보유 시 활성",0,b.y,function() return db.soloPetEnabled end,function(v) change("soloPetEnabled",v) end)
