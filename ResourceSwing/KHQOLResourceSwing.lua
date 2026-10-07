@@ -20,6 +20,7 @@ local defaults = {
 }
 
 local db, frame, resourceArea, resourceFill, resourceTextLayer, resourceText, ammoFrame, auxText, swingLane, swingFill, swingText, optionsFrame, minimapButton
+NS.modules.resourceSwing.defaults = defaults
 local swings = { main = { active = false }, off = { active = false }, ranged = { active = false } }
 local playerGUID
 local lastSafePercent, powerPercentCurve
@@ -362,13 +363,20 @@ local function createMinimapButton()
     minimapButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
 end
 
+-- Reapply existing frames after an in-place profile update; the local db and
+-- settings callbacks deliberately retain their original table identities.
+function NS.modules.resourceSwing:ApplyProfile()
+    if not frame then return end
+    migrateLegacyResourceColor(); applyLayout(); updateResource(); updateAuxText(); updateSwingBars()
+end
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
-eventFrame:SetScript("OnEvent", function(self, event, arg, ...)
+eventFrame:SetScript("OnEvent", function(self, event, eventArg, ...)
     if event == "ADDON_LOADED" then
         -- This source is now loaded by the unified KHQOL TOC, while its frame
         -- names intentionally retain the legacy prefix for saved-layout compatibility.
-        if arg ~= addonName then return end
+        if eventArg ~= addonName then return end
+        if NS.InitializeProfiles then NS:InitializeProfiles() end
         KHQOLResourceSwingDB = KHQOLResourceSwingDB or {}; NS.MergeDefaults(KHQOLResourceSwingDB, defaults, "tables"); db = KHQOLResourceSwingDB
         -- 0.0.4 used this key for weapon selection; 0.0.5 uses it for frame layering.
         if type(db.swingPriority) ~= "number" then db.swingPriority = defaults.swingPriority end
@@ -376,17 +384,31 @@ eventFrame:SetScript("OnEvent", function(self, event, arg, ...)
         self:RegisterEvent("PLAYER_LOGIN"); self:RegisterEvent("UNIT_POWER_UPDATE"); self:RegisterEvent("UNIT_MAXPOWER"); self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED"); self:RegisterEvent("UNIT_INVENTORY_CHANGED"); self:RegisterEvent("PLAYER_REGEN_DISABLED"); self:RegisterEvent("PLAYER_REGEN_ENABLED"); self:RegisterEvent("BAG_UPDATE_DELAYED")
         self:RegisterEvent("PLAYER_SWING"); self:RegisterEvent("WEAPON_SLOT_CHANGED")
     elseif event == "PLAYER_LOGIN" then playerGUID = UnitGUID("player"); migrateLegacyResourceColor(); updateResource(); updateAuxText()
-    elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" then if arg == "player" then updateResource() end
+    elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" then if eventArg == "player" then updateResource() end
     elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "UNIT_INVENTORY_CHANGED" then updateAuxText()
     elseif event == "BAG_UPDATE_DELAYED" then updateAuxText()
     elseif event == "PLAYER_REGEN_DISABLED" then swingLane:SetShown(true)
     elseif event == "PLAYER_REGEN_ENABLED" then stopAllSwings(); swingFill:SetWidth(0); swingText:SetText(""); swingLane:SetShown(db.swingVisibility == "ALWAYS"); updateSwingBars()
-    elseif event == "PLAYER_SWING" then playerSwingEvent(arg, select(1, ...))
+    elseif event == "PLAYER_SWING" then playerSwingEvent(eventArg, select(1, ...))
     elseif event == "WEAPON_SLOT_CHANGED" then updateAuxText()
     end
 end)
 
 SLASH_KHQOLRESOURCESWING1 = "/krsb"
+function NS.modules.resourceSwing:SetEnabled(enabled)
+    if not frame then return end
+    db.enabled=enabled and true or false
+    eventFrame:UnregisterAllEvents()
+    if enabled then
+        for _,event in ipairs({"PLAYER_LOGIN","UNIT_POWER_UPDATE","UNIT_MAXPOWER","PLAYER_EQUIPMENT_CHANGED",
+            "UNIT_INVENTORY_CHANGED","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","BAG_UPDATE_DELAYED",
+            "PLAYER_SWING","WEAPON_SLOT_CHANGED"}) do eventFrame:RegisterEvent(event) end
+        playerGUID=UnitGUID("player"); applyLayout()
+    else
+        stopAllSwings(); frame:SetScript("OnUpdate",nil)
+    end
+    frame:SetShown(enabled); ammoFrame:SetShown(enabled and db.showAmmo)
+end
 SlashCmdList.KHQOLRESOURCESWING = function()
     if optionsFrame:IsShown() then optionsFrame:Hide() else optionsFrame:Show() end
 end

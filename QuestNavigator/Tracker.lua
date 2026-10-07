@@ -5,6 +5,7 @@ local QN=KHQOL.modules.questNavigator
 local trackerDefaults={groupByRegion=true,collapsibleRegions=true,showDungeonTag=true,
   showEliteTag=true,collapsedRegions={},contentWidth=0}
 local function inCombat() return QN.IsTrue(QN.Call(InCombatLockdown)) end
+QN.trackerDefaults = trackerDefaults
 function QN:RefreshObjectiveQuestCount()
   local frame=ObjectiveTrackerFrame
   local text=frame and frame.Header and frame.Header.Text

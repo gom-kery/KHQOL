@@ -179,6 +179,7 @@ end
 function FC:ToggleHUD() self:SetHUDShown(not self.db.enabled) end
 
 function FC:Initialize()
+  if KHQOL.InitializeProfiles then KHQOL:InitializeProfiles() end
   -- Keep prior money-display choices when upgrading from the radio-button version.
   local savedMoney = ForeverClockDB and ForeverClockDB.modules and ForeverClockDB.modules.money
   if savedMoney and not savedMoney.units and savedMoney.displayUnits then

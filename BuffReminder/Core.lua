@@ -48,6 +48,7 @@ function FBR:GetCurrentClass()
 end
 
 function FBR:InitializeDatabase()
+    if KHQOL.InitializeProfiles then KHQOL:InitializeProfiles() end
     local defaults = {
         version = self.VERSION, iconSize = self.DEFAULT_ICON_SIZE,
         thresholdSeconds = self.DEFAULT_THRESHOLD, locked = true,
@@ -56,6 +57,7 @@ function FBR:InitializeDatabase()
         layoutDirection = "RIGHT",
         classes = {}, selectedClass = nil, debug = false,
     }
+    self.profileDefaults = defaults
     ForeverBuffReminderDB = ForeverBuffReminderDB or {}
     KHQOL.MergeDefaults(ForeverBuffReminderDB, defaults)
     for _, classToken in ipairs(self.CLASS_TOKENS) do

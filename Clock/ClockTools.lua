@@ -204,7 +204,12 @@ function FC:CreateClockTools()
   function f:BuildAlarmHour()
     if self.hour then self.hour:Hide(); self.hour.menu:Hide() end
     self.ampm:SetShown(not settings.alarm24Hour)
-    self.hour = MenuButton(self, 58, Choices(settings.alarm24Hour and 0 or 1, settings.alarm24Hour and 23 or 12), function() return string.format("%02d", settings.alarmHour or 0) end, function(v) settings.alarmHour = v end)
+    self.hourButtons=self.hourButtons or {}
+    local key=settings.alarm24Hour and "24" or "12"
+    if not self.hourButtons[key] then
+      self.hourButtons[key]=MenuButton(self, 58, Choices(settings.alarm24Hour and 0 or 1, settings.alarm24Hour and 23 or 12), function() return string.format("%02d", settings.alarmHour or 0) end, function(v) settings.alarmHour = v end)
+    end
+    self.hour=self.hourButtons[key]; self.hour:ClearAllPoints(); self.hour:Refresh(); self.hour:Show()
     if settings.alarm24Hour then self.hour:SetPoint("TOPLEFT", 16, -114) else self.hour:SetPoint("LEFT", self.ampm, "RIGHT", 6, 0) end
     self.minute:ClearAllPoints(); self.minute:SetPoint("LEFT", self.hour, "RIGHT", 6, 0)
     self.second:ClearAllPoints(); self.second:SetPoint("LEFT", self.minute, "RIGHT", 6, 0)
@@ -309,4 +314,15 @@ end
 
 function FC:ToggleClockTools()
   if self.clockToolsFrame then self.clockToolsFrame:SetShown(not self.clockToolsFrame:IsShown()) end
+end
+
+function FC:RefreshClockTools()
+  local f,settings=self.clockToolsFrame,self.db.clockTools
+  if not f then return end
+  f.timerInput:SetText(string.format("%02d",settings.timerMinutes or 5))
+  f.timerSecondsInput:SetText(string.format("%02d",settings.timerSeconds or 0))
+  f:BuildAlarmHour(); f:SelectMode(f.activeMode or "timer")
+  f.soundCheck:SetChecked(settings.alarmSound~=false)
+  f.soundMurloc:SetChecked(settings.alarmSoundChoice=="murloc"); f.soundAlarm:SetChecked(settings.alarmSoundChoice~="murloc")
+  f.alertSize:SetText((settings.alertFontSize or 24).." px")
 end

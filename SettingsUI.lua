@@ -30,6 +30,11 @@ UI.Pages = pages
 
 -- Reset only after confirmation. The original module initializers supply defaults.
 local function resetModule(key)
+  if KHQOL.ResetProfileModule then
+    local ok,message=KHQOL:ResetProfileModule(key)
+    if not ok then KHQOL:ProfileMessage(message) end
+    return
+  end
   local legacy = {clock="ForeverClockDB",buffReminder="ForeverBuffReminderDB",range="FRangeDB",resourceSwing="KHQOLResourceSwingDB",campfire="CampfireAlertDB"}
   if key == "clock" then
     local todo = ForeverClockDB and ForeverClockDB.todo
@@ -43,19 +48,71 @@ local function resetModule(key)
   ReloadUI()
 end
 StaticPopupDialogs.KHQOL_RESET_MODULE = {
-  text="%s 모듈 설정을 기본값으로 복원하시겠습니까?\n확인하면 UI가 다시 로드됩니다.",
+  text="현재 프로필의 %s 모듈 설정을 기본값으로 복원하시겠습니까?\n노트 내용, ToDo 완료 상태와 등록한 버프는 유지합니다.",
   button1=ACCEPT,button2=CANCEL,OnAccept=function(_,key) resetModule(key) end,
   timeout=0,whileDead=1,hideOnEscape=1,
 }
 StaticPopupDialogs.KHQOL_RESET_ALL = {
-  text="KHQOL 전체 설정을 초기화하시겠습니까?\n노트와 등록한 버프를 포함한 모든 KHQOL 설정이 삭제되고 UI가 다시 로드됩니다.",
+  text="KHQOL 전체 설정을 초기화하시겠습니까?\n모든 프로필, 캐릭터별 선택, 노트와 등록한 버프를 포함한 KHQOL 데이터가 삭제되고 UI가 다시 로드됩니다.",
   button1=ACCEPT,button2=CANCEL,OnAccept=function()
+    KHQOL.profileResetting=true
     KHQOLDB=nil; ForeverClockDB=nil; ForeverBuffReminderDB=nil; ForeverWeaponGuideDB=nil
     KHQOLResourceSwingDB=nil; CampfireAlertDB=nil; FRangeDB=nil; KHQOLCursorTrailCharDB=nil
     ReloadUI()
   end,timeout=0,whileDead=1,hideOnEscape=1,
 }
+StaticPopupDialogs.KHQOL_DELETE_PROFILE={
+  text="프로필 '%s'를 삭제하시겠습니까?\n이 프로필을 사용하는 모든 캐릭터는 기본 프로필로 변경됩니다.\n노트와 ToDo 데이터는 유지합니다.",
+  button1="삭제",button2=CANCEL,OnAccept=function(_,name)
+    local ok,message=KHQOL:DeleteProfile(name)
+    if not ok then KHQOL:ProfileMessage(message) end
+  end,timeout=0,whileDead=1,hideOnEscape=1,
+}
+local function profileSettings(content,y)
+  local b=UI:CreateBuilder(content,y); b:Section("프로필 관리")
+  UI:CreateDescription(content,"현재 캐릭터: "..(KHQOL.profileCharacter or ""),0,b.y)
+  b.y=b.y-26
+  local width=(T.ContentWidth-T.ColumnGap)/2
+  local right=width+T.ColumnGap
+  local function strip(x,y)
+    local texture=content:CreateTexture(nil,"BACKGROUND")
+    texture:SetPoint("TOPLEFT",x,y+5); texture:SetSize(width,36); texture:SetColorTexture(1,1,1,.035)
+  end
+  strip(0,b.y); strip(right,b.y)
+  local label=UI:CreateLabel(content,"활성 프로필",8,b.y-6); label:SetWidth(92)
+  local active=UI:CreateDropdown(content,104,b.y,width-112,function() return KHQOL:GetProfileOptions() end,
+    function() return KHQOL:GetCurrentProfileName() end,function(name)
+      local ok,message=KHQOL:SelectProfile(name); if not ok then KHQOL:ProfileMessage(message) end
+    end)
+  label=UI:CreateLabel(content,"프로필 삭제",right+8,b.y-6); label:SetWidth(92)
+  local remove=UI:CreateDropdown(content,right+104,b.y,width-112,function() return KHQOL:GetProfileOptions(true) end,
+    function() return "" end,function(name)
+      if name=="" then return end
+      local ok,message=KHQOL:CanChangeProfile()
+      if not ok then KHQOL:ProfileMessage(message); return end
+      StaticPopup_Show("KHQOL_DELETE_PROFILE",name,nil,name)
+    end)
+  b.y=b.y-42; strip(0,b.y); strip(right,b.y)
+  label=UI:CreateLabel(content,"새 프로필 이름",8,b.y-6); label:SetWidth(96)
+  local input=UI:CreateEditBox(content,104,b.y,width-112,nil,nil)
+  input:SetMaxLetters(24)
+  local function create(duplicate)
+    local ok,message=KHQOL:CreateProfile(input:GetText(),duplicate)
+    if ok then input:SetText(""); input:ClearFocus() else KHQOL:ProfileMessage(message) end
+  end
+  local fresh=UI:CreateButton(content,"기본값으로 생성",right+8,b.y,132,function() create(false) end)
+  local duplicate=UI:CreateButton(content,"현재 프로필 복사",right+148,b.y,132,function() create(true) end)
+  b.y=b.y-44
+  local hint=UI:CreateDescription(content,"같은 프로필을 선택한 캐릭터는 설정을 공유합니다. 생성·복사 후 새 프로필로 전환합니다.",0,b.y)
+  hint:SetWidth(T.ContentWidth); b.y=b.y-math.max(18,hint:GetStringHeight())-8
+  hint=UI:CreateDescription(content,"노트·ToDo·등록 버프·직업별 기준 주문은 유지합니다. 전투 중에는 프로필 변경이 제한됩니다.",0,b.y)
+  hint:SetWidth(T.ContentWidth); b.y=b.y-math.max(18,hint:GetStringHeight())-8
+  function KHQOL:RefreshProfileControls() active:Refresh(); remove:Refresh() end
+  content.profileControls={active=active,remove=remove,input=input,fresh=fresh,duplicate=duplicate}
+  return b.y
+end
 local function generalSettings(content,y)
+  y=profileSettings(content,y)
   local b=UI:CreateBuilder(content,y)
   b:Section("모듈 관리")
   UI:CreateDescription(content,"설정은 변경 즉시 저장됩니다.",112,b.y+40)

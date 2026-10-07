@@ -83,6 +83,7 @@ end
 function UI:Changed(parent)
   if KHQOL.settings and KHQOL.settings.activeContent then self:Refresh(KHQOL.settings.activeContent)
   else self:Refresh(parent) end
+  if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
 end
 function UI:AttachTooltip(control, title, description)
   if not description or description == "" then return end
@@ -172,6 +173,8 @@ function UI:CloseDropdown()
 end
 function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled)
   width = width or T.DropdownWidth
+  local optionSource=type(options)=="function" and options or nil
+  if optionSource then options=optionSource() end
   local b
   local function unavailable(option)
     return not UI:IsAvailable(b, enabled) or option.disabled == true or (type(option.disabled) == "function" and option.disabled())
@@ -182,42 +185,62 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
     if not b.menu then
       -- Popup belongs to the window, outside the clipped ScrollFrame.
       local menu = CreateFrame("Frame", nil, KHQOL.settings or UIParent, "BackdropTemplate")
-      local menuWidth = 100
-      for _, option in ipairs(options) do
-        b:GetFontString():SetText(option.text)
-        menuWidth = math.max(menuWidth, math.ceil(b:GetFontString():GetStringWidth()) + 48)
-      end
-      menu:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 0, -2); menu:SetSize(menuWidth, #options * (T.ControlHeight + 2) + 8)
+      menu:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 0, -2)
       menu:SetFrameStrata("FULLSCREEN_DIALOG"); menu:SetClampedToScreen(true); menu:EnableMouse(true)
       menu:SetBackdrop({bgFile="Interface\\ChatFrame\\ChatFrameBackground", edgeFile="Interface\\Tooltips\\UI-Tooltip-Border", edgeSize=10, insets={left=3,right=3,top=3,bottom=3}})
       menu:SetBackdropColor(.04,.04,.04,.98); b.menu = menu; b.rows = {}
-      for i, option in ipairs(options) do
-        local choice = option
-        local row = CreateFrame("Button", nil, menu)
-        row:SetPoint("TOPLEFT", 4, -4-(i-1)*(T.ControlHeight+2)); row:SetSize(menuWidth-8,T.ControlHeight)
-        row.radio = UI:CreateLabel(row,"○",6,-5); row.radio:SetWidth(18)
-        row.text = UI:CreateLabel(row,choice.text,28,-5); row.text:SetWidth(menuWidth-40)
-        local highlight=row:CreateTexture(nil,"HIGHLIGHT"); highlight:SetAllPoints(); highlight:SetColorTexture(1,1,1,.08)
-        row:SetScript("OnClick", function()
-          if unavailable(choice) then return end
-          setter(choice.value); UI:CloseDropdown(); UI:Changed(parent)
-        end)
-        b.rows[i] = row
-      end
+      local viewport=CreateFrame("ScrollFrame",nil,menu)
+      viewport:SetPoint("TOPLEFT",4,-4)
+      local list=CreateFrame("Frame",nil,viewport); viewport:SetScrollChild(list)
+      b.menuViewport=viewport; b.menuList=list
+      viewport:EnableMouseWheel(true)
+      viewport:SetScript("OnMouseWheel",function(_,delta)
+        local maximum=math.max(0,list:GetHeight()-viewport:GetHeight())
+        viewport:SetVerticalScroll(math.max(0,math.min(maximum,viewport:GetVerticalScroll()-delta*(T.ControlHeight+2))))
+      end)
       menu:Hide()
     end
-    b:Refresh(); b.menu:Show(); UI.openDropdown = b.menu
+    b:Refresh(); b.menuViewport:SetVerticalScroll(0); b.menu:Show(); UI.openDropdown = b.menu
   end, enabled)
   b.Refresh = function()
+    if optionSource then options=optionSource() end
     local value = getter(); local selected = "선택"
+    local menuWidth=100
     for i, option in ipairs(options) do
       if option.value == value then selected = option.text end
+      b:GetFontString():SetText(option.text)
+      menuWidth=math.max(menuWidth,math.ceil(b:GetFontString():GetStringWidth())+48)
       if b.rows then
-        local row=b.rows[i]; row:SetEnabled(not unavailable(option)); row:EnableMouse(not unavailable(option))
+        local row=b.rows[i]
+        if not row then
+          row=CreateFrame("Button",nil,b.menuList)
+          row:SetPoint("TOPLEFT",0,-(i-1)*(T.ControlHeight+2))
+          row.radio=UI:CreateLabel(row,"○",6,-5); row.radio:SetWidth(18)
+          row.text=UI:CreateLabel(row,"",28,-5)
+          local highlight=row:CreateTexture(nil,"HIGHLIGHT"); highlight:SetAllPoints(); highlight:SetColorTexture(1,1,1,.08)
+          row:SetScript("OnClick",function()
+            if not row.option or unavailable(row.option) then return end
+            setter(row.option.value); UI:CloseDropdown(); UI:Changed(parent)
+          end)
+          b.rows[i]=row
+        end
+        row.option=option; row.text:SetText(option.text); row:Show()
+        row:SetEnabled(not unavailable(option)); row:EnableMouse(not unavailable(option))
         row:SetAlpha(unavailable(option) and T.DisabledAlpha or 1)
         row.radio:SetText(option.value==value and "●" or "○")
         row.radio:SetTextColor(unpack(option.value==value and T.Accent or T.TextSecondary))
       end
+    end
+    if b.rows then
+      for i,row in ipairs(b.rows) do
+        row:SetSize(menuWidth-8,T.ControlHeight); row.text:SetWidth(menuWidth-40)
+        if i>#options then row.option=nil; row:Hide() end
+      end
+      local contentHeight=#options*(T.ControlHeight+2)
+      local visibleHeight=math.min(contentHeight,336,math.max(84,UIParent:GetHeight()-80))
+      b.menuViewport:SetSize(menuWidth-8,visibleHeight); b.menuList:SetSize(menuWidth-8,contentHeight)
+      b.menu:SetSize(menuWidth,visibleHeight+8)
+      b.menuViewport:SetVerticalScroll(math.min(b.menuViewport:GetVerticalScroll(),math.max(0,contentHeight-visibleHeight)))
     end
     b:SetText(selected .. "  ▼")
     b:SetWidth(math.min(width, math.ceil(b:GetFontString():GetStringWidth())+24))
@@ -229,8 +252,9 @@ function UI:OpenColorPicker(getter, setter, refresh, captureRestore, supportsOpa
   local picker = ColorPickerFrame; if not picker or not picker.GetColorRGB then return end
   local r, g, b, a = getter(); a = a or 1
   local restore = captureRestore and captureRestore(); local initializing = true
+  local generation=KHQOL.profileGeneration
   local function apply()
-    if initializing then return end
+    if initializing or generation~=KHQOL.profileGeneration then return end
     local nr, ng, nb = picker:GetColorRGB(); local alpha = a
     if supportsOpacity then
       if picker.GetColorAlpha then alpha = picker:GetColorAlpha()
@@ -241,6 +265,7 @@ function UI:OpenColorPicker(getter, setter, refresh, captureRestore, supportsOpa
     if refresh then refresh() end
   end
   local function cancel()
+    if generation~=KHQOL.profileGeneration then return end
     if restore then restore() elseif supportsOpacity then setter(r,g,b,a) else setter(r,g,b) end
     if refresh then refresh() end
   end

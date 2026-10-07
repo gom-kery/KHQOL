@@ -16,6 +16,7 @@ local legacy = {
   clock = "ForeverClockDB", buffReminder = "ForeverBuffReminderDB", range = "FRangeDB",
   weaponGuide = "ForeverWeaponGuideDB", resourceSwing = "KHQOLResourceSwingDB", campfire = "CampfireAlertDB",
 }
+KHQOL.defaults = defaults
 
 function KHQOL:Migrate()
   for key, variable in pairs(legacy) do
@@ -58,7 +59,13 @@ function KHQOL:SetEnabled(key, enabled)
   if key == "buffReminder" and ForeverBuffReminder then
     if enabled then ForeverBuffReminder:RefreshAlerts() else ForeverBuffReminder:StopCountdown(); if ForeverBuffReminder.container then ForeverBuffReminder.container:Hide() end end
   end
-  if key == "resourceSwing" then if KHQOLResourceSwingDB then KHQOLResourceSwingDB.enabled = enabled and true or false end; if KHQOLResourceSwingFrame then KHQOLResourceSwingFrame:SetShown(enabled) end end
+  if key == "resourceSwing" then
+    if self.modules.resourceSwing.SetEnabled then self.modules.resourceSwing:SetEnabled(enabled)
+    else
+      if KHQOLResourceSwingDB then KHQOLResourceSwingDB.enabled = enabled and true or false end
+      if KHQOLResourceSwingFrame then KHQOLResourceSwingFrame:SetShown(enabled) end
+    end
+  end
   if key == "campfire" and cfa then if not enabled then cfa:HideDiscovery() elseif cfa.ProcessAuras then cfa:ProcessAuras("khqol-enable") end end
   local module = managedModules[key] and self.modules[key]
   if module and module.SetEnabled then module:SetEnabled(enabled) end
@@ -100,6 +107,7 @@ local commandPages = { clock="clock", todo="todo", buff="buffReminder", range="r
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_LOGIN")
 events:SetScript("OnEvent", function()
+  KHQOL:InitializeProfiles()
   KHQOLDB = KHQOL.MergeDefaults(KHQOLDB or {}, defaults, "tables"); KHQOL.db = KHQOLDB
   KHQOL:Migrate()
   if KHQOL.modules.general and KHQOL.modules.general.Initialize then KHQOL.modules.general:Initialize() end
@@ -110,6 +118,7 @@ events:SetScript("OnEvent", function()
     for key in pairs(KHQOL.db.enabled) do KHQOL:SetEnabled(key, KHQOL:GetEnabled(key)) end
     if KHQOL.modules.tooltip and KHQOL.modules.tooltip.Initialize then KHQOL.modules.tooltip:Initialize() end
     if KHQOL.modules.cursorTrail and KHQOL.modules.cursorTrail.Initialize then KHQOL.modules.cursorTrail:Initialize() end
+    KHQOL:FinishProfileLogin()
   end)
   SLASH_KHQOL1, SLASH_KHQOL2 = "/kh", "/khqol"
   SlashCmdList.KHQOL = function(message)

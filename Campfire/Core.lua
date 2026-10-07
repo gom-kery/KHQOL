@@ -50,6 +50,7 @@ local defaults = {
     locked = false,
 }
 
+CFA.defaults = defaults
 function CFA:Print(message)
     local chat = DEFAULT_CHAT_FRAME or ChatFrame1
     if chat then chat:AddMessage(self.PREFIX .. " " .. tostring(message)) end
@@ -350,6 +351,7 @@ end
 
 function CFA:Initialize()
     if self.initialized then return end
+    if KHQOL.InitializeProfiles then KHQOL:InitializeProfiles() end
     CampfireAlertDB = CampfireAlertDB or {}
     KHQOL.MergeDefaults(CampfireAlertDB, defaults, "tables")
     self.db = CampfireAlertDB

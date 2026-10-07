@@ -47,6 +47,7 @@ local function coordinate(value,default,min,max)
   return math.max(min,math.min(max,value))
 end
 function FR:InitializeDB()
+  if KHQOL.InitializeProfiles then KHQOL:InitializeProfiles() end
   if type(FRangeDB) ~= "table" then FRangeDB = {} end
   local old=FRangeDB.mouseover
   if type(old)=="table" and old.gap~=nil then

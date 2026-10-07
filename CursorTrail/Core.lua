@@ -22,6 +22,7 @@ local defaults = {
   alpha = .70,
 }
 
+CursorTrail.defaults = defaults
 local function clamp(value, minimum, maximum)
   return math.max(minimum, math.min(maximum, value))
 end
