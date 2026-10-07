@@ -1,3 +1,15 @@
+# KHQOL 1.9.5.1 — 지역 헤더 글씨
+
+지역명 글씨는 설정된 퀘스트 글씨 크기보다 1pt 크게 표시하며, 색상은 `#FF775F`로 적용합니다. 퀘스트 글씨 크기를 변경하면 지역명 크기와 배치 높이도 함께 계산됩니다.
+
+기준본: KHQOL-1.9.5.zip. 변경 실행 파일: `QuestNavigator/Tracker.lua`, `Bootstrap.lua`, `KHQOL.toc`. 문서 3개에 변경 이력을 추가했습니다.
+
+STATIC CHECK: PASS — 기존 모의 검증 55개, 전체 Lua 55개 문법 및 TOC 검사. IN-GAME: NEEDS TEST — 실제 Forever 클라이언트 화면은 실행하지 않았습니다.
+
+ZIP 내부 KHQOL 폴더를 덮어쓰고 `/reload`하세요. SavedVariables를 삭제할 필요가 없습니다.
+
+---
+
 # KHQOL 1.9.5 — 퀘스트 목록 지역별 그룹화
 
 기준본: 사용자 제공 KHQOL-1.9.4.zip.

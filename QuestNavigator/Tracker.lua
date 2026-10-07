@@ -183,6 +183,7 @@ function QN:AddTrackerRegion(module,group)
   row.regionKey=group.key
   local path,_,flags=row.Text:GetFont()
   row.Text:SetFont(path,self.trackerDB.fontSize+1,flags)
+  row.Text:SetTextColor(1,119/255,95/255) -- Region header: #FF775F.
   row.Text:SetWordWrap(true); row.Text:SetMaxLines(0); row.Text:SetHeight(0)
   row.fixedWidth=true; row:SetWidth(self:GetTrackerWidth())
   row.offsetX=module:GetWidth()-self:GetTrackerWidth()
