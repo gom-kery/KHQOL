@@ -54,8 +54,8 @@ end
 function QN:GetTrackerTag(info)
   local t=self.trackerDB
   -- Dungeon classification always wins, even if its display option is disabled.
-  if info.dungeon then return t.showDungeonTag and "던전" or nil end
-  if info.elite and t.showEliteTag then return "정예" end
+  if info.dungeon then return t.showDungeonTag and "D" or nil end
+  if info.elite and t.showEliteTag then return "★" end
 end
 function QN:BuildTrackerGroups(infos)
   local groups,lookup,data={},{},{}
