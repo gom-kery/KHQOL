@@ -6,7 +6,7 @@ local menuRowStep = T.ButtonHeight + math.max(0, defaultRowStep - T.ButtonHeight
 local moduleRowStep = T.CheckboxSize + math.max(0, defaultRowStep - T.CheckboxSize) / 3
 local definitions = {
   {"clock", "Clock", "시간, 날짜, 요일 및 HUD 정보를 표시합니다."},
-  {"todo", "Todo", "화면의 노트 창에서 할 일과 메모를 관리합니다."},
+  {"todo", "Note", "화면의 노트 창에서 할 일과 메모를 관리합니다."},
   {"buffReminder", "Buff Reminder", "버프가 없거나 만료되기 전에 화면에 알립니다."},
   {"range", "Range", "선택한 대상의 사거리 상태를 표시합니다."},
   {"tooltip", "Tooltip", "툴팁의 위치, 표시 방식 및 무기 전문가 안내를 조정합니다."},
