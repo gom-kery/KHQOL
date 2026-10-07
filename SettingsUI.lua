@@ -19,7 +19,10 @@ local definitions = {
   {"threat", "Threat", "현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다."},
   {"pvpAlert", "PvP Alert", "적 플레이어의 주시, 접근, 나를 향한 시전을 단계적으로 알립니다. 기본적으로 비전투 중에만 동작합니다."},
 }
-local pages = {{"general", "일반", "KHQOL 공통 설정 및 모듈 관리"}}
+local pages = {
+  {"general", "일반", "KHQOL 공통 설정 및 모듈 관리"},
+  {"profiles", "프로필", "계정 공용 프로필 및 캐릭터별 사용 프로필 관리"},
+}
 local modules = {}
 for _, definition in ipairs(definitions) do
   if KHQOL.modules[definition[1]] then modules[#modules+1] = definition end
@@ -112,7 +115,6 @@ local function profileSettings(content,y)
   return b.y
 end
 local function generalSettings(content,y)
-  y=profileSettings(content,y)
   local b=UI:CreateBuilder(content,y)
   b:Section("모듈 관리")
   UI:CreateDescription(content,"설정은 변경 즉시 저장됩니다.",112,b.y+40)
@@ -217,7 +219,8 @@ function KHQOL:CreateSettings()
     if not definition then key="general"; definition=pages[1] end
     UI:CloseDropdown()
     if self.activeContent then self.activeContent:Hide() end
-    self.page=key; self.pageName=definition[2]; footer:SetShown(key~="general"); scroll:SetVerticalScroll(0)
+    self.page=key; self.pageName=definition[2]
+    footer:SetShown(key~="general" and key~="profiles"); scroll:SetVerticalScroll(0)
     for menuKey, menuButton in pairs(self.menuButtons) do
       menuButton:GetFontString():SetTextColor(unpack(menuKey==key and T.Accent or T.TextPrimary))
       if menuKey==key then menuButton:LockHighlight() else menuButton:UnlockHighlight() end
@@ -228,6 +231,7 @@ function KHQOL:CreateSettings()
       self.pageCache[key]=content
       local y
       if key=="general" then y=UI:CreatePage(content,definition[2],definition[3]); y=generalSettings(content,y)
+      elseif key=="profiles" then y=UI:CreatePage(content,definition[2],definition[3]); y=profileSettings(content,y)
       else
         content.moduleKey=key
         y=UI:CreatePage(content,definition[2],definition[3],function() return KHQOL:GetEnabled(key) end,function(on)
@@ -270,8 +274,8 @@ function KHQOL:CreateSettings()
     local b=UI:CreateButton(f,definition[2],14,menuY,T.SidebarWidth-28,function() f:ShowPage(key) end)
     b:SetWidth(T.SidebarWidth-28)
     b:GetFontString():SetJustifyH("LEFT"); f.menuButtons[key]=b
-    menuY=menuY-(i==1 and defaultRowStep or menuRowStep)
-    if i==1 then
+    menuY=menuY-(i==2 and defaultRowStep or menuRowStep)
+    if i==2 then
       local line=f:CreateTexture(nil,"ARTWORK"); line:SetColorTexture(unpack(T.Divider))
       line:SetPoint("TOPLEFT",18,menuY+2); line:SetSize(T.SidebarWidth-36,1); menuY=menuY-16
     end
