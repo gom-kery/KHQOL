@@ -6,6 +6,118 @@ local trackerDefaults={groupByRegion=true,collapsibleRegions=true,showDungeonTag
   showEliteTag=true,collapsedRegions={},contentWidth=0}
 local function inCombat() return QN.IsTrue(QN.Call(InCombatLockdown)) end
 QN.trackerDefaults = trackerDefaults
+-- Keep the native modules and their buttons; only their viewport changes.
+function QN:CanMoveTrackerScroll()
+  if not inCombat() then return true end
+  local root=self.trackerScrollRoot
+  for _,frame in ipairs({root,self.trackerScroll,self.trackerScrollChild}) do
+    if not frame.IsProtected or frame:IsProtected() then return false end
+  end
+  for _,module in ipairs(root.modules or {}) do
+    if not module.IsProtected or module:IsProtected() then return false end
+  end
+  return true
+end
+function QN:ScrollTracker(delta)
+  local root,scroll=self.trackerScrollRoot,self.trackerScroll
+  if not self.trackerScrollActive or not scroll or root:IsCollapsed() then return end
+  local step=math.max(36,(self.trackerDB or self:GetTrackerDB()).fontSize*3)
+  local offset=math.max(0,math.min(self.trackerScrollMax or 0,
+    (self.trackerScrollPendingOffset or scroll:GetVerticalScroll())-delta*step))
+  if not self:CanMoveTrackerScroll() then
+    self.trackerScrollPendingOffset=offset; self.trackerScrollPending=true; return
+  end
+  scroll:SetVerticalScroll(offset); self.trackerScrollPendingOffset=nil
+end
+function QN:LayoutTrackerScroll()
+  local root,scroll,child=self.trackerScrollRoot,self.trackerScroll,self.trackerScrollChild
+  if not self.trackerScrollActive or not scroll then return end
+  if not self:CanMoveTrackerScroll() then self.trackerScrollPending=true; return end
+  if root:IsCollapsed() then scroll:Hide(); return end
+  local padding=root.topModulePadding or 38
+  local height=math.max(1,root:GetHeight()-padding-(root.bottomModulePadding or 10))
+  local top=root:GetTop()
+  if QN.IsNumber(top) then height=math.max(1,math.min(height,top-padding-12)) end
+  local rootWidth=root:GetWidth()
+  local width=math.max(rootWidth,self:GetTrackerWidth()+40)
+  for _,module in ipairs(root.modules or {}) do
+    width=math.max(width,module:GetWidth()+(module.leftMargin or 0))
+  end
+  scroll:ClearAllPoints(); scroll:SetPoint("TOPRIGHT",root,"TOPRIGHT",0,-padding)
+  scroll:SetSize(width,height); child:SetWidth(width)
+  local used,previous=0,nil
+  for _,module in ipairs(root.modules or {}) do
+    if module.parentContainer==root then
+      if module:GetParent()~=child then
+        self.trackerScrollParents[module]=module:GetParent(); module:SetParent(child)
+      end
+      local moduleHeight=module:GetContentsHeight()
+      if moduleHeight>0 then
+        if previous then used=used+(root.moduleSpacing or 10) end
+        module:ClearAllPoints()
+        module:SetPoint("TOPLEFT",child,"TOPLEFT",width-rootWidth+(module.leftMargin or 0),-used)
+        used=used+moduleHeight; previous=module
+      end
+    end
+  end
+  child:SetHeight(math.max(1,used))
+  self.trackerScrollMax=math.max(0,used-height)
+  scroll:SetVerticalScroll(math.max(0,math.min(self.trackerScrollMax,
+    self.trackerScrollPendingOffset or scroll:GetVerticalScroll())))
+  self.trackerScrollPendingOffset=nil; self.trackerScrollPending=false
+  scroll:Show()
+  if used>height and root.NineSlice then
+    root.NineSlice:SetPoint("BOTTOM",scroll,"BOTTOM",0,-(root.bottomModulePadding or 10))
+  end
+end
+function QN:InstallTrackerScrolling()
+  local root=ObjectiveTrackerFrame
+  if self.trackerScrollRoot or inCombat() or not root or type(root.GetAvailableHeight)~="function"
+    or type(root.UpdateHeaderPosition)~="function" or type(hooksecurefunc)~="function" then return end
+  local scroll=CreateFrame("ScrollFrame",nil,root)
+  local child=CreateFrame("Frame",nil,scroll)
+  child:SetSize(root:GetWidth(),1); scroll:SetScrollChild(child)
+  scroll:EnableMouse(false); scroll:EnableMouseWheel(true)
+  scroll:SetScript("OnMouseWheel",function(_,delta) self:ScrollTracker(delta) end)
+  scroll:Hide()
+  self.trackerScrollRoot=root; self.trackerScroll=scroll; self.trackerScrollChild=child
+  self.trackerScrollParents={}
+  local getHeight=root.GetAvailableHeight
+  root.GetAvailableHeight=function(frame,...)
+    -- Build every native block, including those normally omitted below the bottom edge.
+    if self.trackerScrollActive and not frame:IsCollapsed() then return math.huge end
+    return getHeight(frame,...)
+  end
+  -- The native dirty driver caches Update, but always calls UpdateHeaderPosition afterwards.
+  hooksecurefunc(root,"UpdateHeaderPosition",function() self:LayoutTrackerScroll() end)
+  root:HookScript("OnMouseWheel",function(_,delta) self:ScrollTracker(delta) end)
+end
+function QN:UpdateTrackerScrolling()
+  if inCombat() then self.trackerScrollPending=true; return end
+  if self.trackerEnabled then self:InstallTrackerScrolling() end
+  local root,scroll=self.trackerScrollRoot,self.trackerScroll
+  if not root then return end
+  local active=self.trackerEnabled==true
+  if self.trackerScrollActive~=active then
+    self.trackerScrollActive=active
+    if active then
+      self.trackerScrollNativeWheel=root:IsMouseWheelEnabled()
+      root:EnableMouseWheel(true)
+    else
+      for module,parent in pairs(self.trackerScrollParents) do
+        if module:GetParent()==self.trackerScrollChild then module:SetParent(parent) end
+      end
+      self.trackerScrollParents={}; self.trackerScrollMax=0
+      self.trackerScrollPendingOffset=nil; scroll:SetVerticalScroll(0); scroll:Hide()
+      root:EnableMouseWheel(self.trackerScrollNativeWheel==true)
+    end
+    -- Changing the available height invalidates native truncation and dirty shortcuts.
+    for _,module in ipairs(root.modules or {}) do module:MarkDirty() end
+    root:MarkDirty()
+  end
+  if active and self.trackerScrollPending then self:LayoutTrackerScroll() end
+  self.trackerScrollPending=false
+end
 function QN:RefreshObjectiveQuestCount()
   local frame=ObjectiveTrackerFrame
   local text=frame and frame.Header and frame.Header.Text
@@ -237,6 +349,7 @@ function QN:RequestTrackerLayout()
   self.trackerPending=true
   if inCombat() then return end
   self:InstallObjectiveTracker()
+  self:UpdateTrackerScrolling()
   if self.objectiveModule then self.objectiveModule:MarkDirty() end
 end
 function QN:InstallObjectiveTracker()
@@ -364,10 +477,14 @@ function QN:SetObjectiveTrackerEnabled(enabled)
       elseif event=="PLAYER_REGEN_ENABLED" and self.trackerPending then
         self:RequestTrackerLayout()
       end
+      if event=="PLAYER_REGEN_ENABLED" or event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED" then
+        self:UpdateTrackerScrolling()
+      end
       self:RefreshObjectiveQuestCount()
     end)
   end
   self:RequestTrackerLayout()
+  self:UpdateTrackerScrolling()
   self:RefreshObjectiveQuestCount()
 end
 function QN:PrintTrackerLayout()
