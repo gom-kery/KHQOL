@@ -1,7 +1,8 @@
 local _, KHQOL = ...
 local QN = KHQOL.modules.questNavigator
 local N,UI=KHQOL.Navigation,KHQOL.NavigationUI
-QN.VERSION = "0.3.0"
+QN.VERSION = "0.4.0"
+N:RegisterSource("Quest",{priority=1,autoSelect=false})
 -- Keep the saved profile shape while sharing the renderer's visual defaults.
 QN.defaults = KHQOL.MergeDefaults({autoTrack=true,completionBehavior="turnin",
   preferSameRegion=false,progressMode="numeric"},UI.defaults,"types")
@@ -81,7 +82,7 @@ function QN:OnEvent(event, questID, added)
     local id=self:GetTrackedQuest()
     if id then self:CancelTransition(); self:AdoptQuest(id,true)
     elseif self:OtherNavigationActive() then self:CancelTransition(); self:AdoptQuest(nil,true)
-    elseif not UI:IsTransitioning() then self:MarkDirty(true) end
+    elseif not UI:IsTransitioning("Quest") then self:MarkDirty(true) end
   end
   if event=="PLAYER_ENTERING_WORLD" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then N:InvalidateMap() end
   local waypointOnly=event=="QUEST_POI_UPDATE" or event=="SUPER_TRACKING_PATH_UPDATED" or event=="SUPER_TRACKING_CHANGED"
@@ -103,7 +104,7 @@ function QN:SetEnabled(enabled)
   self.objectiveMapID,self.objectiveX,self.objectiveY=nil,nil,nil
   self.removedSelectedQuestID=nil; self.trackedQuestIDs={}; self.watchOverrides={}; self.trackedLoaded=false; self.trackedDirty=true
   N:SetSourceDestinations("Quest",{})
-  self:ConfigureView(); UI:SetEnabled(self.active)
+  self:ConfigureView(); N:SetSourceEnabled("Quest",self.active); UI:SetClientEnabled("Quest",self.active)
   if not self.active then return end
   for _,event in ipairs(EVENTS) do
     local valid=QN.Call(C_EventUtils and C_EventUtils.IsEventValid,event)
@@ -123,7 +124,7 @@ function QN:Changed(key)
   if key=="progressMode" and not QN.IsTrue(self.readyForTurnIn) then self:RefreshProgress() end
   if key=="preferSameRegion" then self:PublishCandidates() end
   self:SyncPresentation()
-  if not UI:IsTransitioning() and self.selectedQuestID then UI:Refresh(true,true) end
+  if not UI:IsTransitioning("Quest") and self.selectedQuestID then if N.activeSource=="Quest" then UI:Refresh(true,true) end end
   UI:Render(); self:UpdateDriver()
 end
 

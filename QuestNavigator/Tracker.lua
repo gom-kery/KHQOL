@@ -1,4 +1,4 @@
-﻿local _, KHQOL = ...
+local _, KHQOL = ...
 local QN=KHQOL.modules.questNavigator
 local N,UI=KHQOL.Navigation,KHQOL.NavigationUI
 -- Quest-list presentation is independent of the navigation/watch cache below.
@@ -755,7 +755,7 @@ function QN:RefreshProgress()
   end
 end
 function QN:ClearNavigation(preserveRotation)
-  N:Clear(preserveRotation); UI:ResetDistanceLabel()
+  if not preserveRotation then N:SetSourceFocus("Quest",nil) end
   self.waypointSource=nil; self.navigationMode="NONE"; self.locationReason=nil
 end
 function QN:BuildDestination(id,map,x,y,title)
@@ -763,8 +763,8 @@ function QN:BuildDestination(id,map,x,y,title)
     metadata={questID=id,waypointSource=self.waypointSource,navigationMode=self.navigationMode}}
 end
 function QN:PublishActive(map,x,y)
-  if self.selectedQuestID then N:SetActiveDestination(self:BuildDestination(self.selectedQuestID,map,x,y),true)
-  else N:SetActiveDestination(nil,true) end
+  if self.selectedQuestID then N:SetSourceFocus("Quest",self:BuildDestination(self.selectedQuestID,map,x,y),true)
+  else N:SetSourceFocus("Quest",nil,true) end
   self:SyncPresentation()
 end
 
@@ -824,7 +824,7 @@ function QN:AdoptQuest(id,manual)
     self.manualTurnIn=false
   end
   if manual then self.removedSelectedQuestID=nil end
-  N:Clear(); self.selectedQuestID=id; self.manualSelection=manual==true
+  N:SetSourceFocus("Quest",nil); self.selectedQuestID=id; self.manualSelection=manual==true
   self:RefreshQuestData()
   if QN.IsFalse(self.readyForTurnIn) then
     self.manualTurnIn=false
@@ -832,12 +832,12 @@ function QN:AdoptQuest(id,manual)
   end
   if manual and QN.IsTrue(self.readyForTurnIn) then self.manualTurnIn=true end
   if not id then UI:Render(); self:UpdateDriver(); return end
-  UI:Refresh(true,true); UI:Render(); self:UpdateDriver()
+  if N.activeSource=="Quest" then UI:Refresh(true,true) end; UI:Render(); self:UpdateDriver()
 end
 function QN:RefreshQuest()
   if not self.active then return end
   self:GetTrackedQuests(); self:PublishCandidates(self.completedQuestID or self.selectedQuestID)
-  if UI:IsTransitioning() then return end
+  if UI:IsTransitioning("Quest") then return end
   local tracked=self:GetTrackedQuest()
   if tracked and QN.IsFalse(QN.Call(C_QuestLog and C_QuestLog.IsOnQuest,tracked)) then tracked=nil end
   local id=self.selectedQuestID
@@ -852,10 +852,10 @@ function QN:RefreshQuest()
       self.db.completionBehavior=="next" and not self.manualTurnIn and self.lastCompletedQuestID~=id then
     self:BeginCompletion(id); return
   end
-  UI:Refresh(false,true); UI:Render()
+  if N.activeSource=="Quest" then UI:Refresh(false,true) end; UI:Render()
 end
 function QN:RefreshWaypoint()
-  if UI:IsTransitioning() or not self.selectedQuestID then return end
+  if UI:IsTransitioning("Quest") or not self.selectedQuestID then return end
   -- Completion is cached by quest events; route events never scan the log.
   self:ClearNavigation(true)
   local map,x,y
@@ -870,19 +870,20 @@ function QN:RefreshWaypoint()
   end
   self:PublishActive(map,x,y)
   if not QN.IsNumber(N.mapWidth) or not QN.IsNumber(N.mapHeight) then N:InvalidateMap() end
-  UI:Refresh(false,true)
+  if N.activeSource=="Quest" then UI:Refresh(false,true) end
 end
 function QN:CancelTransition()
   self.completedQuestID=nil; self.transitionTurnedIn=nil
-  UI:CancelTransition()
+  UI:CancelTransition("Quest"); N:SetSourceHold("Quest",false)
 end
 
 function QN:BeginCompletion(id,turnedIn,title)
-  if UI:IsTransitioning() or (not turnedIn and self.lastCompletedQuestID==id) then return end
+  if UI:IsTransitioning("Quest") or (not turnedIn and self.lastCompletedQuestID==id) then return end
   self.lastCompletedQuestID=id; self.completedQuestID=id; self.transitionTurnedIn=turnedIn==true
   local label=title or self.questTitle or ("퀘스트 #"..id)
   self:ClearNavigation()
-  UI:BeginTransition(label,function() self:FinishTransition() end)
+  N:SetSourceHold("Quest",true)
+  UI:BeginTransition(label,function() self:FinishTransition() end,"Quest")
 end
 
 function QN:QuestTurnedIn(id)
@@ -914,6 +915,6 @@ function QN:FinishTransition()
   else chosen=not turnedIn and tracked or nil end
   if turnedIn and chosen==completed then chosen=nil end
   self:AdoptQuest(chosen,chosen==completed)
-  if self.selectedQuestID and not UI:IsTransitioning() then UI:FadeIn() end
+  if self.selectedQuestID and not UI:IsTransitioning("Quest") then UI:FadeIn("Quest") end
   self:UpdateDriver()
 end

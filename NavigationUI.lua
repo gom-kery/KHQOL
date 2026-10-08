@@ -1,6 +1,6 @@
 local _, KHQOL = ...
 local N=KHQOL.Navigation
-local UI={presentation={},jobs={}}
+local UI={presentation={},jobs={},clients={},sourcePresentations={}}
 KHQOL.NavigationUI=UI
 UI.defaults={showArrow=true,arrowSize=64,arrowAlpha=1,arrowTilt=55,smoothRotation=true,
   showDistance=true,showTitle=true,showProgress=true,distanceUnit="yards",locked=true,
@@ -54,6 +54,11 @@ function UI:CreateHUD()
   self.arrowSides,self.arrowShadow=sides,shadow
   self.distanceText,self.titleText,self.objectiveText=distance,title,objective
   self.completionFrame,self.completionTitle,self.handle=complete,completeTitle,handle
+  local auto=CreateFrame("Button",nil,root,"UIPanelButtonTemplate")
+  auto:SetSize(48,20); auto:SetPoint("TOPRIGHT",root,"TOPRIGHT",0,0); auto:SetText("AUTO")
+  auto:SetFrameStrata("DIALOG")
+  auto:SetScript("OnClick",function() N:ClearManualDestination(); self:Refresh(true,true); self:Render() end)
+  self.autoButton=auto; auto:Hide()
   root:Hide(); hud:Hide(); handle:Hide()
 end
 function UI:SavePosition()
@@ -155,12 +160,13 @@ function UI:Render()
   if not self.root then return end
   local destination=N:GetActiveDestination()
   local title=destination and destination.label or ""
-  local shown=self.active and (destination~=nil or self.phase~=nil) and self:GetState()~="IDLE"
-  self.root:SetShown(shown or (self.active and not self.db.locked))
+  self.autoButton:SetShown(self.active and (N.manual~=nil or N:HasAutoPause()))
+  local shown=self.active and (destination~=nil or (self.phase~=nil and self.transitionSource==N.activeSource)) and self:GetState()~="IDLE"
+  self.root:SetShown(shown or (self.active and (not self.db.locked or N.manual~=nil or N:HasAutoPause())))
   self.hud:SetShown(shown)
   local completed=self:GetState()=="COMPLETED" or self:GetState()=="SWITCHING"
   self.completionFrame:SetShown(shown and completed)
-  setText(self.completionTitle,self.db.showTitle and (self.presentation.completionTitle or title) or "")
+  setText(self.completionTitle,self.db.showTitle and (self.transitionTitle or self.presentation.completionTitle or title) or "")
   setText(self.titleText,title); setText(self.objectiveText,self.presentation.progressText or "")
   self.titleText:SetShown(shown and not completed and self.db.showTitle)
   self.objectiveText:SetShown(shown and not completed and self.db.showProgress)
@@ -179,7 +185,7 @@ function UI:SetPresentation(presentation)
   self:Render()
 end
 function UI:GetState()
-  if self.phase then return self.phase=="hold" and "COMPLETED" or "SWITCHING" end
+  if self.phase and self.transitionSource==N.activeSource then return self.phase=="hold" and "COMPLETED" or "SWITCHING" end
   return N.state
 end
 function UI:SetEnabled(enabled)
@@ -191,6 +197,8 @@ function UI:ResetDistanceLabel()
   self.lastDistanceValue=nil; self.lastDistanceUnit=nil; self.distanceLabel=nil
 end
 function UI:Refresh(rotate,distance)
+  local source=N.sources[N.activeSource]
+  if distance and source and source.autoSelect and not N.manual then N:RefreshSelection() end
   local oldState=self:GetState()
   N:Refresh(rotate,distance,self.db)
   if rotate and self.db.showArrow and N.state=="TRACKING" and not N.atWaypoint then
@@ -208,18 +216,21 @@ function UI:Schedule(key,delay,callback)
   self.jobs[key]={elapsed=0,delay=delay,callback=callback}; self:UpdateDriver()
 end
 function UI:CancelJob(key) self.jobs[key]=nil; self:UpdateDriver() end
-function UI:IsTransitioning() return self.phase~=nil end
-function UI:CancelTransition()
-  self.phase=nil; self.phaseElapsed=0; self.fadeInRemaining=nil; self.onTransitionEnd=nil
+function UI:IsTransitioning(source) return self.phase~=nil and (not source or self.transitionSource==source) end
+function UI:CancelTransition(source)
+  if source and self.transitionSource~=source then return end
+  self.phase=nil; self.transitionSource=nil; self.transitionTitle=nil; self.phaseElapsed=0; self.fadeInRemaining=nil; self.onTransitionEnd=nil
   self.presentation.completionTitle=nil
   if self.hud then self.hud:SetAlpha(1) end
 end
-function UI:BeginTransition(title,onFinished)
+function UI:BeginTransition(title,onFinished,source)
+  self.transitionSource=source or N.activeSource; self.transitionTitle=title
   self.phase="hold"; self.phaseElapsed=0; self.fadeInRemaining=nil
   self.presentation.completionTitle=title; self.onTransitionEnd=onFinished
   self.hud:SetAlpha(1); self:Render(); self:UpdateDriver()
 end
-function UI:FadeIn()
+function UI:FadeIn(source)
+  if source and N.activeSource~=source then return end
   self.hud:SetAlpha(0); self.fadeInRemaining=.15; self:UpdateDriver()
 end
 function UI:UpdateDriver()
@@ -244,7 +255,7 @@ function UI:Update(elapsed)
     if self.phase=="hold" and self.phaseElapsed>=.85 then
       self.phase="out"; self.phaseElapsed=0
     elseif self.phase=="out" then
-      self.hud:SetAlpha(math.max(0,1-self.phaseElapsed/.15))
+      if self.transitionSource==N.activeSource then self.hud:SetAlpha(math.max(0,1-self.phaseElapsed/.15)) end
       if self.phaseElapsed>=.15 then
         local finished=self.onTransitionEnd; self:CancelTransition()
         if finished then finished() end
@@ -255,7 +266,7 @@ function UI:Update(elapsed)
     self.hud:SetAlpha(1-self.fadeInRemaining/.15)
     if self.fadeInRemaining==0 then self.fadeInRemaining=nil end
   end
-  if not self.phase and N:GetActiveDestination() then
+  if (not self.phase or self.transitionSource~=N.activeSource) and N:GetActiveDestination() then
     self.arrowElapsed=self.arrowElapsed+elapsed; self.distanceElapsed=self.distanceElapsed+elapsed
     local arrowDue=self.db.showArrow and self.arrowElapsed>=self.db.arrowUpdateInterval
     local distanceDue=self.distanceElapsed>=self.db.distanceUpdateInterval
@@ -266,4 +277,29 @@ function UI:Update(elapsed)
     end
   end
   self:UpdateDriver()
+end
+
+
+function UI:SetClientEnabled(source,enabled)
+  self.clients[source]=enabled==true
+  local active=false
+  for _,on in pairs(self.clients) do active=active or on end
+  if self.active~=active then
+    self.active=active; self.arrowElapsed=0; self.distanceElapsed=0
+    if not active then self.jobs={}; self:CancelTransition() end
+  end
+  if not enabled then self:CancelJob("source:"..source); self:CancelTransition(source) end
+  self:ApplyLayout(); self:Render(); self:UpdateDriver()
+end
+function UI:SetSourcePresentation(source,presentation)
+  self.sourcePresentations[source]=presentation or {}
+  if N.activeSource==source then self:SyncActivePresentation() end
+end
+function UI:SyncActivePresentation()
+  self:SetPresentation(self.sourcePresentations[N.activeSource] or {})
+end
+function N:OnSelectionChanged(changed)
+  if not UI.root then return end
+  if changed then UI:ResetDistanceLabel(); UI.hud:SetAlpha(1) end
+  UI:SyncActivePresentation(); UI:UpdateDriver()
 end

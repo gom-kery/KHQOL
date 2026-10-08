@@ -6,7 +6,7 @@ local managed = {"tooltip","cursorTrail","castBar","combatStatus","questNavigato
 local common = {"minimap","locked","debug","enabled","general"}
 managed[#managed+1]="environmentTimer"
 managed[#managed+1]="experienceBar"
-local noteUI = {transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
+local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID"}
 local function copy(value, seen)
@@ -246,6 +246,7 @@ function KHQOL:ApplyProfileModules()
     fc.todoFrame:SetSize(p.width,p.height); fc:UpdateTodoEscapeBinding(); fc:RefreshTodo()
   end
   fc:UpdateTodoMinimapButton()
+  fc:RefreshTodoNavigation()
   if fc.RefreshClockTools then fc:RefreshClockTools() end
   local fbr=ForeverBuffReminder
   fbr:StopCountdown(); fbr.testMode=false; fbr:InitializeDatabase()

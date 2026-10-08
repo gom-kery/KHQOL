@@ -175,14 +175,17 @@ function FC:RefreshTodoChecklist()
           row = CreateFrame("Frame", nil, f.checkChild); row:SetHeight(rowHeight)
           row.check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate"); row.check:SetPoint("LEFT", row, "LEFT", 12, 0)
           row.delete = Button(row, "×", 26, function() local page = FC:GetTodoPage(); local tasks = row.individual and page.individualTasks or page.groups[row.groupIndex].tasks; table.remove(tasks, row.taskIndex); FC:RefreshTodo() end); row.delete:SetPoint("RIGHT", row, "RIGHT", -1, 0); row.delete:GetFontString():SetFont(FC.FONT_PATH, 18, "OUTLINE")
+          row.navigate = Button(row,"▶",26,function() FC:TrackTodoWaypoint(row.navigate.item) end)
+          row.navigate:SetWidth(26); row.navigate:SetPoint("RIGHT",row.delete,"LEFT",-2,0)
           row.edit = CreateFrame("EditBox", nil, row, "InputBoxTemplate"); row.edit:SetPoint("LEFT", row.check, "RIGHT", 1, 0); row.edit:SetPoint("RIGHT", row.delete, "LEFT", -3, 0); row.edit:SetHeight(rowHeight - 4); row.edit:SetAutoFocus(false)
-          row.edit:SetScript("OnTextChanged", function(self, userInput) if userInput then local page = FC:GetTodoPage(); local tasks = self.individual and page.individualTasks or page.groups[self.groupIndex].tasks; local task = tasks and tasks[self.taskIndex]; if task then task.text = self:GetText() end end end)
+          row.edit:SetScript("OnTextChanged", function(self, userInput) if userInput then local page = FC:GetTodoPage(); local tasks = self.individual and page.individualTasks or page.groups[self.groupIndex].tasks; local task = tasks and tasks[self.taskIndex]; if task then FC:UpdateTodoWaypoint(task,self:GetText()); FC:UpdateTodoNavigationRow(self:GetParent(),task) end end end)
           row.edit:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
           row.strike = row:CreateTexture(nil, "OVERLAY"); row.strike:SetHeight(1); row.strike:SetPoint("LEFT", row.edit, "LEFT", 1, 0); row.strike:SetPoint("RIGHT", row.edit, "RIGHT", -1, 0); row.strike:SetColorTexture(0.75, 0.75, 0.75, 0.85)
           row.check:SetScript("OnClick", function(self) local page = FC:GetTodoPage(); local tasks = self.individual and page.individualTasks or page.groups[self.groupIndex].tasks; local task = table.remove(tasks, self.taskIndex); task.done = self:GetChecked() and true or false; if task.done then table.insert(tasks, task) else table.insert(tasks, 1, task) end; FC:RefreshTodo() end)
           f.checkRows[taskIndex] = row
         end
         row.individual, row.groupIndex, row.taskIndex = entry.individual, groupIndex, index; row.check.individual, row.check.groupIndex, row.check.taskIndex = entry.individual, groupIndex, index; row.edit.individual, row.edit.groupIndex, row.edit.taskIndex = entry.individual, groupIndex, index
+        self:UpdateTodoNavigationRow(row,task)
         row:SetHeight(rowHeight); row.edit:SetHeight(rowHeight - 4); row:ClearAllPoints(); row:SetPoint("TOPLEFT", f.checkChild, "TOPLEFT", 2, -y); row:SetPoint("TOPRIGHT", f.checkChild, "TOPRIGHT", -2, -y); row.check:SetChecked(task.done); row.edit:SetText(task.text or ""); row.edit:SetFont(FC.FONT_PATH, self.db.todo.fontSize or 15, ""); row.edit:SetTextColor(task.done and 0.55 or 1, task.done and 0.55 or 1, task.done and 0.55 or 1); row.strike:SetShown(task.done); row:Show(); y = y + rowHeight + 1; taskIndex = taskIndex + 1
       end
     end
@@ -193,6 +196,7 @@ function FC:RefreshTodoChecklist()
 end
 
 function FC:RefreshTodo()
+  self:RefreshTodoNavigation()
   local f, page = self.todoFrame, self:GetTodoPage()
   local checklist = page.mode == "checklist"
   f.loading = true
@@ -311,10 +315,10 @@ function FC:ToggleTodoMode(confirmed)
     end
     page.text, page.mode = table.concat(lines, "\n"), "text"
   else
-    local tasks = {}
+    local tasks,used = {},{}
     for line in (page.text or ""):gmatch("[^\r\n]+") do
       local marker, text = line:match("^%s*%[([ xX])%]%s*(.*)$")
-      tasks[#tasks + 1] = { text = text or line, done = marker and marker:lower() == "x" or false }
+      tasks[#tasks + 1] = self:RestoreTodoChecklistTask(page,text or line,marker and marker:lower() == "x" or false,used)
     end
     if #tasks == 0 then tasks[1] = { text = "", done = false } end
     page.individualTasks, page.groups, page.tasks, page.activeGroup = tasks, {}, nil, 1
@@ -446,7 +450,9 @@ function FC:CreateTodo()
   local grip = CreateFrame("Button", nil, f); grip:SetSize(18, 18); grip:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 2); local gripTexture = grip:CreateTexture(nil, "OVERLAY"); gripTexture:SetAllPoints(); gripTexture:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
   grip:SetScript("OnMouseDown", function() f:StartSizing("BOTTOMRIGHT") end); grip:SetScript("OnMouseUp", function() f:StopMovingOrSizing(); FC:SaveTodoWindow(); FC:UpdateTodoEditorSize() end)
   self:UpdateTodoMinimumSize()
-  f:SetScript("OnSizeChanged", function() FC:UpdateTodoEditorSize() end); f:SetScript("OnHide", function() FC:SaveTodoPage(); FC:SaveTodoWindow() end); f:Hide()
+  f:SetScript("OnSizeChanged", function() FC:UpdateTodoEditorSize() end); f:SetScript("OnHide", function() FC:SaveTodoPage(); FC:SaveTodoWindow() end)
+  -- Initial hide precedes loading the saved title/editor; do not save empty controls.
+  f.loading=true; f:Hide(); f.loading=nil
   self:UpdateTodoEscapeBinding()
 end
 

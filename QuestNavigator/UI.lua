@@ -10,7 +10,7 @@ function QN:ConfigureView()
 end
 function QN:SyncPresentation()
   local turnIn=self.navigationMode=="TURN_IN_LOCATION"
-  UI:SetPresentation({progressText=self.progressText,completionTitle=UI.presentation.completionTitle,
+  UI:SetSourcePresentation("Quest",{progressText=self.progressText,completionTitle=UI.transitionSource=="Quest" and UI.presentation.completionTitle or nil,
     noWaypointText=turnIn and "반납 위치 없음" or "경로 없음",
     unavailableText=turnIn and "반납 위치 안내 불가" or "경로 안내 불가",
     moveHint="Quest Navigator · 드래그 이동"})

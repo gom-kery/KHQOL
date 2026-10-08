@@ -58,6 +58,7 @@ function KHQOL:SetEnabled(key, enabled)
   if key == "todo" and fc then
     if fc.todoFrame and not enabled then fc.todoFrame:Hide() end
     if fc.UpdateTodoMinimapButton then fc:UpdateTodoMinimapButton() end
+    if fc.RefreshTodoNavigation then fc:RefreshTodoNavigation() end
   end
   if key == "range" and fr and fr.SetEnabled then fr:SetEnabled(enabled) end
   if key == "buffReminder" and ForeverBuffReminder then
