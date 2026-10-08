@@ -285,8 +285,8 @@ function E:Visual(row,timer,data,index)
     h.fill:SetTexCoord(h.u0,h.u1,(466-420*fraction)/512,466/512)
     h.fill:SetVertexColor(color[1],color[2],color[3],1); h.fill:SetShown(fraction>0)
     h.glow:SetVertexColor(color[1],color[2],color[3],1)
-    h.glow:SetShown(state=="CAUTION" or state=="DANGER" or state=="CRITICAL")
-    h.critical:SetShown(state=="CRITICAL")
+    h.glow:Hide() -- Full-length overlays obscure the remaining fill.
+    h.critical:Hide()
   end
   row:Show()
 end
