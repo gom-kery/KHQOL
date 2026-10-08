@@ -164,8 +164,9 @@ function QN:StyleTrackerBlock(block)
       local title=QN.Call(C_QuestLog and C_QuestLog.GetTitleForQuestID,b.id)
       if info and QN.IsText(title) then
         local tag=owner:GetTrackerTag(info)
-        title=(info.level and ("["..math.floor(info.level).."] ") or "")..
-          (tag and ("["..tag.."] ") or "")..title
+        local prefix=info.level and tostring(math.floor(info.level)) or nil
+        if tag then prefix=prefix and (prefix.." "..tag) or tag end
+        title=(prefix and ("["..prefix.."] ") or "")..title
         -- Keep the exact native difficulty color (and CVar policy), without a second level prefix.
         local color=QN.IsText(text) and text:match("^(|c%x%x%x%x%x%x%x%x)")
         text=color and (color..title.."|r") or title
