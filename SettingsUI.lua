@@ -116,14 +116,17 @@ local function profileSettings(content,y)
 end
 local function generalSettings(content,y)
   local b=UI:CreateBuilder(content,y)
+  b:Section("화면 요소 위치")
+  b:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter() end)
+  b:Description("활성화된 화면 요소를 함께 이동합니다. 완료하면 저장·잠금, 취소 또는 ESC는 변경 전 상태를 유지합니다.")
   b:Section("모듈 관리")
   UI:CreateDescription(content,"설정은 변경 즉시 저장됩니다.",112,b.y+40)
-  local rows=math.ceil(#modules/3)
+  local rows=math.ceil(#modules/2)
   local top=b.y
   for index, definition in ipairs(modules) do
     local key, name = definition[1], definition[2]
     local column=math.floor((index-1)/rows); local row=(index-1)%rows
-    local checkbox=UI:CreateCheckbox(content,name,column*208,top-row*moduleRowStep,function() return KHQOL:GetEnabled(key) end,function(on) KHQOL:SetEnabled(key,on) end)
+    local checkbox=UI:CreateCheckbox(content,name,column*((T.ContentWidth+T.ColumnGap)/2),top-row*moduleRowStep,function() return KHQOL:GetEnabled(key) end,function(on) KHQOL:SetEnabled(key,on) end)
     checkbox.text:SetWidth(150)
   end
   b.y=top-rows*moduleRowStep
@@ -178,14 +181,25 @@ function KHQOL:CreateSettings()
   f:SetClampedToScreen(true); f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart",f.StartMoving); f:SetScript("OnDragStop",f.StopMovingOrSizing)
   f:SetBackdrop({bgFile="Interface\\ChatFrame\\ChatFrameBackground",edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",edgeSize=12,insets={left=4,right=4,top=4,bottom=4}})
-  f:SetBackdropColor(.025,.025,.03,.96); f:Hide(); self.settings=f
+  UI:Surface(f,1)
+  local texture=f:CreateTexture(nil,"BACKGROUND",nil,1); texture:SetAllPoints(); texture:SetTexture("Interface\\AddOns\\KHQOL\\Media\\SettingsGrain.tga"); texture:SetAlpha(.24)
+  f:Hide(); self.settings=f
+  function f:FitScreen()
+    local scale=math.min(1,(UIParent:GetWidth()-24)/T.WindowWidth,(UIParent:GetHeight()-24)/T.WindowHeight)
+    self:SetScale(math.max(.1,scale))
+  end
+  f:RegisterEvent("DISPLAY_SIZE_CHANGED"); f:RegisterEvent("UI_SCALE_CHANGED")
+  f:SetScript("OnEvent",function(self) self:FitScreen() end)
+  f:SetScript("OnShow",function(self) self:FitScreen() end); f:FitScreen()
   SlashCmdList.KHQOLRESOURCESWING=function()
     if f:IsShown() and f.page=="resourceSwing" then f:Hide() else KHQOL:ShowSettings("resourceSwing") end
   end
-  UI:CreateLabel(f,"KH-QOL 설정",T.WindowPadding,-16,T.TitleFontSize)
-  local version=UI:CreateLabel(f,"v"..self.VERSION,0,-22,T.DescriptionFontSize)
-  version:ClearAllPoints(); version:SetPoint("TOPRIGHT",-54,-22); version:SetWidth(84); version:SetJustifyH("RIGHT")
-  local close=CreateFrame("Button",nil,f,"UIPanelCloseButton"); close:SetPoint("TOPRIGHT",-4,-4)
+  UI:CreateLabel(f,"KHQOL",T.WindowPadding,-17,T.TitleFontSize):SetWidth(120)
+  UI:CreateDescription(f,"v"..self.VERSION,T.WindowPadding,-42):SetWidth(120)
+  f.pageTitle=UI:CreateLabel(f,"일반",T.SidebarWidth+T.ContentPadding,-22,20); f.pageTitle:SetWidth(330)
+  f.pageTitle:SetTextColor(unpack(T.FocusAccent))
+  local edit=UI:CreateButton(f,"위치 편집",T.WindowWidth-182,-20,112,function() KHQOL.PositionEditor:Enter() end)
+  local close=UI:CreateButton(f,"X",T.WindowWidth-52,-20,32,function() f:Hide() end); close:SetWidth(32)
   if UISpecialFrames then table.insert(UISpecialFrames,"KHQOLSettingsFrame") end
   local divider=f:CreateTexture(nil,"ARTWORK"); divider:SetColorTexture(unpack(T.Divider))
   divider:SetPoint("TOPLEFT",T.SidebarWidth,-54); divider:SetPoint("BOTTOMLEFT",T.SidebarWidth,18); divider:SetWidth(1)
@@ -219,11 +233,10 @@ function KHQOL:CreateSettings()
     if not definition then key="general"; definition=pages[1] end
     UI:CloseDropdown()
     if self.activeContent then self.activeContent:Hide() end
-    self.page=key; self.pageName=definition[2]
+    self.page=key; self.pageName=definition[2]; self.pageTitle:SetText(definition[2])
     footer:SetShown(key~="general" and key~="profiles"); scroll:SetVerticalScroll(0)
     for menuKey, menuButton in pairs(self.menuButtons) do
-      menuButton:GetFontString():SetTextColor(unpack(menuKey==key and T.Accent or T.TextPrimary))
-      if menuKey==key then menuButton:LockHighlight() else menuButton:UnlockHighlight() end
+      UI:SetButtonSelected(menuButton,menuKey==key)
     end
     local content=self.pageCache[key]
     if not content then
@@ -268,21 +281,29 @@ function KHQOL:CreateSettings()
     elseif key=="castBar" then KHQOL.modules.castBar:ApplyLayout(); KHQOL.modules.castBar:RefreshControls() end
     UI:Refresh(content); self:UpdateContentHeight()
   end
-  local menuY=-66
+  local navigation=CreateFrame("ScrollFrame",nil,f)
+  navigation:SetPoint("TOPLEFT",10,-76); navigation:SetPoint("BOTTOMLEFT",10,58); navigation:SetWidth(T.SidebarWidth-20)
+  local menuContent=CreateFrame("Frame",nil,navigation); menuContent:SetWidth(T.SidebarWidth-20); menuContent:SetHeight(600); navigation:SetScrollChild(menuContent)
+  navigation:EnableMouseWheel(true); navigation:SetScript("OnMouseWheel",function(self,delta)
+    self:SetVerticalScroll(math.max(0,math.min(math.max(0,menuContent:GetHeight()-self:GetHeight()),self:GetVerticalScroll()-delta*36)))
+  end)
+  local menuY=0
   for i, definition in ipairs(pages) do
     local key=definition[1]
-    local b=UI:CreateButton(f,definition[2],14,menuY,T.SidebarWidth-28,function() f:ShowPage(key) end)
+    local b=UI:CreateButton(menuContent,definition[2],0,menuY,T.SidebarWidth-28,function() f:ShowPage(key) end)
     b:SetWidth(T.SidebarWidth-28)
     b:GetFontString():SetJustifyH("LEFT"); f.menuButtons[key]=b
     menuY=menuY-(i==2 and defaultRowStep or menuRowStep)
     if i==2 then
-      local line=f:CreateTexture(nil,"ARTWORK"); line:SetColorTexture(unpack(T.Divider))
-      line:SetPoint("TOPLEFT",18,menuY+2); line:SetSize(T.SidebarWidth-36,1); menuY=menuY-16
+      local line=menuContent:CreateTexture(nil,"ARTWORK"); line:SetColorTexture(unpack(T.Divider))
+      line:SetPoint("TOPLEFT",0,menuY+2); line:SetSize(T.SidebarWidth-36,1); menuY=menuY-16
     end
   end
+  menuContent:SetHeight(-menuY+4)
   f:SetScript("OnHide",function() UI:CloseDropdown(); GameTooltip:Hide() end)
 end
 function KHQOL:ShowSettings(key)
   if not self.settings then return end
+  if self.PositionEditor and self.PositionEditor.active then return end
   self.settings:Show(); self.settings:ShowPage(key or "general")
 end

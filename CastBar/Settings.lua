@@ -44,7 +44,10 @@ function CastBar:BuildSettings(content,y)
     p.resource.gap=4; self:Changed()
   end,180,enabled))
   add(b:Button("미리보기 켜기 / 끄기",function() self:SetPreview(not self.preview) end,210,enabled))
-  content:SetScript("OnHide",function() self.controls=nil; if self.frame then self:SetPreview(false) end end)
+  content:SetScript("OnHide",function()
+    if KHQOL.PositionEditor and KHQOL.PositionEditor.active then return end
+    self.controls=nil; if self.frame then self:SetPreview(false) end
+  end)
   content:SetScript("OnShow",function() self.controls=controls; self:RefreshControls() end)
   b:Section("바 모양")
   slider("높이",db.appearance,"height",8,80)

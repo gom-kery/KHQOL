@@ -51,6 +51,7 @@ function PA:BuildSettings(content,y)
   end,240,available)
   content:HookScript("OnShow",function() self.settingsContent=content end)
   content:HookScript("OnHide",function()
+    if KHQOL.PositionEditor and KHQOL.PositionEditor.active then return end
     self:SetMoving(false); self:StopTest(); self.settingsContent=nil
   end)
   return b.y

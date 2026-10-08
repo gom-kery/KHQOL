@@ -365,6 +365,7 @@ end
 
 -- Reapply existing frames after an in-place profile update; the local db and
 -- settings callbacks deliberately retain their original table identities.
+function NS.modules.resourceSwing:ApplyPosition() applyLayout() end
 function NS.modules.resourceSwing:ApplyProfile()
     if not frame then return end
     migrateLegacyResourceColor(); applyLayout(); updateResource(); updateAuxText(); updateSwingBars()

@@ -99,16 +99,15 @@ function FBR:CreateSettingsUI()
     local refresh=control.Refresh
     control.Refresh=function()
       refresh()
-      control:GetFontString():SetTextColor(unpack(FBR:GetShamanSpecialSettings()[entry.group][entry.key].enabled and T.Accent or T.TextSecondary))
+      UI:SetButtonSelected(control,FBR:GetShamanSpecialSettings()[entry.group][entry.key].enabled)
     end
     special.buttons[#special.buttons+1]=control
   end
   UI:CreateDescription(special,"토템 버튼을 우클릭하면 기존 주문 선택 메뉴를 엽니다.",0,sb.y-40)
-  local menu=CreateFrame("Frame","ForeverBuffReminderTotemMenu",panel,"UIDropDownMenuTemplate")
-  menu:Hide(); panel.totemMenu=menu
-  UIDropDownMenu_Initialize(menu,function(_,level)
-    local key,added=menu.totemKey,false
-    local choices,order={},{}
+  local menu
+  menu=UI:CreateDropdown(panel,0,0,300,function()
+    local key=menu and menu.totemKey
+    local choices,order,options={},{},{}
     for _,spellID in ipairs(FBR.SHAMAN_TOTEM_SPELLS[key] or {}) do
       if FBR:IsKnownSpell(spellID) then
         local name,icon=FBR:GetSpellDetails(spellID)
@@ -119,21 +118,25 @@ function FBR:CreateSettingsUI()
       end
     end
     for _,name in ipairs(order) do
-      local choice=choices[name]; local selectedID=choice.spellID
-      local info=UIDropDownMenu_CreateInfo(); info.text=name.." ("..selectedID..")"; info.icon=choice.icon
-      info.func=function()
-        local setting=FBR:GetShamanSpecialSettings().totems[key]
-        setting.spellID=selectedID; setting.enabled=true; FBR:RefreshSettings(); FBR:RefreshAlerts()
-      end
-      UIDropDownMenu_AddButton(info,level); added=true
+      local choice=choices[name]
+      options[#options+1]={value=choice.spellID,text=name.." ("..choice.spellID..")",icon=choice.icon}
     end
-    if not added then local info=UIDropDownMenu_CreateInfo(); info.text="습득한 토템 주문이 없습니다."; info.disabled=true; UIDropDownMenu_AddButton(info,level) end
-  end,"MENU")
+    if #options==0 then options[1]={text="습득한 토템 주문이 없습니다.",disabled=true} end
+    return options
+  end,function()
+    local key=menu and menu.totemKey
+    return key and FBR:GetShamanSpecialSettings().totems[key].spellID
+  end,function(id)
+    local setting=FBR:GetShamanSpecialSettings().totems[menu.totemKey]
+    setting.spellID=id; setting.enabled=true; FBR:RefreshSettings(); FBR:RefreshAlerts()
+  end)
+  menu:Hide(); panel.totemMenu=menu
   self:RefreshSettings()
 end
 function FBR:OpenTotemSelectionMenu(key,anchor)
   local menu=self.settings.totemMenu; menu.totemKey=key
-  ToggleDropDownMenu(1,nil,menu,anchor,0,0)
+  menu:ClearAllPoints(); menu:SetPoint("TOPLEFT",anchor,"BOTTOMLEFT",0,0)
+  menu:GetScript("OnClick")(menu)
 end
 function FBR:RefreshSettings()
   if not self.settings then return end

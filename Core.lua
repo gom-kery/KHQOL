@@ -87,8 +87,10 @@ function KHQOL:CreateMinimapButton()
   function self:UpdateMinimapButton()
     local a = math.rad(self.db.minimap.angle or 225); b:ClearAllPoints(); b:SetPoint("CENTER", Minimap, "CENTER", math.cos(a) * 108, math.sin(a) * 108); b:SetShown(self.db.minimap.show)
   end
-  b:SetScript("OnDragStart", function(self) self:StartMoving() end)
+  b:SetScript("OnDragStart", function(button) if not KHQOL.db.minimap.positionLocked then button.positionMoving=true; button:StartMoving() end end)
   b:SetScript("OnDragStop", function(self)
+    if not self.positionMoving then return end
+    self.positionMoving=nil
     self:StopMovingOrSizing()
     local x, y = GetCursorPosition(); local scale = Minimap:GetEffectiveScale(); x, y = x / scale, y / scale
     local mx, my = Minimap:GetCenter()
@@ -119,6 +121,7 @@ events:SetScript("OnEvent", function()
     if KHQOL.modules.tooltip and KHQOL.modules.tooltip.Initialize then KHQOL.modules.tooltip:Initialize() end
     if KHQOL.modules.cursorTrail and KHQOL.modules.cursorTrail.Initialize then KHQOL.modules.cursorTrail:Initialize() end
     KHQOL:FinishProfileLogin()
+    KHQOL:ApplyEditorPositions()
   end)
   SLASH_KHQOL1, SLASH_KHQOL2 = "/kh", "/khqol"
   SlashCmdList.KHQOL = function(message)

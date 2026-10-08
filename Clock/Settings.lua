@@ -19,7 +19,7 @@ function FC:ApplyTextStyleTarget(target)
   end
 end
 function FC:CreateHeaderHelp(content)
-  local help=UI:CreateButton(content,"설명서",UI.Theme.ContentWidth-92,0,92,function() end)
+  local help=UI:CreateButton(content,"설명서",UI.Theme.ContentWidth-92,-42,92,function() end)
   help.ignoreModuleEnabled=true; help:Refresh()
   UI:AttachTooltip(help,"Clock 조작","좌클릭: 알람 / 스톱워치 / 타이머\n우클릭: Forever Note\nAlt+좌클릭: 달력\nAlt+우클릭: UI 새로고침\n/fc 또는 /fclock: 설정")
   content.helpButton=help

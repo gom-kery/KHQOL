@@ -579,6 +579,7 @@ function Threat:BuildSettings(content,y)
   b:Description("테스트는 실제 표시 위치에 가상 데이터를 띄웁니다. 테스트 중 실제 Threat 조회와 반복 갱신은 중지합니다.")
   b:Description("퍼센트는 게임의 어그로 전환 기준 대비 비율입니다. 진단: /khqol threat debug. 누적 수치는 API 원시 단위입니다.")
   content:HookScript("OnHide",function()
+    if KHQOL.PositionEditor and KHQOL.PositionEditor.active then return end
     if self.dragging then self:SavePosition() end
     db.locked=true; self.testing=false; self:Changed()
   end)

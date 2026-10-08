@@ -61,7 +61,7 @@ local function Format(seconds)
 end
 local function MakeMovable(frame)
   frame:SetMovable(true); frame:EnableMouse(true)
-  frame:SetScript("OnMouseDown", function(self, button) if button == "LeftButton" then self:StartMoving() end end)
+  frame:SetScript("OnMouseDown", function(self, button) if button == "LeftButton" and not FC.db.clockTools.positionLocked then self:StartMoving() end end)
   frame:SetScript("OnMouseUp", function(self, button) if button == "LeftButton" then self:StopMovingOrSizing() end end)
 end
 local function Choices(first, last, step)
@@ -102,7 +102,7 @@ function FC:CreateClockTools()
   messageLayer:Hide()
   self.alertMessageFrame = messageLayer
   messageLayer:SetScript("OnMouseDown", function(layer, button)
-    if button == "LeftButton" and layer.isTest and IsAltKeyDown and IsAltKeyDown() then layer:StartMoving() end
+    if button == "LeftButton" and not FC.db.clockTools.positionLocked and layer.isTest and IsAltKeyDown and IsAltKeyDown() then layer:StartMoving() end
   end)
   messageLayer:SetScript("OnMouseUp", function(layer, button)
     if button == "LeftButton" then layer:StopMovingOrSizing() end

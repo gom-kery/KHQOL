@@ -39,6 +39,7 @@ function KHQOL:ProfileMessage(message)
   if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffd54aKHQOL 프로필:|r "..message) end
 end
 function KHQOL:CanChangeProfile()
+  if self.PositionEditor and self.PositionEditor.active then return false,"위치 편집을 먼저 완료하거나 취소하세요." end
   if (InCombatLockdown and InCombatLockdown()) or (UnitAffectingCombat and UnitAffectingCombat("player")) then
     return false,"전투 중에는 프로필을 변경할 수 없습니다."
   end
@@ -270,6 +271,7 @@ function KHQOL:ApplyProfileModules()
   -- These frames use dynamic options but need layout refreshed even when OFF.
   m.castBar:GetDB(); m.castBar:ApplyLayout(); m.castBar:RefreshControls()
   m.tooltip:RefreshVisibleTooltip()
+  self:ApplyEditorPositions()
   self:UpdateMinimapButton(); self:HideLegacyButtons()
   if self.settings then
     for _,content in pairs(self.settings.pageCache) do self.UI:Refresh(content) end

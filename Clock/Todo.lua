@@ -232,7 +232,9 @@ end
 
 function FC:SaveTodoWindow()
   local f = self.todoFrame; local point, _, relativePoint, x, y = f:GetPoint(1)
-  self.db.todo.window = { point = point, relativePoint = relativePoint, x = x, y = y, width = f:GetWidth(), height = f:GetHeight() }
+  local saved=self.db.todo.window
+  saved.point,saved.relativePoint,saved.x,saved.y=point,relativePoint,x,y
+  saved.width,saved.height=f:GetWidth(),f:GetHeight()
 end
 
 -- Register only the note frame with Blizzard's built-in Escape handling.
@@ -271,8 +273,10 @@ function FC:CreateTodoMinimapButton()
   icon:SetAllPoints(button)
   button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
   button:SetScript("OnClick", function() FC:ToggleTodo() end)
-  button:SetScript("OnDragStart", function(self) self:StartMoving() end)
+  button:SetScript("OnDragStart", function(self) if not FC.db.todo.minimap.positionLocked then self.positionMoving=true; self:StartMoving() end end)
   button:SetScript("OnDragStop", function(self)
+    if not self.positionMoving then return end
+    self.positionMoving=nil
     self:StopMovingOrSizing()
     local x, y = GetCursorPosition()
     local scale = Minimap:GetEffectiveScale()
@@ -330,7 +334,7 @@ function FC:CreateTodo()
   f:EnableMouse(true)
   f:SetScript("OnMouseDown", function(self, button)
     local focus = GetMouseFocus and GetMouseFocus() or (GetMouseFoci and GetMouseFoci())
-    if button == "LeftButton" and focus == self then self:StartMoving(); self.isBlankDragging = true end
+    if button == "LeftButton" and focus == self and not FC.db.todo.window.positionLocked then self:StartMoving(); self.isBlankDragging = true end
   end)
   f:SetScript("OnMouseUp", function(self, button)
     if button == "LeftButton" and self.isBlankDragging then self:StopMovingOrSizing(); self.isBlankDragging = nil; FC:SaveTodoWindow() end
@@ -339,7 +343,7 @@ function FC:CreateTodo()
   -- afterward remain above it and keep their normal click/input behavior.
   f:SetScript("OnMouseDown", nil); f:SetScript("OnMouseUp", nil)
   local drag = CreateFrame("Button", nil, f); drag:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -6); drag:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, -6); drag:SetHeight(28); drag:SetFrameLevel(f:GetFrameLevel() + 1); drag:RegisterForClicks("LeftButtonUp")
-  drag:SetScript("OnMouseDown", function(_, button) if button == "LeftButton" then f:StartMoving() end end); drag:SetScript("OnMouseUp", function(_, button) if button == "LeftButton" then f:StopMovingOrSizing(); FC:SaveTodoWindow() end end)
+  drag:SetScript("OnMouseDown", function(_, button) if button == "LeftButton" and not FC.db.todo.window.positionLocked then f:StartMoving() end end); drag:SetScript("OnMouseUp", function(_, button) if button == "LeftButton" then f:StopMovingOrSizing(); FC:SaveTodoWindow() end end)
   local heading = f:CreateFontString(nil, "OVERLAY", "GameFontNormal"); heading:SetPoint("LEFT", drag, "LEFT", 5, 0); heading:SetFont(FC.FONT_PATH, 15, "OUTLINE"); heading:SetText("Forever Note")
   f.close = Button(f, "×", 28, function() FC:SaveTodoPage(); FC:SaveTodoWindow(); f:Hide() end); f.close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -14, -8); f.close:SetFrameLevel(f:GetFrameLevel() + 4); f.close:GetFontString():SetFont(FC.FONT_PATH, 20, "OUTLINE")
   f.favorite = Button(f, "★", 30, function() f.favoriteList:SetShown(not f.favoriteList:IsShown()); FC:RefreshTodoFavorites() end); f.favorite:SetPoint("RIGHT", f.close, "LEFT", -6, 0); f.favorite:SetFrameLevel(f:GetFrameLevel() + 3); f.favorite:GetFontString():SetFont(FC.FONT_PATH, 20, "OUTLINE")
