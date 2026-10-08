@@ -17,6 +17,7 @@ local legacy = {
   weaponGuide = "ForeverWeaponGuideDB", resourceSwing = "KHQOLResourceSwingDB", campfire = "CampfireAlertDB",
 }
 KHQOL.defaults = defaults
+defaults.enabled.environmentTimer = false
 
 function KHQOL:Migrate()
   for key, variable in pairs(legacy) do
@@ -44,6 +45,7 @@ end
 function KHQOL:GetEnabled(key) return self.db.enabled[key] ~= false end
 
 local managedModules = {
+  environmentTimer=true,
   tooltip=true, cursorTrail=true, castBar=true, combatStatus=true,
   questNavigator=true, threat=true, pvpAlert=true,
 }

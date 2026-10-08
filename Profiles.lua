@@ -4,6 +4,7 @@ local legacy = {clock="ForeverClockDB", buffReminder="ForeverBuffReminderDB",
   range="FRangeDB", resourceSwing="KHQOLResourceSwingDB", campfire="CampfireAlertDB"}
 local managed = {"tooltip","cursorTrail","castBar","combatStatus","questNavigator","threat","pvpAlert"}
 local common = {"minimap","locked","debug","enabled","general"}
+managed[#managed+1]="environmentTimer"
 local noteUI = {transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID"}

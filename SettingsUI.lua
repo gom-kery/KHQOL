@@ -22,6 +22,7 @@ local definitions = {
 local pages = {
   {"general", "일반", "KHQOL 공통 설정 및 모듈 관리"},
   {"profiles", "프로필", "계정 공용 프로필 및 캐릭터별 사용 프로필 관리"},
+  {"bars", "바 설정", "바 계열 기능과 환경 타이머를 관리합니다."},
 }
 local modules = {}
 for _, definition in ipairs(definitions) do
@@ -234,7 +235,7 @@ function KHQOL:CreateSettings()
     UI:CloseDropdown()
     if self.activeContent then self.activeContent:Hide() end
     self.page=key; self.pageName=definition[2]; self.pageTitle:SetText(definition[2])
-    footer:SetShown(key~="general" and key~="profiles"); scroll:SetVerticalScroll(0)
+    footer:SetShown(key~="general" and key~="profiles" and key~="bars"); scroll:SetVerticalScroll(0)
     for menuKey, menuButton in pairs(self.menuButtons) do
       UI:SetButtonSelected(menuButton,menuKey==key)
     end
@@ -245,6 +246,7 @@ function KHQOL:CreateSettings()
       local y
       if key=="general" then y=UI:CreatePage(content,definition[2],definition[3]); y=generalSettings(content,y)
       elseif key=="profiles" then y=UI:CreatePage(content,definition[2],definition[3]); y=profileSettings(content,y)
+      elseif key=="bars" then y=UI:CreatePage(content,definition[2],definition[3]); y=KHQOL.BarsSettings:BuildSettings(content,y)
       else
         content.moduleKey=key
         y=UI:CreatePage(content,definition[2],definition[3],function() return KHQOL:GetEnabled(key) end,function(on)
