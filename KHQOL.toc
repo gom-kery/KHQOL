@@ -1,8 +1,8 @@
-﻿## Interface: 16001
+## Interface: 16001
 ## Title: KHQOL
 ## Notes: Unified quality-of-life settings for WoW Forever.
 ## Author: KHQOL
-## Version: 1.9.8.8
+## Version: 1.9.9
 ## SavedVariables: KHQOLDB, ForeverClockDB, ForeverBuffReminderDB, ForeverWeaponGuideDB, KHQOLResourceSwingDB, CampfireAlertDB
 ## SavedVariablesPerCharacter: FRangeDB, KHQOLCursorTrailCharDB
 
@@ -55,9 +55,10 @@ Modules/PvPAlert/Scanner.lua
 Modules/PvPAlert/ThreatEngine.lua
 Modules/PvPAlert/Alerts.lua
 Modules/PvPAlert/Settings.lua
+Navigation.lua
+NavigationUI.lua
 QuestNavigator/Core.lua
 QuestNavigator/Tracker.lua
-QuestNavigator/Arrow.lua
 QuestNavigator/UI.lua
 QuestNavigator/Settings.lua
 Core.lua

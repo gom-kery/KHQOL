@@ -1,12 +1,10 @@
 local _, KHQOL = ...
 local QN = KHQOL.modules.questNavigator
-QN.VERSION = "0.2.0"
-QN.defaults = {
-  autoTrack=true, completionBehavior="turnin", preferSameRegion=false, showArrow=true, arrowSize=64, arrowAlpha=1, arrowTilt=55,
-  smoothRotation=true, showDistance=true, showTitle=true, showProgress=true,
-  progressMode="numeric", distanceUnit="yards", locked=true, positionX=0, positionY=180,
-  arrowUpdateInterval=.10, distanceUpdateInterval=.25, smoothingFactor=.25,
-}
+local N,UI=KHQOL.Navigation,KHQOL.NavigationUI
+QN.VERSION = "0.3.0"
+-- Keep the saved profile shape while sharing the renderer's visual defaults.
+QN.defaults = KHQOL.MergeDefaults({autoTrack=true,completionBehavior="turnin",
+  preferSameRegion=false,progressMode="numeric"},UI.defaults,"types")
 -- Enable is owned only by KHQOLDB.enabled.questNavigator (no duplicate flag).
 local EVENTS = {
   "PLAYER_ENTERING_WORLD", "QUEST_LOG_UPDATE", "QUEST_WATCH_UPDATE",
@@ -52,27 +50,27 @@ function QN:GetDB()
 end
 function QN:IsEnabled() return self.active==true end
 function QN:UpdateDriver()
-  if not self.events then return end
-  local moving=self.currentQuestID and self.state~="COMPLETED" and self.state~="IDLE"
-  local running=self.active and (self.dirty or self.phase or self.fadeInRemaining or moving) and true or false
-  if self.driverRunning~=running then
-    self.driverRunning=running
-    self.events:SetScript("OnUpdate",running and self.updateHandler or nil)
-  end
+  UI:UpdateDriver()
 end
+
 function QN:MarkDirty(questChanged)
   if not self.active then return end
-  if not self.dirty then self.dirtyElapsed=0 end
   self.dirty=true
   if questChanged then self.questDirty=true end
-  self:UpdateDriver()
+  UI:Schedule("source:Quest",.10,function()
+    if not self.active then return end
+    local changed=self.questDirty
+    self.dirty=false; self.questDirty=false
+    if changed then self:RefreshQuest() else self:RefreshWaypoint() end
+  end)
 end
+
 function QN:OnEvent(event, questID, added)
   if not self.active then return end
   if event=="QUEST_WATCH_LIST_CHANGED" then self:WatchChanged(questID,added)
   elseif event=="QUEST_REMOVED" and QN.IsID(questID) then
     self:WatchChanged(questID,false)
-    if questID==self.currentQuestID then
+    if questID==self.selectedQuestID then
       self.removedSelectedQuestID=questID
       self:CancelTransition(); self:AdoptQuest(nil)
     end
@@ -83,80 +81,52 @@ function QN:OnEvent(event, questID, added)
     local id=self:GetTrackedQuest()
     if id then self:CancelTransition(); self:AdoptQuest(id,true)
     elseif self:OtherNavigationActive() then self:CancelTransition(); self:AdoptQuest(nil,true)
-    elseif not self.phase then self:MarkDirty(true) end
+    elseif not UI:IsTransitioning() then self:MarkDirty(true) end
   end
-  if event=="PLAYER_ENTERING_WORLD" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then self.sizeMapID=nil end
+  if event=="PLAYER_ENTERING_WORLD" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then N:InvalidateMap() end
   local waypointOnly=event=="QUEST_POI_UPDATE" or event=="SUPER_TRACKING_PATH_UPDATED" or event=="SUPER_TRACKING_CHANGED"
   if not waypointOnly then self.trackedDirty=true end
   self:MarkDirty(not waypointOnly)
 end
-function QN:OnUpdate(elapsed)
-  if not self.active then return end
-  if self.dirty then
-    self.dirtyElapsed=self.dirtyElapsed+elapsed
-    if self.dirtyElapsed>=.10 then
-      local questChanged=self.questDirty
-      self.dirty=false; self.questDirty=false
-      if questChanged then self:RefreshQuest() else self:RefreshWaypoint() end
-    end
-  end
-  if self.phase then self:AdvanceTransition(elapsed)
-  elseif self.fadeInRemaining then
-    self.fadeInRemaining=math.max(0,self.fadeInRemaining-elapsed)
-    self.hud:SetAlpha(1-self.fadeInRemaining/.15)
-    if self.fadeInRemaining==0 then self.fadeInRemaining=nil end
-  end
-  if not self.phase and self.currentQuestID and self.state~="COMPLETED" then
-    self.arrowElapsed=self.arrowElapsed+elapsed; self.distanceElapsed=self.distanceElapsed+elapsed
-    local arrowDue=self.db.showArrow and self.arrowElapsed>=self.db.arrowUpdateInterval
-    local distanceDue=self.distanceElapsed>=self.db.distanceUpdateInterval
-    if arrowDue or distanceDue then
-      if arrowDue then self.arrowElapsed=self.arrowElapsed%self.db.arrowUpdateInterval end
-      if distanceDue then self.distanceElapsed=self.distanceElapsed%self.db.distanceUpdateInterval end
-      self:UpdateNavigation(arrowDue,distanceDue)
-    end
-  end
-  self:UpdateDriver()
-end
+
 function QN:SetEnabled(enabled)
-  self:GetDB()
-  self:SetObjectiveTrackerEnabled(enabled)
+  self:GetDB(); self:SetObjectiveTrackerEnabled(enabled)
   if not self.events then
     self.events=CreateFrame("Frame")
-    self.updateHandler=function(_,elapsed) self:OnUpdate(elapsed) end
     self.events:SetScript("OnEvent",function(_,event,...) self:OnEvent(event,...) end)
-    self:CreateHUD()
   end
-  if self.dragging then self:SavePosition() end
+  if UI.dragging then UI:SavePosition() end
   self.active=enabled and true or false
-  self.events:UnregisterAllEvents(); self.events:SetScript("OnUpdate",nil)
-  self.driverRunning=false
-  self:CancelTransition(); self.dirty=false; self.questDirty=false; self.currentQuestID=nil; self.targetQuestID=nil
+  self.events:UnregisterAllEvents()
+  self:CancelTransition(); self.dirty=false; self.questDirty=false; self.selectedQuestID=nil
   self:ClearNavigation(); self.readyForTurnIn=nil; self.manualTurnIn=false; self.manualSelection=false
   self.objectiveMapID,self.objectiveX,self.objectiveY=nil,nil,nil
   self.removedSelectedQuestID=nil; self.trackedQuestIDs={}; self.watchOverrides={}; self.trackedLoaded=false; self.trackedDirty=true
-  self.state="IDLE"; self.arrowElapsed=0; self.distanceElapsed=0
-  self:ApplyLayout(); self:Render()
+  N:SetSourceDestinations("Quest",{})
+  self:ConfigureView(); UI:SetEnabled(self.active)
   if not self.active then return end
   for _,event in ipairs(EVENTS) do
-    -- All names are present in Forever source. Also check the running beta build.
     local valid=QN.Call(C_EventUtils and C_EventUtils.IsEventValid,event)
     if not QN.IsFalse(valid) then QN.Call(self.events.RegisterEvent,self.events,event) end
   end
-  self:GetTrackedQuests(true); self:AdoptQuest(self:GetTrackedQuest(),true); self:UpdateDriver()
+  self:GetTrackedQuests(true); self:PublishCandidates(self:GetTrackedQuest())
+  self:AdoptQuest(self:GetTrackedQuest(),true); self:UpdateDriver()
 end
+
 function QN:Changed(key)
-  if self.dragging and (key=="locked" or key=="position") then self:SavePosition() end
-  self:ApplyLayout()
+  if UI.dragging and (key=="locked" or key=="position") then UI:SavePosition() end
+  self:ConfigureView(); UI:ApplyLayout()
   if not self.active then return end
   if key=="completionBehavior" or key=="autoTrack" then
     self:CancelTransition(); self:RefreshQuest(); self:UpdateDriver(); return
   end
   if key=="progressMode" and not QN.IsTrue(self.readyForTurnIn) then self:RefreshProgress() end
-  if not self.phase and self.currentQuestID and self.state~="COMPLETED" then self:UpdateNavigation(true,true) end
-  self:Render(); self:UpdateDriver()
+  if key=="preferSameRegion" then self:PublishCandidates() end
+  self:SyncPresentation()
+  if not UI:IsTransitioning() and self.selectedQuestID then UI:Refresh(true,true) end
+  UI:Render(); self:UpdateDriver()
 end
--- Explicit developer inspection only; release operation never emits chat output.
+
 function QN:GetDebugSnapshot()
   self:GetDB()
   local tracked,ready,candidates={},{},{}
@@ -170,21 +140,22 @@ function QN:GetDebugSnapshot()
     end
   end
   table.sort(tracked); table.sort(candidates)
+  local d=N:GetActiveDestination() or {}
   return {
-    version=self.VERSION, state=self.state, currentQuestID=self.currentQuestID,
+    version=self.VERSION, state=UI:GetState(), currentQuestID=self.selectedQuestID,
     completionBehavior=self.db and self.db.completionBehavior, navigationMode=self.navigationMode,
     readyForTurnIn=self.readyForTurnIn, watchSource=self.watchSource, trackedQuestIDs=tracked,
     trackedReadyForTurnIn=ready, autoCandidates=candidates,
     locationReason=self.locationReason, manualTurnIn=self.manualTurnIn,
     objectiveMapID=self.objectiveMapID, objectiveX=self.objectiveX, objectiveY=self.objectiveY,
-    turnInMapID=self.navigationMode=="TURN_IN_LOCATION" and self.targetMapID or nil,
-    turnInX=self.navigationMode=="TURN_IN_LOCATION" and self.targetX or nil,
-    turnInY=self.navigationMode=="TURN_IN_LOCATION" and self.targetY or nil,
-    targetQuestID=self.targetQuestID, lastCompletedQuestID=self.lastCompletedQuestID,
-    playerMapID=self.playerMapID, targetMapID=self.targetMapID, waypointSource=self.waypointSource,
-    playerX=self.playerX, playerY=self.playerY, targetX=self.targetX, targetY=self.targetY,
-    distanceSq=self.distanceSq, playerFacing=self.playerFacing, targetAngle=self.targetAngle,
-    relativeAngle=self.relativeAngle, currentRotation=self.currentRotation,
+    turnInMapID=self.navigationMode=="TURN_IN_LOCATION" and d.mapID or nil,
+    turnInX=self.navigationMode=="TURN_IN_LOCATION" and d.x or nil,
+    turnInY=self.navigationMode=="TURN_IN_LOCATION" and d.y or nil,
+    targetQuestID=self.selectedQuestID, lastCompletedQuestID=self.lastCompletedQuestID,
+    playerMapID=N.playerMapID, targetMapID=d.mapID, waypointSource=self.waypointSource,
+    playerX=N.playerX, playerY=N.playerY, targetX=d.x, targetY=d.y,
+    distanceSq=N.distanceSq, playerFacing=N.playerFacing, targetAngle=N.targetAngle,
+    relativeAngle=N.relativeAngle, currentRotation=N.currentRotation,
   }
 end
 function QN:HandleCommand(message)

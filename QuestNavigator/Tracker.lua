@@ -1,5 +1,6 @@
 local _, KHQOL = ...
 local QN=KHQOL.modules.questNavigator
+local N,UI=KHQOL.Navigation,KHQOL.NavigationUI
 -- Quest-list presentation is independent of the navigation/watch cache below.
 -- Verified against Gethe/wow-ui-source forever 15666a6 (1.60.1.70245).
 local trackerDefaults={groupByRegion=true,collapsibleRegions=true,showDungeonTag=true,
@@ -536,6 +537,11 @@ function QN:WatchChanged(id,added)
   if QN.IsID(id) and (QN.IsTrue(added) or QN.IsFalse(added)) then
     self.watchOverrides[id]=added
     ids[id]=added and true or nil
+    if not added then
+      local remaining={}
+      for _,d in ipairs(N:GetSourceDestinations("Quest")) do if d.id~=id then remaining[#remaining+1]=d end end
+      N:SetSourceDestinations("Quest",remaining)
+    end
   else self:GetTrackedQuests(true) end
 end
 function QN:GetCandidateInfo(id)
@@ -573,6 +579,7 @@ function QN:GetWaypoint(id,playerMap,poiLookup)
   -- A map quest marker can exist even when both waypoint APIs return nothing.
   -- Read only the matching quest's underlying coordinates, never display offsets
   -- or a user pin. The completion scan supplies a temporary lookup to stay O(n+m).
+  if type(poiLookup)=="function" then poiLookup=poiLookup() end
   if poiLookup then
     local info=poiLookup[id]
     if validQuestPOI(info) then return playerMap,info.x,info.y,"questPOI" end
@@ -634,50 +641,52 @@ function QN:GetQuestPriority(id,info,playerLevel)
   end
   return 2 -- Unknown difficulty keeps the ordinary tier and distance ordering.
 end
-function QN:FindClosestQuest(excludedID)
+function QN:PublishCandidates(excludedID,force)
+  if not self.db.autoTrack then N:SetSourceDestinations("Quest",{}); return end
   local api=C_QuestLog
-  local tracked=self:GetTrackedQuests(true)
-  local closest,minimum,priority,localQuest,localMinimum,localPriority=nil,math.huge,math.huge,nil,math.huge,math.huge
-  local playerLevel=QN.Call(UnitEffectiveLevel,"player")
-  if not QN.IsNumber(playerLevel) or playerLevel<=0 then playerLevel=QN.Call(UnitLevel,"player") end
+  local tracked=self:GetTrackedQuests(force)
+  local destinations={}
+  local level,levelRead
   local playerMap=QN.Call(C_Map and C_Map.GetBestMapForUnit,"player")
   local poiLookup
-  if self.db.preferSameRegion and QN.IsID(playerMap) then
-    poiLookup={}
-    local pois=self:GetMapQuestPOIs(playerMap)
-    if pois then
-      for _,info in ipairs(pois) do
+  local function getPOILookup()
+    if not poiLookup then
+      poiLookup={}
+      for _,info in ipairs(self:GetMapQuestPOIs(playerMap) or {}) do
         if validQuestPOI(info) and not poiLookup[info.questID] then poiLookup[info.questID]=info end
       end
     end
+    return poiLookup
   end
-  -- Enumerate only watch IDs; never walk, expand or select quest-log rows.
   for id in pairs(tracked) do
-    if id~=excludedID then
-      if not QN.IsFalse(QN.Call(api and api.IsOnQuest,id)) and QN.IsFalse(self:IsComplete(id)) then
-        local sq,onContinent=QN.Call(api and api.GetDistanceSqToQuest,id)
-        if QN.IsNumber(sq) and sq>0 and QN.IsTrue(onContinent) then
-          local rank=self:GetQuestPriority(id,self:GetCandidateInfo(id),playerLevel)
-          if rank<priority or (rank==priority and (sq<minimum or (sq==minimum and (not closest or id<closest)))) then
-            closest,minimum,priority=id,sq,rank
-          end
-          if self.db.preferSameRegion and QN.IsID(playerMap) then
-            local map=self:GetWaypoint(id,playerMap,poiLookup)
-            if map==playerMap and (rank<localPriority or (rank==localPriority and
-              (sq<localMinimum or (sq==localMinimum and (not localQuest or id<localQuest))))) then
-              localQuest,localMinimum,localPriority=id,sq,rank
-            end
-          end
+    if id~=excludedID and not QN.IsFalse(QN.Call(api and api.IsOnQuest,id)) and QN.IsFalse(self:IsComplete(id)) then
+      -- Keep the native quest distance/continent filter; map XY is not a substitute.
+      local sq,onContinent=QN.Call(api and api.GetDistanceSqToQuest,id)
+      if QN.IsNumber(sq) and sq>0 and QN.IsTrue(onContinent) then
+        if not levelRead then
+          level=QN.Call(UnitEffectiveLevel,"player")
+          if not QN.IsNumber(level) or level<=0 then level=QN.Call(UnitLevel,"player") end
+          levelRead=true
         end
+        local info=self:GetCandidateInfo(id)
+        local map,x,y,waypointSource=self:GetWaypoint(id,playerMap,getPOILookup)
+        local title=QN.IsText(info.title) and info.title or ("퀘스트 #"..id)
+        local d=self:BuildDestination(id,map,x,y,title)
+        d.metadata.waypointSource=waypointSource; d.metadata.navigationMode="OBJECTIVE_LOCATION"
+        d.metadata.navigation={distanceSq=sq,priority=self:GetQuestPriority(id,info,level)}
+        destinations[#destinations+1]=d
       end
     end
   end
-  if localQuest and localPriority==priority then return localQuest end
-  return closest
+  N:SetSourceDestinations("Quest",destinations)
 end
+function QN:FindClosestQuest(excludedID)
+  self:PublishCandidates(excludedID,true)
+  local destination=N:GetNearestDestination("Quest",excludedID,self.db.preferSameRegion)
+  return destination and destination.id or nil
+end
+
 local function objectiveLabel(text)
-  -- Forever objective text can include the progress before or after the label.
-  -- Strip only edge fractions; numbers and fractions inside names remain intact.
   local label=text:gsub("^%s*%d+%s*/%s*%d+%s*",""):gsub("%s*%d+%s*/%s*%d+%s*$","")
   label=label:gsub("^%s*:%s*",""):gsub("^%s*：%s*","")
   label=label:gsub("%s*:%s*$",""):gsub("%s*：%s*$","")
@@ -685,8 +694,8 @@ local function objectiveLabel(text)
 end
 function QN:RefreshProgress()
   self.progressText=""
-  if not self.currentQuestID then return end
-  local objectives=QN.Call(C_QuestLog and C_QuestLog.GetQuestObjectives,self.currentQuestID)
+  if not self.selectedQuestID then return end
+  local objectives=QN.Call(C_QuestLog and C_QuestLog.GetQuestObjectives,self.selectedQuestID)
   if not QN.IsTable(objectives) then return end
   for _,objective in ipairs(objectives) do
     if QN.IsTable(objective) and QN.IsFalse(objective.finished) then
@@ -706,14 +715,19 @@ function QN:RefreshProgress()
   end
 end
 function QN:ClearNavigation(preserveRotation)
-  self.targetMapID,self.targetX,self.targetY,self.waypointSource=nil,nil,nil,nil
-  if not preserveRotation then self.currentRotation=nil end
-  self.distanceYards=nil; self.distanceSq=nil; self.atWaypoint=false
-  self.lastDistanceValue=nil; self.lastDistanceUnit=nil; self.distanceLabel=nil
-  self.playerX=nil; self.playerY=nil; self.rotationFailed=nil
-  self.playerFacing=nil; self.targetAngle=nil; self.relativeAngle=nil
-  self.navigationMode="NONE"; self.locationReason=nil
+  N:Clear(preserveRotation); UI:ResetDistanceLabel()
+  self.waypointSource=nil; self.navigationMode="NONE"; self.locationReason=nil
 end
+function QN:BuildDestination(id,map,x,y,title)
+  return {source="Quest",id=id,mapID=map,x=x,y=y,label=title or self.questTitle or ("퀘스트 #"..id),
+    metadata={questID=id,waypointSource=self.waypointSource,navigationMode=self.navigationMode}}
+end
+function QN:PublishActive(map,x,y)
+  if self.selectedQuestID then N:SetActiveDestination(self:BuildDestination(self.selectedQuestID,map,x,y),true)
+  else N:SetActiveDestination(nil,true) end
+  self:SyncPresentation()
+end
+
 function QN:GetTurnInWaypoint(id)
   -- Read a new native location after ReadyForTurnIn. Never carry the objective
   -- target across this boundary. An unchanged former objective is ambiguous.
@@ -742,52 +756,54 @@ function QN:GetTurnInWaypoint(id)
   end
 end
 function QN:RefreshQuestData()
-  local id=self.currentQuestID
-  self:ClearNavigation(true); self.targetQuestID=id; self.progressText=""
+  local id=self.selectedQuestID
+  self:ClearNavigation(true); self.progressText=""
   self.readyForTurnIn=nil
   if id then self.readyForTurnIn=self:IsQuestReadyForTurnIn(id) end
-  if not id then self.questTitle=nil; return end
+  if not id then self.questTitle=nil; self:PublishActive(); return end
   local title=QN.Call(C_QuestLog and C_QuestLog.GetTitleForQuestID,id)
   self.questTitle=QN.IsText(title) and title~="" and title or ("퀘스트 #"..id)
+  local map,x,y
   if QN.IsTrue(self.readyForTurnIn) then
     self.navigationMode="TURN_IN_LOCATION"
-    self.targetMapID,self.targetX,self.targetY,self.waypointSource=self:GetTurnInWaypoint(id)
+    map,x,y,self.waypointSource=self:GetTurnInWaypoint(id)
     self.progressText="반납 가능"
   elseif QN.IsFalse(self.readyForTurnIn) then
     self.navigationMode="OBJECTIVE_LOCATION"
-    self.targetMapID,self.targetX,self.targetY,self.waypointSource=self:GetWaypoint(id)
-    if self.targetMapID then self.objectiveMapID,self.objectiveX,self.objectiveY=self.targetMapID,self.targetX,self.targetY end
-    self.locationReason=self.targetMapID and "nativeObjective" or "noNativeLocation"
+    map,x,y,self.waypointSource=self:GetWaypoint(id)
+    if map then self.objectiveMapID,self.objectiveX,self.objectiveY=map,x,y end
+    self.locationReason=map and "nativeObjective" or "noNativeLocation"
     self:RefreshProgress()
   else self.locationReason="unknownCompletion" end
+  self:PublishActive(map,x,y)
 end
 function QN:AdoptQuest(id,manual)
   if id and QN.IsFalse(QN.Call(C_QuestLog and C_QuestLog.IsOnQuest,id)) then id=nil end
-  if id~=self.currentQuestID then
+  if id~=self.selectedQuestID then
     self.objectiveMapID,self.objectiveX,self.objectiveY=nil,nil,nil
     self.manualTurnIn=false
   end
   if manual then self.removedSelectedQuestID=nil end
-  self.currentRotation=nil; self.currentQuestID=id; self.manualSelection=manual==true
+  N:Clear(); self.selectedQuestID=id; self.manualSelection=manual==true
   self:RefreshQuestData()
   if QN.IsFalse(self.readyForTurnIn) then
     self.manualTurnIn=false
     if self.lastCompletedQuestID==id then self.lastCompletedQuestID=nil end
   end
   if manual and QN.IsTrue(self.readyForTurnIn) then self.manualTurnIn=true end
-  if not id then self.state="IDLE"; self:Render(); self:UpdateDriver(); return end
-  self.state="TRACKING"; self:UpdateNavigation(true,true); self:Render(); self:UpdateDriver()
+  if not id then UI:Render(); self:UpdateDriver(); return end
+  UI:Refresh(true,true); UI:Render(); self:UpdateDriver()
 end
 function QN:RefreshQuest()
   if not self.active then return end
-  self:GetTrackedQuests()
-  if self.phase then return end
+  self:GetTrackedQuests(); self:PublishCandidates(self.completedQuestID or self.selectedQuestID)
+  if UI:IsTransitioning() then return end
   local tracked=self:GetTrackedQuest()
   if tracked and QN.IsFalse(QN.Call(C_QuestLog and C_QuestLog.IsOnQuest,tracked)) then tracked=nil end
-  local id=self.currentQuestID
+  local id=self.selectedQuestID
   if tracked~=id then self:AdoptQuest(tracked,true); self.removedSelectedQuestID=nil; return end
   self.removedSelectedQuestID=nil
-  if not id then self.state="IDLE"; self:Render(); return end
+  if not id then UI:Render(); return end
   self:RefreshQuestData()
   if QN.IsFalse(self.readyForTurnIn) then
     self.manualTurnIn=false
@@ -796,42 +812,44 @@ function QN:RefreshQuest()
       self.db.completionBehavior=="next" and not self.manualTurnIn and self.lastCompletedQuestID~=id then
     self:BeginCompletion(id); return
   end
-  self:UpdateNavigation(false,true); self:Render()
+  UI:Refresh(false,true); UI:Render()
 end
 function QN:RefreshWaypoint()
-  if self.phase or not self.currentQuestID then return end
+  if UI:IsTransitioning() or not self.selectedQuestID then return end
   -- Completion is cached by quest events; route events never scan the log.
-  self:ClearNavigation(true); self.targetQuestID=self.currentQuestID
+  self:ClearNavigation(true)
+  local map,x,y
   if QN.IsTrue(self.readyForTurnIn) then
     self.navigationMode="TURN_IN_LOCATION"
-    self.targetMapID,self.targetX,self.targetY,self.waypointSource=self:GetTurnInWaypoint(self.currentQuestID)
+    map,x,y,self.waypointSource=self:GetTurnInWaypoint(self.selectedQuestID)
   elseif QN.IsFalse(self.readyForTurnIn) then
     self.navigationMode="OBJECTIVE_LOCATION"
-    self.targetMapID,self.targetX,self.targetY,self.waypointSource=self:GetWaypoint(self.currentQuestID)
-    if self.targetMapID then self.objectiveMapID,self.objectiveX,self.objectiveY=self.targetMapID,self.targetX,self.targetY end
-    self.locationReason=self.targetMapID and "nativeObjective" or "noNativeLocation"
+    map,x,y,self.waypointSource=self:GetWaypoint(self.selectedQuestID)
+    if map then self.objectiveMapID,self.objectiveX,self.objectiveY=map,x,y end
+    self.locationReason=map and "nativeObjective" or "noNativeLocation"
   end
-  if not QN.IsNumber(self.mapWidth) or not QN.IsNumber(self.mapHeight) then self.sizeMapID=nil end
-  self:UpdateNavigation(false,true)
+  self:PublishActive(map,x,y)
+  if not QN.IsNumber(N.mapWidth) or not QN.IsNumber(N.mapHeight) then N:InvalidateMap() end
+  UI:Refresh(false,true)
 end
 function QN:CancelTransition()
-  self.phase=nil; self.phaseElapsed=0; self.completedQuestID=nil; self.fadeInRemaining=nil
-  self.transitionTurnedIn=nil; self.completionTitleText=nil
-  if self.hud then self.hud:SetAlpha(1) end
+  self.completedQuestID=nil; self.transitionTurnedIn=nil
+  UI:CancelTransition()
 end
+
 function QN:BeginCompletion(id,turnedIn,title)
-  if self.phase or (not turnedIn and self.lastCompletedQuestID==id) then return end
+  if UI:IsTransitioning() or (not turnedIn and self.lastCompletedQuestID==id) then return end
   self.lastCompletedQuestID=id; self.completedQuestID=id; self.transitionTurnedIn=turnedIn==true
-  self.completionTitleText=title or self.questTitle or ("퀘스트 #"..id)
+  local label=title or self.questTitle or ("퀘스트 #"..id)
   self:ClearNavigation()
-  self.state="COMPLETED"; self.phase="hold"; self.phaseElapsed=0; self.fadeInRemaining=nil
-  self.hud:SetAlpha(1); self:Render(); self:UpdateDriver()
+  UI:BeginTransition(label,function() self:FinishTransition() end)
 end
+
 function QN:QuestTurnedIn(id)
   self:WatchChanged(id,false)
   if self.transitionTurnedIn and self.completedQuestID==id then return end
-  if id~=self.currentQuestID and id~=self.completedQuestID and id~=self.removedSelectedQuestID then return end
-  local title=self.questTitle or self.completionTitleText
+  if id~=self.selectedQuestID and id~=self.completedQuestID and id~=self.removedSelectedQuestID then return end
+  local title=self.questTitle or UI.presentation.completionTitle
   local tracked=self:GetTrackedQuest()
   self:CancelTransition(); self:AdoptQuest(nil)
   self.removedSelectedQuestID=nil
@@ -841,15 +859,7 @@ function QN:QuestTurnedIn(id)
   elseif tracked or self:OtherNavigationActive() then self:AdoptQuest(tracked,true); return end
   if self.db.autoTrack then self:BeginCompletion(id,true,title) end
 end
-function QN:AdvanceTransition(elapsed)
-  self.phaseElapsed=self.phaseElapsed+elapsed
-  if self.phase=="hold" and self.phaseElapsed>=.85 then
-    self.phase="out"; self.phaseElapsed=0; self.state="SWITCHING"
-  elseif self.phase=="out" then
-    self.hud:SetAlpha(math.max(0,1-self.phaseElapsed/.15))
-    if self.phaseElapsed>=.15 then self:FinishTransition() end
-  end
-end
+
 function QN:FinishTransition()
   local completed,turnedIn=self.completedQuestID,self.transitionTurnedIn
   self:CancelTransition()
@@ -864,6 +874,6 @@ function QN:FinishTransition()
   else chosen=not turnedIn and tracked or nil end
   if turnedIn and chosen==completed then chosen=nil end
   self:AdoptQuest(chosen,chosen==completed)
-  if self.currentQuestID and not self.phase then self.hud:SetAlpha(0); self.fadeInRemaining=.15 end
+  if self.selectedQuestID and not UI:IsTransitioning() then UI:FadeIn() end
   self:UpdateDriver()
 end

@@ -223,6 +223,7 @@ function KHQOL:CloseProfileEditors()
     local box=GetCurrentKeyBoardFocus(); if box and box.ClearFocus then box:ClearFocus() end
   end
   -- Finish a drag using the OLD settings, never after loading the new position.
+  if self.NavigationUI and self.NavigationUI.dragging then self.NavigationUI:SavePosition() end
   for _,module in pairs(self.modules) do
     if module.dragging and module.SavePosition then module:SavePosition() end
   end
