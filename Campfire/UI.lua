@@ -31,7 +31,7 @@ function CFA:CreateUI()
     local button = CreateFrame("Button", nil, discovery)
     button:SetSize(db.iconSize, db.iconSize)
     button:SetPoint("TOP", discovery, "TOP", 0, 0)
-    button:RegisterForClicks("LeftButtonUp")
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:SetNormalTexture(CFA.ICON_FILE_ID)
     local normal = button:GetNormalTexture()
     if normal then
@@ -41,7 +41,12 @@ function CFA:CreateUI()
     end
     button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
     button:SetScript("OnClick", function(_, mouseButton)
-        if mouseButton == "LeftButton" then CFA:OnCampfireClick() end
+        if mouseButton == "LeftButton" then
+            CFA:OnCampfireClick()
+        elseif mouseButton == "RightButton" then
+            CFA:DismissDiscovery()
+            GameTooltip:Hide()
+        end
     end)
 
     local close = CreateFrame("Button", nil, discovery)
@@ -90,7 +95,7 @@ function CFA:CreateUI()
     button:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("모닥불에 앉기")
-        GameTooltip:AddLine("클릭하여 /sit 실행", 1, 0.82, 0)
+        GameTooltip:AddLine("좌클릭: /sit 실행 · 우클릭: 알림 닫기", 1, 0.82, 0)
         GameTooltip:Show()
     end)
     button:SetScript("OnLeave", function() GameTooltip:Hide() end)

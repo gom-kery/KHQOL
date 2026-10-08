@@ -53,7 +53,8 @@ function UI:CreateSection(parent, text, y)
   return y - 36
 end
 function UI:CreatePage(parent, title, description, getter, setter)
-  self:CreateDescription(parent, description, 0, 0):SetWidth(T.ContentWidth-110)
+  -- Keep glyphs below the viewport edge and align captions with checkbox labels.
+  self:CreateDescription(parent, description, 0, -6):SetWidth(T.ContentWidth-110)
   local enable
   if getter and setter then
     enable=self:CreateCheckbox(parent,"모듈 사용",T.ContentWidth-108,0,getter,setter)

@@ -35,11 +35,11 @@ local function register(id,title,key,description,build)
     end)
   end)
 end
-register("cursor","Cursor","cursorTrail","마우스 이동 경로에 잔상을 표시합니다.")
-register("range","Range","range","선택한 대상의 사거리 상태를 표시합니다.",function(content,y)
+register("cursor","마우스 잔상","cursorTrail","마우스 이동 경로에 잔상을 표시합니다.")
+register("range","거리 측정","range","선택한 대상의 사거리 상태를 표시합니다.",function(content,y)
   local fr=KHQOL.modules.range
   if not fr.Settings.panel then fr.Settings:Create() end
   return UI:EmbedModulePanel(content,fr.Settings.panel,y,function() fr:UpdateSettings() end)
 end)
-register("threat","Threat","threat","현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다.")
-register("tooltip","Tooltip","tooltip","툴팁의 위치, 표시 방식 및 무기 전문가 안내를 조정합니다.")
+register("threat","위협 수치","threat","현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다.")
+register("tooltip","툴팁 설정","tooltip","툴팁의 위치, 표시 방식 및 무기 전문가 안내를 조정합니다.")

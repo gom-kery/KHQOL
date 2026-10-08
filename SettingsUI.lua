@@ -19,8 +19,8 @@ local convenienceTabs={clock="clock",todo="note",questNavigator="quest"}
 local moduleGroups={
   {title="바 설정",items={{"experienceBar","경험치"},{"castBar","시전"},{"resourceSwing","리소스/스윙"},{"environmentTimer","환경"}}},
   {title="알림",items={{"npcAlert","NPC"},{"combatStatus","전투"},{"campfire","모닥불"},{"buffReminder","버프"},{"pvpAlert","PvP"}}},
-  {title="인터페이스",items={{"cursorTrail","Cursor"},{"range","Range"},{"threat","Threat"},{"tooltip","Tooltip"}}},
-  {title="편의 기능",items={{"clock","Clock"},{"todo","Note"},{"questNavigator","Quest"},
+  {title="인터페이스",items={{"cursorTrail","마우스 잔상"},{"range","거리 측정"},{"threat","위협 수치"},{"tooltip","툴팁 설정"}}},
+  {title="편의 기능",items={{"clock","시계 설정"},{"todo","포에버 노트"},{"questNavigator","퀘스트 설정"},
     {"autoSellJunk","잡템 자동 판매",true},{"autoRepair","자동 수리",true},
     {"declinePartyInvites","파티초대 거절",true},{"declineGuildInvites","길드초대 거절",true}}},
 }
@@ -310,7 +310,11 @@ function KHQOL:CreateSettings()
     menuY=menuY-menuRowStep
     if key=="general" or key=="labs" then
       local line=menuContent:CreateTexture(nil,"ARTWORK"); line:SetColorTexture(unpack(T.Divider))
-      line:SetPoint("TOPLEFT",0,menuY+2); line:SetSize(T.SidebarWidth-36,1); menuY=menuY-16
+      -- Equal clear space above and below each group separator.
+      local gap=T.SectionGap+T.RowGap/2
+      local lineY=menuY+menuRowStep-T.ButtonHeight-gap
+      line:SetPoint("TOPLEFT",0,lineY); line:SetSize(T.SidebarWidth-36,1)
+      menuY=lineY-1-gap
     end
   end
   menuContent:SetHeight(-menuY+4)
