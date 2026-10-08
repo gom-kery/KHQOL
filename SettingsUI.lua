@@ -208,6 +208,19 @@ function KHQOL:CreateSettings()
   scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66); scroll:SetPoint("BOTTOMRIGHT",-38,58)
   local child=CreateFrame("Frame",nil,scroll); child:SetWidth(T.ContentWidth); child:SetHeight(1); scroll:SetScrollChild(child)
   f.scroll=scroll; f.child=child; f.pageCache={}; f.menuButtons={}
+  -- Bars navigation is a sibling of the scroll viewport, so it remains fixed.
+  local barsHeader=CreateFrame("Frame",nil,f)
+  barsHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
+  barsHeader:SetWidth(T.ContentWidth)
+  local barsHeaderHeight=34+T.RowGap+T.ButtonHeight+T.SectionGap
+  barsHeader:SetHeight(barsHeaderHeight); barsHeader:Hide(); f.barsHeader=barsHeader
+  function f:SetPageScrollLayout(key)
+    local bars=key=="bars"
+    barsHeader:SetShown(bars)
+    scroll:ClearAllPoints()
+    scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-(bars and barsHeaderHeight or 0))
+    scroll:SetPoint("BOTTOMRIGHT",-38,58)
+  end
   function f:UpdateContentHeight()
     local page=self.activeContent; if not page then return end
     local height=page.contentHeight or 1
@@ -235,6 +248,7 @@ function KHQOL:CreateSettings()
     UI:CloseDropdown()
     if self.activeContent then self.activeContent:Hide() end
     self.page=key; self.pageName=definition[2]; self.pageTitle:SetText(definition[2])
+    self:SetPageScrollLayout(key)
     footer:SetShown(key~="general" and key~="profiles" and key~="bars"); scroll:SetVerticalScroll(0)
     for menuKey, menuButton in pairs(self.menuButtons) do
       UI:SetButtonSelected(menuButton,menuKey==key)
@@ -246,7 +260,9 @@ function KHQOL:CreateSettings()
       local y
       if key=="general" then y=UI:CreatePage(content,definition[2],definition[3]); y=generalSettings(content,y)
       elseif key=="profiles" then y=UI:CreatePage(content,definition[2],definition[3]); y=profileSettings(content,y)
-      elseif key=="bars" then y=UI:CreatePage(content,definition[2],definition[3]); y=KHQOL.BarsSettings:BuildSettings(content,y)
+      elseif key=="bars" then
+        local tabY=UI:CreatePage(barsHeader,definition[2],definition[3])-T.RowGap
+        y=KHQOL.BarsSettings:BuildSettings(content,0,barsHeader,tabY)
       else
         content.moduleKey=key
         y=UI:CreatePage(content,definition[2],definition[3],function() return KHQOL:GetEnabled(key) end,function(on)

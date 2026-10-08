@@ -1,9 +1,10 @@
-local _, KHQOL = ...
+﻿local _, KHQOL = ...
 KHQOL.modules = {
   general = {}, clock = {}, todo = {}, buffReminder = {}, range = {}, tooltip = {}, weaponGuide = {}, resourceSwing = {}, campfire = {}, cursorTrail = {}, castBar = {}, combatStatus = {}, questNavigator = {}, threat = {}, pvpAlert = {},
 }
 KHQOL.modules.environmentTimer = {}
-KHQOL.VERSION = "1.9.8.1"
+KHQOL.modules.experienceBar = {}
+KHQOL.VERSION = "1.9.8.5"
 
 -- Key-binding labels are read by Blizzard's standard binding UI.
 -- Keep the binding action itself in Todo.lua so every entry point shares

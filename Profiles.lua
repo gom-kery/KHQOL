@@ -5,6 +5,7 @@ local legacy = {clock="ForeverClockDB", buffReminder="ForeverBuffReminderDB",
 local managed = {"tooltip","cursorTrail","castBar","combatStatus","questNavigator","threat","pvpAlert"}
 local common = {"minimap","locked","debug","enabled","general"}
 managed[#managed+1]="environmentTimer"
+managed[#managed+1]="experienceBar"
 local noteUI = {transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID"}

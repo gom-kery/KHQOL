@@ -1,5 +1,5 @@
 local _, KHQOL = ...
-local Bars={tabs={},selected="environment"}
+local Bars={tabs={},selected="experience"}
 KHQOL.BarsSettings=Bars
 -- A tab may supply a native builder or a link to its existing settings page.
 -- Registration order determines tab order; existing feature modules stay intact.
@@ -65,18 +65,18 @@ local function environment(content,y)
   return b.y
 end
 Bars:RegisterTab("experience","경험치",function(content,y)
-  local b=KHQOL.UI:CreateBuilder(content,y)
-  b:Section("경험치")
-  b:Description("경험치 설정을 통합할 공간입니다. 현재 버전에서는 기존 경험치 표시 동작을 유지합니다.")
-  return b.y
+  return KHQOL.modules.experienceBar:BuildSettings(content,y)
 end)
 Bars:RegisterTab("cast","시전",nil,"castBar")
 Bars:RegisterTab("resource","리소스/스윙",nil,"resourceSwing")
 Bars:RegisterTab("environment","환경",environment)
-function Bars:BuildSettings(content,y)
+function Bars:BuildSettings(content,y,tabHost,tabY)
   local UI,T=KHQOL.UI,KHQOL.UI.Theme
   local buttons,panels={},{}
-  local panelY=y-T.ButtonHeight-T.SectionGap
+  local panelY=tabHost and y or y-T.ButtonHeight-T.SectionGap
+  local host=tabHost or content
+  local buttonY=tabHost and (tabY or 0) or y
+  content.barsPanels,content.tabButtons,content.tabHeader=panels,buttons,host
   local function select(id)
     self.selected=id
     for _,tab in ipairs(self.tabs) do
@@ -90,12 +90,14 @@ function Bars:BuildSettings(content,y)
     if KHQOL.settings and KHQOL.settings.activeContent==content then KHQOL.settings:UpdateContentHeight() end
   end
   local width=(T.ContentWidth-(#self.tabs-1)*T.RowGap)/#self.tabs
+  local tabX,gap=0,math.max(4,math.floor(T.RowGap*.75))
   for i,tab in ipairs(self.tabs) do
     local id=tab.id
-    buttons[id]=UI:CreateButton(content,tab.title,(i-1)*(width+T.RowGap),y,width,function()
+    buttons[id]=UI:CreateButton(host,tab.title,tabX,buttonY,width,function()
       select(id)
       if KHQOL.settings then KHQOL.settings.scroll:SetVerticalScroll(0) end
     end)
+    tabX=tabX+buttons[id]:GetWidth()+gap
     local panel=CreateFrame("Frame",nil,content); panel:SetPoint("TOPLEFT",0,panelY); panel:SetWidth(T.ContentWidth)
     panels[id]=panel
     local bottom
@@ -107,8 +109,15 @@ function Bars:BuildSettings(content,y)
       bottom=b.y
     end
     panel.contentHeight=-bottom; panel:SetHeight(math.max(1,-bottom)); panel:Hide()
+    panel:HookScript("OnSizeChanged",function()
+      panel.contentHeight=panel:GetHeight()
+      if self.selected==id then
+        content.contentHeight=-panelY+panel.contentHeight+T.ContentPadding
+        if KHQOL.settings and KHQOL.settings.activeContent==content then KHQOL.settings:UpdateContentHeight() end
+      end
+    end)
   end
-  content:SetScript("OnShow",function() select(self.selected) end)
+  content:SetScript("OnShow",function() select("experience") end)
   select(self.selected)
   return -content.contentHeight+T.ContentPadding
 end

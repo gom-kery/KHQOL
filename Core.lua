@@ -18,6 +18,7 @@ local legacy = {
 }
 KHQOL.defaults = defaults
 defaults.enabled.environmentTimer = false
+defaults.enabled.experienceBar = false
 
 function KHQOL:Migrate()
   for key, variable in pairs(legacy) do
@@ -45,6 +46,7 @@ end
 function KHQOL:GetEnabled(key) return self.db.enabled[key] ~= false end
 
 local managedModules = {
+  experienceBar=true,
   environmentTimer=true,
   tooltip=true, cursorTrail=true, castBar=true, combatStatus=true,
   questNavigator=true, threat=true, pvpAlert=true,
