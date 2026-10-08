@@ -11,6 +11,7 @@ function QN:BuildSettings(content,y)
   b:Description("위치 잠금을 해제하면 이동 모드가 켜집니다. 표시된 영역을 드래그하세요.")
   b:Button("위치 초기화",function() self:ResetPosition() end)
   content:HookScript("OnHide",function()
+    if KHQOL.PositionEditor and KHQOL.PositionEditor.active then return end
     if self.db and not self.db.locked then self.db.locked=true; self:Changed("locked") end
   end)
   b:Section("퀘스트 목록 표시")

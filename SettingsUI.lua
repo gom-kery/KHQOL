@@ -3,39 +3,28 @@ local UI, T = KHQOL.UI, KHQOL.UI.Theme
 -- Compact only navigation and the general module grid; retain control sizes.
 local defaultRowStep = T.RowHeight + T.RowGap
 local menuRowStep = T.ButtonHeight + math.max(0, defaultRowStep - T.ButtonHeight) / 2
-local moduleRowStep = T.CheckboxSize + math.max(0, defaultRowStep - T.CheckboxSize) / 3
-local definitions = {
-  {"clock", "Clock", "시간, 날짜, 요일 및 HUD 정보를 표시합니다."},
-  {"todo", "Note", "화면의 노트 창에서 할 일과 메모를 관리합니다."},
-  {"buffReminder", "Buff Reminder", "버프가 없거나 만료되기 전에 화면에 알립니다."},
-  {"range", "Range", "선택한 대상의 사거리 상태를 표시합니다."},
-  {"tooltip", "Tooltip", "툴팁의 위치, 표시 방식 및 무기 전문가 안내를 조정합니다."},
-  {"resourceSwing", "Resource Swing", "자원과 무기 스윙 바를 표시합니다."},
-  {"campfire", "Campfire", "근처 모닥불과 야영 효과를 알립니다."},
-  {"cursorTrail", "Cursor Trail", "마우스 이동 경로에 잔상을 표시합니다."},
-  {"castBar", "Cast Bar", "플레이어의 주문 시전을 표시합니다."},
-  {"combatStatus", "Combat Status", "전투 시작과 종료를 검 애니메이션으로 알립니다."},
-  {"questNavigator", "Quest Navigator", "추적 중인 퀘스트의 목표·반납 위치를 안내하고 다음 퀘스트를 선택합니다."},
-  {"threat", "Threat", "현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다."},
-  {"pvpAlert", "PvP Alert", "적 플레이어의 주시, 접근, 나를 향한 시전을 단계적으로 알립니다. 기본적으로 비전투 중에만 동작합니다."},
-}
+local moduleRowStep = T.RowHeight + T.RowGap
 local pages = {
   {"general", "일반", "KHQOL 공통 설정 및 모듈 관리"},
-  {"profiles", "프로필", "계정 공용 프로필 및 캐릭터별 사용 프로필 관리"},
   {"bars", "바 설정", "바 계열 기능과 환경 타이머를 관리합니다."},
   {"alerts", "알림", "NPC, 전투, 모닥불, 버프 및 PvP 알림을 관리합니다."},
+  {"interface", "인터페이스", "커서, 사거리, 어그로 및 툴팁을 관리합니다."},
+  {"convenience", "편의 기능", "자동화 편의 기능, 시계, 노트 및 퀘스트 안내를 관리합니다."},
   {"labs", "실험실", "개발 중이나 정상적으로 동작되지 않는 기능입니다."},
+  {"profiles", "프로필", "계정 공용 프로필 및 캐릭터별 사용 프로필 관리"},
 }
 local alertTabs={npcAlert="npc",combatStatus="combat",campfire="campfire",buffReminder="buff",pvpAlert="pvp"}
-local modules = {}
-for _, definition in ipairs(definitions) do
-  if KHQOL.modules[definition[1]] then modules[#modules+1] = definition end
-end
-table.sort(modules, function(a,b) return a[2]:lower() < b[2]:lower() end)
-for _, definition in ipairs(modules) do
-  if definition[1]~="castBar" and definition[1]~="resourceSwing" and not alertTabs[definition[1]] then pages[#pages+1] = definition end
-end
-UI.Pages = pages
+local interfaceTabs={cursorTrail="cursor",range="range",threat="threat",tooltip="tooltip"}
+local convenienceTabs={clock="clock",todo="note",questNavigator="quest"}
+local moduleGroups={
+  {title="바 설정",items={{"experienceBar","경험치"},{"castBar","시전"},{"resourceSwing","리소스/스윙"},{"environmentTimer","환경"}}},
+  {title="알림",items={{"npcAlert","NPC"},{"combatStatus","전투"},{"campfire","모닥불"},{"buffReminder","버프"},{"pvpAlert","PvP"}}},
+  {title="인터페이스",items={{"cursorTrail","Cursor"},{"range","Range"},{"threat","Threat"},{"tooltip","Tooltip"}}},
+  {title="편의 기능",items={{"clock","Clock"},{"todo","Note"},{"questNavigator","Quest"},
+    {"autoSellJunk","잡템 자동 판매",true},{"autoRepair","자동 수리",true},
+    {"declinePartyInvites","파티초대 거절",true},{"declineGuildInvites","길드초대 거절",true}}},
+}
+UI.Pages=pages
 
 -- Reset only after confirmation. The original module initializers supply defaults.
 local function resetModule(key)
@@ -126,17 +115,30 @@ local function generalSettings(content,y)
   b:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter() end)
   b:Description("활성화된 화면 요소를 함께 이동합니다. 완료하면 저장·잠금, 취소 또는 ESC는 변경 전 상태를 유지합니다.")
   b:Section("모듈 관리")
-  UI:CreateDescription(content,"설정은 변경 즉시 저장됩니다.",112,b.y+40)
-  local rows=math.ceil(#modules/2)
-  local top=b.y
-  for index, definition in ipairs(modules) do
-    local key, name = definition[1], definition[2]
-    local column=math.floor((index-1)/rows); local row=(index-1)%rows
-    local checkbox=UI:CreateCheckbox(content,name,column*((T.ContentWidth+T.ColumnGap)/2),top-row*moduleRowStep,function() return KHQOL:GetEnabled(key) end,function(on) KHQOL:SetEnabled(key,on) end)
-    checkbox.text:SetWidth(150)
+  b:Description("설정은 변경 즉시 저장됩니다.")
+  local gap=T.ColumnGap/2
+  local width=(T.ContentWidth-2*gap)/3
+  content.moduleControls={}
+  for _,group in ipairs(moduleGroups) do
+    b:Section(group.title)
+    local top=b.y
+    for index,item in ipairs(group.items) do
+      local key,name,isGeneral=item[1],item[2],item[3]
+      local column=(index-1)%3;local row=math.floor((index-1)/3)
+      local checkbox=UI:CreateCheckbox(content,name,column*(width+gap),top-row*moduleRowStep,
+        function() return isGeneral and KHQOL.modules.general:GetDB()[key] or (not isGeneral and KHQOL:GetEnabled(key)) end,
+        function(on)
+          if isGeneral then KHQOL.modules.general:SetConvenienceEnabled(key,on)
+          else KHQOL:SetEnabled(key,on) end
+        end)
+      checkbox.text:SetWidth(width-T.CheckboxSize-T.CheckboxLabelGap)
+      checkbox.text:SetWordWrap(false)
+      if checkbox.text.SetNonSpaceWrap then checkbox.text:SetNonSpaceWrap(false) end
+      content.moduleControls[key]=checkbox
+    end
+    b.y=top-math.ceil(#group.items/3)*moduleRowStep
   end
-  b.y=top-rows*moduleRowStep
-  b.y=KHQOL.modules.general:BuildSettings(content,b.y)
+  b.y=KHQOL.modules.general:BuildGlobalSettings(content,b.y)
   b:Section("미니맵")
   b:Checkbox("KHQOL 미니맵 버튼 표시",function() return KHQOL.db.minimap.show end,function(on) KHQOL.db.minimap.show=on; KHQOL:UpdateMinimapButton() end)
   b:Button("미니맵 버튼 위치 초기화",function() KHQOL.db.minimap.angle=225; KHQOL:UpdateMinimapButton() end,210)
@@ -147,15 +149,6 @@ local function generalSettings(content,y)
   b:Description("모든 모듈의 설정과 데이터를 기본값으로 복원합니다.")
   b:Button("전체 설정 초기화",function() StaticPopup_Show("KHQOL_RESET_ALL") end,180)
   return b.y
-end
-local function embed(content,panel,y,refresh)
-  if not panel then return y end
-  panel:SetParent(content); panel:ClearAllPoints(); panel:SetPoint("TOPLEFT",0,y)
-  panel:SetScale(1); panel:SetWidth(T.ContentWidth); panel:SetFrameStrata("DIALOG")
-  content.detailPanel=panel; content.detailY=y
-  if refresh then refresh() end
-  panel:Show(); UI:Refresh(panel)
-  return y-panel:GetHeight()
 end
 function KHQOL:CreateSettings()
   local f=CreateFrame("Frame","KHQOLSettingsFrame",UIParent,"BackdropTemplate")
@@ -203,9 +196,18 @@ function KHQOL:CreateSettings()
   labsHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
   labsHeader:SetWidth(T.ContentWidth); labsHeader:SetHeight(barsHeaderHeight); labsHeader:Hide()
   f.labsHeader=labsHeader
+  local interfaceHeader=CreateFrame("Frame",nil,f)
+  interfaceHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
+  interfaceHeader:SetWidth(T.ContentWidth);interfaceHeader:SetHeight(barsHeaderHeight);interfaceHeader:Hide()
+  f.interfaceHeader=interfaceHeader
+  local convenienceHeader=CreateFrame("Frame",nil,f)
+  convenienceHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
+  convenienceHeader:SetWidth(T.ContentWidth);convenienceHeader:SetHeight(barsHeaderHeight);convenienceHeader:Hide()
+  f.convenienceHeader=convenienceHeader
   function f:SetPageScrollLayout(key)
-    local bars=key=="bars" or key=="alerts" or key=="labs"
+    local bars=key=="bars" or key=="alerts" or key=="labs" or key=="interface" or key=="convenience"
     barsHeader:SetShown(key=="bars"); alertsHeader:SetShown(key=="alerts"); labsHeader:SetShown(key=="labs")
+    interfaceHeader:SetShown(key=="interface");convenienceHeader:SetShown(key=="convenience")
     scroll:ClearAllPoints()
     scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-(bars and barsHeaderHeight or 0))
     scroll:SetPoint("BOTTOMRIGHT",-38,58)
@@ -226,17 +228,27 @@ function KHQOL:CreateSettings()
     scroll:SetVerticalScroll(math.max(0,math.min(maximum,scroll:GetVerticalScroll()-delta*(T.RowHeight+T.RowGap))))
   end)
   scroll:HookScript("OnSizeChanged",function() if f.activeContent then f:UpdateContentHeight() end end)
-  local footer=UI:CreateButton(f,"모듈 설정 초기화",0,0,180,function() StaticPopup_Show("KHQOL_RESET_MODULE",f.pageName,nil,f.page) end)
+  local footer=UI:CreateButton(f,"모듈 설정 초기화",0,0,180,function()
+    if f.resetModuleKey then StaticPopup_Show("KHQOL_RESET_MODULE",f.resetModuleName,nil,f.resetModuleKey) end
+  end)
   footer:ClearAllPoints(); footer:SetPoint("BOTTOMRIGHT",-38,18)
+  f.resetButton=footer
+  function f:SetActiveSettingsModule(key,name)
+    self.resetModuleKey=key;self.resetModuleName=name;footer:SetShown(key~=nil)
+  end
   local hint=UI:CreateDescription(f,"설정은 변경 즉시 저장됩니다.",T.SidebarWidth+T.ContentPadding,0)
   hint:ClearAllPoints(); hint:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,24); hint:SetWidth(300)
   function f:ShowPage(key)
     -- Preserve old slash/minimap/API entry points without separate pages.
     local requestedTab=key=="castBar" and "cast" or key=="resourceSwing" and "resource"
+      or key=="experienceBar" and "experience" or key=="environmentTimer" and "environment"
     local requestedAlert=alertTabs[key]
+    local requestedInterface=interfaceTabs[key];local requestedConvenience=convenienceTabs[key]
     if requestedTab then key="bars"
     elseif requestedAlert then key="alerts"
-    elseif key=="procAlert" then key="labs"; requestedAlert="proc" end
+    elseif key=="procAlert" then key="labs"; requestedAlert="proc"
+    elseif requestedInterface then key="interface"
+    elseif requestedConvenience then key="convenience" end
     local definition
     for _, item in ipairs(pages) do if item[1]==key then definition=item; break end end
     if not definition then key="general"; definition=pages[1] end
@@ -244,7 +256,7 @@ function KHQOL:CreateSettings()
     if self.activeContent then self.activeContent:Hide() end
     self.page=key; self.pageName=definition[2]; self.pageTitle:SetText(definition[2])
     self:SetPageScrollLayout(key)
-    footer:SetShown(key~="general" and key~="profiles" and key~="bars" and key~="alerts" and key~="labs"); scroll:SetVerticalScroll(0)
+    self:SetActiveSettingsModule(nil);scroll:SetVerticalScroll(0)
     for menuKey, menuButton in pairs(self.menuButtons) do
       UI:SetButtonSelected(menuButton,menuKey==key)
     end
@@ -264,41 +276,12 @@ function KHQOL:CreateSettings()
       elseif key=="labs" then
         local tabY=UI:CreatePage(labsHeader,definition[2],definition[3])-T.RowGap
         y=KHQOL.LabSettings:BuildSettings(content,0,labsHeader,tabY)
-      else
-        content.moduleKey=key
-        y=UI:CreatePage(content,definition[2],definition[3],function() return KHQOL:GetEnabled(key) end,function(on)
-          KHQOL:SetEnabled(key,on); UI:Refresh(content)
-        end)
-        if key=="clock" then
-          KHQOL.modules.clock:CreateHeaderHelp(content)
-          y=embed(content,KHQOL.modules.clock.settingsFrame,y,function() KHQOL.modules.clock:RefreshSettings() end)
-        elseif key=="range" then
-          local fr=KHQOL.modules.range; if not fr.Settings.panel then fr.Settings:Create() end
-          y=embed(content,fr.Settings.panel,y,function() fr:UpdateSettings() end)
-        elseif key=="todo" then
-          local b=UI:CreateBuilder(content,y); b:Section("노트 사용")
-          b:Description("시계 우클릭 또는 ForeverNote 미니맵 버튼으로 노트 창을 열고 닫을 수 있습니다.")
-          b:Checkbox("ESC로 노트 닫기",function() return KHQOL.modules.clock.db.todo.closeOnEscape ~= false end,function(on)
-            KHQOL.modules.clock.db.todo.closeOnEscape=on and true or false
-            KHQOL.modules.clock:UpdateTodoEscapeBinding()
-          end)
-          b:Section("체크리스트 네비게이션")
-          local fc=KHQOL.modules.clock
-          local function changed() fc:RefreshTodoNavigation(); if fc.todoFrame then fc:RefreshTodo() end end
-          b:Checkbox("네비게이션 연결",function() return fc:GetTodoNavigationOptions().enabled end,function(on)
-            fc:GetTodoNavigationOptions().enabled=on; changed()
-          end)
-          local function connected() return fc:GetTodoNavigationOptions().enabled end
-          b:Checkbox("완료 시 다음 위치 자동 안내",function() return fc:GetTodoNavigationOptions().autoAdvance end,function(on)
-            fc:GetTodoNavigationOptions().autoAdvance=on; changed()
-          end,connected)
-          b:Checkbox("좌표 항목에 ▶ 버튼 표시",function() return fc:GetTodoNavigationOptions().showTrackButton end,function(on)
-            fc:GetTodoNavigationOptions().showTrackButton=on; changed()
-          end,connected)
-          b:Description("체크리스트에 /way 46 73 희귀몹, /way 오그리마 59 44 메모 또는 /way #1454 58.8 43.8 메모 입력. 지역명은 클라이언트 지도 이름과 일치해야 합니다. 지역 생략 시 현재 지역이며 희귀몹 확인 @46,73도 지원합니다.")
-          b:Description("잘못된 지역명·mapID는 좌표로 등록하지 않습니다. 동명 지역은 #mapID로 구분하세요. 자동 안내는 퀘스트가 우선이며, 노트는 현재 지도에서 비교 가능한 좌표를 안내합니다. ▶ 수동 안내 후 AUTO로 복귀합니다.")
-          b:Description("단축키는 게임 메뉴의 설정 > 단축키에서 지정할 수 있습니다. 노트 내용과 메모는 노트 창에서 직접 편집합니다."); y=b.y
-        else y=KHQOL.modules[key]:BuildSettings(content,y) end
+      elseif key=="interface" then
+        local tabY=UI:CreatePage(interfaceHeader,definition[2],definition[3])-T.RowGap
+        y=KHQOL.InterfaceSettings:BuildSettings(content,0,interfaceHeader,tabY)
+      elseif key=="convenience" then
+        local tabY=UI:CreatePage(convenienceHeader,definition[2],definition[3])-T.RowGap
+        y=KHQOL.ConvenienceSettings:BuildSettings(content,0,convenienceHeader,tabY)
       end
       content.contentHeight=-y+T.ContentPadding
       if content.detailPanel then
@@ -308,8 +291,8 @@ function KHQOL:CreateSettings()
     self.activeContent=content; content:Show()
     if requestedTab then content.SelectBarsTab(requestedTab) end
     if requestedAlert then content.SelectAlertTab(requestedAlert) end
-    if key=="clock" then KHQOL.modules.clock:RefreshSettings()
-    elseif key=="range" then KHQOL.modules.range:UpdateSettings() end
+    if requestedInterface then content.SelectAlertTab(requestedInterface) end
+    if requestedConvenience then content.SelectAlertTab(requestedConvenience) end
     UI:Refresh(content); self:UpdateContentHeight()
   end
   local navigation=CreateFrame("ScrollFrame",nil,f)
@@ -324,8 +307,8 @@ function KHQOL:CreateSettings()
     local b=UI:CreateButton(menuContent,definition[2],0,menuY,T.SidebarWidth-28,function() f:ShowPage(key) end)
     b:SetWidth(T.SidebarWidth-28)
     b:GetFontString():SetJustifyH("LEFT"); f.menuButtons[key]=b
-    menuY=menuY-(i==2 and defaultRowStep or menuRowStep)
-    if i==2 then
+    menuY=menuY-menuRowStep
+    if key=="general" or key=="labs" then
       local line=menuContent:CreateTexture(nil,"ARTWORK"); line:SetColorTexture(unpack(T.Divider))
       line:SetPoint("TOPLEFT",0,menuY+2); line:SetSize(T.SidebarWidth-36,1); menuY=menuY-16
     end

@@ -322,35 +322,42 @@ function General:Initialize()
   end)
 end
 
+-- Shared settings action for the General grid and Convenience detail page.
+-- Preserve the existing cancellation side effects when an option is turned OFF.
+function General:SetConvenienceEnabled(key,on)
+  self:GetDB()[key]=on
+  if not on then
+    if key=="autoSellJunk" then self:CancelJunkSale()
+    elseif key=="autoRepair" then CancelDeferred(self.merchantVisit)
+    elseif key=="declinePartyInvites" then self:CancelInviteDecline("party")
+    elseif key=="declineGuildInvites" then self:CancelInviteDecline("guild") end
+  end
+end
+function General:BuildGlobalSettings(parent,y)
+  local b=KHQOL.UI:CreateBuilder(parent,y)
+  b:Section("전역 설정")
+  b:Slider("중앙 알림 텍스트 크기", 75, 200, 5, function() return General:GetDB().centerTextScale end, function(value) General:GetDB().centerTextScale=value; General:ApplyCenterTextScale() end, function(value) return value .. "%" end, nil, "화면 중앙에 표시되는 오류 및 진행 메시지의 크기입니다.")
+  return b.y
+end
+
 function General:BuildSettings(parent, y)
   local b = KHQOL.UI:CreateBuilder(parent, y)
-  b:Section("일반 옵션")
-  b:Slider("중앙 알림 텍스트 크기", 75, 200, 5, function() return General:GetDB().centerTextScale end, function(value) General:GetDB().centerTextScale=value; General:ApplyCenterTextScale() end, function(value) return value .. "%" end, nil, "화면 중앙에 표시되는 오류 및 진행 메시지의 크기입니다.")
-  local sell = b:Checkbox("잡템 자동 판매", function() return General:GetDB().autoSellJunk end, function(on)
-    General:GetDB().autoSellJunk = on
-    if not on then General:CancelJunkSale() end
-  end)
+  b:Section("판매")
+  local sell = b:Checkbox("잡템 자동 판매", function() return General:GetDB().autoSellJunk end, function(on) General:SetConvenienceEnabled("autoSellJunk",on) end)
   KHQOL.UI:AttachTooltip(sell, "잡템 자동 판매", "상점이 열릴 때 판매 가능한 회색 아이템을 판매합니다. 퀘스트 아이템과 판정이 불확실한 아이템은 제외합니다.")
   local report = b:Checkbox("판매 완료 후 획득 골드 출력", function() return General:GetDB().autoSellJunkReport end,
     function(on) General:GetDB().autoSellJunkReport = on end, function() return General:GetDB().autoSellJunk == true end)
   KHQOL.UI:AttachTooltip(report, "판매 완료 후 획득 골드 출력", "판매 완료 금액을 채팅에 표시합니다. 판매 결과나 다른 골드 변동으로 금액 확인이 불확실하면 출력하지 않습니다.")
-  local repair = b:Checkbox("자동 수리", function() return General:GetDB().autoRepair end, function(on)
-    General:GetDB().autoRepair = on
-    if not on then CancelDeferred(General.merchantVisit) end
-  end)
+  b:Section("수리")
+  local repair = b:Checkbox("자동 수리", function() return General:GetDB().autoRepair end, function(on) General:SetConvenienceEnabled("autoRepair",on) end)
   KHQOL.UI:AttachTooltip(repair, "자동 수리", "수리 가능한 상점이 열리면 전체 수리 비용을 지불할 수 있을 때 한 번 수리합니다. 잡템 자동 판매가 켜져 있으면 판매 확인 후 수리합니다.")
   local guild = b:Checkbox("길드 자금 우선 사용", function() return General:GetDB().useGuildFunds end,
     function(on) General:GetDB().useGuildFunds = on end, function() return General:GetDB().autoRepair == true end)
   KHQOL.UI:AttachTooltip(guild, "길드 자금 우선 사용", "길드 수리 권한, 잔액, 사용 한도가 충분하면 길드 자금으로 수리합니다. 사용 불가 또는 부족하면 개인 골드로 수리합니다.")
-  local party = b:Checkbox("파티초대 거절", function() return General:GetDB().declinePartyInvites end, function(on)
-    General:GetDB().declinePartyInvites = on
-    if not on then General:CancelInviteDecline("party") end
-  end)
+  b:Section("초대")
+  local party = b:Checkbox("파티초대 거절", function() return General:GetDB().declinePartyInvites end, function(on) General:SetConvenienceEnabled("declinePartyInvites",on) end)
   KHQOL.UI:AttachTooltip(party, "파티초대 거절", "다른 플레이어에게 받은 파티초대를 자동으로 거절합니다. 기존 파티나 공격대와 다른 종류의 요청에는 영향을 주지 않습니다.")
-  local invite = b:Checkbox("길드초대 거절", function() return General:GetDB().declineGuildInvites end, function(on)
-    General:GetDB().declineGuildInvites = on
-    if not on then General:CancelInviteDecline("guild") end
-  end)
+  local invite = b:Checkbox("길드초대 거절", function() return General:GetDB().declineGuildInvites end, function(on) General:SetConvenienceEnabled("declineGuildInvites",on) end)
   KHQOL.UI:AttachTooltip(invite, "길드초대 거절", "받은 길드초대를 자동으로 거절합니다. 현재 가입한 길드와 기본 차단 설정은 변경하지 않습니다.")
   return b.y
 end
