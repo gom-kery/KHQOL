@@ -19,6 +19,7 @@ end
 function KHQOL:BuildPositionTargets()
   local list={}; local m=self.modules; local fc=m.clock
   local function add(id,key,name,frame,write,lock,apply,extra)
+    if key and m[key] and m[key].experimental then return end
     if not frame or (key and not self:GetEnabled(key)) then return end
     local t=extra or {}; t.id=id; t.name=name; t.frame=frame; t.write=write; t.lock=lock; t.apply=apply
     list[#list+1]=t; return t

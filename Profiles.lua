@@ -6,6 +6,8 @@ local managed = {"tooltip","cursorTrail","castBar","combatStatus","questNavigato
 local common = {"minimap","locked","debug","enabled","general"}
 managed[#managed+1]="environmentTimer"
 managed[#managed+1]="experienceBar"
+managed[#managed+1]="procAlert"
+managed[#managed+1]="npcAlert"
 local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID"}

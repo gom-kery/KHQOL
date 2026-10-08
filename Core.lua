@@ -19,6 +19,8 @@ local legacy = {
 KHQOL.defaults = defaults
 defaults.enabled.environmentTimer = false
 defaults.enabled.experienceBar = false
+defaults.enabled.procAlert = false
+defaults.enabled.npcAlert = false
 
 function KHQOL:Migrate()
   for key, variable in pairs(legacy) do
@@ -46,6 +48,8 @@ end
 function KHQOL:GetEnabled(key) return self.db.enabled[key] ~= false end
 
 local managedModules = {
+  procAlert=true,
+  npcAlert=true,
   experienceBar=true,
   environmentTimer=true,
   tooltip=true, cursorTrail=true, castBar=true, combatStatus=true,

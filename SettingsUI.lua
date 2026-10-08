@@ -23,14 +23,17 @@ local pages = {
   {"general", "일반", "KHQOL 공통 설정 및 모듈 관리"},
   {"profiles", "프로필", "계정 공용 프로필 및 캐릭터별 사용 프로필 관리"},
   {"bars", "바 설정", "바 계열 기능과 환경 타이머를 관리합니다."},
+  {"alerts", "알림", "NPC, 전투, 모닥불, 버프 및 PvP 알림을 관리합니다."},
+  {"labs", "실험실", "개발 중이나 정상적으로 동작되지 않는 기능입니다."},
 }
+local alertTabs={npcAlert="npc",combatStatus="combat",campfire="campfire",buffReminder="buff",pvpAlert="pvp"}
 local modules = {}
 for _, definition in ipairs(definitions) do
   if KHQOL.modules[definition[1]] then modules[#modules+1] = definition end
 end
 table.sort(modules, function(a,b) return a[2]:lower() < b[2]:lower() end)
 for _, definition in ipairs(modules) do
-  if definition[1]~="castBar" and definition[1]~="resourceSwing" then pages[#pages+1] = definition end
+  if definition[1]~="castBar" and definition[1]~="resourceSwing" and not alertTabs[definition[1]] then pages[#pages+1] = definition end
 end
 UI.Pages = pages
 
@@ -145,30 +148,6 @@ local function generalSettings(content,y)
   b:Button("전체 설정 초기화",function() StaticPopup_Show("KHQOL_RESET_ALL") end,180)
   return b.y
 end
-local function campfireSettings(content,y)
-  local cfa=KHQOL.modules.campfire
-  local b=UI:CreateBuilder(content,y)
-  b:Section("위치")
-  b:Checkbox("위치 잠금",function() return cfa.db.locked end,function(on)
-    cfa.db.locked=on
-    if on then cfa:HideDiscovery()
-    else cfa.ui.discovery:Show(); cfa.ui.complete:Hide(); cfa:ApplyLayout() end
-  end)
-  b:Description("위치 잠금을 해제하면 아이콘과 문구를 미리 보고 드래그로 이동할 수 있습니다.")
-  b:Button("위치 초기화",function()
-    cfa.db.position={point="CENTER",x=0,y=80}
-    cfa.ui.root:ClearAllPoints(); cfa.ui.root:SetPoint("CENTER",UIParent,"CENTER",0,80)
-  end)
-  b:Section("알림 모양")
-  b:Slider("아이콘 크기",100,140,5,function() return cfa.db.iconSize end,function(v) cfa.db.iconSize=v; cfa:ApplyLayout() end,function(v) return v.." px" end)
-  b:Slider("글자 크기",40,70,5,function() return cfa.db.fontSize end,function(v) cfa.db.fontSize=v; cfa:ApplyLayout() end,function(v) return v.." px" end)
-  b:Section("알림 문구")
-  UI:CreateLabel(content,"표시할 문구",0,b.y); b.y=b.y-24
-  local input=UI:CreateEditBox(content,0,b.y,360,function() return cfa.db.message or "모닥불 발견!" end,function(v) cfa.db.message=v; cfa:ApplyLayout() end)
-  UI:CreateButton(content,"적용",376,b.y,86,function() cfa.db.message=input:GetText(); input:ClearFocus(); cfa:ApplyLayout() end)
-  b.y=b.y-T.DropdownRowHeight+24
-  return b.y
-end
 local function embed(content,panel,y,refresh)
   if not panel then return y end
   panel:SetParent(content); panel:ClearAllPoints(); panel:SetPoint("TOPLEFT",0,y)
@@ -216,9 +195,17 @@ function KHQOL:CreateSettings()
   barsHeader:SetWidth(T.ContentWidth)
   local barsHeaderHeight=34+T.RowGap+T.ButtonHeight+T.SectionGap
   barsHeader:SetHeight(barsHeaderHeight); barsHeader:Hide(); f.barsHeader=barsHeader
+  local alertsHeader=CreateFrame("Frame",nil,f)
+  alertsHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
+  alertsHeader:SetWidth(T.ContentWidth); alertsHeader:SetHeight(barsHeaderHeight); alertsHeader:Hide()
+  f.alertsHeader=alertsHeader
+  local labsHeader=CreateFrame("Frame",nil,f)
+  labsHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
+  labsHeader:SetWidth(T.ContentWidth); labsHeader:SetHeight(barsHeaderHeight); labsHeader:Hide()
+  f.labsHeader=labsHeader
   function f:SetPageScrollLayout(key)
-    local bars=key=="bars"
-    barsHeader:SetShown(bars)
+    local bars=key=="bars" or key=="alerts" or key=="labs"
+    barsHeader:SetShown(key=="bars"); alertsHeader:SetShown(key=="alerts"); labsHeader:SetShown(key=="labs")
     scroll:ClearAllPoints()
     scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-(bars and barsHeaderHeight or 0))
     scroll:SetPoint("BOTTOMRIGHT",-38,58)
@@ -246,7 +233,10 @@ function KHQOL:CreateSettings()
   function f:ShowPage(key)
     -- Preserve old slash/minimap/API entry points without separate pages.
     local requestedTab=key=="castBar" and "cast" or key=="resourceSwing" and "resource"
-    if requestedTab then key="bars" end
+    local requestedAlert=alertTabs[key]
+    if requestedTab then key="bars"
+    elseif requestedAlert then key="alerts"
+    elseif key=="procAlert" then key="labs"; requestedAlert="proc" end
     local definition
     for _, item in ipairs(pages) do if item[1]==key then definition=item; break end end
     if not definition then key="general"; definition=pages[1] end
@@ -254,7 +244,7 @@ function KHQOL:CreateSettings()
     if self.activeContent then self.activeContent:Hide() end
     self.page=key; self.pageName=definition[2]; self.pageTitle:SetText(definition[2])
     self:SetPageScrollLayout(key)
-    footer:SetShown(key~="general" and key~="profiles" and key~="bars"); scroll:SetVerticalScroll(0)
+    footer:SetShown(key~="general" and key~="profiles" and key~="bars" and key~="alerts" and key~="labs"); scroll:SetVerticalScroll(0)
     for menuKey, menuButton in pairs(self.menuButtons) do
       UI:SetButtonSelected(menuButton,menuKey==key)
     end
@@ -268,6 +258,12 @@ function KHQOL:CreateSettings()
       elseif key=="bars" then
         local tabY=UI:CreatePage(barsHeader,definition[2],definition[3])-T.RowGap
         y=KHQOL.BarsSettings:BuildSettings(content,0,barsHeader,tabY)
+      elseif key=="alerts" then
+        local tabY=UI:CreatePage(alertsHeader,definition[2],definition[3])-T.RowGap
+        y=KHQOL.AlertSettings:BuildSettings(content,0,alertsHeader,tabY)
+      elseif key=="labs" then
+        local tabY=UI:CreatePage(labsHeader,definition[2],definition[3])-T.RowGap
+        y=KHQOL.LabSettings:BuildSettings(content,0,labsHeader,tabY)
       else
         content.moduleKey=key
         y=UI:CreatePage(content,definition[2],definition[3],function() return KHQOL:GetEnabled(key) end,function(on)
@@ -276,11 +272,9 @@ function KHQOL:CreateSettings()
         if key=="clock" then
           KHQOL.modules.clock:CreateHeaderHelp(content)
           y=embed(content,KHQOL.modules.clock.settingsFrame,y,function() KHQOL.modules.clock:RefreshSettings() end)
-        elseif key=="buffReminder" then y=embed(content,ForeverBuffReminder.settings,y,function() ForeverBuffReminder:RefreshSettings() end)
         elseif key=="range" then
           local fr=KHQOL.modules.range; if not fr.Settings.panel then fr.Settings:Create() end
           y=embed(content,fr.Settings.panel,y,function() fr:UpdateSettings() end)
-        elseif key=="campfire" then y=campfireSettings(content,y)
         elseif key=="todo" then
           local b=UI:CreateBuilder(content,y); b:Section("노트 사용")
           b:Description("시계 우클릭 또는 ForeverNote 미니맵 버튼으로 노트 창을 열고 닫을 수 있습니다.")
@@ -313,8 +307,8 @@ function KHQOL:CreateSettings()
     end
     self.activeContent=content; content:Show()
     if requestedTab then content.SelectBarsTab(requestedTab) end
+    if requestedAlert then content.SelectAlertTab(requestedAlert) end
     if key=="clock" then KHQOL.modules.clock:RefreshSettings()
-    elseif key=="buffReminder" then ForeverBuffReminder:RefreshSettings()
     elseif key=="range" then KHQOL.modules.range:UpdateSettings() end
     UI:Refresh(content); self:UpdateContentHeight()
   end
