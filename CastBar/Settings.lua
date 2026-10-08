@@ -29,6 +29,8 @@ function CastBar:BuildSettings(content,y)
     end
     dropdown("표시 위치",db[kind],"position",options,kind,function() return enabled() and db[kind].enabled end)
   end
+  b:Section("시전바")
+  add(b:Checkbox("시전바 사용",enabled,function(v) KHQOL:SetEnabled("castBar",v); UI:Refresh(content) end))
   b:Section("위치")
   dropdown("배치 기준",db.position,"mode",{{value="free",text="독립 배치"},{value="resource_above",text="ResourceSwing 위"},{value="resource_below",text="ResourceSwing 아래"}})
   local function freeEnabled() return enabled() and not self.linked end
@@ -48,7 +50,7 @@ function CastBar:BuildSettings(content,y)
     if KHQOL.PositionEditor and KHQOL.PositionEditor.active then return end
     self.controls=nil; if self.frame then self:SetPreview(false) end
   end)
-  content:SetScript("OnShow",function() self.controls=controls; self:RefreshControls() end)
+  content:SetScript("OnShow",function() self.controls=controls; self:ApplyLayout(); self:RefreshControls() end)
   b:Section("바 모양")
   slider("높이",db.appearance,"height",8,80)
   slider("폭",db.appearance,"width",80,800,function() return enabled() and not (self.linked and db.position.resource.matchWidth) end)
@@ -71,5 +73,7 @@ function CastBar:BuildSettings(content,y)
   b:Section("동작")
   dropdown("진행 방향",db.behavior,"direction",{{value="left_to_right",text="왼쪽 → 오른쪽"},{value="right_to_left",text="오른쪽 → 왼쪽"}})
   checkbox("Blizzard 시전 바 숨김",db.behavior,"hideBlizzard")
+  b:Section("기본값 복원")
+  b:Button("시전바 설정 초기화",function() StaticPopup_Show("KHQOL_RESET_MODULE","시전바",nil,"castBar") end)
   return b.y
 end

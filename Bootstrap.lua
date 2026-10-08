@@ -4,7 +4,7 @@ KHQOL.modules = {
 }
 KHQOL.modules.environmentTimer = {}
 KHQOL.modules.experienceBar = {}
-KHQOL.VERSION = "1.9.8.5"
+KHQOL.VERSION = "1.9.8.8"
 
 -- Key-binding labels are read by Blizzard's standard binding UI.
 -- Keep the binding action itself in Todo.lua so every entry point shares

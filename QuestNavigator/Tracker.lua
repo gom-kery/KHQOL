@@ -6,150 +6,6 @@ local trackerDefaults={groupByRegion=true,collapsibleRegions=true,showDungeonTag
   showEliteTag=true,collapsedRegions={},contentWidth=0}
 local function inCombat() return QN.IsTrue(QN.Call(InCombatLockdown)) end
 QN.trackerDefaults = trackerDefaults
--- Keep the native modules and their buttons; only their viewport changes.
-function QN:CanMoveTrackerScroll()
-  if not inCombat() then return true end
-  local root=self.trackerScrollRoot
-  for _,frame in ipairs({root,self.trackerScroll,self.trackerScrollChild}) do
-    if not frame.IsProtected or frame:IsProtected() then return false end
-  end
-  for _,module in ipairs(root.modules or {}) do
-    if not module.IsProtected or module:IsProtected() then return false end
-  end
-  return true
-end
-function QN:ScrollTracker(delta)
-  local root,scroll=self.trackerScrollRoot,self.trackerScroll
-  if not self.trackerScrollActive or not scroll or root:IsCollapsed() then return end
-  local step=math.max(36,(self.trackerDB or self:GetTrackerDB()).fontSize*3)
-  local offset=math.max(0,math.min(self.trackerScrollMax or 0,
-    (self.trackerScrollPendingOffset or scroll:GetVerticalScroll())-delta*step))
-  if not self:CanMoveTrackerScroll() then
-    self.trackerScrollPendingOffset=offset; self.trackerScrollPending=true; return
-  end
-  scroll:SetVerticalScroll(offset); self.trackerScrollPendingOffset=nil
-end
-function QN:LayoutTrackerScroll()
-  local root,scroll,child=self.trackerScrollRoot,self.trackerScroll,self.trackerScrollChild
-  if not self.trackerScrollActive or not scroll then return end
-  if not self:CanMoveTrackerScroll() then self.trackerScrollPending=true; return end
-  if root:IsCollapsed() then scroll:Hide(); return end
-  local padding=root.topModulePadding or 38
-  local height=math.max(1,root:GetHeight()-padding-(root.bottomModulePadding or 10))
-  local top=root:GetTop()
-  if QN.IsNumber(top) then height=math.max(1,math.min(height,top-padding-12)) end
-  local rootWidth=root:GetWidth()
-  local width=math.max(rootWidth,self:GetTrackerWidth()+40)
-  for _,module in ipairs(root.modules or {}) do
-    width=math.max(width,module:GetWidth()+(module.leftMargin or 0))
-  end
-  scroll:ClearAllPoints(); scroll:SetPoint("TOPRIGHT",root,"TOPRIGHT",0,-padding)
-  scroll:SetSize(width,height); child:SetWidth(width)
-  local used,previous=0,nil
-  for _,module in ipairs(root.modules or {}) do
-    if module.parentContainer==root then
-      if module:GetParent()~=child then
-        self.trackerScrollParents[module]=module:GetParent(); module:SetParent(child)
-      end
-      local moduleHeight=module:GetContentsHeight()
-      if moduleHeight>0 then
-        if previous then used=used+(root.moduleSpacing or 10) end
-        module:ClearAllPoints()
-        module:SetPoint("TOPLEFT",child,"TOPLEFT",width-rootWidth+(module.leftMargin or 0),-used)
-        used=used+moduleHeight; previous=module
-      end
-    end
-  end
-  child:SetHeight(math.max(1,used))
-  self.trackerScrollMax=math.max(0,used-height)
-  scroll:SetVerticalScroll(math.max(0,math.min(self.trackerScrollMax,
-    self.trackerScrollPendingOffset or scroll:GetVerticalScroll())))
-  self.trackerScrollPendingOffset=nil; self.trackerScrollPending=false
-  scroll:Show()
-  if used>height and root.NineSlice then
-    root.NineSlice:SetPoint("BOTTOM",scroll,"BOTTOM",0,-(root.bottomModulePadding or 10))
-  end
-end
-function QN:InstallTrackerScrolling()
-  local root=ObjectiveTrackerFrame
-  if self.trackerScrollRoot or inCombat() or not root or type(root.GetAvailableHeight)~="function"
-    or type(root.UpdateHeaderPosition)~="function" or type(hooksecurefunc)~="function" then return end
-  local scroll=CreateFrame("ScrollFrame",nil,root)
-  local child=CreateFrame("Frame",nil,scroll)
-  child:SetSize(root:GetWidth(),1); scroll:SetScrollChild(child)
-  scroll:EnableMouse(false); scroll:EnableMouseWheel(true)
-  scroll:SetScript("OnMouseWheel",function(_,delta) self:ScrollTracker(delta) end)
-  scroll:Hide()
-  self.trackerScrollRoot=root; self.trackerScroll=scroll; self.trackerScrollChild=child
-  self.trackerScrollParents={}
-  local getHeight=root.GetAvailableHeight
-  root.GetAvailableHeight=function(frame,...)
-    -- Build every native block, including those normally omitted below the bottom edge.
-    if self.trackerScrollActive and not frame:IsCollapsed() then return math.huge end
-    return getHeight(frame,...)
-  end
-  -- The native dirty driver caches Update, but always calls UpdateHeaderPosition afterwards.
-  hooksecurefunc(root,"UpdateHeaderPosition",function() self:LayoutTrackerScroll() end)
-  root:HookScript("OnMouseWheel",function(_,delta) self:ScrollTracker(delta) end)
-end
-function QN:UpdateTrackerScrolling()
-  if inCombat() then self.trackerScrollPending=true; return end
-  if self.trackerEnabled then self:InstallTrackerScrolling() end
-  local root,scroll=self.trackerScrollRoot,self.trackerScroll
-  if not root then return end
-  local active=self.trackerEnabled==true
-  if self.trackerScrollActive~=active then
-    self.trackerScrollActive=active
-    if active then
-      self.trackerScrollNativeWheel=root:IsMouseWheelEnabled()
-      root:EnableMouseWheel(true)
-    else
-      for module,parent in pairs(self.trackerScrollParents) do
-        if module:GetParent()==self.trackerScrollChild then module:SetParent(parent) end
-      end
-      self.trackerScrollParents={}; self.trackerScrollMax=0
-      self.trackerScrollPendingOffset=nil; scroll:SetVerticalScroll(0); scroll:Hide()
-      root:EnableMouseWheel(self.trackerScrollNativeWheel==true)
-    end
-    -- Changing the available height invalidates native truncation and dirty shortcuts.
-    for _,module in ipairs(root.modules or {}) do module:MarkDirty() end
-    root:MarkDirty()
-  end
-  if active and self.trackerScrollPending then self:LayoutTrackerScroll() end
-  self.trackerScrollPending=false
-end
-function QN:RefreshObjectiveQuestCount()
-  local frame=ObjectiveTrackerFrame
-  local text=frame and frame.Header and frame.Header.Text
-  if not text then return end
-  if not self.trackerEnabled then
-    if self.trackerQuestCountLabel and text:GetText()==self.trackerQuestCountLabel then
-      text:SetText(frame.headerText or self.trackerQuestCountBase)
-    end
-    self.trackerQuestCountLabel=nil
-    return
-  end
-  if self.questCountHeaderFrame~=frame then
-    self.questCountHeaderFrame=frame
-    self.trackerQuestCountBase=frame.headerText or text:GetText()
-    -- The native container can initialize/reset its label after ADDON_LOADED.
-    -- Hook only this frame, preserving its update, buttons, size and font behavior.
-    if type(frame.Update)=="function" and type(hooksecurefunc)=="function" then
-      hooksecurefunc(frame,"Update",function() self:RefreshObjectiveQuestCount() end)
-    end
-  end
-  local base=frame.headerText or self.trackerQuestCountBase
-  if not QN.IsText(base) or base=="" then return end
-  -- Same values as Camelot QuestLogQuests_ShowQuestCount; first return counts headers too.
-  local _,count=QN.Call(C_QuestLog and C_QuestLog.GetNumQuestLogEntries)
-  local maximum=Constants and Constants.QuestLogConsts and Constants.QuestLogConsts.MAXIMUM_NUM_QUESTS_LOG_CAN_ACCEPT
-  local label=base
-  if QN.IsNumber(count) and count>=0 and count%1==0 and QN.IsID(maximum) then
-    label=string.format("%s ( %d / %d )",base,count,maximum)
-  end
-  if text:GetText()~=label then text:SetText(label) end
-  self.trackerQuestCountLabel=label
-end
 function QN:GetTrackerDB()
   local db=self:GetDB()
   if type(db.questTracker)~="table" then db.questTracker={} end
@@ -167,9 +23,8 @@ function QN:GetTrackerWidth()
   local m=self.objectiveModule
   local width=m and m:GetWidth()
   if QN.IsNumber(width) and width>0 then
-    -- Capture the running client's actual default once, rather than resizing the container.
-    t.contentWidth=math.max(200,math.min(500,math.floor(width-(m.blockOffsetX or 20)+.5)))
-    return t.contentWidth
+    -- Read the running client's default without changing the saved zero/default sentinel.
+    return math.max(200,math.min(500,math.floor(width-(m.blockOffsetX or 20)+.5)))
   end
   return 235 -- UI-only fallback before the load-on-demand Blizzard tracker exists.
 end
@@ -205,7 +60,8 @@ end
 function QN:BuildTrackerGroups(infos)
   local groups,lookup,data={},{},{}
   for _,watch in ipairs(infos) do
-    local id=watch.quest:GetID()
+    local id=watch.id
+    watch={id=watch.id,index=watch.index,logIndex=watch.logIndex,title=watch.title} -- Own copy; never decorate shared watch data.
     local info=self:GetTrackerQuestInfo(id,watch.index)
     watch.khqolInfo=info; data[id]=info
     local key=self.trackerDB.groupByRegion and info.regionKey or "all"
@@ -233,281 +89,396 @@ function QN:BuildTrackerGroups(infos)
   self.trackerGroups,self.trackerQuestData=groups,data
   return groups
 end
-local function rememberFont(fs)
-  if not fs or fs.khqolTrackerFont then return end
-  local path,size,flags=fs:GetFont()
-  fs.khqolTrackerFont={path=path,size=size,flags=flags,spacing=fs:GetSpacing(),
-    wrap=fs:CanWordWrap(),maxLines=fs:GetMaxLines(),object=fs:GetFontObject()}
+-- Addon-owned presentation. Never run a native tracker update from addon code,
+-- replace its methods, mark its container dirty, or modify its watch/cache tables.
+local function font(fs,size)
+  local path,_,flags=ObjectiveTrackerLineFont:GetFont()
+  fs:SetFont(path,size,flags); fs:SetWordWrap(true); fs:SetMaxLines(0)
 end
-local function restoreFont(fs)
-  local old=fs and fs.khqolTrackerFont
-  if not old then return end
-  if old.object then fs:SetFontObject(old.object) else fs:SetFont(old.path,old.size,old.flags) end
-  fs:SetSpacing(old.spacing)
-  fs:SetWordWrap(old.wrap); fs:SetMaxLines(old.maxLines); fs.khqolTrackerFont=nil
-end
-function QN:StyleTrackerFont(fs)
-  if not fs then return end
-  rememberFont(fs)
-  local old=fs.khqolTrackerFont
-  fs:SetFont(old.path,self.trackerDB.fontSize,old.flags)
-  fs:SetSpacing(math.max(0,self.trackerDB.fontSize-12)*.15)
-  fs:SetWordWrap(true)
-end
-function QN:RestoreTrackerBlock(block)
-  local old=block.khqolTrackerOriginal
-  if not old then return end
-  restoreFont(block.HeaderText)
-  for _,line in pairs(block.usedLines or {}) do restoreFont(line.Text); restoreFont(line.Dash) end
-  block.SetStringText,block.GetLine,block.FreeLine=old.SetStringText,old.GetLine,old.FreeLine
-  block.fixedWidth,block.offsetX=old.fixedWidth,old.offsetX
-  block.khqolTrackerOriginal=nil
-end
-function QN:StyleTrackerBlock(block)
-  if block.khqolTrackerOriginal then return end
-  local owner=self
-  local old={SetStringText=block.SetStringText,GetLine=block.GetLine,FreeLine=block.FreeLine,
-    fixedWidth=block.fixedWidth,offsetX=block.offsetX}
-  block.khqolTrackerOriginal=old
-  block.SetStringText=function(b,fs,text,full,...)
-    owner:StyleTrackerFont(fs)
-    if fs==b.HeaderText then
-      local info=owner.trackerQuestData and owner.trackerQuestData[b.id]
-      local title=QN.Call(C_QuestLog and C_QuestLog.GetTitleForQuestID,b.id)
-      if info and QN.IsText(title) then
-        local tag=owner:GetTrackerTag(info)
-        local prefix=info.level and tostring(math.floor(info.level)) or nil
-        if tag then prefix=prefix and (prefix.." "..tag) or tag end
-        title=(prefix and ("["..prefix.."] ") or "")..title
-        -- Keep the exact native difficulty color (and CVar policy), without a second level prefix.
-        local color=QN.IsText(text) and text:match("^(|c%x%x%x%x%x%x%x%x)")
-        text=color and (color..title.."|r") or title
+function QN:CollectTrackerWatches()
+  local api=C_QuestLog; local result={}
+  local count=api.GetNumQuestWatches()
+  if not QN.IsNumber(count) or count<0 or count>1000 or count%1~=0 then return result end
+  for i=1,count do
+    local id=api.GetQuestIDForQuestWatchIndex(i)
+    if QN.IsID(id) then
+      local index=api.GetLogIndexForQuestID(id)
+      local info=QN.IsID(index) and api.GetInfo(index)
+      local classification=C_QuestInfoSystem and C_QuestInfoSystem.GetQuestClassification(id)
+      local campaign=Enum and Enum.QuestClassification and Enum.QuestClassification.Campaign
+      -- The campaign/task/bounty sections remain native, rather than duplicated here.
+      if QN.IsTable(info) and not QN.IsTrue(info.isHeader)
+        and not QN.IsTrue(info.isTask) and not QN.IsTrue(info.isBounty)
+        and not QN.IsTrue(api.IsQuestDisabledForSession and api.IsQuestDisabledForSession(id))
+        and not (campaign and QN.IsNumber(classification) and classification==campaign) then
+        result[#result+1]={id=id,index=i,logIndex=index,title=info.title}
       end
-      full=true -- HeaderButton follows the full wrapped HeaderText height.
     end
-    return old.SetStringText(b,fs,text,full,...)
   end
-  block.GetLine=function(b,...)
-    local line=old.GetLine(b,...)
-    owner:StyleTrackerFont(line.Text); owner:StyleTrackerFont(line.Dash)
-    return line
-  end
-  block.FreeLine=function(b,line,...)
-    restoreFont(line.Text); restoreFont(line.Dash)
-    return old.FreeLine(b,line,...)
-  end
+  return result
 end
-function QN:HideTrackerRegions()
-  for _,row in ipairs(self.trackerRegionRows or {}) do row:Hide() end
-  self.trackerRegionCount=0; self.trackerRegionAnchor=nil
-  self.trackerFirstRegionAtTop=false
-end
-function QN:RestoreTrackerBars()
-  for bar,old in pairs(self.trackerBars or {}) do
-    bar:SetWidth(old.width); bar.Bar:SetWidth(old.barWidth)
-  end
-  self.trackerBars={}
-end
-function QN:AddTrackerRegion(module,group)
-  local count=(self.trackerRegionCount or 0)+1
-  self.trackerRegionRows=self.trackerRegionRows or {}
-  if count==1 then self.trackerFirstRegionAtTop=module.firstBlock==nil end
-  local row=self.trackerRegionRows[count]
-  if not row then
-    row=CreateFrame("Button",nil,module.ContentsFrame)
-    row.Text=row:CreateFontString(nil,"OVERLAY","ObjectiveTrackerHeaderFont")
-    row.Text:SetPoint("TOPLEFT"); row.Text:SetPoint("RIGHT")
-    row:RegisterForClicks("LeftButtonUp")
-    row:SetScript("OnClick",function(button)
-      if not self.trackerEnabled or not self.trackerDB.collapsibleRegions then return end
-      local key=button.regionKey
-      self.trackerDB.collapsedRegions[key]=not self.trackerDB.collapsedRegions[key]
-      self:RequestTrackerLayout()
+function QN:TrackerQuestClick(button,mouseButton)
+  local id=button.questID
+  if not self.trackerEnabled or not QN.IsID(id) then return end
+  if ChatFrameUtil and ChatFrameUtil.TryInsertQuestLinkForQuestID(id) then return end
+  if mouseButton=="RightButton" and MenuUtil and MenuUtil.CreateContextMenu then
+    MenuUtil.CreateContextMenu(button,function(_,menu)
+      menu:CreateTitle(C_QuestLog.GetTitleForQuestID(id) or "퀘스트")
+      local selected=C_SuperTrack.GetSuperTrackedQuestID()==id
+      menu:CreateButton(selected and (STOP_SUPER_TRACK_QUEST or "안내 중지") or (SUPER_TRACK_QUEST or "길 안내"),function()
+        C_SuperTrack.SetSuperTrackedQuestID(selected and 0 or id)
+      end)
+      menu:CreateButton(OBJECTIVES_VIEW_IN_QUESTLOG or "퀘스트 보기",function() QuestMapFrame_OpenToQuestDetails(id) end)
+      if not QuestUtil or not QuestUtil.CanRemoveQuestWatch or QuestUtil.CanRemoveQuestWatch() then
+        menu:CreateButton(OBJECTIVES_STOP_TRACKING or "추적 해제",function() C_QuestLog.RemoveQuestWatch(id) end)
+      end
+      if C_QuestLog.IsPushableQuest and C_QuestLog.IsPushableQuest(id) and IsInGroup() then
+        menu:CreateButton(SHARE_QUEST or "공유",function() QuestUtil.ShareQuest(id) end)
+      end
+      if QuestMapQuestOptions_AbandonQuest then
+        menu:CreateButton(ABANDON_QUEST_ABBREV or "포기",function() QuestMapQuestOptions_AbandonQuest(id) end)
+      end
     end)
-    self.trackerRegionRows[count]=row
+  elseif IsModifiedClick and IsModifiedClick("QUESTWATCHTOGGLE") then
+    if not QuestUtil or not QuestUtil.CanRemoveQuestWatch or QuestUtil.CanRemoveQuestWatch() then C_QuestLog.RemoveQuestWatch(id) end
+  elseif button.popupType=="OFFER" and ShowQuestOffer then ShowQuestOffer(id)
+  elseif button.popupType=="COMPLETE" and ShowQuestComplete then ShowQuestComplete(id)
+  else
+    local index=C_QuestLog.GetLogIndexForQuestID(id)
+    local info=QN.IsID(index) and C_QuestLog.GetInfo(index)
+    if QN.IsTable(info) and QN.IsTrue(info.isAutoComplete) and C_QuestLog.IsComplete(id) and ShowQuestComplete then ShowQuestComplete(id)
+    elseif QuestMapFrame_OpenToQuestDetails then QuestMapFrame_OpenToQuestDetails(id) end
   end
-  row.regionKey=group.key
-  local path,_,flags=row.Text:GetFont()
-  row.Text:SetFont(path,self.trackerDB.fontSize+1,flags)
-  row.Text:SetTextColor(1,119/255,95/255) -- Region header: #FF775F.
-  row.Text:SetWordWrap(true); row.Text:SetMaxLines(0); row.Text:SetHeight(0)
-  row.fixedWidth=true; row:SetWidth(self:GetTrackerWidth())
-  row.offsetX=module:GetWidth()-self:GetTrackerWidth()
-  module:AnchorBlock(row)
-  row.Text:SetText((self.trackerDB.collapsibleRegions and (group.collapsed and "▶ " or "▼ ") or "")..group.name)
-  row.height=math.max(self.trackerDB.fontSize+4,row.Text:GetStringHeight()+2)
-  row:SetHeight(row.height)
-  if not module:CanFitBlock(row) then module.hasTriedBlocks=true; module.hasSkippedBlocks=true; row:Hide(); return false end
-  module.hasTriedBlocks=true; module.hasContents=true
-  local _,offset=module:GetNextBlockAnchoring()
-  module.contentsHeight=module.contentsHeight+row.height-offset
-  -- Region rows never enter the native quest linked list / POI / gamepad iteration.
-  self.trackerRegionAnchor=row; self.trackerRegionCount=count; row:Show()
-  return true
 end
-function QN:RequestTrackerLayout()
-  self.trackerPending=true
-  if inCombat() then return end
-  self:InstallObjectiveTracker()
-  self:UpdateTrackerScrolling()
-  if self.objectiveModule then self.objectiveModule:MarkDirty() end
+function QN:CreateTrackerRow(index)
+  local row=self.trackerRows[index]
+  if row then return row end
+  row=CreateFrame("Frame",nil,self.trackerScrollChild)
+  row.Title=CreateFrame("Button",nil,row)
+  row.Title.Text=row.Title:CreateFontString(nil,"OVERLAY","ObjectiveTrackerLineFont")
+  row.Title.Text:SetAllPoints(); row.Title.Text:SetJustifyH("LEFT")
+  row.Title:RegisterForClicks("LeftButtonUp","RightButtonUp")
+  row.Title:SetScript("OnClick",function(button,mouseButton)
+    if button.regionKey then
+      if self.trackerEnabled and self.trackerDB.collapsibleRegions then
+        local key=button.regionKey
+        self.trackerDB.collapsedRegions[key]=not self.trackerDB.collapsedRegions[key]
+        self:RequestTrackerLayout()
+      end
+    else self:TrackerQuestClick(button,mouseButton) end
+  end)
+  row.lines={}; row.bars={}; self.trackerRows[index]=row
+  return row
 end
-function QN:InstallObjectiveTracker()
-  if inCombat() then self.trackerPending=true; return end
-  local m=QuestObjectiveTracker
-  if self.objectiveModule or not m then return end
-  local required={"Update","BuildQuestWatchInfos","EnumQuestWatchData","GetBlock","LayoutBlock",
-    "GetNextBlockAnchoring","OnFreeBlock","CheckCachedBlocks","AdjustSlideAnchor"}
-  for _,name in ipairs(required) do if type(m[name])~="function" then self.trackerUnavailable=name; return end end
-  local owner=self
-  self.objectiveModule=m; self.trackerUnavailable=nil
-  local old={lineSpacing=m.lineSpacing}; for _,name in ipairs(required) do old[name]=m[name] end
-  self.trackerModuleOriginal=old
-  m.Update=function(module,availableHeight,dirtyUpdate)
-    -- No addon frame/font/item changes, even when another module requests a container layout.
-    if inCombat() and (owner.trackerEnabled or owner.trackerDecorated) then
-      owner.trackerPending=true
-      return module:GetContentsHeight(),module:IsTruncated()
+function QN:CreateTrackerItem(row)
+  if row.Item then return row.Item end
+  local b=CreateFrame("Button",nil,row,"SecureActionButtonTemplate")
+  b:SetSize(28,28); b:RegisterForClicks("AnyUp","AnyDown")
+  b:SetAttribute("type","item"); b:SetAttribute("useOnKeyDown",true)
+  b.Icon=b:CreateTexture(nil,"ARTWORK"); b.Icon:SetAllPoints()
+  b.Cooldown=CreateFrame("Cooldown",nil,b,"CooldownFrameTemplate"); b.Cooldown:SetAllPoints()
+  b:SetScript("OnEnter",function(button)
+    if button.logIndex and GameTooltip then
+      self.trackerTooltipOwner=button
+      GameTooltip:SetOwner(button,"ANCHOR_LEFT"); GameTooltip:SetQuestLogSpecialItem(button.logIndex); GameTooltip:Show()
     end
-    if not module:CanUpdate() and not module.parentContainer:IsCollapsed() then
-      return old.Update(module,availableHeight,dirtyUpdate)
-    end
-    if dirtyUpdate and not module:IsDirty() and module:IsComplete() and
-      module.contentsHeight<=availableHeight and not module:IsCollapsed() then
-      return old.Update(module,availableHeight,dirtyUpdate)
-    end
-    owner:HideTrackerRegions()
-    owner:RestoreTrackerBars()
-    owner.trackerPending=false
-    owner.trackerDB=owner:GetTrackerDB()
-    module.lineSpacing=owner.trackerEnabled and math.max(2,old.lineSpacing+(owner.trackerDB.fontSize-12)*.25) or old.lineSpacing
-    if not owner.trackerEnabled then
-      module:EnumerateActiveBlocks(function(block) owner:RestoreTrackerBlock(block) end)
-      owner.trackerDecorated=false
-    end
-    return old.Update(module,availableHeight,dirtyUpdate)
+  end)
+  b:SetScript("OnLeave",function(button)
+    if GameTooltip and GameTooltip:IsOwned(button) then GameTooltip:Hide() end
+    if self.trackerTooltipOwner==button then self.trackerTooltipOwner=nil end
+  end)
+  row.Item=b; return b
+end
+function QN:AddTrackerText(row,text,y,width,complete)
+  if not QN.IsText(text) or text=="" then return y end
+  local index=(row.lineCount or 0)+1; row.lineCount=index
+  local fs=row.lines[index]
+  if not fs then fs=row:CreateFontString(nil,"OVERLAY","ObjectiveTrackerLineFont"); fs:SetJustifyH("LEFT"); row.lines[index]=fs end
+  font(fs,self.trackerDB.fontSize); fs:ClearAllPoints(); fs:SetPoint("TOPLEFT",row,"TOPLEFT",8,-y)
+  fs:SetWidth(width-8); fs:SetHeight(0); fs:SetText(text)
+  if complete then fs:SetTextColor(.6,.6,.6) else fs:SetTextColor(.8,.8,.8) end
+  fs:Show(); return y+math.max(self.trackerDB.fontSize,fs:GetStringHeight())+3
+end
+function QN:RenderTrackerQuest(row,watch,width)
+  local id,index=watch.id,watch.logIndex
+  row.Title.questID=id; row.Title.regionKey=nil; row.Title.popupType=watch.popupType
+  local info=self.trackerQuestData[id] or self:GetTrackerQuestInfo(id,watch.index)
+  local tag=self:GetTrackerTag(info); local prefix=info.level and tostring(math.floor(info.level)) or nil
+  if tag then prefix=prefix and (prefix.." "..tag) or tag end
+  local title=C_QuestLog.GetTitleForQuestID(id)
+  title=QN.IsText(title) and title or (QN.IsText(watch.title) and watch.title or "퀘스트")
+  row.Title.Text:SetText((prefix and ("["..prefix.."] ") or "")..title)
+  local nativeTitle=SetQuestTitleLevelAndDifficultyColor and SetQuestTitleLevelAndDifficultyColor(id,title)
+  local colorCode=QN.IsText(nativeTitle) and nativeTitle:match("^(|c%x%x%x%x%x%x%x%x)")
+  if colorCode then
+    row.Title.Text:SetText(colorCode..row.Title.Text:GetText().."|r"); row.Title.Text:SetTextColor(1,1,1)
+  elseif SetQuestTitleLevelAndDifficultyColor then row.Title.Text:SetTextColor(1,.82,0)
+  else
+    local color=info.level and GetQuestDifficultyColor and GetQuestDifficultyColor(info.level)
+    if color then row.Title.Text:SetTextColor(color.r,color.g,color.b) else row.Title.Text:SetTextColor(1,.82,0) end
   end
-  m.BuildQuestWatchInfos=function(module)
-    if owner.trackerEnabled and inCombat() and owner.trackerVisibleWatchInfos then return owner.trackerVisibleWatchInfos end
-    local infos=old.BuildQuestWatchInfos(module) -- Watch IDs + native ShouldDisplayQuest filter only.
-    if not owner.trackerEnabled then return infos end
-    local groups=owner:BuildTrackerGroups(infos)
-    local sorted={}
-    for _,group in ipairs(groups) do
-      if not group.collapsed then for _,watch in ipairs(group.watches) do sorted[#sorted+1]=watch end end
-    end
-    owner.trackerVisibleWatchInfos=sorted -- Native gamepad navigation skips collapsed regions too.
-    return sorted
-  end
-  m.EnumQuestWatchData=function(module,func)
-    if not owner.trackerEnabled then return old.EnumQuestWatchData(module,func) end
-    module:BuildQuestWatchInfos()
-    for _,group in ipairs(owner.trackerGroups) do
-      if owner.trackerDB.groupByRegion and not owner:AddTrackerRegion(module,group) then return end
-      if not group.collapsed then
-        for _,watch in ipairs(group.watches) do if not func(module,watch.quest) then return end end
-      end
-    end
-  end
-  m.GetNextBlockAnchoring=function(module)
-    if owner.trackerEnabled and owner.trackerRegionAnchor then return owner.trackerRegionAnchor,module.fromBlockOffsetY,"BOTTOM" end
-    return old.GetNextBlockAnchoring(module)
-  end
-  m.GetBlock=function(module,...)
-    local block,existing=old.GetBlock(module,...)
-    if owner.trackerEnabled and owner.trackerQuestData and owner.trackerQuestData[block.id] then
-      owner:StyleTrackerBlock(block); owner.trackerDecorated=true
-      block.fixedWidth=true; block:SetWidth(owner:GetTrackerWidth())
-      block.offsetX=module:GetWidth()-owner:GetTrackerWidth()
-      module:AnchorBlock(block) -- Width is resolved BEFORE native title/objective measurement.
-    end
-    return block,existing
-  end
-  m.LayoutBlock=function(module,block)
-    if owner.trackerEnabled and block.khqolTrackerOriginal then
-      -- Native rightEdgeOffset reserves item/find-group width for title AND every objective.
-      -- Account for a button taller than a one-line quest, including its border/hotkey.
-      for region in pairs(block.addedRegions or {}) do
-        if region==block.ItemButton or region==block.rightEdgeFrame then block.height=math.max(block.height,region:GetHeight()+8) end
-      end
-      for _,line in pairs(block.usedLines or {}) do
-        local bar=line.used and line.progressBar
-        if bar and bar.Bar then
-          owner.trackerBars[bar]={width=bar:GetWidth(),barWidth=bar.Bar:GetWidth()}
-          local width=math.min(bar:GetWidth(),math.max(40,block:GetWidth()+block.rightEdgeOffset-18))
-          bar:SetWidth(width); bar.Bar:SetWidth(math.max(20,width-12))
+  local link,texture,charges
+  local complete=QN.IsTrue(C_QuestLog.IsComplete(id))
+  if QN.IsID(index) and GetQuestLogSpecialItemInfo and not complete then link,texture,charges=GetQuestLogSpecialItemInfo(index) end
+  local textWidth=width-(QN.IsText(link) and 36 or 0)
+  font(row.Title.Text,self.trackerDB.fontSize)
+  row.Title:ClearAllPoints(); row.Title:SetPoint("TOPLEFT"); row.Title:SetWidth(textWidth)
+  row.Title.Text:SetHeight(0)
+  local titleHeight=math.max(self.trackerDB.fontSize+2,row.Title.Text:GetStringHeight())
+  row.Title:SetHeight(titleHeight)
+  local y=titleHeight+4
+  if watch.popupType then
+    y=self:AddTrackerText(row,watch.popupType=="OFFER" and (QUEST_WATCH_QUEST_READY or "퀘스트 수락 가능")
+      or (QUEST_WATCH_CLICK_TO_COMPLETE or "클릭하여 완료"),y,textWidth)
+  elseif complete then
+    local text=GetQuestLogCompletionText and GetQuestLogCompletionText(index)
+    y=self:AddTrackerText(row,QN.IsText(text) and text or (QUEST_WATCH_QUEST_COMPLETE or "완료"),y,textWidth,true)
+  elseif QN.IsTrue(C_QuestLog.IsFailed and C_QuestLog.IsFailed(id)) then
+    y=self:AddTrackerText(row,FAILED or "실패",y,textWidth)
+  else
+    local objectives=C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(id)
+    if QN.IsTable(objectives) then
+      for objectiveIndex,objective in ipairs(objectives) do
+        local text=objective.text
+        if QN.IsID(index) and GetQuestLogLeaderBoard then
+          local nativeText=GetQuestLogLeaderBoard(objectiveIndex,index,true)
+          if QN.IsText(nativeText) then text=nativeText end
+        end
+        local percent
+        if objective.type=="progressbar" and GetQuestProgressBarPercent then
+          percent=GetQuestProgressBarPercent(id)
+          if QN.IsNumber(percent) then text=(QN.IsText(text) and text or "진행도")..string.format(" (%.0f%%)",percent) end
+        end
+        y=self:AddTrackerText(row,text,y,textWidth,QN.IsTrue(objective.finished))
+        if QN.IsNumber(percent) then
+          row.barCount=(row.barCount or 0)+1
+          local bar=row.bars[row.barCount]
+          if not bar then
+            bar=CreateFrame("StatusBar",nil,row); bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+            bar:SetStatusBarColor(.26,.42,1); bar:SetMinMaxValues(0,100); row.bars[row.barCount]=bar
+          end
+          bar:ClearAllPoints(); bar:SetPoint("TOPLEFT",row,"TOPLEFT",8,-y); bar:SetSize(textWidth-8,12)
+          bar:SetValue(math.max(0,math.min(100,percent))); bar:Show(); y=y+16
         end
       end
     end
-    local result=old.LayoutBlock(module,block)
-    if result then owner.trackerRegionAnchor=nil end
-    return result
-  end
-  m.OnFreeBlock=function(module,block)
-    owner:RestoreTrackerBlock(block)
-    return old.OnFreeBlock(module,block)
-  end
-  m.CheckCachedBlocks=function(module,...)
-    -- Do not reinsert turn-in/untracked animation ghosts outside their region or after unwatch.
-    if owner.trackerEnabled then return end
-    return old.CheckCachedBlocks(module,...)
-  end
-  m.AdjustSlideAnchor=function(module,offset)
-    if owner.trackerEnabled and owner.trackerFirstRegionAtTop and (owner.trackerRegionCount or 0)>0 then
-      local row=owner.trackerRegionRows[1]
-      row:SetPoint("TOP",module.ContentsFrame,"TOP",0,offset+module.fromHeaderOffsetY)
-      return
+    local required=C_QuestLog.GetRequiredMoney and C_QuestLog.GetRequiredMoney(id)
+    local money=GetMoney and GetMoney()
+    if QN.IsNumber(required) and QN.IsNumber(money) and required>money and GetMoneyString then
+      y=self:AddTrackerText(row,GetMoneyString(money).." / "..GetMoneyString(required),y,textWidth)
     end
-    return old.AdjustSlideAnchor(module,offset)
   end
-  self:GetTrackerWidth(); m:MarkDirty()
+  if C_SuperTrack.GetSuperTrackedQuestID()==id and C_QuestLog.GetNextWaypointText then
+    y=self:AddTrackerText(row,C_QuestLog.GetNextWaypointText(id),y,textWidth)
+  end
+  if QN.IsText(link) then
+    local item=self:CreateTrackerItem(row)
+    item:ClearAllPoints(); item:SetPoint("TOPRIGHT",row,"TOPRIGHT",0,0)
+    item:SetAttribute("item",link); item.logIndex=index; item.Icon:SetTexture(texture)
+    if GetQuestLogSpecialItemCooldown then
+      local start,duration=GetQuestLogSpecialItemCooldown(index)
+      if QN.IsNumber(start) and QN.IsNumber(duration) then item.Cooldown:SetCooldown(start,duration) end
+    end
+    item:Show(); y=math.max(y,36)
+  elseif row.Item then row.Item:Hide(); row.Item:SetAttribute("item",nil); row.Item.logIndex=nil end
+  return y+6
+end
+function QN:RestoreNativeTrackerPresentation()
+  for frame,alpha in pairs(self.trackerMasked or {}) do frame:SetAlpha(alpha) end
+  self.trackerMasked={}
+  for texture,shown in pairs(self.trackerHeaderDecorations or {}) do texture:SetShown(shown) end
+  self.trackerHeaderDecorations={}
+end
+function QN:HideTrackerHeaderDecorations()
+  if inCombat() then self.trackerPending=true; return end
+  self.trackerHeaderDecorations=self.trackerHeaderDecorations or {}
+  local function hide(texture)
+    if not texture or not texture:IsObjectType("Texture") then return end
+    if self.trackerHeaderDecorations[texture]==nil then
+      -- IsShown preserves the texture's own state even when its header is hidden.
+      self.trackerHeaderDecorations[texture]=texture:IsShown()
+    end
+    texture:Hide()
+  end
+  -- Explicit regions from the Forever container/module header templates. The
+  -- primary Background atlas includes the gold border and end ornaments.
+  -- Do not enumerate textures: buttons, quest icons and progress bars stay intact.
+  local header=ObjectiveTrackerFrame and ObjectiveTrackerFrame.Header
+  if header then hide(header.Background) end
+  header=self.objectiveModule and self.objectiveModule.Header
+  if header then hide(header.Background); hide(header.Shine); hide(header.Glow) end
+end
+function QN:MaskNativeTrackerFrame(frame)
+  if self.trackerMasked[frame]==nil then self.trackerMasked[frame]=frame:GetAlpha() end
+  frame:SetAlpha(0)
+end
+function QN:ScrollTracker(delta)
+  if not self.trackerEnabled or not self.trackerScroll or inCombat() then return end
+  self.trackerScroll:SetVerticalScroll(math.max(0,math.min(self.trackerScrollMax or 0,
+    self.trackerScroll:GetVerticalScroll()-delta*self.trackerDB.fontSize*3)))
+end
+function QN:InstallObjectiveTracker()
+  if self.trackerScroll or not self.trackerEnabled or inCombat() then return end
+  local root,native=ObjectiveTrackerFrame,QuestObjectiveTracker
+  if not root or not native or not native.ContentsFrame or not ObjectiveTrackerLineFont then return end
+  self.objectiveModule=native -- Read-only reference; never call its Update/MarkDirty.
+  self.trackerMasked={}; self.trackerRows={}
+  local scroll=CreateFrame("ScrollFrame",nil,root)
+  local child=CreateFrame("Frame",nil,scroll)
+  child:SetSize(235,1); scroll:SetScrollChild(child)
+  scroll:SetFrameLevel(native:GetFrameLevel()+20)
+  scroll:EnableMouse(true); scroll:EnableMouseWheel(true)
+  scroll:SetScript("OnMouseWheel",function(_,delta) self:ScrollTracker(delta) end)
+  scroll:Hide(); self.trackerScroll=scroll; self.trackerScrollChild=child
+  self.trackerCountLabel=root:CreateFontString(nil,"OVERLAY","ObjectiveTrackerHeaderFont")
+  self.trackerCountLabel:Hide()
+  -- These hooks only enqueue addon work. No native methods/data are changed in
+  -- the hook; no native layout is requested by the eventual addon refresh.
+  hooksecurefunc(root,"UpdateHeaderPosition",function() self:RequestTrackerLayout() end)
+  native:HookScript("OnShow",function() self:RequestTrackerLayout() end)
+  native:HookScript("OnHide",function() self:RequestTrackerLayout() end)
+  if EventRegistry then
+    EventRegistry:RegisterCallback("EditMode.Enter",function() self.trackerNativeEditing=true; self:RequestTrackerLayout() end,self)
+    EventRegistry:RegisterCallback("EditMode.Exit",function() self.trackerNativeEditing=false; self:RequestTrackerLayout() end,self)
+  end
+end
+function QN:RefreshObjectiveQuestCount()
+  local text=ObjectiveTrackerFrame and ObjectiveTrackerFrame.Header and ObjectiveTrackerFrame.Header.Text
+  local label=self.trackerCountLabel
+  if not text or not label then return end
+  local base=ObjectiveTrackerFrame.headerText
+  if not QN.IsText(base) then base=text:GetText() end
+  local _,count=C_QuestLog.GetNumQuestLogEntries()
+  local max=Constants and Constants.QuestLogConsts and Constants.QuestLogConsts.MAXIMUM_NUM_QUESTS_LOG_CAN_ACCEPT
+  if not QN.IsText(base) then return end
+  label:ClearAllPoints(); label:SetPoint("TOPLEFT",text,"TOPLEFT")
+  local path,size,flags=text:GetFont(); label:SetFont(path,size,flags)
+  label:SetText(QN.IsNumber(count) and QN.IsID(max) and string.format("%s ( %d / %d )",base,count,max) or base)
+  self:MaskNativeTrackerFrame(text); label:Show()
+end
+function QN:RenderObjectiveTracker()
+  if inCombat() then self.trackerPending=true; return end
+  if self.trackerTooltipOwner then
+    if GameTooltip and GameTooltip:IsOwned(self.trackerTooltipOwner) then GameTooltip:Hide() end
+    self.trackerTooltipOwner=nil
+  end
+  self.trackerPending=false
+  if not self.trackerEnabled then
+    self:RestoreNativeTrackerPresentation()
+    if self.trackerScroll then self.trackerScroll:Hide(); self.trackerCountLabel:Hide() end
+    if self.trackerEvents then self.trackerEvents:UnregisterAllEvents() end
+    return
+  end
+  self:InstallObjectiveTracker()
+  local native,scroll=self.objectiveModule,self.trackerScroll
+  if not scroll then return end
+  self:RestoreNativeTrackerPresentation()
+  scroll:Hide(); self.trackerCountLabel:Hide()
+  local root=ObjectiveTrackerFrame
+  if self.trackerNativeEditing or (EditModeManagerFrame and EditModeManagerFrame:IsEditModeActive()) then return end
+  self:RefreshObjectiveQuestCount()
+  self:HideTrackerHeaderDecorations()
+  if root:IsCollapsed() or not native:IsShown() or (native.IsCollapsed and native:IsCollapsed()) then return end
+  self:GetTrackerDB()
+  local groups=self:BuildTrackerGroups(self:CollectTrackerWatches())
+  local width=self:GetTrackerWidth()
+  scroll:ClearAllPoints(); scroll:SetPoint("TOPRIGHT",native.ContentsFrame,"TOPRIGHT",0,0)
+  -- Respect the native allocation: scenario and every other section keep their
+  -- existing parents, anchors, heights, update methods and shared dirty driver.
+  local viewport=math.max(1,native:GetHeight()-(native.Header and native.Header:GetHeight() or 26))
+  local viewportWidth=math.max(width,native:GetWidth())
+  scroll:SetSize(viewportWidth,viewport); self.trackerScrollChild:SetWidth(viewportWidth)
+  local y,count=0,0
+  local function row()
+    count=count+1
+    local r=self:CreateTrackerRow(count); r.lineCount=0; r.barCount=0
+    for _,fs in ipairs(r.lines) do fs:Hide() end
+    for _,bar in ipairs(r.bars) do bar:Hide() end
+    if r.Item then r.Item:Hide(); r.Item:SetAttribute("item",nil); r.Item.logIndex=nil end
+    r:ClearAllPoints(); r:SetPoint("TOPRIGHT",self.trackerScrollChild,"TOPRIGHT",0,-y); r:SetWidth(width)
+    return r
+  end
+  if GetNumAutoQuestPopUps and GetAutoQuestPopUp then
+    for i=1,GetNumAutoQuestPopUps() do
+      local id,kind=GetAutoQuestPopUp(i)
+      if QN.IsID(id) and (kind=="OFFER" or kind=="COMPLETE") then
+        local r=row(); local height=self:RenderTrackerQuest(r,{id=id,index=i,popupType=kind},width)
+        r:SetHeight(height); r:Show(); y=y+height
+      end
+    end
+  end
+  for _,group in ipairs(groups) do
+    if self.trackerDB.groupByRegion then
+      local r=row(); local b=r.Title
+      b.questID=nil; b.popupType=nil; b.regionKey=group.key
+      font(b.Text,self.trackerDB.fontSize+1); b.Text:SetTextColor(1,119/255,95/255)
+      b.Text:SetText((self.trackerDB.collapsibleRegions and (group.collapsed and "▶ " or "▼ ") or "")..group.name)
+      b:ClearAllPoints(); b:SetPoint("TOPLEFT"); b:SetWidth(width); b.Text:SetHeight(0)
+      local height=math.max(self.trackerDB.fontSize+5,b.Text:GetStringHeight()+4)
+      b:SetHeight(height); r:SetHeight(height); r:Show(); y=y+height+4
+    end
+    if not group.collapsed then
+      for _,watch in ipairs(group.watches) do
+        local r=row(); local height=self:RenderTrackerQuest(r,watch,width)
+        r:SetHeight(height); r:Show(); y=y+height
+      end
+    end
+  end
+  for i=count+1,#self.trackerRows do
+    local r=self.trackerRows[i]; r:Hide()
+    if r.Item then r.Item:SetAttribute("item",nil); r.Item.logIndex=nil end
+  end
+  self.trackerScrollChild:SetHeight(math.max(1,y)); self.trackerScrollMax=math.max(0,y-viewport)
+  scroll:SetVerticalScroll(math.min(self.trackerScrollMax,scroll:GetVerticalScroll()))
+  self:MaskNativeTrackerFrame(native.ContentsFrame)
+  scroll:Show(); self:RefreshObjectiveQuestCount()
+end
+function QN:RequestTrackerLayout()
+  if not self.trackerEnabled then return end
+  self.trackerPending=true
+  if inCombat() or self.trackerScheduled then return end
+  self.trackerScheduled=true
+  local generation=self.trackerGeneration
+  C_Timer.After(0,function()
+    if generation~=self.trackerGeneration then return end
+    self.trackerScheduled=false
+    if self.trackerEnabled then self:RenderObjectiveTracker() end
+  end)
 end
 function QN:SetObjectiveTrackerEnabled(enabled)
   self:GetTrackerDB(); self.trackerEnabled=enabled==true
-  if not self.trackerEvents then
-    local frame=CreateFrame("Frame"); self.trackerEvents=frame
-    frame:RegisterEvent("ADDON_LOADED"); frame:RegisterEvent("PLAYER_REGEN_ENABLED")
-    for _,event in ipairs({"PLAYER_ENTERING_WORLD","QUEST_LOG_UPDATE","QUEST_ACCEPTED","QUEST_REMOVED","QUEST_TURNED_IN"}) do
-      frame:RegisterEvent(event)
-    end
-    frame:SetScript("OnEvent",function(_,event,name)
-      if event=="ADDON_LOADED" then
-        if name~="Blizzard_ObjectiveTracker" then return end
-        self:RequestTrackerLayout()
-      elseif event=="PLAYER_REGEN_ENABLED" and self.trackerPending then
-        self:RequestTrackerLayout()
-      end
-      if event=="PLAYER_REGEN_ENABLED" or event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED" then
-        self:UpdateTrackerScrolling()
-      end
-      self:RefreshObjectiveQuestCount()
+  self.trackerGeneration=(self.trackerGeneration or 0)+1
+  self.trackerScheduled=false; self.trackerPending=false
+  if not self.trackerEvents and self.trackerEnabled then
+    local f=CreateFrame("Frame"); self.trackerEvents=f
+    f:SetScript("OnEvent",function(_,event,name)
+      if event=="ADDON_LOADED" and name~="Blizzard_ObjectiveTracker" then return end
+      if event=="PLAYER_REGEN_ENABLED" then self:RenderObjectiveTracker()
+      else self:RequestTrackerLayout() end
     end)
   end
-  self:RequestTrackerLayout()
-  self:UpdateTrackerScrolling()
-  self:RefreshObjectiveQuestCount()
-end
-function QN:PrintTrackerLayout()
-  self:GetTrackerDB(); self:InstallObjectiveTracker()
-  local function emit(text)
-    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("KHQOL Quest Layout: "..text) end
-  end
-  local m=self.objectiveModule
-  if not m then emit("Native tracker unavailable: "..(self.trackerUnavailable or "not loaded")); return end
-  -- Read-only debug collection; no frames or watch state are changed.
-  local groups=self:BuildTrackerGroups(self.trackerModuleOriginal.BuildQuestWatchInfos(m))
-  local count=0; for _,group in ipairs(groups) do count=count+#group.watches end
-  emit("Tracked Quests (native quest module): "..count)
-  for _,group in ipairs(groups) do
-    emit("["..group.name.."] Collapsed: "..(group.collapsed and "YES" or "NO"))
-    for _,watch in ipairs(group.watches) do
-      local i=watch.khqolInfo
-      emit("Quest "..i.id.." / Level: "..(i.level or "UNKNOWN").." / Dungeon: "..(i.dungeon and "YES" or "NO")..
-        " / Elite: "..(i.elite and "YES" or "NO").." / Tag: "..(self:GetTrackerTag(i) or "NONE"))
+  local f=self.trackerEvents
+  if f then
+    f:UnregisterAllEvents()
+    if self.trackerEnabled then
+      for _,event in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD","QUEST_LOG_UPDATE","QUEST_WATCH_LIST_CHANGED",
+        "QUEST_WATCH_UPDATE","QUEST_ACCEPTED","QUEST_REMOVED","QUEST_TURNED_IN","QUEST_AUTOCOMPLETE",
+        "QUEST_POI_UPDATE","SUPER_TRACKING_CHANGED","PLAYER_MONEY","BAG_UPDATE_COOLDOWN","PLAYER_REGEN_ENABLED"}) do f:RegisterEvent(event) end
+    elseif inCombat() and self.trackerScroll then
+      -- Only restoration remains; no stale quest/profile work survives OFF.
+      f:RegisterEvent("PLAYER_REGEN_ENABLED")
     end
   end
-  emit("Font Size: "..self.trackerDB.fontSize.." / Content Width: "..self:GetTrackerWidth()..
-    " / Pending Layout: "..(self.trackerPending and "YES" or "NO"))
+  if not self.trackerEnabled then self:RenderObjectiveTracker() else self:RequestTrackerLayout() end
+end
+function QN:PrintTrackerLayout()
+  self:GetTrackerDB()
+  local groups=self:BuildTrackerGroups(self:CollectTrackerWatches())
+  if not DEFAULT_CHAT_FRAME then return end
+  for _,group in ipairs(groups) do
+    DEFAULT_CHAT_FRAME:AddMessage("KHQOL Quest Layout: ["..group.name.."] "..#group.watches.." / "..(group.collapsed and "CLOSED" or "OPEN"))
+  end
+  DEFAULT_CHAT_FRAME:AddMessage("KHQOL Quest Layout: addon-owned; font "..self.trackerDB.fontSize.." / width "..self:GetTrackerWidth())
 end
 function QN:GetTrackedQuest()
   local api=C_SuperTrack

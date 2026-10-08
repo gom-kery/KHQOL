@@ -19,7 +19,7 @@ local defaults = {
     },
 }
 
-local db, frame, resourceArea, resourceFill, resourceTextLayer, resourceText, ammoFrame, auxText, swingLane, swingFill, swingText, optionsFrame, minimapButton
+local db, frame, resourceArea, resourceFill, resourceTextLayer, resourceText, ammoFrame, auxText, swingLane, swingFill, swingText, minimapButton
 NS.modules.resourceSwing.defaults = defaults
 local swings = { main = { active = false }, off = { active = false }, ranged = { active = false } }
 local playerGUID
@@ -276,21 +276,27 @@ local function playerSwingEvent(duration, swingType)
     if kind and UnitAffectingCombat("player") then startSwing(kind, duration); ensureUpdate() end
 end
 
-local function createOptions()
-    local UI, T = NS.UI, NS.UI.Theme
-    optionsFrame = CreateFrame("Frame", ADDON .. "Options", UIParent)
-    optionsFrame:SetWidth(T.ContentWidth); optionsFrame:Hide()
-    local b = UI:CreateBuilder(optionsFrame)
+-- Build the existing controls directly in the cached Bars Settings tab.
+-- Keep local runtime/database references and all original setters intact.
+function NS.modules.resourceSwing:BuildSettings(content,y)
+    local UI = NS.UI
+    local b = UI:CreateBuilder(content,y)
+    local function moduleEnabled() return NS:GetEnabled("resourceSwing") end
+    local function available(condition)
+        return function() return moduleEnabled() and (not condition or condition()) end
+    end
+    b:Section("리소스/스윙")
+    b:Checkbox("리소스/스윙 사용",moduleEnabled,function(v) NS:SetEnabled("resourceSwing",v); UI:Refresh(content) end)
     local function check(title, key, enabled)
-        b:Checkbox(title, function() return db[key] end, function(v) db[key]=v; applyLayout() end, enabled)
+        b:Checkbox(title, function() return db[key] end, function(v) db[key]=v; applyLayout() end, available(enabled))
     end
     local function adjust(title, key, min, max, step, enabled)
-        b:Slider(title, min, max, step, function() return db[key] end, function(v) db[key]=v; applyLayout() end, tostring, enabled)
+        b:Slider(title, min, max, step, function() return db[key] end, function(v) db[key]=v; applyLayout() end, tostring, available(enabled))
     end
     local function dropdown(title, key, order, labels, enabled)
         local items={}
         for _, value in ipairs(order) do items[#items+1]={value=value,text=labels[value]} end
-        b:Dropdown(title, items, function() return db[key] end, function(v) db[key]=v; applyLayout() end, enabled)
+        b:Dropdown(title, items, function() return db[key] end, function(v) db[key]=v; applyLayout() end, available(enabled))
     end
     local function color(title, key)
         b:Color(title, function()
@@ -300,7 +306,7 @@ local function createOptions()
             db.colors[key]={r,g,bl,a}
             if key=="resource" then db.resourceColorOverrides[characterKey()]={r,g,bl,a} end
             applyLayout()
-        end, nil, function()
+        end, moduleEnabled, function()
             local old={unpack(db.colors[key])}
             local previous=db.resourceColorOverrides[characterKey()]
             local custom=previous and {unpack(previous)} or nil
@@ -315,11 +321,11 @@ local function createOptions()
     check("위치 잠금", "locked")
     adjust("X 위치", "x", -3000, 3000, 1)
     adjust("Y 위치", "y", -3000, 3000, 1)
-    b:Button("위치 초기화", function() db.point,db.relativePoint,db.x,db.y="CENTER","CENTER",0,-150; applyLayout() end)
+    b:Button("위치 초기화", function() db.point,db.relativePoint,db.x,db.y="CENTER","CENTER",0,-150; applyLayout() end,nil,moduleEnabled)
     b:Section("탄약 위치 / 모양")
     check("사냥꾼 탄약 표시", "showAmmo")
     check("탄약 위치 잠금", "ammoLocked", function() return db.showAmmo end)
-    b:Button("탄약 위치 초기화", function() db.ammoPoint,db.ammoRelativePoint,db.ammoX,db.ammoY="CENTER","CENTER",0,-120; applyLayout() end,180,function() return db.showAmmo end)
+    b:Button("탄약 위치 초기화", function() db.ammoPoint,db.ammoRelativePoint,db.ammoX,db.ammoY="CENTER","CENTER",0,-120; applyLayout() end,180,available(function() return db.showAmmo end))
     adjust("글자 크기", "ammoTextSize", 8, 24, 1, function() return db.showAmmo end)
     b:Section("크기")
     adjust("폭", "width", 200, 600, 10)
@@ -329,7 +335,7 @@ local function createOptions()
     dropdown("바 텍스처", "barTexture", {"DEFAULT","FLAT","RAID","SKILL"}, {DEFAULT="기본",FLAT="단색",RAID="공격대",SKILL="기술"})
     color("자원 색상", "resource"); color("배경 색상", "background")
     color("주무기 색상", "mainHand"); color("보조무기 색상", "offHand"); color("원거리 색상", "ranged")
-    b:Button("자원 기본 색상 복원", function() db.resourceColorOverrides[characterKey()]=nil; updateResource() end,210)
+    b:Button("자원 기본 색상 복원", function() db.resourceColorOverrides[characterKey()]=nil; updateResource() end,210,moduleEnabled)
     b:Section("자원 텍스트")
     check("자원 수치 표시", "showResourceText")
     local function resourceTextEnabled() return db.showResourceText end
@@ -343,7 +349,9 @@ local function createOptions()
     dropdown("전체 표시 레이어", "frameStrata", {"BACKGROUND","LOW","MEDIUM","HIGH","DIALOG"}, {BACKGROUND="배경",LOW="낮음",MEDIUM="보통",HIGH="높음",DIALOG="대화창 위"})
     adjust("자원 바 내부 레이어", "resourcePriority", 1, 7, 1)
     adjust("스윙 바 내부 레이어", "swingPriority", 1, 7, 1)
-    optionsFrame:SetHeight(-b.y)
+    b:Section("기본값 복원")
+    b:Button("리소스/스윙 설정 초기화",function() StaticPopup_Show("KHQOL_RESET_MODULE","리소스/스윙",nil,"resourceSwing") end)
+    return b.y
 end
 
 local function createMinimapButton()
@@ -355,7 +363,7 @@ local function createMinimapButton()
     local label = minimapButton:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     label:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE"); label:SetPoint("CENTER", 0, 0); label:SetText("RS"); label:SetTextColor(1, 0.82, 0)
     minimapButton:SetScript("OnClick", function(_, button)
-        if button == "LeftButton" then optionsFrame:Show() end
+        if button == "LeftButton" then NS:ShowSettings("resourceSwing") end
     end)
     minimapButton:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT"); GameTooltip:SetText("KHQOL 자원 / 스윙 바"); GameTooltip:AddLine("좌클릭: 설정창 열기", 1, 1, 1); GameTooltip:Show()
@@ -381,7 +389,7 @@ eventFrame:SetScript("OnEvent", function(self, event, eventArg, ...)
         KHQOLResourceSwingDB = KHQOLResourceSwingDB or {}; NS.MergeDefaults(KHQOLResourceSwingDB, defaults, "tables"); db = KHQOLResourceSwingDB
         -- 0.0.4 used this key for weapon selection; 0.0.5 uses it for frame layering.
         if type(db.swingPriority) ~= "number" then db.swingPriority = defaults.swingPriority end
-        createUI(); createOptions(); createMinimapButton()
+        createUI(); createMinimapButton()
         self:RegisterEvent("PLAYER_LOGIN"); self:RegisterEvent("UNIT_POWER_UPDATE"); self:RegisterEvent("UNIT_MAXPOWER"); self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED"); self:RegisterEvent("UNIT_INVENTORY_CHANGED"); self:RegisterEvent("PLAYER_REGEN_DISABLED"); self:RegisterEvent("PLAYER_REGEN_ENABLED"); self:RegisterEvent("BAG_UPDATE_DELAYED")
         self:RegisterEvent("PLAYER_SWING"); self:RegisterEvent("WEAPON_SLOT_CHANGED")
     elseif event == "PLAYER_LOGIN" then playerGUID = UnitGUID("player"); migrateLegacyResourceColor(); updateResource(); updateAuxText()
@@ -411,5 +419,8 @@ function NS.modules.resourceSwing:SetEnabled(enabled)
     frame:SetShown(enabled); ammoFrame:SetShown(enabled and db.showAmmo)
 end
 SlashCmdList.KHQOLRESOURCESWING = function()
-    if optionsFrame:IsShown() then optionsFrame:Hide() else optionsFrame:Show() end
+    local settings=NS.settings
+    if settings and settings:IsShown() and settings.page=="bars" and NS.BarsSettings.selected=="resource" then
+        settings:Hide()
+    else NS:ShowSettings("resourceSwing") end
 end

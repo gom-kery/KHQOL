@@ -29,7 +29,9 @@ for _, definition in ipairs(definitions) do
   if KHQOL.modules[definition[1]] then modules[#modules+1] = definition end
 end
 table.sort(modules, function(a,b) return a[2]:lower() < b[2]:lower() end)
-for _, definition in ipairs(modules) do pages[#pages+1] = definition end
+for _, definition in ipairs(modules) do
+  if definition[1]~="castBar" and definition[1]~="resourceSwing" then pages[#pages+1] = definition end
+end
 UI.Pages = pages
 
 -- Reset only after confirmation. The original module initializers supply defaults.
@@ -193,7 +195,7 @@ function KHQOL:CreateSettings()
   f:SetScript("OnEvent",function(self) self:FitScreen() end)
   f:SetScript("OnShow",function(self) self:FitScreen() end); f:FitScreen()
   SlashCmdList.KHQOLRESOURCESWING=function()
-    if f:IsShown() and f.page=="resourceSwing" then f:Hide() else KHQOL:ShowSettings("resourceSwing") end
+    if f:IsShown() and f.page=="bars" and KHQOL.BarsSettings.selected=="resource" then f:Hide() else KHQOL:ShowSettings("resourceSwing") end
   end
   UI:CreateLabel(f,"KHQOL",T.WindowPadding,-17,T.TitleFontSize):SetWidth(120)
   UI:CreateDescription(f,"v"..self.VERSION,T.WindowPadding,-42):SetWidth(120)
@@ -242,6 +244,9 @@ function KHQOL:CreateSettings()
   local hint=UI:CreateDescription(f,"설정은 변경 즉시 저장됩니다.",T.SidebarWidth+T.ContentPadding,0)
   hint:ClearAllPoints(); hint:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,24); hint:SetWidth(300)
   function f:ShowPage(key)
+    -- Preserve old slash/minimap/API entry points without separate pages.
+    local requestedTab=key=="castBar" and "cast" or key=="resourceSwing" and "resource"
+    if requestedTab then key="bars" end
     local definition
     for _, item in ipairs(pages) do if item[1]==key then definition=item; break end end
     if not definition then key="general"; definition=pages[1] end
@@ -275,7 +280,6 @@ function KHQOL:CreateSettings()
         elseif key=="range" then
           local fr=KHQOL.modules.range; if not fr.Settings.panel then fr.Settings:Create() end
           y=embed(content,fr.Settings.panel,y,function() fr:UpdateSettings() end)
-        elseif key=="resourceSwing" then y=embed(content,KHQOLResourceSwingOptions,y)
         elseif key=="campfire" then y=campfireSettings(content,y)
         elseif key=="todo" then
           local b=UI:CreateBuilder(content,y); b:Section("노트 사용")
@@ -293,10 +297,10 @@ function KHQOL:CreateSettings()
       end
     end
     self.activeContent=content; content:Show()
+    if requestedTab then content.SelectBarsTab(requestedTab) end
     if key=="clock" then KHQOL.modules.clock:RefreshSettings()
     elseif key=="buffReminder" then ForeverBuffReminder:RefreshSettings()
-    elseif key=="range" then KHQOL.modules.range:UpdateSettings()
-    elseif key=="castBar" then KHQOL.modules.castBar:ApplyLayout(); KHQOL.modules.castBar:RefreshControls() end
+    elseif key=="range" then KHQOL.modules.range:UpdateSettings() end
     UI:Refresh(content); self:UpdateContentHeight()
   end
   local navigation=CreateFrame("ScrollFrame",nil,f)

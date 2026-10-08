@@ -1,10 +1,10 @@
 local _, KHQOL = ...
 local Bars={tabs={},selected="experience"}
 KHQOL.BarsSettings=Bars
--- A tab may supply a native builder or a link to its existing settings page.
+-- Each tab builds its existing module controls in one cached panel.
 -- Registration order determines tab order; existing feature modules stay intact.
-function Bars:RegisterTab(id,title,build,page)
-  self.tabs[#self.tabs+1]={id=id,title=title,build=build,page=page}
+function Bars:RegisterTab(id,title,build)
+  self.tabs[#self.tabs+1]={id=id,title=title,build=build}
 end
 local function environment(content,y)
   local E,UI=KHQOL.modules.environmentTimer,KHQOL.UI
@@ -45,6 +45,9 @@ local function environment(content,y)
   b:Button("위치 기본값 복원",function() db.x,db.y=E.defaults.x,E.defaults.y; E:Changed() end,nil,enabled)
   b:Description("잠금 해제 상태에서는 타이머가 없어도 이동용 예시가 표시됩니다. 위치는 즉시 저장됩니다.")
   b:Section("텍스트")
+  slider("HUD 텍스트 크기","hudTextSize",8,48,1,hud)
+  b:Button("HUD 텍스트 위치 초기화",function() E:SavePosition(); db.hudTextPositions={}; E:Changed() end,nil,hud)
+  b:Description("HUD형에서 위치 잠금을 해제하면 텍스트를 각각 드래그할 수 있습니다. 위치는 타이머별로 저장되며 HUD 그룹과 함께 이동합니다.")
   dropdown("텍스트 형식","textFormat",{
     {value="custom",text="표시 옵션 조합"},{value="name_time",text="호흡 42초"},{value="time",text="42초"},
     {value="name_percent",text="호흡 70%"},{value="percent",text="70%"},{value="name_time_percent",text="호흡 42초 (70%)"}})
@@ -57,8 +60,10 @@ local function environment(content,y)
   b:Flush(); check("긴급 시 중앙 경고","centerWarning"); check("긴급 시 경고음","sound")
   b:Description("긴급은 실제 남은 초를 기준으로 가장 먼저 판정합니다. 경고음은 타이머가 시작된 뒤 최초 긴급 진입 시 한 번 재생합니다.")
   b:Button("환경 타이머 설정 초기화",function()
+    E:SavePosition()
     for key,value in pairs(E.defaults) do
-      if type(value)=="table" then for k,v in pairs(value) do db[key][k]=v end else db[key]=value end
+      if key=="hudTextPositions" then db[key]={}
+      elseif type(value)=="table" then for k,v in pairs(value) do db[key][k]=v end else db[key]=value end
     end
     E:Changed()
   end,nil,enabled)
@@ -67,8 +72,12 @@ end
 Bars:RegisterTab("experience","경험치",function(content,y)
   return KHQOL.modules.experienceBar:BuildSettings(content,y)
 end)
-Bars:RegisterTab("cast","시전",nil,"castBar")
-Bars:RegisterTab("resource","리소스/스윙",nil,"resourceSwing")
+Bars:RegisterTab("cast","시전",function(content,y)
+  return KHQOL.modules.castBar:BuildSettings(content,y)
+end)
+Bars:RegisterTab("resource","리소스/스윙",function(content,y)
+  return KHQOL.modules.resourceSwing:BuildSettings(content,y)
+end)
 Bars:RegisterTab("environment","환경",environment)
 function Bars:BuildSettings(content,y,tabHost,tabY)
   local UI,T=KHQOL.UI,KHQOL.UI.Theme
@@ -78,6 +87,7 @@ function Bars:BuildSettings(content,y,tabHost,tabY)
   local buttonY=tabHost and (tabY or 0) or y
   content.barsPanels,content.tabButtons,content.tabHeader=panels,buttons,host
   local function select(id)
+    UI:CloseDropdown()
     self.selected=id
     for _,tab in ipairs(self.tabs) do
       local active=tab.id==id
@@ -89,25 +99,22 @@ function Bars:BuildSettings(content,y,tabHost,tabY)
     end
     if KHQOL.settings and KHQOL.settings.activeContent==content then KHQOL.settings:UpdateContentHeight() end
   end
+  content.SelectBarsTab=function(id)
+    if not panels[id] then return end
+    select(id)
+    if KHQOL.settings then KHQOL.settings.scroll:SetVerticalScroll(0) end
+  end
   local width=(T.ContentWidth-(#self.tabs-1)*T.RowGap)/#self.tabs
   local tabX,gap=0,math.max(4,math.floor(T.RowGap*.75))
   for i,tab in ipairs(self.tabs) do
     local id=tab.id
     buttons[id]=UI:CreateButton(host,tab.title,tabX,buttonY,width,function()
-      select(id)
-      if KHQOL.settings then KHQOL.settings.scroll:SetVerticalScroll(0) end
+      content.SelectBarsTab(id)
     end)
     tabX=tabX+buttons[id]:GetWidth()+gap
     local panel=CreateFrame("Frame",nil,content); panel:SetPoint("TOPLEFT",0,panelY); panel:SetWidth(T.ContentWidth)
     panels[id]=panel
-    local bottom
-    if tab.build then bottom=tab.build(panel,0)
-    else
-      local b=UI:CreateBuilder(panel,0); b:Section(tab.title)
-      b:Description("기존 설정 페이지에서 이 기능을 관리합니다.")
-      b:Button(tab.title.." 설정 열기",function() KHQOL:ShowSettings(tab.page) end)
-      bottom=b.y
-    end
+    local bottom=tab.build(panel,0)
     panel.contentHeight=-bottom; panel:SetHeight(math.max(1,-bottom)); panel:Hide()
     panel:HookScript("OnSizeChanged",function()
       panel.contentHeight=panel:GetHeight()
