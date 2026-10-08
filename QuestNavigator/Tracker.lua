@@ -1,4 +1,4 @@
-local _, KHQOL = ...
+﻿local _, KHQOL = ...
 local QN=KHQOL.modules.questNavigator
 local N,UI=KHQOL.Navigation,KHQOL.NavigationUI
 -- Quest-list presentation is independent of the navigation/watch cache below.
@@ -171,6 +171,38 @@ function QN:CreateTrackerRow(index)
   row.lines={}; row.bars={}; self.trackerRows[index]=row
   return row
 end
+function QN:UpdateTrackerStatus(row,id,complete,popupType)
+  -- Own presentation only: never acquire a native POI/pin or register it with
+  -- Blizzard's shared POI owner/highlight manager.
+  if popupType=="OFFER" then return end
+  local button=row.Status
+  if not button then
+    button=CreateFrame("Button",nil,row)
+    button:SetSize(20,20); button:RegisterForClicks("LeftButtonUp","RightButtonUp")
+    button.Background=button:CreateTexture(nil,"BACKGROUND")
+    button.Background:SetPoint("CENTER"); button.Background:SetSize(32,32)
+    button.Icon=button:CreateTexture(nil,"ARTWORK"); button.Icon:SetPoint("CENTER")
+    local highlight=button:CreateTexture(nil,"HIGHLIGHT")
+    highlight:SetAtlas("UI-QuestPoi-InnerGlow"); highlight:SetPoint("CENTER"); highlight:SetSize(32,32)
+    button:SetHighlightTexture(highlight)
+    button:SetScript("OnClick",function(b,mouseButton)
+      if not self.trackerEnabled or not QN.IsID(b.questID) then return end
+      if mouseButton=="RightButton" or (IsModifiedClick and IsModifiedClick("QUESTWATCHTOGGLE")) then
+        self:TrackerQuestClick(b,mouseButton)
+      elseif not (ChatFrameUtil and ChatFrameUtil.TryInsertQuestLinkForQuestID(b.questID)) then
+        C_SuperTrack.SetSuperTrackedQuestID(b.questID)
+      end
+    end)
+    row.Status=button
+  end
+  button.questID=id; button.popupType=popupType
+  local selected=C_SuperTrack.GetSuperTrackedQuestID()==id
+  button.Background:SetAtlas(selected and "UI-QuestPoi-QuestNumber-SuperTracked" or "UI-QuestPoi-QuestNumber")
+  button.Icon:SetAtlas(complete and "UI-QuestIcon-TurnIn-Normal" or
+    (selected and "Quest-In-Progress-Icon-Brown" or "Quest-In-Progress-Icon-yellow"),true)
+  button:ClearAllPoints(); button:SetPoint("TOPRIGHT",row.Title,"TOPLEFT",-7,5)
+  button:Show()
+end
 function QN:CreateTrackerItem(row)
   if row.Item then return row.Item end
   local b=CreateFrame("Button",nil,row,"SecureActionButtonTemplate")
@@ -227,6 +259,7 @@ function QN:RenderTrackerQuest(row,watch,width)
   row.Title.Text:SetHeight(0)
   local titleHeight=math.max(self.trackerDB.fontSize+2,row.Title.Text:GetStringHeight())
   row.Title:SetHeight(titleHeight)
+  self:UpdateTrackerStatus(row,id,complete or watch.popupType=="COMPLETE",watch.popupType)
   local y=titleHeight+4
   if watch.popupType then
     y=self:AddTrackerText(row,watch.popupType=="OFFER" and (QUEST_WATCH_QUEST_READY or "퀘스트 수락 가능")
@@ -282,7 +315,7 @@ function QN:RenderTrackerQuest(row,watch,width)
     end
     item:Show(); y=math.max(y,36)
   elseif row.Item then row.Item:Hide(); row.Item:SetAttribute("item",nil); row.Item.logIndex=nil end
-  return y+6
+  return math.max(32,y+6)
 end
 function QN:RestoreNativeTrackerPresentation()
   for frame,alpha in pairs(self.trackerMasked or {}) do frame:SetAlpha(alpha) end
@@ -387,15 +420,21 @@ function QN:RenderObjectiveTracker()
   -- Respect the native allocation: scenario and every other section keep their
   -- existing parents, anchors, heights, update methods and shared dirty driver.
   local viewport=math.max(1,native:GetHeight()-(native.Header and native.Header:GetHeight() or 26))
-  local viewportWidth=math.max(width,native:GetWidth())
+  -- A native POI extends 33px left of the title. Keep that space inside the
+  -- clipping viewport while preserving the title's right edge and text width.
+  local viewportWidth=math.max(width+36,native:GetWidth())
   scroll:SetSize(viewportWidth,viewport); self.trackerScrollChild:SetWidth(viewportWidth)
   local y,count=0,0
   local function row()
+    -- Without a leading region row, leave room for the first icon's upper edge.
+    if count==0 and (not self.trackerDB.groupByRegion or
+      (GetNumAutoQuestPopUps and GetNumAutoQuestPopUps()>0)) then y=12 end
     count=count+1
     local r=self:CreateTrackerRow(count); r.lineCount=0; r.barCount=0
     for _,fs in ipairs(r.lines) do fs:Hide() end
     for _,bar in ipairs(r.bars) do bar:Hide() end
     if r.Item then r.Item:Hide(); r.Item:SetAttribute("item",nil); r.Item.logIndex=nil end
+    if r.Status then r.Status:Hide(); r.Status.questID=nil; r.Status.popupType=nil end
     r:ClearAllPoints(); r:SetPoint("TOPRIGHT",self.trackerScrollChild,"TOPRIGHT",0,-y); r:SetWidth(width)
     return r
   end
@@ -427,6 +466,7 @@ function QN:RenderObjectiveTracker()
   end
   for i=count+1,#self.trackerRows do
     local r=self.trackerRows[i]; r:Hide()
+    if r.Status then r.Status:Hide(); r.Status.questID=nil; r.Status.popupType=nil end
     if r.Item then r.Item:SetAttribute("item",nil); r.Item.logIndex=nil end
   end
   self.trackerScrollChild:SetHeight(math.max(1,y)); self.trackerScrollMax=math.max(0,y-viewport)
