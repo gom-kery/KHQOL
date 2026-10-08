@@ -524,6 +524,7 @@ function Tooltip:InitializeUnitTarget()
     tooltip.__KHQOLRevision=(tooltip.__KHQOLRevision or 0)+1
     tooltip.__KHQOLTargetUnit=nil; tooltip.__KHQOLTargetLine=nil
     tooltip.__KHQOLInfoGUID=nil; tooltip.__KHQOLInfoUnitGUID=nil
+    tooltip.__KHQOLInfoFreeRow=nil
     tooltip.__KHQOLFinalLayout=nil; tooltip.__KHQOLTargetCount=nil
     tooltip.__KHQOLPresentationQueuedGUID=nil; tooltip.__KHQOLPresentationQueuedRevision=nil
     tooltip.__KHQOLPresentationNextUpdate=nil
@@ -549,7 +550,10 @@ function Tooltip:InitializeUnitTarget()
         local unit=unitToken(tooltip)
         -- Only specialization rows may arrive late.  Avoid reapplying fonts or
         -- title text here, which caused visible name jitter while hovering.
-        if unit and publicCall(UnitIsPlayer,unit)==true then Tooltip:NormalizeSpecializationLines(tooltip,unit) end
+        if unit and publicCall(UnitIsPlayer,unit)==true then
+          if Tooltip.playerInfo then Tooltip.playerInfo:OnUnit(tooltip,unit) end
+          Tooltip:NormalizeSpecializationLines(tooltip,unit)
+        end
       end
       if not Tooltip:IsEnabled() or Tooltip:GetDB().showTarget~=true or not tooltip.__KHQOLTargetUnit then return end
     if now<(tooltip.__KHQOLTargetNextUpdate or 0) then return end
@@ -559,7 +563,10 @@ function Tooltip:InitializeUnitTarget()
 end
 function Tooltip:SetEnabled(enabled)
   if enabled then self:GetDB(); self:ApplyHoldTime()
-  elseif self.originalFadeOutTime ~= nil then GameTooltip.fadeOutTime=self.originalFadeOutTime end
+  else
+    if self.playerInfo then self.playerInfo:Cancel(true) end
+    if self.originalFadeOutTime ~= nil then GameTooltip.fadeOutTime=self.originalFadeOutTime end
+  end
   self:RefreshUnitTooltip()
 end
 function Tooltip:RefreshVisibleTooltip() if GameTooltip:IsShown() then self:ApplyTextSize(GameTooltip) end end

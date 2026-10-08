@@ -13,7 +13,11 @@ function Tooltip:BuildSettings(content,y)
   b:Slider("텍스트 크기",-3,3,1,function() return db.textSize end,function(v) db.textSize=v; self:RefreshVisibleTooltip() end,function(v) return v==0 and "기본" or (v>0 and "+" or "")..v end,nil,"기본 Tooltip 글자 크기에서 -3 ~ +3만 조정합니다.")
   b:Checkbox("체력바 표시",function() return db.showHealthBar~=false end,function(v) db.showHealthBar=v; self:ConfigureHealthBar() end)
   b:Section("Information")
-  b:Checkbox("플레이어 전문화 정보 표시",function() return db.showPlayerInfo~=false end,function(v) db.showPlayerInfo=v end)
+  b:Checkbox("플레이어 전문화 정보 표시",function() return db.showPlayerInfo~=false end,function(v)
+    db.showPlayerInfo=v
+    if not v and self.playerInfo then self.playerInfo:Cancel(true) end
+    self:RefreshUnitTooltip()
+  end)
   b:Description("아군 플레이어 Tooltip에 전문화와 현재 착용 장비 평균 아이템 레벨을 표시합니다.")
   b:Section("Behavior")
   b:Checkbox("전투 중 대상 툴팁 숨기기",function() return db.hideUnitTooltipInCombat==true end,function(v) db.hideUnitTooltipInCombat=v end)
