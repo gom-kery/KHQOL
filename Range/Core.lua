@@ -106,7 +106,7 @@ end
 
 function FR:OnEvent(event, ...)
   if event == "PLAYER_LOGIN" then
-    self:InitializeDB(); self.Display:Create(); self.Mouseover:Initialize(); self:Print("Loaded. Use /frange to configure.")
+    self:InitializeDB(); self.Display:Create(); self.Mouseover:Initialize()
     if select(2,UnitClass("player"))=="HUNTER" then self.Range:PrepareHunterRangeItems() end
     self:RefreshDisplay(true)
   else

@@ -252,6 +252,7 @@ function KHQOL:CreateSettings()
     local content=self.pageCache[cacheKey]
     if not content then
       content=CreateFrame("Frame",nil,child);content:Hide();content:SetPoint("TOPLEFT");content:SetWidth(T.ContentWidth)
+      content:SetHeight(math.max(1,scroll:GetHeight()))
       self.pageCache[cacheKey]=content
       local y
       if locked then y=KHQOL.LabLock:BuildLockedSettings(content,0)
@@ -266,7 +267,19 @@ function KHQOL:CreateSettings()
     end
     self.activeContent=content
     if groups[key] and not locked then content.SelectSettingsTab(requestedTab or groups[key].selected) end
-    self:RefreshActivePage();content:Show();self:UpdateContentHeight()
+    -- Resolve geometry before showing the body, then refresh text while visible.
+    -- A single next-frame pass covers the initial ScrollFrame/font layout too.
+    self:UpdateContentHeight();content:Show();self:RefreshActivePage()
+    self.pageDisplayGeneration=(self.pageDisplayGeneration or 0)+1
+    local displayGeneration=self.pageDisplayGeneration
+    local profileGeneration=KHQOL.profileGeneration
+    if C_Timer and C_Timer.After then C_Timer.After(0,function()
+      if self:IsShown() and self.activeContent==content and content:IsShown()
+        and self.pageDisplayGeneration==displayGeneration and KHQOL.profileGeneration==profileGeneration then
+        self:RefreshActivePage()
+        if scroll.UpdateScrollChildRect then scroll:UpdateScrollChildRect() end
+      end
+    end) end
   end
   local navigation=CreateFrame("ScrollFrame",nil,f)
   navigation:SetPoint("TOPLEFT",10,-76); navigation:SetPoint("BOTTOMLEFT",10,58); navigation:SetWidth(T.SidebarWidth-20)

@@ -23,12 +23,12 @@ function Display:Create()
 
   frame.shadows = {}
   for i = 1, 8 do
-    local shadow = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local shadow = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     shadow:SetPoint("CENTER")
     frame.shadows[i] = shadow
   end
-  -- Regions on the same draw layer render in creation order. Create the coloured
-  -- main glyph after the black outline copies so it always remains on top.
+  -- Explicit layers keep the coloured glyph above every custom outline copy,
+  -- regardless of the client's font batching or region creation order.
   frame.main = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   frame.main:SetPoint("CENTER")
   frame.main:SetJustifyH("CENTER")
@@ -49,8 +49,9 @@ function Display:ApplyLayout(force)
   local db, frame = FR.db, self.frame
   local text = self:GetStateText(self.state)
   local font = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
-  local flags = db.outline.enabled and "OUTLINE" or ""
-  frame.main:SetFont(font, db.size, flags)
+  -- The coloured copies provide the complete outline, including thickness 0.
+  -- A built-in black OUTLINE would ignore the selected colour and thickness.
+  frame.main:SetFont(font, db.size, "")
   frame.main:SetText(text)
   frame:ClearAllPoints()
   frame:SetPoint("CENTER", UIParent, "CENTER", db.x, db.y)

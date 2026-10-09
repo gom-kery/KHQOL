@@ -180,6 +180,18 @@ function UI:Refresh(parent)
     caption.region:SetFont(self:Font(),caption.size,"")
     caption.region:SetText(caption.text)
   end
+  -- Checkbox state and button text are not registered captions. Reapply their
+  -- font/text after the owning frame is visible, alongside ordinary labels.
+  if parent:IsVisible() and parent.GetRegions then
+    for _,region in ipairs({parent:GetRegions()}) do
+      if region:GetObjectType()=="FontString" then
+        local font,size,flags=region:GetFont()
+        local text=region:GetText()
+        if font and size then region:SetFont(font,size,flags or "") end
+        if text~=nil then region:SetText(text) end
+      end
+    end
+  end
   -- A plain wrapper can contain controls several levels below it.
   for _, child in ipairs({parent:GetChildren()}) do self:Refresh(child) end
 end

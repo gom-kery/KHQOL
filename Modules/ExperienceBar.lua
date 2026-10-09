@@ -4,7 +4,7 @@ local flat="Interface\\Buttons\\WHITE8X8"
 X.defaults={
   hideBlizzard=false,mode="horizontal",width=360,height=20,x=0,y=-220,scale=1,alpha=1,
   showLevel=true,showText=true,textMode="currentMaxPercent",textPosition="center",
-  showRested=true,tooltip=true,hideAtMaxLevel=true,
+  showRested=true,tooltip=true,hideAtMaxLevel=true,followReputation=false,
   color={.58,0,.55,1},backgroundColor={.04,.04,.06,.85},restedColor={0,.39,.88,.7},textColor={1,1,1,1},
   wrapHorizontalLength=220,wrapVerticalLength=48,wrapThickness=6,wrapOffset=4,wrapX=0,wrapY=0,
 }
@@ -50,7 +50,35 @@ function X:GetCap()
     if number(cap) and cap>0 then return cap end
   end
 end
+function X:ReadReputation()
+  if not self.db or not self.db.followReputation then return end
+  local name,reaction,minimum,maximum,value
+  if C_Reputation and type(C_Reputation.GetWatchedFactionData)=="function" then
+    local d=read(C_Reputation.GetWatchedFactionData)
+    if type(d)~="table" then return end
+    name,reaction=d.name,d.reaction
+    minimum,maximum,value=d.currentReactionThreshold,d.nextReactionThreshold,d.currentStanding
+  elseif type(GetWatchedFactionInfo)=="function" then
+    local ok
+    ok,name,reaction,minimum,maximum,value=pcall(GetWatchedFactionInfo)
+    if not ok then return end
+  else return end
+  if (issecretvalue and issecretvalue(name)) or type(name)~="string" or name==""
+    or not number(reaction) or not number(minimum) or not number(maximum) or not number(value) or maximum<minimum then return end
+  -- Reputation totals can start below zero or include previous standing tiers.
+  -- Display progress within the current tier, just like the native bar.
+  local span=maximum-minimum
+  if span==0 and reaction<8 then return end
+  value=span>0 and clamp(value-minimum,0,span) or 0
+  maximum=span
+  local standing=_G["FACTION_STANDING_LABEL"..reaction] or "평판"
+  return {kind="reputation",name=name,standing=standing,value=value,maximum=maximum,
+    remaining=maximum-value,percent=span>0 and value/span*100 or 100,
+    rested=0,atCap=false,capped=span==0,highestStanding=reaction>=8}
+end
 function X:ReadData(newLevel)
+  local reputation=self:ReadReputation()
+  if reputation then self.data=reputation; return end
   local level=read(UnitLevel,"player")
   if number(newLevel) then level=newLevel end
   local value,maximum=read(UnitXP,"player"),read(UnitXPMax,"player")
@@ -60,18 +88,20 @@ function X:ReadData(newLevel)
   local cap=self:GetCap()
   local atCap=read(IsPlayerAtEffectiveMaxLevel)==true or (cap and level>=cap) or maximum==0
   value=clamp(value,0,maximum)
-  self.data={level=level,value=value,maximum=maximum,remaining=maximum-value,
+  self.data={kind="experience",level=level,value=value,maximum=maximum,remaining=maximum-value,
     percent=maximum>0 and value/maximum*100 or 0,rested=rested,atCap=atCap and true or false}
 end
 function X:Text()
   local d,db=self.data,self.db
   if not d then return "" end
   if d.atCap then return "최대 레벨" end
+  if d.kind=="reputation" and d.capped then return d.name.." · "..d.standing end
+  local prefix=d.kind=="reputation" and (d.name.." · ") or ""
   local percent=string.format("%.1f%%",d.percent)
-  if db.textMode=="percent" then return percent end
-  if db.textMode=="remaining" then return self:FormatNumber(d.remaining).." 남음" end
+  if db.textMode=="percent" then return prefix..percent end
+  if db.textMode=="remaining" then return prefix..self:FormatNumber(d.remaining).." 남음" end
   local result=self:FormatNumber(d.value).." / "..self:FormatNumber(d.maximum)
-  return db.textMode=="currentMaxPercent" and result.." ("..percent..")" or result
+  return prefix..(db.textMode=="currentMaxPercent" and result.." ("..percent..")" or result)
 end
 -- Change only XP presentation; leave action bars, reputation and visibility
 -- policies under Blizzard's control. Restore only state owned by this module.
@@ -199,9 +229,16 @@ end
 function X:ShowTooltip(owner)
   if not self.db.tooltip or self.unlocked or not self.data or not self.frame:IsShown() then return end
   local d=self.data; self.tooltipOwner=owner
-  GameTooltip:SetOwner(owner,"ANCHOR_RIGHT"); GameTooltip:SetText("경험치 · Lv."..d.level)
-  if d.atCap then GameTooltip:AddLine("최대 레벨",1,1,1)
+  GameTooltip:SetOwner(owner,"ANCHOR_RIGHT")
+  if d.kind=="reputation" then
+    GameTooltip:SetText("평판 · "..d.name)
+    GameTooltip:AddDoubleLine("평판 단계",d.standing)
+    if not d.capped then GameTooltip:AddDoubleLine("현재 평판",self:FormatNumber(d.value).." / "..self:FormatNumber(d.maximum)) end
+    GameTooltip:AddDoubleLine("진행률",string.format("%.1f%%",d.percent))
+    if not d.capped then GameTooltip:AddDoubleLine(d.highestStanding and "최대 평판까지" or "다음 단계까지",self:FormatNumber(d.remaining)) end
+  elseif d.atCap then GameTooltip:SetText("경험치 · Lv."..d.level); GameTooltip:AddLine("최대 레벨",1,1,1)
   else
+    GameTooltip:SetText("경험치 · Lv."..d.level)
     GameTooltip:AddDoubleLine("현재 경험치",self:FormatNumber(d.value).." / "..self:FormatNumber(d.maximum))
     GameTooltip:AddDoubleLine("진행률",string.format("%.1f%%",d.percent))
     GameTooltip:AddDoubleLine("다음 레벨까지",self:FormatNumber(d.remaining))
@@ -219,7 +256,24 @@ function X:Mouse(frame,drag)
   end
   -- On older clients without click-through hover, gameplay input takes priority.
 end
+function X:WatchReputationSelection()
+  if not hooksecurefunc then return end
+  self.reputationHooks=self.reputationHooks or {}
+  local function attach(owner,key)
+    if not owner or type(owner[key])~="function" then return end
+    local hooks=self.reputationHooks[owner]
+    if not hooks then hooks={}; self.reputationHooks[owner]=hooks end
+    if hooks[key] then return end
+    hooks[key]=true
+    -- Watching/unwatching need not change reputation points. Refresh after the
+    -- native setter as well as UPDATE_FACTION, without modifying its selection.
+    hooksecurefunc(owner,key,function() if self.db and self.frame then self:Update() end end)
+  end
+  attach(C_Reputation,"SetWatchedFactionByIndex"); attach(C_Reputation,"SetWatchedFactionByID")
+  attach(_G,"SetWatchedFactionIndex")
+end
 function X:CreateFrames()
+  self:WatchReputationSelection()
   if self.frame then return end
   self.native={}; self.hooked={}; self.nativeContainers={}; self.xpFrames={}; self.trackingHooked={}
   local f=CreateFrame("Frame","KHQOLExperienceBarFrame",UIParent)
@@ -346,11 +400,11 @@ function X:Render()
   self.frame:SetShown(visible and true or false)
   if visible then
     local length=self.segments[1].length+(db.mode~="horizontal" and self.segments[2].length or 0)
-    local fraction=d.maximum>0 and d.value/d.maximum or (d.atCap and 1 or 0)
+    local fraction=d.maximum>0 and d.value/d.maximum or ((d.atCap or d.capped) and 1 or 0)
     local rest=d.maximum>0 and clamp((d.value+d.rested)/d.maximum,0,1) or fraction
     self:SetSegment(self.segments[1],0,length*fraction,length*rest)
     if db.mode~="horizontal" then self:SetSegment(self.segments[2],self.segments[1].length,length*fraction,length*rest) end
-    self.levelText:SetText("Lv."..d.level); self.levelText:SetShown(db.showLevel)
+    self.levelText:SetText(d.kind=="reputation" and "" or ("Lv."..d.level)); self.levelText:SetShown(db.showLevel and d.kind~="reputation")
     self.xpText:SetText(self:Text()); self.xpText:SetShown(db.showText)
     if self.tooltipOwner then self:ShowTooltip(self.tooltipOwner) end
   end
@@ -378,12 +432,13 @@ function X:SetEnabled()
   if self.RefreshSettings then self:RefreshSettings() end
 end
 local events=CreateFrame("Frame")
-for _,event in ipairs({"PLAYER_ENTERING_WORLD","PLAYER_XP_UPDATE","PLAYER_LEVEL_UP","UNIT_LEVEL","UPDATE_EXHAUSTION","PLAYER_UPDATE_RESTING","ADDON_LOADED","UI_SCALE_CHANGED","DISPLAY_SIZE_CHANGED"}) do
+for _,event in ipairs({"PLAYER_ENTERING_WORLD","PLAYER_XP_UPDATE","PLAYER_LEVEL_UP","UNIT_LEVEL","UPDATE_EXHAUSTION","PLAYER_UPDATE_RESTING","UPDATE_FACTION","FACTION_STANDING_CHANGED","ADDON_LOADED","UI_SCALE_CHANGED","DISPLAY_SIZE_CHANGED"}) do
   pcall(events.RegisterEvent,events,event)
 end
 events:SetScript("OnEvent",function(_,event,...)
   if not KHQOL.db or not X.frame then return end
   local arg=...
+  if event=="ADDON_LOADED" then X:WatchReputationSelection() end
   if (event=="PLAYER_XP_UPDATE" or event=="UNIT_LEVEL") and arg and arg~="player" then return end
   if event=="PLAYER_LEVEL_UP" then
     X:Update(arg)

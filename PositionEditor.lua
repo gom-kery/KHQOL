@@ -19,22 +19,14 @@ end
 function E:CreateToolbar()
   if self.toolbar then return end
   local f=CreateFrame("Frame","KHQOLPositionEditorToolbar",UIParent,"BackdropTemplate")
-  f:SetSize(420,154); f:SetPoint("TOP",0,-32); f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetFrameLevel(200)
+  f:SetSize(420,112); f:SetPoint("TOP",0,-32); f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetFrameLevel(200)
   f:SetMovable(true); f:SetClampedToScreen(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart",f.StartMoving); f:SetScript("OnDragStop",f.StopMovingOrSizing)
   UI:Surface(f,1)
   UI:CreateLabel(f,"KHQOL · 위치 편집",14,-12,16)
   f.info=UI:CreateDescription(f,"테두리를 드래그하세요. ESC는 취소합니다.",14,-38); f.info:SetWidth(392)
-  UI:CreateDropdown(f,14,-70,392,function()
-    local options={}
-    for _,h in ipairs(E.handles or {}) do options[#options+1]={value=h.target.id,text=h.target.name} end
-    return options
-  end,function() return E.selected end,function(id)
-    E.selected=id
-    for _,h in ipairs(E.handles or {}) do h:SetFrameLevel(h.target.id==id and 170 or 100) end
-  end)
-  UI:CreateButton(f,"완료 / 잠금",14,-112,146,function() E:Finish(true) end)
-  UI:CreateButton(f,"취소",174,-112,100,function() E:Finish(false) end)
+  UI:CreateButton(f,"완료 / 잠금",14,-70,146,function() E:Finish(true) end)
+  UI:CreateButton(f,"취소",174,-70,100,function() E:Finish(false) end)
   f:EnableKeyboard(true); f:SetPropagateKeyboardInput(true)
   f:SetScript("OnKeyDown",function(self,key)
     self:SetPropagateKeyboardInput(key~="ESCAPE")
@@ -48,6 +40,13 @@ function E:CreateToolbar()
   if UISpecialFrames then table.insert(UISpecialFrames,"KHQOLPositionEditorToolbar") end
   f:Hide(); self.toolbar=f
 end
+function E:SetHandleHighlight(h,on)
+  h.focus:SetShown(on and true or false)
+  h.focus:SetFrameLevel(h:GetFrameLevel()+2)
+  h.caption:SetTextColor(unpack(on and {1,.85,.2,1} or UI.Theme.Accent))
+  h.caption:SetFont(UI:Font(),on and 14 or 12,on and "OUTLINE" or "")
+  h.caption:SetWidth(math.max(160,h.caption:GetStringWidth()+8))
+end
 function E:GetHandle(id)
   local h=self.pool[id]; if h then return h end
   h=CreateFrame("Frame",nil,UIParent,"BackdropTemplate")
@@ -55,6 +54,9 @@ function E:GetHandle(id)
   h:SetMovable(true); h:SetClampedToScreen(true); h:EnableMouse(false); h:RegisterForDrag("LeftButton")
   UI:Surface(h,.35); h:SetBackdropBorderColor(unpack(UI.Theme.Accent))
   h.caption=UI:CreateLabel(h,"",4,-3,12); h.caption:ClearAllPoints(); h.caption:SetPoint("BOTTOMLEFT",h,"TOPLEFT",0,3); h.caption:SetTextColor(unpack(UI.Theme.Accent))
+  h.focus=CreateFrame("Frame",nil,h,"BackdropTemplate"); h.focus:SetAllPoints(h); h.focus:EnableMouse(false)
+  h.focus:SetBackdrop({edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=2})
+  h.focus:SetBackdropBorderColor(1,.85,.2,1); h.focus:Hide()
   h.sample=UI:CreateDescription(h,"",4,-24); h.sample:SetJustifyH("CENTER")
   h.mirrors={}
   h.mirrorPool={}
@@ -66,10 +68,13 @@ function E:GetHandle(id)
   end)
   h:SetScript("OnDragStop",function(self) E:StopDrag(self) end)
   h:SetScript("OnEnter",function(self)
+    if not E.active or not self.target then return end
+    E:SetHandleHighlight(self,true)
     GameTooltip:SetOwner(self,"ANCHOR_TOP"); GameTooltip:SetText(self.target.name,unpack(UI.Theme.Accent))
     GameTooltip:AddLine(self.target.linked and "부모 요소와 함께 이동합니다. 연결 관계는 유지됩니다." or "드래그로 이동 · 완료 시 저장 및 잠금",.85,.88,.9,true); GameTooltip:Show()
   end)
-  h:SetScript("OnLeave",function() GameTooltip:Hide() end)
+  h:SetScript("OnLeave",function(self) E:SetHandleHighlight(self,false); GameTooltip:Hide() end)
+  h:SetScript("OnHide",function(self) E:SetHandleHighlight(self,false) end)
   h:Hide(); self.pool[id]=h; return h
 end
 function E:StopDrag(h)
@@ -158,7 +163,7 @@ function E:Enter()
       if target.bounds then x,y,w,ht=target.bounds(x,y,w*ratio,ht*ratio) else w,ht=w*ratio,ht*ratio end
       h:SetSize(math.max(16,w),math.max(16,ht)); h:ClearAllPoints(); h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y)
       h.originX,h.originY=x,y; target.scale=ratio
-      h.caption:SetText(target.name); h.caption:SetWidth(math.max(160,h.caption:GetStringWidth()+8))
+      h.caption:SetText(target.name); self:SetHandleHighlight(h,false)
       h.sample:SetWidth(math.max(8,w-8)); h:SetFrameLevel(100); h:EnableMouse(true); h:Show()
       self.handles[#self.handles+1]=h; self.byID[target.id]=h
     end
@@ -189,7 +194,6 @@ function E:Enter()
     for _,frame in ipairs(h.target.suppress or {}) do suppress(frame) end
   end
   self.active=true
-  self.selected=self.handles[1] and self.handles[1].target.id
   if KHQOL.settings then KHQOL.settings:Hide() end
   self.toolbar.info:SetText("테두리를 드래그하세요. ESC는 취소합니다. ("..#self.handles.."개)")
   self.toolbar:SetScale(math.min(1,(UIParent:GetWidth()-24)/420)); UI:Refresh(self.toolbar); self.toolbar:Show()

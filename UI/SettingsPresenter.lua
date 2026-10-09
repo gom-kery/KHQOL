@@ -35,7 +35,7 @@ function Group:BuildSettings(content,y,host,tabY)
       if tab.id~=id then panels[tab.id]:Hide() end
     end
     if panel.RefreshTab then panel:RefreshTab() end
-    UI:Refresh(panel);panel:Show();updateHeight(panel)
+    updateHeight(panel);panel:Show();UI:Refresh(panel)
     if KHQOL.settings then
       local meta=R.groups[self.id][id]
       KHQOL.settings:SetModuleHeader(meta)
