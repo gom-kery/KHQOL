@@ -38,7 +38,11 @@ entry("convenience","clock","clock","시계 설정","시간, 날짜, 요일 및 
 entry("convenience","note","todo","포에버 노트","화면의 노트 창에서 할 일과 메모를 관리합니다.",{"todo"})
 entry("convenience","quest","questNavigator","퀘스트 설정","추적 중인 퀘스트의 목표·반납 위치를 안내합니다.",{"quest","questnavigator"})
 entry("labs","proc","procAlert","발동 버프","등록한 버프의 전투 중 발동 알림을 설정합니다.")
+entry("labs","highlight","objectHighlight","오브젝트 강조","전리품이 있는 퀘스트 오브젝트의 반짝임 유지 설정을 적용합니다.",{"objecthighlight","sparkles"})
 entry("labs","inspector",nil,"프레임 검사기","마우스 아래 실제 Frame 이름과 부모 구조를 확인합니다.")
+R.routes.proc=R.modules.procAlert;R.routes.inspector=R.groups.labs.inspector
+R.routes.highlight=R.modules.objectHighlight;R.routes.frameInspector=R.groups.labs.inspector
+R.commands.lab="labs";R.commands.labs="labs";R.commands.proc="procAlert";R.commands.inspector="frameInspector"
 for _,page in ipairs(R.pages) do
   if page[1]~="labs" and R.groups[page[1]] then
     local group={title=page[2],items={}}
@@ -58,6 +62,7 @@ for _,page in ipairs(R.pages) do
   end
 end
 function R:ResetScope(key)
+  if key=="objectHighlight" then return "현재 프로필의 오브젝트 강조를 OFF로 초기화하고 KHQOL이 변경한 그래픽 설정을 안전하게 복원합니다.\n복원 실패 시 필요한 기록은 유지합니다. 효과 해제에는 게임 재시작이 필요할 수 있습니다." end
   local scope="현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다."
   if key=="clock" or key=="todo" then return scope.."\n노트 내용·체크리스트·완료 상태·알람 문구는 유지합니다." end
   if key=="buffReminder" then return scope.."\n직업별 등록 버프 목록은 유지합니다." end

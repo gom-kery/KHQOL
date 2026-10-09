@@ -20,6 +20,7 @@ KHQOL.defaults = defaults
 defaults.enabled.environmentTimer = false
 defaults.enabled.experienceBar = false
 defaults.enabled.procAlert = false
+defaults.enabled.objectHighlight = false
 defaults.enabled.npcAlert = false
 
 function KHQOL:Migrate()
@@ -49,14 +50,18 @@ function KHQOL:GetEnabled(key) return self.db.enabled[key] ~= false end
 
 local managedModules = {
   procAlert=true,
+  objectHighlight=true,
   npcAlert=true,
   experienceBar=true,
   environmentTimer=true,
   tooltip=true, cursorTrail=true, castBar=true, combatStatus=true,
   questNavigator=true, threat=true, pvpAlert=true,
 }
-function KHQOL:SetEnabled(key, enabled)
-  self.db.enabled[key] = enabled and true or false
+function KHQOL:SetEnabled(key, enabled, reapply)
+  -- Internal reapplication preserves preferences while the lock gates execution.
+  if not reapply and self.LabLock:IsExperimental(key) and not self.LabLock:IsUnlocked() then return false end
+  if not reapply then self.db.enabled[key] = enabled and true or false end
+  if self.LabLock:IsExperimental(key) then enabled=enabled and self.LabLock:IsUnlocked() end
   local fc, fr, cfa = self.modules.clock, self.modules.range, self.modules.campfire
   if key == "clock" and fc and fc.SetHUDShown then fc:SetHUDShown(enabled) end
   if key == "todo" and fc then
@@ -80,6 +85,7 @@ function KHQOL:SetEnabled(key, enabled)
   if module and module.SetEnabled then module:SetEnabled(enabled) end
   if key == "resourceSwing" and self.modules.castBar and self.modules.castBar.frame then self.modules.castBar:ApplyLayout(); self.modules.castBar:RefreshControls() end
   if not self.profileApplying and self.settings and self.settings.RefreshModuleState then self.settings:RefreshModuleState(key) end
+  return true
 end
 
 function KHQOL:HideLegacyButtons()
@@ -122,6 +128,7 @@ events:SetScript("OnEvent", function()
   KHQOL:InitializeProfiles()
   KHQOLDB = KHQOL.MergeDefaults(KHQOLDB or {}, defaults, "tables"); KHQOL.db = KHQOLDB
   KHQOL:Migrate()
+  KHQOL.LabLock:GetStorage()
   if KHQOL.modules.general and KHQOL.modules.general.Initialize then KHQOL.modules.general:Initialize() end
   KHQOL.modules.frameMover:Initialize()
   KHQOL.modules.chatEnhancement:Initialize()
@@ -129,7 +136,7 @@ events:SetScript("OnEvent", function()
   KHQOL:CreateMinimapButton()
   C_Timer.After(0, function()
     KHQOL:HideLegacyButtons()
-    for key in pairs(KHQOL.db.enabled) do KHQOL:SetEnabled(key, KHQOL:GetEnabled(key)) end
+    for key in pairs(KHQOL.db.enabled) do KHQOL:SetEnabled(key, KHQOL:GetEnabled(key), true) end
     if KHQOL.modules.tooltip and KHQOL.modules.tooltip.Initialize then KHQOL.modules.tooltip:Initialize() end
     if KHQOL.modules.cursorTrail and KHQOL.modules.cursorTrail.Initialize then KHQOL.modules.cursorTrail:Initialize() end
     KHQOL:FinishProfileLogin()

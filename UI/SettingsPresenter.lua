@@ -12,6 +12,7 @@ function Group:RegisterTab(id,title,build)
   self.tabs[#self.tabs+1]={id=id,title=meta.title,build=build,meta=meta}
 end
 function Group:BuildSettings(content,y,host,tabY)
+  if self.id=="labs" and not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,y) end
   host=host or content;tabY=tabY or y
   local bodyY=host==content and y-T.ButtonHeight-T.SectionGap or y
   local buttons,panels={},{}
@@ -23,6 +24,10 @@ function Group:BuildSettings(content,y,host,tabY)
     if KHQOL.settings and KHQOL.settings.activeContent==content then KHQOL.settings:UpdateContentHeight() end
   end
   local function selectTab(id)
+    if self.id=="labs" and not KHQOL.LabLock:IsUnlocked() then
+      if KHQOL.settings then KHQOL.settings:ShowPage("labs") end
+      return
+    end
     local panel=panels[id];if not panel then return end
     UI:CloseDropdown();self.selected=id
     for _,tab in ipairs(self.tabs) do
@@ -81,6 +86,7 @@ function UI:EmbedModulePanel(content,panel,y,refresh)
 end
 -- Kept as an external settings-builder entry point; headers now belong to host.
 function UI:BuildModuleTab(content,key,title,description,build)
+  if KHQOL.LabLock:IsExperimental(key) and not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,0) end
   content.moduleKey=key;return build(content,0)
 end
 function UI:RefreshSettingsViews()
@@ -93,6 +99,7 @@ function UI:RefreshSettingsViews()
   s:ShowPage(s.page or "general")
 end
 function UI:RequestModuleReset(key)
+  if KHQOL.LabLock:IsExperimental(key) and not KHQOL.LabLock:IsUnlocked() then return end
   local meta=R.modules[key];if not meta then return end
   StaticPopup_Show("KHQOL_RESET_MODULE",meta.title.." 모듈\n"..R:ResetScope(key),nil,
     {key=key,profile=KHQOL:GetCurrentProfileName(),generation=KHQOL.profileGeneration})

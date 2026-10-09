@@ -1,5 +1,5 @@
 local _, KHQOL = ...
-local I={enabled=false,elapsed=0}
+local I={enabled=false,elapsed=0,experimental=true}
 KHQOL.modules.frameInspector=I
 local function call(object,method,...)
   if not object or type(object[method])~="function" then return end
@@ -16,6 +16,7 @@ local function text(value)
 end
 local function name(f) return text(call(f,"GetName") or call(f,"GetDebugName")) end
 function I:Describe(f)
+  if not KHQOL.LabLock:IsUnlocked() then return "실험실 개발자 잠금을 먼저 해제하세요." end
   if not f then return "마우스를 확인할 Blizzard 창 위에 올리세요." end
   local parent=call(f,"GetParent")
   local lines={"Frame: "..text(call(f,"GetName")),"DebugName: "..text(call(f,"GetDebugName")),
@@ -46,6 +47,7 @@ function I:Describe(f)
   return table.concat(lines,"\n")
 end
 function I:Sample()
+  if not KHQOL.LabLock:IsUnlocked() then return end
   local f
   self.api=nil
   if type(GetMouseFoci)=="function" then
@@ -69,7 +71,7 @@ function I:Sample()
   self:UpdateInformation(self.snapshot)
 end
 function I:SetEnabled(on)
-  self.enabled=on and true or false; self.elapsed=0
+  self.enabled=on and KHQOL.LabLock:IsUnlocked() or false; self.elapsed=0
   if self.toggle then self.toggle:Refresh() end
   if not self.content then return end
   self.content:SetScript("OnUpdate",nil)
@@ -94,6 +96,7 @@ function I:HasFrameStack()
   return false
 end
 function I:OpenFrameStack()
+  if not KHQOL.LabLock:IsUnlocked() then return end
   if InCombatLockdown and InCombatLockdown() then return end
   if type(FrameStackTooltip_Toggle)~="function" then
     local load=addonAPI("LoadAddOn")
@@ -146,11 +149,13 @@ function I:EnsureFixedControls()
   box:SetScript("OnEnterPressed",function() box:ClearFocus() end)
 end
 function I:CopyInformation()
+  if not KHQOL.LabLock:IsUnlocked() then return end
   if not self.copyBox or not self.snapshot then return end
   self.copyOverlay:Show(); self.copyBox:SetText(self.snapshot)
   self.copyBox:SetFocus(); self.copyBox:HighlightText()
 end
 function I:SetPageActive(active)
+  active=active and KHQOL.LabLock:IsUnlocked()
   self:EnsureFixedControls()
   local settings=KHQOL.settings
   if not settings or not self.actions then return end
@@ -164,6 +169,7 @@ function I:SetPageActive(active)
   if settings.activeContent then settings:UpdateContentHeight() end
 end
 function I:BuildSettings(content,y)
+  if not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,y) end
   local UI,T=KHQOL.UI,KHQOL.UI.Theme
   self.content=content; self:EnsureFixedControls()
   local b=UI:CreateBuilder(content,y)

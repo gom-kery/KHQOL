@@ -7,6 +7,7 @@ local common = {"minimap","locked","debug","enabled","general"}
 managed[#managed+1]="environmentTimer"
 managed[#managed+1]="experienceBar"
 managed[#managed+1]="procAlert"
+managed[#managed+1]="objectHighlight"
 managed[#managed+1]="npcAlert"
 local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
@@ -18,7 +19,7 @@ local installDefaults = {
     enabled = {experienceBar=false,castBar=true,resourceSwing=true,environmentTimer=true,
       npcAlert=false,combatStatus=true,campfire=true,buffReminder=false,pvpAlert=false,
       cursorTrail=true,range=true,threat=true,tooltip=true,clock=false,todo=false,
-      questNavigator=true,procAlert=false},
+      questNavigator=true,procAlert=false,objectHighlight=false},
     general = {autoConfirmDestroy=true,chatEnhancement=true,autoSellJunk=true,
       autoRepair=true,declinePartyInvites=false,declineGuildInvites=false},
     modules = {
@@ -320,7 +321,7 @@ function KHQOL:ApplyProfileModules()
   m.combatStatus:StopVisual()
   m.threat:StopTest(); m.threat:ResetAggroAlert()
   m.pvpAlert:SetMoving(false); m.pvpAlert:StopTest()
-  for key in pairs(self.defaults.enabled) do self:SetEnabled(key,self:GetEnabled(key)) end
+  for key in pairs(self.defaults.enabled) do self:SetEnabled(key,self:GetEnabled(key),true) end
   if not self:GetEnabled("buffReminder") then
     for _,frame in ipairs(fbr.alertFrames or {}) do frame:Hide() end
     fbr.anchor:Hide(); fbr:StopCountdown()
@@ -379,6 +380,7 @@ function KHQOL:DeleteProfile(name)
   return true
 end
 function KHQOL:ResetProfileModule(key)
+  if self.LabLock:IsExperimental(key) and not self.LabLock:IsUnlocked() then return false,"실험실 개발자 잠금을 먼저 해제하세요." end
   if not self.UI.SettingsRegistry.modules[key] then return false,"초기화할 모듈을 찾을 수 없습니다." end
   local allowed,reason=self:CanChangeProfile(); if not allowed then return false,reason end
   self:CloseProfileEditors(); self:SaveCurrentProfile()
@@ -388,6 +390,11 @@ function KHQOL:ResetProfileModule(key)
   elseif key=="todo" then profile.legacy.clock.todo=copy(defaults.legacy.clock.todo)
   elseif legacy[key] then profile.legacy[key]=copy(defaults.legacy[key])
   else profile.settings.modules[key]=copy(defaults.settings.modules[key]) end
+  -- This new module only has an ON/OFF preference: reset means OFF + restore.
+  if key=="objectHighlight" then
+    self.modules.objectHighlight:CancelPending()
+    profile.settings.enabled.objectHighlight=false
+  end
   if key=="cursorTrail" then profile.cursorColor={} end
   if key=="resourceSwing" then profile.resourceColor=nil end
   local temporary=self:CaptureProfile()

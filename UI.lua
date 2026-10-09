@@ -137,6 +137,11 @@ function UI:CellBackground(parent,x,y,width,height)
 end
 function UI:IsAvailable(control, predicate)
   if predicate and not predicate() then return false end
+  local protected=control
+  while protected do
+    if (protected.labProtected or protected.moduleKey and KHQOL.LabLock:IsExperimental(protected.moduleKey)) and not KHQOL.LabLock:IsUnlocked() then return false end
+    protected=protected:GetParent()
+  end
   if control.ignoreModuleEnabled then return true end
   local parent = control:GetParent()
   while parent do

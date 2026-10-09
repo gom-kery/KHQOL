@@ -17,10 +17,13 @@ StaticPopupDialogs.KHQOL_RESET_MODULE = {
 StaticPopupDialogs.KHQOL_RESET_ALL = {
   text="KHQOL 전체 설정을 초기화하시겠습니까?\n모든 프로필, 캐릭터별 선택, 노트와 등록한 버프를 포함한 KHQOL 데이터가 삭제되고 UI가 다시 로드됩니다.",
   button1=ACCEPT,button2=CANCEL,OnAccept=function()
+    KHQOL.LabLock:RequestFullReset(function()
     KHQOL.profileResetting=true
     KHQOLDB=nil; ForeverClockDB=nil; ForeverBuffReminderDB=nil; ForeverWeaponGuideDB=nil
     KHQOLResourceSwingDB=nil; CampfireAlertDB=nil; FRangeDB=nil; KHQOLCursorTrailCharDB=nil
+    KHQOLLabDB=nil
     ReloadUI()
+    end)
   end,timeout=0,whileDead=1,hideOnEscape=1,
 }
 StaticPopupDialogs.KHQOL_DELETE_PROFILE={
@@ -172,8 +175,8 @@ function KHQOL:CreateSettings()
   moduleHeader.toggle.ignoreModuleEnabled=true;moduleHeader.toggle.text:SetWidth(76)
   UI:CreateDivider(moduleHeader,-34)
   function f:SetPageScrollLayout(key)
-    local grouped=registry.groups[key]~=nil
-    for id,header in pairs(self.groupHeaders) do header:SetShown(id==key) end
+    local grouped=registry.groups[key]~=nil and (key~="labs" or KHQOL.LabLock:IsUnlocked())
+    for id,header in pairs(self.groupHeaders) do header:SetShown(id==key and grouped) end
     moduleHeader:SetShown(grouped)
     scroll:ClearAllPoints()
     scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-(grouped and groupHeaderHeight+moduleHeaderHeight or 0))
@@ -204,6 +207,7 @@ function KHQOL:CreateSettings()
     self.resetModuleKey=key;self.resetModuleName=name;footer:SetShown(key~=nil)
   end
   function f:SetModuleHeader(meta)
+    if meta and meta.group=="labs" and not KHQOL.LabLock:IsUnlocked() then meta=nil end
     self.currentModuleKey=meta and meta.key
     self:SetActiveSettingsModule(meta and meta.key,meta and meta.title)
     moduleHeader.description:SetText(meta and meta.description or "")
@@ -228,6 +232,9 @@ function KHQOL:CreateSettings()
   end
   local hint=UI:CreateDescription(f,"설정은 변경 즉시 저장됩니다.",T.SidebarWidth+T.ContentPadding,0)
   hint:ClearAllPoints(); hint:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,24); hint:SetWidth(300)
+  local relock=UI:CreateButton(f,"다시 잠그기",0,0,120,function() KHQOL.LabLock:Relock() end,
+    function() return KHQOL.LabLock:IsUnlocked() end)
+  relock:ClearAllPoints();relock:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,18);relock:Hide();f.labLockButton=relock
   local groups={bars=KHQOL.BarsSettings,alerts=KHQOL.AlertSettings,labs=KHQOL.LabSettings,
     interface=KHQOL.InterfaceSettings,convenience=KHQOL.ConvenienceSettings}
   function f:ShowPage(key)
@@ -239,12 +246,16 @@ function KHQOL:CreateSettings()
     self.page=key;self.pageName=definition[2];self.pageTitle:SetText(definition[2])
     self:SetPageScrollLayout(key);self:SetModuleHeader(nil);scroll:SetVerticalScroll(0)
     for menuKey,menuButton in pairs(self.menuButtons) do UI:SetButtonSelected(menuButton,menuKey==key) end
-    local content=self.pageCache[key]
+    local locked=key=="labs" and not KHQOL.LabLock:IsUnlocked()
+    local cacheKey=locked and "labsLocked" or key
+    relock:SetShown(key=="labs" and not locked);hint:SetShown(key~="labs")
+    local content=self.pageCache[cacheKey]
     if not content then
       content=CreateFrame("Frame",nil,child);content:Hide();content:SetPoint("TOPLEFT");content:SetWidth(T.ContentWidth)
-      self.pageCache[key]=content
+      self.pageCache[cacheKey]=content
       local y
-      if key=="general" then y=generalSettings(content,UI:CreatePage(content,definition[2],definition[3]))
+      if locked then y=KHQOL.LabLock:BuildLockedSettings(content,0)
+      elseif key=="general" then y=generalSettings(content,UI:CreatePage(content,definition[2],definition[3]))
       elseif key=="profiles" then y=profileSettings(content,UI:CreatePage(content,definition[2],definition[3]))
       else
         local header=self.groupHeaders[key]
@@ -254,7 +265,7 @@ function KHQOL:CreateSettings()
       content.contentHeight=-y+T.ContentPadding
     end
     self.activeContent=content
-    if groups[key] then content.SelectSettingsTab(requestedTab or groups[key].selected) end
+    if groups[key] and not locked then content.SelectSettingsTab(requestedTab or groups[key].selected) end
     self:RefreshActivePage();content:Show();self:UpdateContentHeight()
   end
   local navigation=CreateFrame("ScrollFrame",nil,f)

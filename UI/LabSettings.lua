@@ -2,6 +2,7 @@ local _, KHQOL = ...
 local Lab=KHQOL.UI:NewSettingsGroup("labs")
 KHQOL.LabSettings=Lab
 local function proc(content,y)
+  if not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,y) end
   local P,UI,T=KHQOL.modules.procAlert,KHQOL.UI,KHQOL.UI.Theme
   P:GetDB(); P.settingsContent=content; content.moduleKey="procAlert"
   local class=select(2,UnitClass("player")) or "WARRIOR"
@@ -161,5 +162,29 @@ local function proc(content,y)
   return -content:GetHeight()
 end
 Lab:RegisterTab("proc",nil,proc)
+
+Lab:RegisterTab("highlight",nil,function(content,y)
+  if not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,y) end
+  local H,UI=KHQOL.modules.objectHighlight,KHQOL.UI
+  content.moduleKey="objectHighlight"
+  local b=UI:CreateBuilder(content,y)
+  b:Section("동작 설명")
+  b:Description("전리품이 있는 퀘스트 오브젝트의 반짝임을 유지하도록 게임 그래픽 설정을 조정합니다. 반짝임 유지를 위해 일반·공격대 윤곽선 모드가 변경됩니다.")
+  b:Section("주의사항")
+  b:Description("개발 중인 실험 기능입니다. 클라이언트 또는 API 변경으로 동작하지 않을 수 있습니다.")
+  b:Description("해제 후 효과가 사라지려면 게임 재시작이 필요할 수 있습니다. /reload만으로 해제 표시가 완료되지 않을 수 있습니다.")
+  b:Description("Forever Loot Sparkles와 중복 사용할 수 없습니다. 해당 애드온이 로드되어 있으면 적용·복원을 보류하고 복원 기록을 유지합니다.")
+  b:Section("현재 적용 상태")
+  local statusY=b.y
+  H.statusText=UI:CreateDescription(content,H:GetStatus(),0,statusY)
+  H.statusText:SetWidth(UI.Theme.ContentWidth)
+  function H:RefreshStatus()
+    H.statusText:SetHeight(0);H.statusText:SetText(H:GetStatus())
+    content:SetHeight(-statusY+math.max(54,H.statusText:GetStringHeight())+UI.Theme.ContentPadding)
+  end
+  content.uiControls[#content.uiControls+1]={Refresh=function() H:RefreshStatus() end}
+  content.uiControls[#content.uiControls]:Refresh()
+  return -content:GetHeight()
+end)
 
 Lab:RegisterTab("inspector",nil,function(content,y) return KHQOL.modules.frameInspector:BuildSettings(content,y) end)

@@ -28,7 +28,7 @@ function P:GetBuffs(class)
   if type(data.classes[class].buffs)~="table" then data.classes[class].buffs={} end
   return data.classes[class].buffs
 end
-function P:IsEnabled() return KHQOL.db and KHQOL:GetEnabled("procAlert") end
+function P:IsEnabled() return KHQOL:CanRunModule("procAlert") end
 function P:Normalize(buff,id)
   if type(buff)~="table" or not number(id) or id<=0 or id~=math.floor(id) then return end
   buff.spellID=id
@@ -55,6 +55,7 @@ local function readAura(a,id)
     icon=safe(a.icon) and a.icon or nil}
 end
 function P:ReadAuras(buffs)
+  if not self:IsEnabled() then return {} end
   self.apiUnavailable=false
   local found,unresolved={},{}
   for id,b in pairs(buffs) do
@@ -206,6 +207,7 @@ function P:HideRow(row,immediate)
   end
 end
 function P:Preview(now)
+  if not self:IsEnabled() then return {LEFT={},RIGHT={}} end
   local result={LEFT={},RIGHT={}}
   for i,side in ipairs(sides) do
     local b={name=i==1 and "왼쪽 테스트" or "오른쪽 테스트",showIcon=true,showName=true,showTime=true,
@@ -245,6 +247,7 @@ function P:SavePosition()
   if self.settingsContent then KHQOL.UI:Refresh(self.settingsContent) end
 end
 function P:Changed()
+  if not KHQOL.LabLock:IsUnlocked() then return end
   self:GetDB(); self:CreateFrames(); self:Layout(); self:Scan(); self:Render()
   if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
 end
@@ -256,6 +259,7 @@ function P:SetUnlocked(on)
   self:SavePosition(); self.unlocked=on and self:IsEnabled() or false; self:Layout(); self:Render()
 end
 function P:SetEnabled(on)
+  on=on and self:IsEnabled()
   self:GetDB(); self:CreateFrames(); self:SavePosition()
   self.unlocked=false; self.testUntil=nil; self.active={}; self.elapsed=0
   self.events:UnregisterEvent("UNIT_AURA")
@@ -271,6 +275,7 @@ function P:SetEnabled(on)
 end
 P.events=CreateFrame("Frame")
 P.events:SetScript("OnEvent",function(_,event,unit)
+  if not P:IsEnabled() then P.active={};P.testUntil=nil;P:Render();return end
   if event=="UNIT_AURA" and unit~="player" then return end
   if event=="PLAYER_REGEN_DISABLED" or event=="PLAYER_ENTERING_WORLD" then
     P.inCombat=event=="PLAYER_REGEN_DISABLED" or UnitAffectingCombat("player") and true or false
