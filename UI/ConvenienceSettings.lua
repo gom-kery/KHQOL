@@ -26,7 +26,10 @@ local function noteSettings(content,y)
   b:Description("잘못된 지역명·mapID는 좌표로 등록하지 않습니다. 동명 지역은 #mapID로 구분하세요. 자동 안내는 퀘스트가 우선이며, 노트는 현재 지도에서 비교 가능한 좌표를 안내합니다. ▶ 수동 안내 후 AUTO로 복귀합니다.")
   b:Description("단축키는 게임 메뉴의 설정 > 단축키에서 지정할 수 있습니다. 노트 내용과 메모는 노트 창에서 직접 편집합니다."); return b.y
 end
-Convenience:RegisterTab("general",nil,function(content,y) return KHQOL.modules.general:BuildSettings(content,y) end)
+Convenience:RegisterTab("general",nil,function(content,y)
+  y=KHQOL.modules.general:BuildSettings(content,y)
+  return KHQOL.modules.frameMover:BuildSettings(content,y)
+end)
 Convenience:RegisterTab("clock",nil,function(content,y)
   local fc=KHQOL.modules.clock
   fc:CreateHeaderHelp(content)

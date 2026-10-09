@@ -38,6 +38,7 @@ entry("convenience","clock","clock","시계 설정","시간, 날짜, 요일 및 
 entry("convenience","note","todo","포에버 노트","화면의 노트 창에서 할 일과 메모를 관리합니다.",{"todo"})
 entry("convenience","quest","questNavigator","퀘스트 설정","추적 중인 퀘스트의 목표·반납 위치를 안내합니다.",{"quest","questnavigator"})
 entry("labs","proc","procAlert","발동","등록한 버프의 전투 중 발동 알림을 설정합니다.")
+entry("labs","inspector",nil,"프레임 검사기","마우스 아래 실제 Frame 이름과 부모 구조를 확인합니다.")
 for _,page in ipairs(R.pages) do
   if page[1]~="labs" and R.groups[page[1]] then
     local group={title=page[2],items={}}

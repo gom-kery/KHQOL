@@ -161,3 +161,5 @@ local function proc(content,y)
   return -content:GetHeight()
 end
 Lab:RegisterTab("proc",nil,proc)
+
+Lab:RegisterTab("inspector",nil,function(content,y) return KHQOL.modules.frameInspector:BuildSettings(content,y) end)

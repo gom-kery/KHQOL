@@ -123,6 +123,7 @@ events:SetScript("OnEvent", function()
   KHQOLDB = KHQOL.MergeDefaults(KHQOLDB or {}, defaults, "tables"); KHQOL.db = KHQOLDB
   KHQOL:Migrate()
   if KHQOL.modules.general and KHQOL.modules.general.Initialize then KHQOL.modules.general:Initialize() end
+  KHQOL.modules.frameMover:Initialize()
   if KHQOL.CreateSettings then KHQOL:CreateSettings() elseif DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffff4040KHQOL: 설정 UI를 불러오지 못했습니다.|r") end
   KHQOL:CreateMinimapButton()
   C_Timer.After(0, function()
