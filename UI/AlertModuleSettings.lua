@@ -29,6 +29,10 @@ local A=KHQOL.AlertSettings
 A:RegisterTab("combat",nil,function(content,y) return KHQOL.modules.combatStatus:BuildSettings(content,y) end)
 A:RegisterTab("campfire",nil,campfireSettings)
 A:RegisterTab("buff",nil,function(content,y)
-  return UI:EmbedModulePanel(content,ForeverBuffReminder.settings,y,function() ForeverBuffReminder:RefreshSettings() end)
+  local fbr=ForeverBuffReminder
+  fbr:CreateSettingsUI(content)
+  function content:RefreshTab() fbr:RefreshSettings() end
+  content:RefreshTab()
+  return -content:GetHeight()
 end)
 A:RegisterTab("pvp",nil,function(content,y) return KHQOL.modules.pvpAlert:BuildSettings(content,y) end)

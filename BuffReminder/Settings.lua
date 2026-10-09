@@ -5,10 +5,16 @@ local function moveBuff(buffs,fromIndex,toIndex)
   if toIndex<1 or toIndex>#buffs then return end
   buffs[fromIndex],buffs[toIndex]=buffs[toIndex],buffs[fromIndex]
 end
-function FBR:CreateSettingsUI()
-  if self.settings then return end
-  local panel=CreateFrame("Frame","ForeverBuffReminderSettings",UIParent)
-  panel:SetWidth(T.ContentWidth); panel:Hide(); self.settings=panel
+function FBR:CreateSettingsUI(parent)
+  if self.settings then return self.settings end
+  if not parent then
+    KHQOL:ShowSettings("buffReminder")
+    return self.settings
+  end
+  -- Use the owning tab itself, including dynamic list rows and Shaman options.
+  local panel=parent
+  panel:SetWidth(T.ContentWidth); self.settings=panel
+  _G.ForeverBuffReminderSettings=panel
   local b=UI:CreateBuilder(panel)
   b:Section("위치")
   b:Checkbox("위치 잠금",function() return ForeverBuffReminderDB.locked end,function(value) FBR:SetLocked(value) end)
@@ -132,6 +138,7 @@ function FBR:CreateSettingsUI()
   end)
   menu:Hide(); panel.totemMenu=menu
   self:RefreshSettings()
+  return panel
 end
 function FBR:OpenTotemSelectionMenu(key,anchor)
   local menu=self.settings.totemMenu; menu.totemKey=key

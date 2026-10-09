@@ -56,10 +56,27 @@ function UI:EmbedModulePanel(content,panel,y,refresh)
   if not panel then return y end
   panel:SetParent(content);panel:ClearAllPoints();panel:SetPoint("TOPLEFT",0,y)
   panel:SetScale(1);panel:SetWidth(T.ContentWidth);panel:SetFrameStrata("DIALOG")
+  -- Legacy panels were created under UIParent before this tab existed.
+  -- Put their regions and controls above the current settings body, including
+  -- descendants whose old levels did not follow the reparented panel.
+  local function raiseChildren(frame)
+    local level=frame:GetFrameLevel()
+    for _,child in ipairs({frame:GetChildren()}) do
+      if child:GetFrameLevel()<=level then child:SetFrameLevel(level+1) end
+      raiseChildren(child)
+    end
+  end
   local function resize() content:SetHeight(-y+panel:GetHeight()) end
   panel:HookScript("OnSizeChanged",resize)
-  function content:RefreshTab() if refresh then refresh() end;resize();UI:Refresh(panel) end
-  content:RefreshTab();panel:Show()
+  function content:RefreshTab()
+    panel:SetFrameLevel(content:GetFrameLevel()+1)
+    if refresh then refresh() end
+    raiseChildren(panel)
+    resize();UI:Refresh(panel)
+    -- Showing the outer tab alone does not unhide an independently hidden child.
+    if not panel:IsShown() then panel:Show() end
+  end
+  content:RefreshTab()
   return -content:GetHeight()
 end
 -- Kept as an external settings-builder entry point; headers now belong to host.

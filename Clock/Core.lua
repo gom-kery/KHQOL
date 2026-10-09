@@ -210,7 +210,7 @@ function FC:Initialize()
   self:CreateMinimapButton()
   self:CreateTodoMinimapButton()
   self:RefreshTodoNavigation()
-  self:CreateSettings()
+  -- Settings controls are created in their owning tab on first use.
   self:ApplyAll()
   self:StartMinuteTimer()
 end

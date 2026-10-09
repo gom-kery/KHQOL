@@ -475,7 +475,7 @@ FBR:SetScript("OnEvent", function(self, event, unit)
     if event == "PLAYER_LOGIN" then
         self:InitializeDatabase()
         self:CreateAlertUI()
-        self:CreateSettingsUI()
+        -- Settings controls are created in their owning tab on first use.
         self:CreateMinimapButton()
         self.initialized = true
         self:RefreshAlerts()

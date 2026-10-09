@@ -24,10 +24,16 @@ function FC:CreateHeaderHelp(content)
   UI:AttachTooltip(help,"Clock 조작","좌클릭: 알람 / 스톱워치 / 타이머\n우클릭: Forever Note\nAlt+좌클릭: 달력\nAlt+우클릭: UI 새로고침\n/fc 또는 /fclock: 설정")
   content.helpButton=help
 end
-function FC:CreateSettings()
-  if self.settingsFrame then return end
-  local f=CreateFrame("Frame","ForeverClockSettingsFrame",UIParent)
-  f:SetWidth(UI.Theme.ContentWidth); f:Hide(); self.settingsFrame=f
+function FC:CreateSettings(parent)
+  if self.settingsFrame then return self.settingsFrame end
+  if not parent then
+    KHQOL:ShowSettings("clock")
+    return self.settingsFrame
+  end
+  -- Build in the actual scroll/tab body; never reparent a UIParent panel.
+  local f=parent
+  f:SetWidth(UI.Theme.ContentWidth); self.settingsFrame=f
+  _G.ForeverClockSettingsFrame=f
   local b=UI:CreateBuilder(f)
   local function style(target)
     b:Color("글자 색상",function() return unpack(FC:GetTextStyle(target()).color) end,function(r,g,bl,a)
@@ -76,6 +82,7 @@ function FC:CreateSettings()
     FC.db.modules.professions.showSkill=v; if FC.professionsPanel and FC.professionsPanel:IsShown() then FC:RenderProfessions() end
   end,professionsEnabled)
   f:SetHeight(-b.y); self:RefreshSettings()
+  return f
 end
 function FC:RefreshSettings()
   if not self.settingsFrame or self.refreshingSettings then return end

@@ -32,8 +32,11 @@ Convenience:RegisterTab("general",nil,function(content,y)
 end)
 Convenience:RegisterTab("clock",nil,function(content,y)
   local fc=KHQOL.modules.clock
+  fc:CreateSettings(content)
   fc:CreateHeaderHelp(content)
-  return UI:EmbedModulePanel(content,fc.settingsFrame,y,function() fc:RefreshSettings() end)
+  function content:RefreshTab() fc:RefreshSettings() end
+  content:RefreshTab()
+  return -content:GetHeight()
 end)
 Convenience:RegisterTab("note",nil,noteSettings)
 Convenience:RegisterTab("quest",nil,function(content,y) return KHQOL.modules.questNavigator:BuildSettings(content,y) end)
