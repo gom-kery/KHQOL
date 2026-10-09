@@ -1,10 +1,14 @@
 local _, KHQOL = ...
 local FR, UI = KHQOL.modules.range, KHQOL.UI
 local Settings = {}; FR.Settings=Settings
-function Settings:Create()
-  if self.panel then return end
-  local panel=CreateFrame("Frame","FRangeSettingsPanel",UIParent)
-  panel:SetWidth(UI.Theme.ContentWidth); panel:Hide(); self.panel=panel
+function Settings:Create(parent)
+  if self.panel then return self.panel end
+  -- Integrated settings use the tab's own body. A separate UIParent panel
+  -- has an independent shown state and rendering hierarchy after embedding.
+  local panel=parent or CreateFrame("Frame","FRangeSettingsPanel",UIParent)
+  panel:SetWidth(UI.Theme.ContentWidth)
+  if not parent then panel:Hide() end
+  self.panel=panel; _G.FRangeSettingsPanel=panel
   local b=UI:CreateBuilder(panel)
   b:Section("위치")
   b:Checkbox("위치 잠금",function() return FR.db.locked end,function(v) FR:ToggleLock(v) end)
@@ -86,8 +90,9 @@ function Settings:Create()
   b:Section("고급 / 확인")
   local api=b:Button("API 상태",function() FR.Range:DescribeAPI() end)
   UI:AttachTooltip(api,"API 상태","클라이언트의 기존 사거리 API 진단 정보를 채팅에 표시합니다.")
-  panel:SetHeight(-b.y); self.panel:SetScript("OnShow",function() FR:UpdateSettings() end)
+  panel:SetHeight(-b.y); panel:HookScript("OnShow",function() FR:UpdateSettings() end)
   FR:UpdateSettings()
+  return panel
 end
 function FR:UpdateSettings()
   if not Settings.panel or not self.db then return end
