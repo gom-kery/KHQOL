@@ -25,34 +25,10 @@ local function campfireSettings(content,y)
   return b.y
 end
 
-local function register(id,title,key,description,build)
-  KHQOL.AlertSettings:RegisterTab(id,title,function(content,y)
-    content.moduleKey=key
-    y=UI:CreatePage(content,title,description,function() return KHQOL:GetEnabled(key) end,function(on)
-      KHQOL:SetEnabled(key,on); UI:Refresh(content)
-    end)
-    local b=UI:CreateBuilder(content,y)
-    local reset=b:Button("모듈 설정 초기화",function() StaticPopup_Show("KHQOL_RESET_MODULE",title,nil,key) end)
-    reset.ignoreModuleEnabled=true; reset:Refresh()
-    local bottom=build(content,b.y)
-    return bottom
-  end)
-end
-register("combat","전투","combatStatus","전투 시작과 종료 알림을 설정합니다.",function(content,y)
-  return KHQOL.modules.combatStatus:BuildSettings(content,y)
+local A=KHQOL.AlertSettings
+A:RegisterTab("combat",nil,function(content,y) return KHQOL.modules.combatStatus:BuildSettings(content,y) end)
+A:RegisterTab("campfire",nil,campfireSettings)
+A:RegisterTab("buff",nil,function(content,y)
+  return UI:EmbedModulePanel(content,ForeverBuffReminder.settings,y,function() ForeverBuffReminder:RefreshSettings() end)
 end)
-register("campfire","모닥불","campfire","근처 모닥불과 야영 효과 알림을 설정합니다.",campfireSettings)
-register("buff","버프","buffReminder","유지할 버프와 만료 전 알림을 설정합니다.",function(content,y)
-  local FBR=ForeverBuffReminder
-  local panel=FBR.settings
-  panel:SetParent(content); panel:ClearAllPoints(); panel:SetPoint("TOPLEFT",0,y)
-  panel:SetScale(1); panel:SetWidth(T.ContentWidth); panel:SetFrameStrata("DIALOG")
-  local function resize() content:SetHeight(-y+panel:GetHeight()+T.ContentPadding) end
-  panel:HookScript("OnSizeChanged",resize)
-  function content:RefreshTab() FBR:RefreshSettings(); resize() end
-  content:RefreshTab(); panel:Show(); UI:Refresh(panel)
-  return -content:GetHeight()
-end)
-register("pvp","PvP","pvpAlert","적 플레이어의 주시, 접근 및 시전 경고를 설정합니다.",function(content,y)
-  return KHQOL.modules.pvpAlert:BuildSettings(content,y)
-end)
+A:RegisterTab("pvp",nil,function(content,y) return KHQOL.modules.pvpAlert:BuildSettings(content,y) end)

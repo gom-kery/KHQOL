@@ -1,6 +1,5 @@
 local _, KHQOL = ...
-local A=KHQOL.AlertSettings
-local Lab={tabs={},selected="proc",RegisterTab=A.RegisterTab,BuildSettings=A.BuildSettings}
+local Lab=KHQOL.UI:NewSettingsGroup("labs")
 KHQOL.LabSettings=Lab
 local function proc(content,y)
   local P,UI,T=KHQOL.modules.procAlert,KHQOL.UI,KHQOL.UI.Theme
@@ -9,8 +8,6 @@ local function proc(content,y)
   local b=UI:CreateBuilder(content,y)
   local function enabled() return P:IsEnabled() end
   b:Section("발동 알림")
-  local enable=b:Checkbox("발동 알림 사용",enabled,function(on) KHQOL:SetEnabled("procAlert",on) end)
-  enable.ignoreModuleEnabled=true; enable:Refresh()
   b:Description("등록한 버프가 전투 중 활성화되면 곡선형 HUD로 표시합니다.")
   b:Section("등록된 버프")
   local options={}
@@ -120,7 +117,6 @@ local function proc(content,y)
   l:Button("테스트 종료",function() P.testUntil=nil; P:Render() end,nil,enabled)
   l:Section("기본값 복원")
   l:Description("현재 프로필의 HUD 설정과 애니메이션을 복원합니다. 클래스별 등록 버프는 유지합니다.")
-  l:Button("발동 알림 설정 초기화",function() StaticPopup_Show("KHQOL_RESET_MODULE","발동 알림",nil,"procAlert") end)
   lower:SetHeight(-l.y)
   reflow=function()
     list:ClearAllPoints(); list:SetPoint("TOPLEFT",0,listY)
@@ -164,4 +160,4 @@ local function proc(content,y)
   refreshList()
   return -content:GetHeight()
 end
-Lab:RegisterTab("proc","발동",proc)
+Lab:RegisterTab("proc",nil,proc)

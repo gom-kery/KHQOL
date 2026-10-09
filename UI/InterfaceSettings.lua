@@ -1,45 +1,12 @@
 local _, KHQOL = ...
-local UI,T=KHQOL.UI,KHQOL.UI.Theme
-local A=KHQOL.AlertSettings
-local Interface={tabs={},selected="cursor",RegisterTab=A.RegisterTab,BuildSettings=A.BuildSettings}
+local UI=KHQOL.UI
+local Interface=UI:NewSettingsGroup("interface")
 KHQOL.InterfaceSettings=Interface
-
--- Settings adapters only: reuse module builders, live databases and panels.
-function UI:BuildModuleTab(content,key,title,description,build)
-  content.moduleKey=key
-  local y=self:CreatePage(content,title,description,function() return KHQOL:GetEnabled(key) end,function(on)
-    KHQOL:SetEnabled(key,on); UI:Refresh(content)
-  end)
-  local bottom=build(content,y)
-  local refresh=content.RefreshTab
-  function content:RefreshTab()
-    if refresh then refresh(self) end
-    if KHQOL.settings then KHQOL.settings:SetActiveSettingsModule(key,title) end
-  end
-  return bottom
-end
-function UI:EmbedModulePanel(content,panel,y,refresh)
-  if not panel then return y end
-  panel:SetParent(content);panel:ClearAllPoints();panel:SetPoint("TOPLEFT",0,y)
-  panel:SetScale(1);panel:SetWidth(T.ContentWidth);panel:SetFrameStrata("DIALOG")
-  local function resize() content:SetHeight(-y+panel:GetHeight()) end
-  panel:HookScript("OnSizeChanged",resize)
-  function content:RefreshTab() if refresh then refresh() end;resize() end
-  content:RefreshTab();panel:Show();UI:Refresh(panel)
-  return -content:GetHeight()
-end
-local function register(id,title,key,description,build)
-  Interface:RegisterTab(id,title,function(content)
-    return UI:BuildModuleTab(content,key,title,description,build or function(panel,y)
-      return KHQOL.modules[key]:BuildSettings(panel,y)
-    end)
-  end)
-end
-register("cursor","마우스 잔상","cursorTrail","마우스 이동 경로에 잔상을 표시합니다.")
-register("range","거리 측정","range","선택한 대상의 사거리 상태를 표시합니다.",function(content,y)
+Interface:RegisterTab("cursor",nil,function(content,y) return KHQOL.modules.cursorTrail:BuildSettings(content,y) end)
+Interface:RegisterTab("range",nil,function(content,y)
   local fr=KHQOL.modules.range
   if not fr.Settings.panel then fr.Settings:Create() end
   return UI:EmbedModulePanel(content,fr.Settings.panel,y,function() fr:UpdateSettings() end)
 end)
-register("threat","위협 수치","threat","현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다.")
-register("tooltip","툴팁 설정","tooltip","툴팁의 위치, 표시 방식 및 무기 전문가 안내를 조정합니다.")
+Interface:RegisterTab("threat",nil,function(content,y) return KHQOL.modules.threat:BuildSettings(content,y) end)
+Interface:RegisterTab("tooltip",nil,function(content,y) return KHQOL.modules.tooltip:BuildSettings(content,y) end)

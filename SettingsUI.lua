@@ -4,50 +4,14 @@ local UI, T = KHQOL.UI, KHQOL.UI.Theme
 local defaultRowStep = T.RowHeight + T.RowGap
 local menuRowStep = T.ButtonHeight + math.max(0, defaultRowStep - T.ButtonHeight) / 2
 local moduleRowStep = T.RowHeight + T.RowGap
-local pages = {
-  {"general", "일반", "KHQOL 공통 설정 및 모듈 관리"},
-  {"bars", "바 설정", "바 계열 기능과 환경 타이머를 관리합니다."},
-  {"alerts", "알림", "NPC, 전투, 모닥불, 버프 및 PvP 알림을 관리합니다."},
-  {"interface", "인터페이스", "커서, 사거리, 어그로 및 툴팁을 관리합니다."},
-  {"convenience", "편의 기능", "자동화 편의 기능, 시계, 노트 및 퀘스트 안내를 관리합니다."},
-  {"labs", "실험실", "개발 중이나 정상적으로 동작되지 않는 기능입니다."},
-  {"profiles", "프로필", "계정 공용 프로필 및 캐릭터별 사용 프로필 관리"},
-}
-local alertTabs={npcAlert="npc",combatStatus="combat",campfire="campfire",buffReminder="buff",pvpAlert="pvp"}
-local interfaceTabs={cursorTrail="cursor",range="range",threat="threat",tooltip="tooltip"}
-local convenienceTabs={clock="clock",todo="note",questNavigator="quest"}
-local moduleGroups={
-  {title="바 설정",items={{"experienceBar","경험치"},{"castBar","시전"},{"resourceSwing","리소스/스윙"},{"environmentTimer","환경"}}},
-  {title="알림",items={{"npcAlert","NPC"},{"combatStatus","전투"},{"campfire","모닥불"},{"buffReminder","버프"},{"pvpAlert","PvP"}}},
-  {title="인터페이스",items={{"cursorTrail","마우스 잔상"},{"range","거리 측정"},{"threat","위협 수치"},{"tooltip","툴팁 설정"}}},
-  {title="편의 기능",items={{"clock","시계 설정"},{"todo","포에버 노트"},{"questNavigator","퀘스트 설정"},
-    {"autoSellJunk","잡템 자동 판매",true},{"autoRepair","자동 수리",true},
-    {"declinePartyInvites","파티초대 거절",true},{"declineGuildInvites","길드초대 거절",true}}},
-}
+local registry=UI.SettingsRegistry
+local pages=registry.pages
+local moduleGroups=registry.moduleGroups
 UI.Pages=pages
 
--- Reset only after confirmation. The original module initializers supply defaults.
-local function resetModule(key)
-  if KHQOL.ResetProfileModule then
-    local ok,message=KHQOL:ResetProfileModule(key)
-    if not ok then KHQOL:ProfileMessage(message) end
-    return
-  end
-  local legacy = {clock="ForeverClockDB",buffReminder="ForeverBuffReminderDB",range="FRangeDB",resourceSwing="KHQOLResourceSwingDB",campfire="CampfireAlertDB"}
-  if key == "clock" then
-    local todo = ForeverClockDB and ForeverClockDB.todo
-    ForeverClockDB = todo and {todo=todo} or nil
-  elseif key == "todo" then
-    if ForeverClockDB then ForeverClockDB.todo = nil end
-  elseif legacy[key] then _G[legacy[key]] = nil
-  elseif key == "cursorTrail" then KHQOLCursorTrailCharDB = nil end
-  KHQOL.db.modules[key] = nil
-  KHQOL.db.migrated[key] = key == "tooltip" and true or nil
-  ReloadUI()
-end
 StaticPopupDialogs.KHQOL_RESET_MODULE = {
-  text="현재 프로필의 %s 모듈 설정을 기본값으로 복원하시겠습니까?\n노트 내용, ToDo 완료 상태와 등록한 버프는 유지합니다.",
-  button1=ACCEPT,button2=CANCEL,OnAccept=function(_,key) resetModule(key) end,
+  text="현재 프로필의 %s\n\n설정을 기본값으로 복원하시겠습니까?",
+  button1=ACCEPT,button2=CANCEL,OnAccept=function(_,data) UI:AcceptModuleReset(data) end,
   timeout=0,whileDead=1,hideOnEscape=1,
 }
 StaticPopupDialogs.KHQOL_RESET_ALL = {
@@ -151,6 +115,7 @@ local function generalSettings(content,y)
   return b.y
 end
 function KHQOL:CreateSettings()
+  if self.settings then return self.settings end
   local f=CreateFrame("Frame","KHQOLSettingsFrame",UIParent,"BackdropTemplate")
   f:SetSize(T.WindowWidth,T.WindowHeight); f:SetPoint("CENTER"); f:SetFrameStrata("DIALOG")
   f:SetClampedToScreen(true); f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
@@ -182,34 +147,36 @@ function KHQOL:CreateSettings()
   scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66); scroll:SetPoint("BOTTOMRIGHT",-38,58)
   local child=CreateFrame("Frame",nil,scroll); child:SetWidth(T.ContentWidth); child:SetHeight(1); scroll:SetScrollChild(child)
   f.scroll=scroll; f.child=child; f.pageCache={}; f.menuButtons={}
-  -- Bars navigation is a sibling of the scroll viewport, so it remains fixed.
-  local barsHeader=CreateFrame("Frame",nil,f)
-  barsHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
-  barsHeader:SetWidth(T.ContentWidth)
-  local barsHeaderHeight=34+T.RowGap+T.ButtonHeight+T.SectionGap
-  barsHeader:SetHeight(barsHeaderHeight); barsHeader:Hide(); f.barsHeader=barsHeader
-  local alertsHeader=CreateFrame("Frame",nil,f)
-  alertsHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
-  alertsHeader:SetWidth(T.ContentWidth); alertsHeader:SetHeight(barsHeaderHeight); alertsHeader:Hide()
-  f.alertsHeader=alertsHeader
-  local labsHeader=CreateFrame("Frame",nil,f)
-  labsHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
-  labsHeader:SetWidth(T.ContentWidth); labsHeader:SetHeight(barsHeaderHeight); labsHeader:Hide()
-  f.labsHeader=labsHeader
-  local interfaceHeader=CreateFrame("Frame",nil,f)
-  interfaceHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
-  interfaceHeader:SetWidth(T.ContentWidth);interfaceHeader:SetHeight(barsHeaderHeight);interfaceHeader:Hide()
-  f.interfaceHeader=interfaceHeader
-  local convenienceHeader=CreateFrame("Frame",nil,f)
-  convenienceHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
-  convenienceHeader:SetWidth(T.ContentWidth);convenienceHeader:SetHeight(barsHeaderHeight);convenienceHeader:Hide()
-  f.convenienceHeader=convenienceHeader
+  local groupHeaderHeight=34+T.RowGap+T.ButtonHeight+T.SectionGap
+  local moduleHeaderHeight=34+T.RowGap
+  f.groupHeaders={}
+  for _,definition in ipairs(pages) do
+    local key=definition[1]
+    if registry.groups[key] then
+      local header=CreateFrame("Frame",nil,f)
+      header:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
+      header:SetWidth(T.ContentWidth);header:SetHeight(groupHeaderHeight);header:Hide()
+      f.groupHeaders[key]=header;f[key.."Header"]=header
+    end
+  end
+  local moduleHeader=CreateFrame("Frame",nil,f);f.moduleHeader=moduleHeader
+  moduleHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-groupHeaderHeight)
+  moduleHeader:SetSize(T.ContentWidth,moduleHeaderHeight);moduleHeader:Hide()
+  moduleHeader.description=UI:CreateDescription(moduleHeader,"",0,-6)
+  moduleHeader.description:SetWidth(T.ContentWidth-124)
+  moduleHeader.toggle=UI:CreateCheckbox(moduleHeader,"모듈 사용",T.ContentWidth-108,0,
+    function() return f.currentModuleKey and KHQOL:GetEnabled(f.currentModuleKey) or false end,
+    function(on)
+      if f.currentModuleKey then KHQOL:SetEnabled(f.currentModuleKey,on);UI:Changed(f.activeContent or moduleHeader) end
+    end)
+  moduleHeader.toggle.ignoreModuleEnabled=true;moduleHeader.toggle.text:SetWidth(76)
+  UI:CreateDivider(moduleHeader,-34)
   function f:SetPageScrollLayout(key)
-    local bars=key=="bars" or key=="alerts" or key=="labs" or key=="interface" or key=="convenience"
-    barsHeader:SetShown(key=="bars"); alertsHeader:SetShown(key=="alerts"); labsHeader:SetShown(key=="labs")
-    interfaceHeader:SetShown(key=="interface");convenienceHeader:SetShown(key=="convenience")
+    local grouped=registry.groups[key]~=nil
+    for id,header in pairs(self.groupHeaders) do header:SetShown(id==key) end
+    moduleHeader:SetShown(grouped)
     scroll:ClearAllPoints()
-    scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-(bars and barsHeaderHeight or 0))
+    scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-(grouped and groupHeaderHeight+moduleHeaderHeight or 0))
     scroll:SetPoint("BOTTOMRIGHT",-38,58)
   end
   function f:UpdateContentHeight()
@@ -229,71 +196,55 @@ function KHQOL:CreateSettings()
   end)
   scroll:HookScript("OnSizeChanged",function() if f.activeContent then f:UpdateContentHeight() end end)
   local footer=UI:CreateButton(f,"모듈 설정 초기화",0,0,180,function()
-    if f.resetModuleKey then StaticPopup_Show("KHQOL_RESET_MODULE",f.resetModuleName,nil,f.resetModuleKey) end
+    if f.resetModuleKey then UI:RequestModuleReset(f.resetModuleKey) end
   end)
   footer:ClearAllPoints(); footer:SetPoint("BOTTOMRIGHT",-38,18)
   f.resetButton=footer
   function f:SetActiveSettingsModule(key,name)
     self.resetModuleKey=key;self.resetModuleName=name;footer:SetShown(key~=nil)
   end
+  function f:SetModuleHeader(meta)
+    self.currentModuleKey=meta and meta.key
+    self:SetActiveSettingsModule(meta and meta.key,meta and meta.title)
+    moduleHeader.description:SetText(meta and meta.description or "")
+    moduleHeader.toggle:SetShown(self.currentModuleKey~=nil)
+    UI:Refresh(moduleHeader)
+  end
+  function f:RefreshModuleState()
+    UI:Refresh(moduleHeader)
+    if self.pageCache.general then UI:Refresh(self.pageCache.general) end
+    if self.activeContent then UI:Refresh(self.activeContent) end
+  end
   local hint=UI:CreateDescription(f,"설정은 변경 즉시 저장됩니다.",T.SidebarWidth+T.ContentPadding,0)
   hint:ClearAllPoints(); hint:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,24); hint:SetWidth(300)
+  local groups={bars=KHQOL.BarsSettings,alerts=KHQOL.AlertSettings,labs=KHQOL.LabSettings,
+    interface=KHQOL.InterfaceSettings,convenience=KHQOL.ConvenienceSettings}
   function f:ShowPage(key)
-    -- Preserve old slash/minimap/API entry points without separate pages.
-    local requestedTab=key=="castBar" and "cast" or key=="resourceSwing" and "resource"
-      or key=="experienceBar" and "experience" or key=="environmentTimer" and "environment"
-    local requestedAlert=alertTabs[key]
-    local requestedInterface=interfaceTabs[key];local requestedConvenience=convenienceTabs[key]
-    if requestedTab then key="bars"
-    elseif requestedAlert then key="alerts"
-    elseif key=="procAlert" then key="labs"; requestedAlert="proc"
-    elseif requestedInterface then key="interface"
-    elseif requestedConvenience then key="convenience" end
+    local pageKey,requestedTab=registry:Resolve(key);key=pageKey
     local definition
-    for _, item in ipairs(pages) do if item[1]==key then definition=item; break end end
-    if not definition then key="general"; definition=pages[1] end
+    for _,item in ipairs(pages) do if item[1]==key then definition=item;break end end
     UI:CloseDropdown()
     if self.activeContent then self.activeContent:Hide() end
-    self.page=key; self.pageName=definition[2]; self.pageTitle:SetText(definition[2])
-    self:SetPageScrollLayout(key)
-    self:SetActiveSettingsModule(nil);scroll:SetVerticalScroll(0)
-    for menuKey, menuButton in pairs(self.menuButtons) do
-      UI:SetButtonSelected(menuButton,menuKey==key)
-    end
+    self.page=key;self.pageName=definition[2];self.pageTitle:SetText(definition[2])
+    self:SetPageScrollLayout(key);self:SetModuleHeader(nil);scroll:SetVerticalScroll(0)
+    for menuKey,menuButton in pairs(self.menuButtons) do UI:SetButtonSelected(menuButton,menuKey==key) end
     local content=self.pageCache[key]
     if not content then
-      content=CreateFrame("Frame",nil,child); content:SetPoint("TOPLEFT"); content:SetWidth(T.ContentWidth)
+      content=CreateFrame("Frame",nil,child);content:SetPoint("TOPLEFT");content:SetWidth(T.ContentWidth)
       self.pageCache[key]=content
       local y
-      if key=="general" then y=UI:CreatePage(content,definition[2],definition[3]); y=generalSettings(content,y)
-      elseif key=="profiles" then y=UI:CreatePage(content,definition[2],definition[3]); y=profileSettings(content,y)
-      elseif key=="bars" then
-        local tabY=UI:CreatePage(barsHeader,definition[2],definition[3])-T.RowGap
-        y=KHQOL.BarsSettings:BuildSettings(content,0,barsHeader,tabY)
-      elseif key=="alerts" then
-        local tabY=UI:CreatePage(alertsHeader,definition[2],definition[3])-T.RowGap
-        y=KHQOL.AlertSettings:BuildSettings(content,0,alertsHeader,tabY)
-      elseif key=="labs" then
-        local tabY=UI:CreatePage(labsHeader,definition[2],definition[3])-T.RowGap
-        y=KHQOL.LabSettings:BuildSettings(content,0,labsHeader,tabY)
-      elseif key=="interface" then
-        local tabY=UI:CreatePage(interfaceHeader,definition[2],definition[3])-T.RowGap
-        y=KHQOL.InterfaceSettings:BuildSettings(content,0,interfaceHeader,tabY)
-      elseif key=="convenience" then
-        local tabY=UI:CreatePage(convenienceHeader,definition[2],definition[3])-T.RowGap
-        y=KHQOL.ConvenienceSettings:BuildSettings(content,0,convenienceHeader,tabY)
+      if key=="general" then y=generalSettings(content,UI:CreatePage(content,definition[2],definition[3]))
+      elseif key=="profiles" then y=profileSettings(content,UI:CreatePage(content,definition[2],definition[3]))
+      else
+        local header=self.groupHeaders[key]
+        local tabY=UI:CreatePage(header,definition[2],definition[3])-T.RowGap
+        y=groups[key]:BuildSettings(content,0,header,tabY)
       end
       content.contentHeight=-y+T.ContentPadding
-      if content.detailPanel then
-        content.detailPanel:HookScript("OnSizeChanged",function() if f.activeContent==content then f:UpdateContentHeight() end end)
-      end
     end
-    self.activeContent=content; content:Show()
-    if requestedTab then content.SelectBarsTab(requestedTab) end
-    if requestedAlert then content.SelectAlertTab(requestedAlert) end
-    if requestedInterface then content.SelectAlertTab(requestedInterface) end
-    if requestedConvenience then content.SelectAlertTab(requestedConvenience) end
-    UI:Refresh(content); self:UpdateContentHeight()
+    self.activeContent=content;content:Show()
+    if groups[key] then content.SelectSettingsTab(requestedTab or groups[key].selected) end
+    UI:Refresh(content);self:UpdateContentHeight()
   end
   local navigation=CreateFrame("ScrollFrame",nil,f)
   navigation:SetPoint("TOPLEFT",10,-76); navigation:SetPoint("BOTTOMLEFT",10,58); navigation:SetWidth(T.SidebarWidth-20)

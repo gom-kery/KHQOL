@@ -237,6 +237,9 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   for _,region in ipairs({box:GetRegions()}) do if region:GetObjectType()=="Texture" then region:SetAlpha(0) end end
   UI:Surface(box)
   box:SetAutoFocus(false); box:SetFont(self:Font(), T.LabelFontSize, ""); box:SetTextInsets(6,6,0,0)
+  -- Numeric text must not depend on inherited input-template presentation.
+  box:SetTextColor(unpack(T.TextPrimary)); box:SetJustifyH("LEFT"); box:SetJustifyV("MIDDLE")
+  box:SetText(format(getter()))
   slider.numberBox = box
   local function rounded(value)
     return math.max(min, math.min(max, min + math.floor((value-min)/step+.5)*step))
@@ -269,6 +272,9 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   end)
   self:AttachTooltip(slider, title, description)
   self:AttachTooltip(box, title, "수치를 직접 입력한 후 Enter를 누르면 적용됩니다. Esc는 입력을 취소합니다.")
+  -- Nested settings panels may first appear after their controls were created.
+  -- Refresh on visibility changes too, while retaining a focused user draft.
+  box:HookScript("OnShow", function() slider:Refresh() end)
   self:RegisterControl(parent, slider); slider:Refresh(); return slider
 end
 function UI:CloseDropdown()

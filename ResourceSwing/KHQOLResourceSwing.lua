@@ -285,8 +285,6 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
     local function available(condition)
         return function() return moduleEnabled() and (not condition or condition()) end
     end
-    b:Section("리소스/스윙")
-    b:Checkbox("리소스/스윙 사용",moduleEnabled,function(v) NS:SetEnabled("resourceSwing",v); UI:Refresh(content) end)
     local function check(title, key, enabled)
         b:Checkbox(title, function() return db[key] end, function(v) db[key]=v; applyLayout() end, available(enabled))
     end
@@ -349,8 +347,6 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
     dropdown("전체 표시 레이어", "frameStrata", {"BACKGROUND","LOW","MEDIUM","HIGH","DIALOG"}, {BACKGROUND="배경",LOW="낮음",MEDIUM="보통",HIGH="높음",DIALOG="대화창 위"})
     adjust("자원 바 내부 레이어", "resourcePriority", 1, 7, 1)
     adjust("스윙 바 내부 레이어", "swingPriority", 1, 7, 1)
-    b:Section("기본값 복원")
-    b:Button("리소스/스윙 설정 초기화",function() StaticPopup_Show("KHQOL_RESET_MODULE","리소스/스윙",nil,"resourceSwing") end)
     return b.y
 end
 

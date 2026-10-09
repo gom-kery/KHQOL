@@ -279,13 +279,7 @@ function KHQOL:ApplyProfileModules()
   m.tooltip:RefreshVisibleTooltip()
   self:ApplyEditorPositions()
   self:UpdateMinimapButton(); self:HideLegacyButtons()
-  if self.settings then
-    for _,content in pairs(self.settings.pageCache) do self.UI:Refresh(content) end
-    if fc.RefreshSettings then fc:RefreshSettings() end
-    if fbr.RefreshSettings then fbr:RefreshSettings() end
-    if m.range.UpdateSettings then m.range:UpdateSettings() end
-    self.settings:ShowPage(self.settings.page or "general")
-  end
+  if self.UI.RefreshSettingsViews then self.UI:RefreshSettingsViews() end
 end
 function KHQOL:SelectProfile(name)
   local allowed,reason=self:CanChangeProfile(); if not allowed then return false,reason end
@@ -334,6 +328,7 @@ function KHQOL:DeleteProfile(name)
   return true
 end
 function KHQOL:ResetProfileModule(key)
+  if not self.UI.SettingsRegistry.modules[key] then return false,"초기화할 모듈을 찾을 수 없습니다." end
   local allowed,reason=self:CanChangeProfile(); if not allowed then return false,reason end
   self:CloseProfileEditors(); self:SaveCurrentProfile()
   local profile=self:CaptureProfile(); local defaults=self:MakeDefaultProfile()

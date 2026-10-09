@@ -79,6 +79,7 @@ function KHQOL:SetEnabled(key, enabled)
   local module = managedModules[key] and self.modules[key]
   if module and module.SetEnabled then module:SetEnabled(enabled) end
   if key == "resourceSwing" and self.modules.castBar and self.modules.castBar.frame then self.modules.castBar:ApplyLayout(); self.modules.castBar:RefreshControls() end
+  if not self.profileApplying and self.settings and self.settings.RefreshModuleState then self.settings:RefreshModuleState(key) end
 end
 
 function KHQOL:HideLegacyButtons()
@@ -114,7 +115,7 @@ function KHQOL:OpenModule(key)
 end
 function KHQOL:ToggleSettings() if self.settings and self.settings:IsShown() then self.settings:Hide() else self:ShowSettings("general") end end
 
-local commandPages = { clock="clock", todo="todo", buff="buffReminder", range="range", tooltip="tooltip", weapon="tooltip", resource="resourceSwing", campfire="campfire", trail="cursorTrail", cursortrail="cursorTrail", cast="castBar", castbar="castBar", combat="combatStatus", combatstatus="combatStatus", quest="questNavigator", questnavigator="questNavigator", pvp="pvpAlert", pvpalert="pvpAlert" }
+local commandPages = KHQOL.UI.SettingsRegistry.commands
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_LOGIN")
 events:SetScript("OnEvent", function()
