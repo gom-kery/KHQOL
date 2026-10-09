@@ -2,7 +2,7 @@ local _, KHQOL = ...
 local General = KHQOL.modules.general
 
 local defaults = {
-  centerTextScale = 100, autoSellJunk = false, autoSellJunkReport = false,
+  centerTextScale = 100, autoSellJunk = false, autoSellJunkReport = false, autoConfirmDestroy = false, chatEnhancement = false,
   autoRepair = false, useGuildFunds = false, declinePartyInvites = false, declineGuildInvites = false,
 }
 
@@ -296,11 +296,32 @@ function General:StartJunkSale()
   end)
 end
 
+-- Only fill the typed item-destruction confirmation; never accept the dialog.
+-- Camelot uses DELETE_GOOD_ITEM and the localized DELETE_ITEM_CONFIRM_STRING.
+function General:FillDestroyConfirmation(dialog)
+  if not self:GetDB().autoConfirmDestroy or not dialog or dialog.which~="DELETE_GOOD_ITEM" then return end
+  if not dialog:IsShown() or type(DELETE_ITEM_CONFIRM_STRING)~="string" or DELETE_ITEM_CONFIRM_STRING=="" then return end
+  local definition=StaticPopupDialogs and StaticPopupDialogs[dialog.which]
+  if definition and definition.editBoxSecureText then return end
+  local box=dialog.GetEditBox and dialog:GetEditBox() or dialog.editBox or dialog.EditBox
+  if not box or not box:IsShown() or type(box.SetText)~="function" then return end
+  if box:GetText()~="" then return end
+  box:SetText(DELETE_ITEM_CONFIRM_STRING)
+  -- Blizzard's existing OnTextChanged handler enables Yes after validation.
+end
+function General:InitializeDestroyConfirmation()
+  if self.destroyConfirmationHooked or type(StaticPopup_OnShow)~="function" then return end
+  self.destroyConfirmationHooked=true
+  hooksecurefunc("StaticPopup_OnShow",function(dialog) General:FillDestroyConfirmation(dialog) end)
+end
+
 function General:Initialize()
   if self.initialized then self:ApplyCenterTextScale(); return end
   self.initialized = true; self:GetDB(); self:ApplyCenterTextScale()
+  self:InitializeDestroyConfirmation()
   local events = CreateFrame("Frame")
   events:RegisterEvent("PLAYER_ENTERING_WORLD")
+  events:RegisterEvent("ADDON_LOADED")
   events:RegisterEvent("MERCHANT_SHOW")
   events:RegisterEvent("MERCHANT_CLOSED")
   for _, event in ipairs({"PARTY_INVITE_REQUEST", "PARTY_INVITE_CANCEL", "GUILD_INVITE_REQUEST", "GUILD_INVITE_CANCEL"}) do
@@ -310,7 +331,9 @@ function General:Initialize()
     end
   end
   events:SetScript("OnEvent", function(_, event, inviter, guildName)
-    if event == "MERCHANT_SHOW" then General:StartJunkSale()
+    if event == "ADDON_LOADED" then
+      if inviter=="Blizzard_StaticPopup" or inviter=="Blizzard_StaticPopup_Game" then General:InitializeDestroyConfirmation() end
+    elseif event == "MERCHANT_SHOW" then General:StartJunkSale()
     elseif event == "MERCHANT_CLOSED" then General:CloseMerchantWork()
     elseif event == "PARTY_INVITE_REQUEST" then General:QueueInviteDecline("party", inviter)
     elseif event == "GUILD_INVITE_REQUEST" then General:QueueInviteDecline("guild", inviter, guildName)
@@ -326,6 +349,7 @@ end
 -- Preserve the existing cancellation side effects when an option is turned OFF.
 function General:SetConvenienceEnabled(key,on)
   self:GetDB()[key]=on
+  if key=="chatEnhancement" and KHQOL.modules.chatEnhancement then KHQOL.modules.chatEnhancement:ApplySettings() end
   if not on then
     if key=="autoSellJunk" then self:CancelJunkSale()
     elseif key=="autoRepair" then CancelDeferred(self.merchantVisit)
@@ -342,6 +366,14 @@ end
 
 function General:BuildSettings(parent, y)
   local b = KHQOL.UI:CreateBuilder(parent, y)
+  b:Section("대화창")
+  b:Checkbox("기본 대화창 편의 기능",function() return General:GetDB().chatEnhancement end,
+    function(on) General:SetConvenienceEnabled("chatEnhancement",on) end)
+  b:Description("대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사 기능을 개선합니다.")
+  b:Section("아이템 파괴")
+  b:Checkbox("아이템 파괴 확인 문구 자동 입력",function() return General:GetDB().autoConfirmDestroy end,
+    function(on) General:SetConvenienceEnabled("autoConfirmDestroy",on) end)
+  b:Description("파란색 등급 이상 아이템의 파괴 확인창에 확인 문구를 자동 입력합니다. 최종 ‘예’ 버튼은 직접 선택합니다.")
   b:Section("판매")
   local sell = b:Checkbox("잡템 자동 판매", function() return General:GetDB().autoSellJunk end, function(on) General:SetConvenienceEnabled("autoSellJunk",on) end)
   KHQOL.UI:AttachTooltip(sell, "잡템 자동 판매", "상점이 열릴 때 판매 가능한 회색 아이템을 판매합니다. 퀘스트 아이템과 판정이 불확실한 아이템은 제외합니다.")

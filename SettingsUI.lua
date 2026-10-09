@@ -208,6 +208,9 @@ function KHQOL:CreateSettings()
     self:SetActiveSettingsModule(meta and meta.key,meta and meta.title)
     moduleHeader.description:SetText(meta and meta.description or "")
     moduleHeader.toggle:SetShown(self.currentModuleKey~=nil)
+    if KHQOL.modules.frameInspector then
+      KHQOL.modules.frameInspector:SetPageActive(meta and meta.group=="labs" and meta.id=="inspector" or false)
+    end
     UI:Refresh(moduleHeader)
   end
   function f:RefreshModuleState()

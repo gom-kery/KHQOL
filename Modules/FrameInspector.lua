@@ -8,7 +8,10 @@ local function call(object,method,...)
 end
 local function text(value)
   if value==nil then return "(없음)" end
-  local ok,result=pcall(tostring,value)
+  local ok,result=pcall(function()
+    if type(value)=="number" then return string.format("%.2f",value):gsub("0+$",""):gsub("%.$","") end
+    return tostring(value)
+  end)
   return ok and result or "(보호된 값)"
 end
 local function name(f) return text(call(f,"GetName") or call(f,"GetDebugName")) end
@@ -63,10 +66,11 @@ function I:Sample()
   end
   local ok,result=pcall(self.Describe,self,f)
   self.snapshot=ok and result or "프레임 정보가 보호되어 읽을 수 없습니다."
-  if self.info then self.info:SetText(self.snapshot) end
+  self:UpdateInformation(self.snapshot)
 end
 function I:SetEnabled(on)
   self.enabled=on and true or false; self.elapsed=0
+  if self.toggle then self.toggle:Refresh() end
   if not self.content then return end
   self.content:SetScript("OnUpdate",nil)
   if self.enabled and self.content:IsShown() then
@@ -96,33 +100,83 @@ function I:OpenFrameStack()
     if type(load)=="function" then pcall(load,"Blizzard_DebugTools") end
   end
   if type(FrameStackTooltip_Toggle)=="function" then pcall(FrameStackTooltip_Toggle,false,true,true)
-  elseif self.info then self.info:SetText("이 클라이언트에서 Frame Stack을 실행할 수 없습니다.") end
+  elseif self.info then self:UpdateInformation("이 클라이언트에서 Frame Stack을 실행할 수 없습니다.") end
+end
+function I:UpdateInformation(value)
+  if not self.info then return end
+  -- Remove the previous height before measuring a longer wrapped snapshot.
+  self.info:SetHeight(0)
+  self.info:SetText(value)
+  local height=math.max(18,self.info:GetStringHeight())
+  self.info:SetHeight(height)
+  if self.content and self.infoY then
+    self.content:SetHeight(-self.infoY+height+KHQOL.UI.Theme.ContentPadding)
+  end
+  if self.actions then KHQOL.UI:Refresh(self.actions) end
+end
+function I:EnsureFixedControls()
+  if self.actions or not KHQOL.settings then return end
+  local UI,T=KHQOL.UI,KHQOL.UI.Theme
+  local settings=KHQOL.settings
+  self.toggle=UI:CreateCheckbox(settings.moduleHeader,"프레임 인스펙터 활성화",T.ContentWidth-250,0,
+    function() return I.enabled end,function(on) I:SetEnabled(on) end)
+  self.toggle.ignoreModuleEnabled=true; self.toggle.text:SetWidth(216); self.toggle:Hide()
+  local actions=CreateFrame("Frame",nil,settings)
+  self.actions=actions
+  actions:SetPoint("BOTTOMLEFT",settings,"BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,58)
+  actions:SetSize(T.ContentWidth,64); actions:Hide()
+  UI:CreateButton(actions,"현재 정보 복사",0,0,180,function() I:CopyInformation() end,
+    function() return I.snapshot~=nil end)
+  UI:CreateButton(actions,"Frame Stack 열기",T.ContentWidth/2,0,190,function() I:OpenFrameStack() end,
+    function() return not (InCombatLockdown and InCombatLockdown()) and I:HasFrameStack() end)
+  local hint=UI:CreateDescription(actions,"복사 창에서 Ctrl+C · Esc로 닫기. Frame Stack 닫기: /fstack",0,-34)
+  hint:SetWidth(T.ContentWidth); hint:SetJustifyV("TOP")
+  actions:RegisterEvent("PLAYER_REGEN_DISABLED"); actions:RegisterEvent("PLAYER_REGEN_ENABLED")
+  actions:SetScript("OnEvent",function() UI:Refresh(actions) end)
+  -- Copy is a fixed overlay over the viewport, never below the scroll content.
+  local overlay=CreateFrame("Frame",nil,settings,"BackdropTemplate")
+  overlay:SetPoint("TOPLEFT",settings.scroll,"TOPLEFT",0,0)
+  overlay:SetPoint("BOTTOMRIGHT",settings.scroll,"BOTTOMRIGHT",0,0)
+  overlay:SetFrameLevel(settings.scroll:GetFrameLevel()+10)
+  UI:Surface(overlay); overlay:Hide(); self.copyOverlay=overlay
+  local box=UI:CreateEditBox(overlay,8,-8,T.ContentWidth-16)
+  box:ClearAllPoints(); box:SetPoint("TOPLEFT",8,-8); box:SetPoint("BOTTOMRIGHT",-8,8)
+  box:SetMultiLine(true); box:SetMaxLetters(0); self.copyBox=box
+  box:SetScript("OnEscapePressed",function() box:ClearFocus(); overlay:Hide() end)
+  box:SetScript("OnEnterPressed",function() box:ClearFocus() end)
+end
+function I:CopyInformation()
+  if not self.copyBox or not self.snapshot then return end
+  self.copyOverlay:Show(); self.copyBox:SetText(self.snapshot)
+  self.copyBox:SetFocus(); self.copyBox:HighlightText()
+end
+function I:SetPageActive(active)
+  self:EnsureFixedControls()
+  local settings=KHQOL.settings
+  if not settings or not self.actions then return end
+  self.toggle:SetShown(active); self.actions:SetShown(active)
+  settings.moduleHeader.description:SetWidth(KHQOL.UI.Theme.ContentWidth-(active and 264 or 124))
+  settings.scroll:SetPoint("BOTTOMRIGHT",-38,active and 136 or 58)
+  if not active then
+    self:SetEnabled(false); self.copyBox:ClearFocus(); self.copyOverlay:Hide()
+  end
+  KHQOL.UI:Refresh(self.actions)
+  if settings.activeContent then settings:UpdateContentHeight() end
 end
 function I:BuildSettings(content,y)
   local UI,T=KHQOL.UI,KHQOL.UI.Theme
-  self.content=content
+  self.content=content; self:EnsureFixedControls()
   local b=UI:CreateBuilder(content,y)
-  b:Section("프레임 검사기")
-  b:Checkbox("Frame Inspector 활성화",function() return I.enabled end,function(on) I:SetEnabled(on) end)
-  b:Description("1. 확인할 Blizzard 창을 엽니다.\n2. 마우스를 창 위에 올립니다.\n3. 이름과 부모 경로를 확인합니다. KHQOL 위에서는 마지막 정보를 유지합니다.\n페이지를 닫거나 이동하면 검사기가 꺼집니다. Reload 후 기본 OFF입니다.")
+  b:Description("확인할 창 위에 마우스를 올리세요. KHQOL 위에서는 마지막 정보를 유지합니다. 페이지를 닫으면 검사기가 꺼집니다.")
   b:Section("현재 Frame")
-  b:Flush()
-  self.info=UI:CreateDescription(content,self.snapshot or "검사기를 활성화하세요.",0,b.y)
-  self.info:SetWidth(T.ContentWidth); self.info:SetHeight(500)
-  b.y=b.y-500-T.RowGap
-  local copyBox
-  b:Button("현재 정보 복사",function()
-    copyBox:SetText(I.snapshot or ""); copyBox:Show(); copyBox:SetFocus(); copyBox:HighlightText()
-  end,nil,function() return I.snapshot~=nil end)
-  b:Button("Frame Stack 열기",function() I:OpenFrameStack() end,nil,function()
-    return not (InCombatLockdown and InCombatLockdown()) and I:HasFrameStack()
+  self.infoY=b.y
+  self.info=UI:CreateDescription(content,self.snapshot or "마우스를 확인할 Blizzard 창 위에 올리세요.",0,b.y)
+  self.info:SetWidth(T.ContentWidth); self.info:SetJustifyV("TOP")
+  self:UpdateInformation(self.snapshot or "마우스를 확인할 Blizzard 창 위에 올리세요.")
+  content:HookScript("OnHide",function()
+    I:SetEnabled(false)
+    if I.copyBox then I.copyBox:ClearFocus(); I.copyOverlay:Hide() end
   end)
-  b:Description("복사 버튼을 누른 뒤 아래 입력창에서 Ctrl+C를 누르세요. Frame Stack은 Blizzard 기본 도구이며 닫기는 /fstack으로 가능합니다.")
-  b:Flush()
-  copyBox=UI:CreateEditBox(content,0,b.y,T.ContentWidth,function() return I.snapshot or "" end)
-  copyBox:SetMultiLine(true); copyBox:SetHeight(260); copyBox:SetMaxLetters(0)
-  copyBox:Hide(); b.y=b.y-260-T.SectionGap
-  content:HookScript("OnHide",function() I:SetEnabled(false); copyBox:ClearFocus(); copyBox:Hide() end)
-  content:HookScript("OnShow",function() UI:Refresh(content) end)
-  return b.y
+  content:HookScript("OnShow",function() if I.toggle then I.toggle:Refresh() end end)
+  return -content:GetHeight()
 end

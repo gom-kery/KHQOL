@@ -2,7 +2,7 @@
 ## Title: KHQOL
 ## Notes: Unified quality-of-life settings for WoW Forever.
 ## Author: KHQOL
-## Version: 1.10.1.1
+## Version: 1.10.1.3
 ## SavedVariables: KHQOLDB, ForeverClockDB, ForeverBuffReminderDB, ForeverWeaponGuideDB, KHQOLResourceSwingDB, CampfireAlertDB
 ## SavedVariablesPerCharacter: FRangeDB, KHQOLCursorTrailCharDB
 
@@ -11,6 +11,7 @@ Profiles.lua
 UI.lua
 UI/SettingsRegistry.lua
 UI/SettingsPresenter.lua
+Modules/ChatEnhancement.lua
 GeneralOptions.lua
 Clock/Locale.lua
 Clock/Core.lua

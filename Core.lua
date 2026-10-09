@@ -7,7 +7,7 @@ local defaults = {
   enabled = { clock = true, todo = true, buffReminder = true, range = true, tooltip = true, resourceSwing = true, campfire = true, cursorTrail = true, castBar = true, combatStatus = true, questNavigator = true, threat = true, pvpAlert = true },
   migrated = {}, modules = {},
   general = {
-    centerTextScale = 100, autoSellJunk = false, autoSellJunkReport = false,
+    centerTextScale = 100, autoSellJunk = false, autoSellJunkReport = false, autoConfirmDestroy = false, chatEnhancement = false,
     autoRepair = false, useGuildFunds = false, declinePartyInvites = false, declineGuildInvites = false,
   },
 }
@@ -124,6 +124,7 @@ events:SetScript("OnEvent", function()
   KHQOL:Migrate()
   if KHQOL.modules.general and KHQOL.modules.general.Initialize then KHQOL.modules.general:Initialize() end
   KHQOL.modules.frameMover:Initialize()
+  KHQOL.modules.chatEnhancement:Initialize()
   if KHQOL.CreateSettings then KHQOL:CreateSettings() elseif DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffff4040KHQOL: 설정 UI를 불러오지 못했습니다.|r") end
   KHQOL:CreateMinimapButton()
   C_Timer.After(0, function()

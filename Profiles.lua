@@ -237,6 +237,7 @@ function KHQOL:ApplyProfileModules()
   if m.general.CloseMerchantWork then m.general:CloseMerchantWork() end
   if m.general.CancelInviteDecline then m.general:CancelInviteDecline("party"); m.general:CancelInviteDecline("guild") end
   m.general:ApplyCenterTextScale()
+  if m.chatEnhancement then m.chatEnhancement:ApplySettings() end
   local fc=m.clock; fc.db=ForeverClockDB
   fc:ApplyAll()
   if fc.ApplyProfessionFont then fc:ApplyProfessionFont() end
