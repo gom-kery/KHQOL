@@ -30,11 +30,19 @@ UI.Theme = {
 }
 local T = UI.Theme
 function UI:Font() return KHQOL.modules.clock.FONT_PATH or STANDARD_TEXT_FONT end
+function UI:RegisterCaption(parent, region, size)
+  parent.uiCaptions=parent.uiCaptions or {}
+  local caption={region=region,text=region:GetText() or "",size=size}
+  table.insert(parent.uiCaptions,caption)
+  -- Keep dynamic row names/descriptions, including intentional empty text.
+  hooksecurefunc(region,"SetText",function(_,text) caption.text=text or "" end)
+end
 function UI:CreateLabel(parent, text, x, y, size)
   local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   fs:SetPoint("TOPLEFT", x or 0, y or 0); fs:SetFont(self:Font(), size or T.LabelFontSize, "")
   fs:SetTextColor(unpack(T.TextPrimary)); fs:SetJustifyH("LEFT"); fs:SetText(text or "")
   fs:SetWidth(math.max(40, (parent:GetWidth() > 0 and parent:GetWidth() or T.ContentWidth) - (x or 0)))
+  self:RegisterCaption(parent,fs,size or T.LabelFontSize)
   return fs
 end
 function UI:CreateDescription(parent, text, x, y)
@@ -163,7 +171,12 @@ function UI:RegisterControl(parent, control)
 end
 function UI:Refresh(parent)
   for _, control in ipairs(parent.uiControls or {}) do if control.Refresh then control:Refresh() end end
-  for _, child in ipairs({parent:GetChildren()}) do if child.uiControls then self:Refresh(child) end end
+  for _, caption in ipairs(parent.uiCaptions or {}) do
+    caption.region:SetFont(self:Font(),caption.size,"")
+    caption.region:SetText(caption.text)
+  end
+  -- A plain wrapper can contain controls several levels below it.
+  for _, child in ipairs({parent:GetChildren()}) do self:Refresh(child) end
 end
 function UI:Changed(parent)
   if KHQOL.settings and KHQOL.settings.activeContent then self:Refresh(KHQOL.settings.activeContent)
@@ -207,9 +220,13 @@ function UI:CreateButton(parent, text, x, y, width, click, enabled)
   local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
   b:SetSize(width or 150, T.ButtonHeight); b:SetPoint("TOPLEFT", x, y)
   self:SkinButton(b); b:SetText(text)
+  hooksecurefunc(b,"SetText",function(_,value) text=value or "" end)
   -- Explicit widths are caps, not padding; sidebar buttons opt back into a fixed width.
   b:SetWidth(math.min(width or T.ContentWidth, math.ceil(b:GetFontString():GetStringWidth()) + 24))
-  b.Refresh = function() UI:ApplyAvailability(b, enabled) end
+  b.Refresh = function()
+    UI:ApplyAvailability(b, enabled)
+    b:SetText(text)
+  end
   b:SetScript("OnClick", function(self, mouseButton)
     if UI:IsAvailable(b, enabled) then click(self, mouseButton); UI:Changed(parent) end
   end)

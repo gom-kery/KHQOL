@@ -66,9 +66,46 @@ local function validPosition(p)
     and type(p.x)=="number" and type(p.y)=="number" and p.x==p.x and p.y==p.y
     and math.abs(p.x)<100000 and math.abs(p.y)<100000
 end
+local function mapLocked(f)
+  return combat() and (not f.IsProtected or f:IsProtected())
+end
+local function rectInParent(f)
+  if not f.GetRect then return end
+  local left,bottom,width,height=f:GetRect()
+  if not left or not bottom or not width or not height then return end
+  local scale=f:GetEffectiveScale()/UIParent:GetEffectiveScale()
+  return left*scale,bottom*scale,(left+width)*scale,(bottom+height)*scale
+end
+function M:ClampMap(r)
+  local f=r.frame
+  if r.name~="WorldMapFrame" or not f:IsShown() or mapLocked(f) then return end
+  local left,bottom,right,top=rectInParent(f)
+  local sl,sb,sr,st=rectInParent(UIParent)
+  if not left or not sl then return end
+  local quest=f.QuestLog
+  if quest and quest:IsShown() then
+    local ql,qb,qr,qt=rectInParent(quest)
+    if ql then left=math.min(left,ql);bottom=math.min(bottom,qb);right=math.max(right,qr);top=math.max(top,qt) end
+  end
+  -- The root already includes the quest width; union also covers client layouts
+  -- with a side panel extending outside it. All values use UIParent units.
+  local function correction(lo,hi,screenLo,screenHi)
+    if hi-lo>screenHi-screenLo then return screenLo-lo end
+    if lo<screenLo then return screenLo-lo end
+    if hi>screenHi then return screenHi-hi end
+    return 0
+  end
+  local dx=correction(left,right,sl,sr)
+  local dy=correction(bottom,top,sb,st)
+  if math.abs(dx)<.01 and math.abs(dy)<.01 then return end
+  local x,y=f:GetCenter();if not x or not y then return end
+  local scale=f:GetEffectiveScale()/UIParent:GetEffectiveScale()
+  f:ClearAllPoints();f:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x*scale+dx-sl,y*scale+dy-sb)
+  -- Keep the user's saved CENTER position; clamp it again for each final size.
+end
 function M:Apply(r)
   if r.applying or r.moving then return end
-  if combat() then self.pending=true; return end
+  if combat() and (r.name~="WorldMapFrame" or mapLocked(r.frame) or not self:GetDB().enabled) then self.pending=true; return end
   local db=self:GetDB()
   local key=keyFor(r)
   if not db.enabled or not key then
@@ -82,6 +119,7 @@ function M:Apply(r)
     r.controlled=true; r.appliedKey=key; r.applying=true
     r.frame:ClearAllPoints()
     r.frame:SetPoint(p.point,UIParent,p.relativePoint,p.x,p.y)
+    self:ClampMap(r)
     r.applying=nil
   end
 end
@@ -143,6 +181,14 @@ function M:Register(key,entry)
   if entry.name=="PlayerSpellsFrame" and type(f.SetTab)=="function" then
     hooksecurefunc(f,"SetTab",function() M:Apply(r) end)
   end
+  if entry.name=="WorldMapFrame" then
+    f:HookScript("OnSizeChanged",function() M:Apply(r) end)
+    -- Post-hooks run after Blizzard has sized the quest panel and re-anchored
+    -- the UIPanel. No timers, size overrides or Blizzard script replacement.
+    for _,method in ipairs({"SetQuestLogPanelShown","SetDisplayState","SynchronizeDisplayState"}) do
+      if type(f[method])=="function" then hooksecurefunc(f,method,function() M:Apply(r) end) end
+    end
+  end
 end
 function M:Refresh()
   if not KHQOL.db then return end
@@ -173,7 +219,7 @@ function M:Initialize()
   if self.initialized then self:Refresh(); return end
   self.initialized=true; self:GetDB(); self:Refresh()
   local events=CreateFrame("Frame")
-  for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","PLAYER_REGEN_ENABLED"}) do events:RegisterEvent(event) end
+  for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","PLAYER_REGEN_ENABLED","UI_SCALE_CHANGED","DISPLAY_SIZE_CHANGED"}) do events:RegisterEvent(event) end
   events:SetScript("OnEvent",function(_,event,addon)
     if event=="ADDON_LOADED" then
       local relevant=false

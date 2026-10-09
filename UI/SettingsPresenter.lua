@@ -29,9 +29,8 @@ function Group:BuildSettings(content,y,host,tabY)
       UI:SetButtonSelected(buttons[tab.id],tab.id==id)
       if tab.id~=id then panels[tab.id]:Hide() end
     end
-    panel:Show()
     if panel.RefreshTab then panel:RefreshTab() end
-    UI:Refresh(panel);updateHeight(panel)
+    UI:Refresh(panel);panel:Show();updateHeight(panel)
     if KHQOL.settings then
       local meta=R.groups[self.id][id]
       KHQOL.settings:SetModuleHeader(meta)
@@ -50,7 +49,6 @@ function Group:BuildSettings(content,y,host,tabY)
     local bottom=tab.build(panel,0);panel:SetHeight(math.max(1,-bottom))
     panel:HookScript("OnSizeChanged",function() if self.selected==id then updateHeight(panel) end end)
   end
-  content:SetScript("OnShow",function() selectTab(self.selected) end)
   selectTab(self.selected)
   return -content.contentHeight+T.ContentPadding
 end

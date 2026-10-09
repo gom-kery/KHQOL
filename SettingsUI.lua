@@ -130,7 +130,7 @@ function KHQOL:CreateSettings()
   end
   f:RegisterEvent("DISPLAY_SIZE_CHANGED"); f:RegisterEvent("UI_SCALE_CHANGED")
   f:SetScript("OnEvent",function(self) self:FitScreen() end)
-  f:SetScript("OnShow",function(self) self:FitScreen() end); f:FitScreen()
+  f:SetScript("OnShow",function(self) self:FitScreen(); self:RefreshActivePage() end); f:FitScreen()
   SlashCmdList.KHQOLRESOURCESWING=function()
     if f:IsShown() and f.page=="bars" and KHQOL.BarsSettings.selected=="resource" then f:Hide() else KHQOL:ShowSettings("resourceSwing") end
   end
@@ -216,7 +216,15 @@ function KHQOL:CreateSettings()
   function f:RefreshModuleState()
     UI:Refresh(moduleHeader)
     if self.pageCache.general then UI:Refresh(self.pageCache.general) end
-    if self.activeContent then UI:Refresh(self.activeContent) end
+    self:RefreshActivePage()
+  end
+  function f:RefreshActivePage()
+    local content=self.activeContent; if not content then return end
+    if content.RefreshTab then content:RefreshTab() end
+    UI:Refresh(content)
+    UI:Refresh(moduleHeader)
+    if self.groupHeaders[self.page] then UI:Refresh(self.groupHeaders[self.page]) end
+    self:UpdateContentHeight()
   end
   local hint=UI:CreateDescription(f,"설정은 변경 즉시 저장됩니다.",T.SidebarWidth+T.ContentPadding,0)
   hint:ClearAllPoints(); hint:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,24); hint:SetWidth(300)
@@ -233,7 +241,7 @@ function KHQOL:CreateSettings()
     for menuKey,menuButton in pairs(self.menuButtons) do UI:SetButtonSelected(menuButton,menuKey==key) end
     local content=self.pageCache[key]
     if not content then
-      content=CreateFrame("Frame",nil,child);content:SetPoint("TOPLEFT");content:SetWidth(T.ContentWidth)
+      content=CreateFrame("Frame",nil,child);content:Hide();content:SetPoint("TOPLEFT");content:SetWidth(T.ContentWidth)
       self.pageCache[key]=content
       local y
       if key=="general" then y=generalSettings(content,UI:CreatePage(content,definition[2],definition[3]))
@@ -245,9 +253,9 @@ function KHQOL:CreateSettings()
       end
       content.contentHeight=-y+T.ContentPadding
     end
-    self.activeContent=content;content:Show()
+    self.activeContent=content
     if groups[key] then content.SelectSettingsTab(requestedTab or groups[key].selected) end
-    UI:Refresh(content);self:UpdateContentHeight()
+    self:RefreshActivePage();content:Show();self:UpdateContentHeight()
   end
   local navigation=CreateFrame("ScrollFrame",nil,f)
   navigation:SetPoint("TOPLEFT",10,-76); navigation:SetPoint("BOTTOMLEFT",10,58); navigation:SetWidth(T.SidebarWidth-20)
