@@ -7,7 +7,7 @@ local COLOR_KEYS = {"enterColor","leaveColor"}
 local POINTS = {CENTER=true,TOP=true,BOTTOM=true,LEFT=true,RIGHT=true,TOPLEFT=true,TOPRIGHT=true,BOTTOMLEFT=true,BOTTOMRIGHT=true}
 
 CombatStatus.defaults = {
-  showEnter=true, showLeave=true, enterText="전투 시작", leaveText="전투 종료",
+  showEnter=true, showLeave=true, showSwords=true, enterText="전투 시작", leaveText="전투 종료",
   enterColor={1,.15,.15}, leaveColor={.3,1,.4}, fontSize=60, swordWidth=56,
   displayDuration=1.2, fadeOut=true, showCombatDuration=false, locked=true,
   position={point="CENTER",relativePoint="CENTER",x=0,y=150},
@@ -20,7 +20,7 @@ function CombatStatus:GetDB()
   local db=KHQOL.db.modules.combatStatus
   if type(db)~="table" then db={}; KHQOL.db.modules.combatStatus=db end
   KHQOL.MergeDefaults(db,self.defaults,"types")
-  db.fontSize=clamp(db.fontSize,40,80,60); db.swordWidth=clamp(db.swordWidth,40,80,56)
+  db.fontSize=clamp(db.fontSize,40,80,60); db.swordWidth=clamp(db.swordWidth,20,160,56)
   db.displayDuration=clamp(db.displayDuration,.5,3,1.2)
   for _,key in ipairs(COLOR_KEYS) do
     for i=1,3 do db[key][i]=clamp(db[key][i],0,1,self.defaults[key][i]) end
@@ -32,6 +32,10 @@ function CombatStatus:GetDB()
   self.db=db; return db
 end
 function CombatStatus:IsEnabled() return KHQOL:GetEnabled("combatStatus") end
+function CombatStatus:ShouldShowMessage(kind)
+  return kind=="enter" and self.db.showEnter or kind=="leave" and self.db.showLeave or false
+end
+function CombatStatus:ShouldShowSwords() return self.db.showSwords and self.resourcesOK end
 function CombatStatus:DebugOnce(key, message)
   if not KHQOL.db.debug or self.warnings[key] then return end
   self.warnings[key]=true
@@ -117,7 +121,8 @@ function CombatStatus:CreateAnimations()
   alpha(self.fadeIn,0,1,FADE_IN)
   self.fadeIn:SetScript("OnFinished",function()
     self.visual:SetAlpha(1)
-    if self.kind=="enter" then self:StartMotion(true)
+    if not self:ShouldShowSwords() then self:StartHold()
+    elseif self.kind=="enter" then self:StartMotion(true)
     else self:SwitchColor("blue"); self.phase="SWAP"; self.swap:Play() end
   end)
   self.swap=self:NewGroup(self.visual)
@@ -145,7 +150,7 @@ function CombatStatus:CreateAnimations()
     for _,side in ipairs(self.sides) do side.motion.blue.group:Stop(); side.motion.red.group:Stop() end
     self:SetPose(self.kind=="enter")
     if self.kind=="enter" then
-      self:SwitchColor("red"); self.text:Show(); self.phase="CLASH"; self.pulse:Play()
+      self:SwitchColor("red"); self.text:SetShown(self:ShouldShowMessage(self.kind)); self.phase="CLASH"; self.pulse:Play()
     else self:StartHold() end
   end)
   self.pulse=self:NewGroup(self.visual)
@@ -174,8 +179,8 @@ end
 function CombatStatus:SwitchColor(color)
   self.color=color
   for _,side in ipairs(self.sides) do
-    side.blue:SetShown(self.resourcesOK and color=="blue")
-    side.red:SetShown(self.resourcesOK and color=="red")
+    side.blue:SetShown(self:ShouldShowSwords() and color=="blue")
+    side.red:SetShown(self:ShouldShowSwords() and color=="red")
   end
 end
 function CombatStatus:StartMotion(entering)
@@ -192,7 +197,7 @@ function CombatStatus:StartHold()
   self.phase="HOLD"
   -- Display duration includes all time for which the message is visible.
   -- Default enter: .10+.20+1.20 = 1.50s; leave: 1.20s.
-  local spent=self.kind=="enter" and PULSE or FADE_IN+SWAP+MOVE
+  local spent=not self:ShouldShowSwords() and FADE_IN or (self.kind=="enter" and PULSE or FADE_IN+SWAP+MOVE)
   local hold=math.max(0,self.db.displayDuration-spent-(self.db.fadeOut and FADE_OUT or 0))
   if hold>0 then self.holdAnimation:SetDuration(hold); self.hold:Play()
   else self:StartFadeOut() end
@@ -225,15 +230,15 @@ function CombatStatus:RefreshMessage()
 end
 function CombatStatus:Play(kind, duration, test)
   self:StopVisual()
-  if not self:IsEnabled() or (not test and not (kind=="enter" and self.db.showEnter or kind=="leave" and self.db.showLeave)) then return end
+  if not self:IsEnabled() or (not self:ShouldShowMessage(kind) and not self:ShouldShowSwords()) then return end
   self.kind,self.duration=kind,duration
   self:SetPose(kind=="leave"); self:SwitchColor(kind=="enter" and "blue" or "red")
-  self:RefreshMessage(); self.text:SetShown(kind=="leave")
+  self:RefreshMessage(); self.text:SetShown(self:ShouldShowMessage(kind) and (kind=="leave" or not self:ShouldShowSwords()))
   self.root:Show(); self.visual:SetAlpha(1); self.visual:Show(); self.phase="FADE_IN"
   if self.nativeAnimations then self.fadeIn:Play()
   else
     -- No perpetual fallback update loop. A single cancellable timer hides text.
-    self:SetPose(kind=="enter"); self:SwitchColor(kind=="enter" and "red" or "blue"); self.text:Show()
+    self:SetPose(kind=="enter"); self:SwitchColor(kind=="enter" and "red" or "blue"); self.text:SetShown(self:ShouldShowMessage(kind))
     local generation=self.generation
     if C_Timer and C_Timer.NewTimer then
       self.fallbackTimer=C_Timer.NewTimer(self.db.displayDuration,function()
@@ -273,7 +278,9 @@ function CombatStatus:ApplyLayout()
   local p=self.db.position
   if not self.dragging then self.root:ClearAllPoints(); self.root:SetPoint(p.point,UIParent,p.relativePoint,p.x,p.y) end
   self.text:SetFont(KHQOL.UI:Font(),self.db.fontSize,"OUTLINE")
-  self.text:ClearAllPoints(); self.text:SetPoint("TOP",self.visual,"CENTER",0,-self.db.swordWidth*1.5/2-18)
+  self.text:ClearAllPoints()
+  if self:ShouldShowSwords() then self.text:SetPoint("TOP",self.visual,"CENTER",0,-self.db.swordWidth*1.5/2-18)
+  else self.text:SetPoint("CENTER",self.visual,"CENTER",0,0) end
   self:SetPose(self.crossed or false); self:RefreshMessage()
   self.anchor:SetShown(self:IsEnabled() and not self.db.locked)
   self.root:SetShown(self.anchor:IsShown() or self.visual:IsShown())
@@ -284,8 +291,8 @@ function CombatStatus:Changed(key)
   -- preserving combat recording and reusing the same groups and textures.
   local kind,duration=self.kind,self.duration
   self:ApplyLayout()
-  if kind and (key=="swordWidth" or key=="displayDuration" or key=="fadeOut") then self:Play(kind,duration,true) end
-  if kind and ((key=="showEnter" and kind=="enter" and not self.db.showEnter) or (key=="showLeave" and kind=="leave" and not self.db.showLeave)) then self:StopVisual() end
+  if kind and (key=="swordWidth" or key=="displayDuration" or key=="fadeOut" or key=="showSwords"
+    or key=="showEnter" and kind=="enter" or key=="showLeave" and kind=="leave") then self:Play(kind,duration,true) end
 end
 function CombatStatus:SetEnabled(enabled)
   self:GetDB(); self:CreateFrames()
@@ -319,12 +326,16 @@ function CombatStatus:BuildSettings(content,y)
     self:SavePosition(); db.position={point="CENTER",relativePoint="CENTER",x=0,y=150}; self:ApplyLayout()
   end)
   b:Section("전투 시작")
-  check("표시","showEnter"); message("문구 (Enter로 저장)","enterText","showEnter"); color("색상","enterColor","showEnter")
+  check("문구 표시","showEnter"); message("문구 (Enter로 저장)","enterText","showEnter"); color("색상","enterColor","showEnter")
   b:Section("전투 종료")
-  check("표시","showLeave"); message("문구 (Enter로 저장)","leaveText","showLeave"); color("색상","leaveColor","showLeave")
+  check("문구 표시","showLeave"); message("문구 (Enter로 저장)","leaveText","showLeave"); color("색상","leaveColor","showLeave")
   b:Section("공통 설정")
   b:Slider("글씨 크기",40,80,1,function() return db.fontSize end,function(v) db.fontSize=v; self:Changed("fontSize") end,function(v) return v.." px" end)
-  b:Slider("검 크기",40,80,1,function() return db.swordWidth end,function(v) db.swordWidth=v; self:Changed("swordWidth") end,function(v) return v.." px" end,nil,"검의 폭입니다. 높이는 1.5배로 자동 계산합니다.")
+  b:Section("칼 애니메이션")
+  check("칼 애니메이션 ON/OFF","showSwords")
+  b:Slider("아이콘 크기",20,160,1,function() return db.swordWidth end,function(v) db.swordWidth=v; self:Changed("swordWidth") end,function(v) return v.." px" end,function() return db.showSwords end,"칼 아이콘의 폭입니다. 높이는 1.5배로 자동 계산합니다.")
+  b:Description("문구 표시와 독립적으로 동작합니다. 칼을 끄면 문구만, 문구를 끄면 칼만 표시합니다.")
+  b:Section("표시 시간 / 효과")
   b:Slider("표시 시간",.5,3,.1,function() return db.displayDuration end,function(v) db.displayDuration=v; self:Changed("displayDuration") end,function(v) return string.format("%.1f초",v) end,nil,"문구가 나타난 뒤 페이드 아웃을 포함한 시간입니다. 페이드 사용 시 종료 동작은 최소 0.7초가 필요합니다.")
   check("페이드 아웃","fadeOut"); check("전투 종료 시 전투 시간 표시","showCombatDuration")
   b:Section("테스트")

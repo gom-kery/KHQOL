@@ -107,11 +107,14 @@ function KHQOL:BuildPositionTargets()
   end
   local cs=m.combatStatus
   if cs.db then
-    local width=cs.db.swordWidth;local textWidth=math.max(#cs.db.enterText,#cs.db.leaveText)/3*cs.db.fontSize
+    local width=cs.db.swordWidth;local showSwords=cs.db.showSwords
+    local sample=cs.db.showEnter and cs.db.enterText or (cs.db.showLeave and cs.db.leaveText or "")
+    local textWidth=math.max(cs.db.showEnter and #cs.db.enterText or 0,cs.db.showLeave and #cs.db.leaveText or 0)/3*cs.db.fontSize
+    local art=showSwords and {{texture="Interface\\AddOns\\KHQOL\\Media\\CombatStatus\\Sword_Blue.tga",width=width,height=width*1.5,crop=.75,x=-45*width/56},{texture="Interface\\AddOns\\KHQOL\\Media\\CombatStatus\\Sword_Blue.tga",width=width,height=width*1.5,crop=.75,x=45*width/56}} or {}
     add("combat","combatStatus","Combat Status · 전투 알림",cs.root,pointWriter(cs.db.position),lock(cs.db),function() cs:ApplyLayout() end,
-      {sample=cs.db.enterText,sampleSize=cs.db.fontSize,sampleY=-width*.75-18,
-       art={{texture="Interface\\AddOns\\KHQOL\\Media\\CombatStatus\\Sword_Blue.tga",width=width,height=width*1.5,crop=.75,x=-45*width/56},{texture="Interface\\AddOns\\KHQOL\\Media\\CombatStatus\\Sword_Blue.tga",width=width,height=width*1.5,crop=.75,x=45*width/56}},
-       bounds=function(x,y) return x,y,math.max(220,width*3,textWidth),width*1.5+2*cs.db.fontSize+40 end})
+      {sample=sample,sampleSize=cs.db.fontSize,sampleY=showSwords and -width*.75-18 or 0,
+       art=art,
+       bounds=function(x,y) return x,y,math.max(220,showSwords and width*3 or 0,textWidth),(showSwords and width*1.5 or 0)+2*cs.db.fontSize+40 end})
   end
   local qn=m.questNavigator
   if qn.db then add("quest","questNavigator","Quest Navigator · 안내 / 완료",qn.root,pointWriter(qn.db,"positionX","positionY"),lock(qn.db),function() qn:ApplyLayout() end,{sample="퀘스트 방향 · 120 m",sampleY=-30,art={{texture="Interface\\AddOns\\KHQOL\\Media\\QuestNavigator\\Arrow.tga",width=qn.db.arrowSize,height=qn.db.arrowSize,y=30}}}) end

@@ -4,9 +4,14 @@ local flat="Interface\\Buttons\\WHITE8X8"
 X.defaults={
   hideBlizzard=false,mode="horizontal",width=360,height=20,x=0,y=-220,scale=1,alpha=1,
   showLevel=true,showText=true,textMode="currentMaxPercent",textPosition="center",
-  showRested=true,tooltip=true,hideAtMaxLevel=true,followReputation=false,
+  showRested=true,tooltip=true,hideAtMaxLevel=true,followReputation=true,
   color={.58,0,.55,1},backgroundColor={.04,.04,.06,.85},restedColor={0,.39,.88,.7},textColor={1,1,1,1},
   wrapHorizontalLength=220,wrapVerticalLength=48,wrapThickness=6,wrapOffset=4,wrapX=0,wrapY=0,
+}
+X.reputationNames={"매우 적대적","적대적","약간 적대적","중립적","약간 우호적","우호적","매우 우호적","확고한 동맹"}
+X.reputationColors={
+  {255/255,0/255,0/255},{242/255,96/255,0/255},{228/255,228/255,0/255},{255/255,255/255,0/255},
+  {51/255,255/255,51/255},{95/255,230/255,93/255},{83/255,233/255,188/255},{46/255,230/255,230/255},
 }
 local function number(v)
   return not (issecretvalue and issecretvalue(v)) and type(v)=="number" and v==v and v~=math.huge and v~=-math.huge
@@ -55,24 +60,27 @@ function X:ReadReputation()
   local name,reaction,minimum,maximum,value
   if C_Reputation and type(C_Reputation.GetWatchedFactionData)=="function" then
     local d=read(C_Reputation.GetWatchedFactionData)
-    if type(d)~="table" then return end
-    name,reaction=d.name,d.reaction
-    minimum,maximum,value=d.currentReactionThreshold,d.nextReactionThreshold,d.currentStanding
-  elseif type(GetWatchedFactionInfo)=="function" then
+    if type(d)=="table" then
+      name,reaction=d.name,d.reaction
+      minimum,maximum,value=d.currentReactionThreshold,d.nextReactionThreshold,d.currentStanding
+    end
+  end
+  if not (issecretvalue and issecretvalue(name)) and name==nil and type(GetWatchedFactionInfo)=="function" then
     local ok
     ok,name,reaction,minimum,maximum,value=pcall(GetWatchedFactionInfo)
     if not ok then return end
-  else return end
+  end
   if (issecretvalue and issecretvalue(name)) or type(name)~="string" or name==""
-    or not number(reaction) or not number(minimum) or not number(maximum) or not number(value) or maximum<minimum then return end
+    or not number(reaction) or reaction%1~=0 or reaction<1 or reaction>8
+    or not number(minimum) or not number(maximum) or not number(value) or maximum<minimum then return end
   -- Reputation totals can start below zero or include previous standing tiers.
   -- Display progress within the current tier, just like the native bar.
   local span=maximum-minimum
   if span==0 and reaction<8 then return end
   value=span>0 and clamp(value-minimum,0,span) or 0
   maximum=span
-  local standing=_G["FACTION_STANDING_LABEL"..reaction] or "평판"
-  return {kind="reputation",name=name,standing=standing,value=value,maximum=maximum,
+  local standing=self.reputationNames[reaction]
+  return {kind="reputation",name=name,standing=standing,reaction=reaction,value=value,maximum=maximum,
     remaining=maximum-value,percent=span>0 and value/span*100 or 100,
     rested=0,atCap=false,capped=span==0,highestStanding=reaction>=8}
 end
@@ -95,23 +103,33 @@ function X:Text()
   local d,db=self.data,self.db
   if not d then return "" end
   if d.atCap then return "최대 레벨" end
-  if d.kind=="reputation" and d.capped then return d.name.." · "..d.standing end
-  local prefix=d.kind=="reputation" and (d.name.." · ") or ""
+  if d.kind=="reputation" and d.capped then return d.name.." · "..d.standing.." · 100%" end
+  local prefix=d.kind=="reputation" and (d.name.." · "..d.standing.." · ") or ""
   local percent=string.format("%.1f%%",d.percent)
   if db.textMode=="percent" then return prefix..percent end
   if db.textMode=="remaining" then return prefix..self:FormatNumber(d.remaining).." 남음" end
   local result=self:FormatNumber(d.value).." / "..self:FormatNumber(d.maximum)
   return prefix..(db.textMode=="currentMaxPercent" and result.." ("..percent..")" or result)
 end
--- Change only XP presentation; leave action bars, reputation and visibility
--- policies under Blizzard's control. Restore only state owned by this module.
+function X:IsReplacingReputation()
+  return self:IsEnabled() and self.db.followReputation and self.data and self.data.kind=="reputation"
+    and self.frame and self.frame:IsShown() or false
+end
+function X:ShouldHideNative(kind)
+  if kind=="experience" then return self.db.hideBlizzard or self:IsReplacingReputation() end
+  if kind=="reputation" then return self:IsReplacingReputation() end
+  return false
+end
+-- Replace only XP/reputation presentation. Keep Blizzard's bar selection,
+-- container animations and action bars intact; restore only our owned state.
 function X:SyncNativeFrame(f)
   if self.nativeGuard then return end
   self.nativeGuard=true
   local saved=self.native[f]
   local container=self.nativeContainers and self.nativeContainers[f]
-  local owns=not container or self:IsXPContainer(container)
-  if self.db.hideBlizzard and owns then
+  local hide=container and self:IsHiddenTrackingContainer(container) or
+    (not container and self:ShouldHideNative(self.nativeKinds[f]))
+  if hide then
     if not saved then
       saved={alpha=f:GetAlpha(),mouse=f.IsMouseEnabled and f:IsMouseEnabled(),
         click=f.IsMouseClickEnabled and f:IsMouseClickEnabled(),motion=f.IsMouseMotionEnabled and f:IsMouseMotionEnabled()}
@@ -125,9 +143,10 @@ function X:SyncNativeFrame(f)
   end
   self.nativeGuard=nil
 end
-function X:AttachNative(f,container)
+function X:AttachNative(f,container,kind)
   if not f then return end
   if container then self.nativeContainers[f]=container end
+  if kind then self.nativeKinds[f]=kind end
   if not self.hooked[f] then
     self.hooked[f]=true
     -- Regions can expose HookScript without supporting frame-only scripts.
@@ -138,9 +157,9 @@ function X:AttachNative(f,container)
     if hooksecurefunc then hooksecurefunc(f,"SetAlpha",function(frame) self:SyncNativeFrame(frame) end) end
   end
   if container and f.GetRegions then
-    for _,region in ipairs({f:GetRegions()}) do self:AttachNative(region,container) end
+    for _,region in ipairs({f:GetRegions()}) do self:AttachNative(region,container,kind) end
   end
-  if f.GetChildren then for _,child in ipairs({f:GetChildren()}) do self:AttachNative(child,container) end end
+  if f.GetChildren then for _,child in ipairs({f:GetChildren()}) do self:AttachNative(child,container,kind) end end
 end
 function X:IsXPBar(bar)
   if not bar then return false end
@@ -149,43 +168,64 @@ function X:IsXPBar(bar)
   if enum and enum.Experience and bar.barIndex==enum.Experience then return true end
   return ExpBarMixin and ExpBarMixin.GetLevelData and bar.GetLevelData==ExpBarMixin.GetLevelData or false
 end
-function X:IsXPContainer(container)
-  local bar=read(container.GetShownBar,container)
-  if bar then return self:IsXPBar(bar) end
+function X:IsReputationBar(bar)
+  if not bar then return false end
+  if self.reputationFrames[bar] then return true end
   local enum=StatusTrackingBarInfo and StatusTrackingBarInfo.BarsEnum
-  if enum and enum.Experience and container.shownBarIndex~=nil then return container.shownBarIndex==enum.Experience end
+  if enum and enum.Reputation and bar.barIndex==enum.Reputation then return true end
+  return ReputationStatusBarMixin and ReputationStatusBarMixin.Update and bar.Update==ReputationStatusBarMixin.Update or false
+end
+function X:ShouldHideTrackingBar(bar)
+  if self:IsXPBar(bar) then return self:ShouldHideNative("experience") end
+  if self:IsReputationBar(bar) then return self:ShouldHideNative("reputation") end
+  return false
+end
+function X:IsHiddenTrackingContainer(container)
+  local bar=read(container.GetShownBar,container)
+  if bar then return self:ShouldHideTrackingBar(bar) end
+  local enum=StatusTrackingBarInfo and StatusTrackingBarInfo.BarsEnum
+  if enum and container.shownBarIndex~=nil then
+    if container.shownBarIndex==enum.Experience then return self:ShouldHideNative("experience") end
+    if container.shownBarIndex==enum.Reputation then return self:ShouldHideNative("reputation") end
+    return false
+  end
   -- Some variants put the outer artwork on the manager. Suppress that shared
-  -- art only when every visible tracking bar belongs to XP.
-  local xp=false
+  -- art only when every visible tracking bar is one we are replacing/hiding.
+  local hidden=false
   for _,candidate in pairs(container.bars or {}) do
     if candidate.IsShown and candidate:IsShown() then
-      if not self:IsXPBar(candidate) then return false end
-      xp=true
+      if not self:ShouldHideTrackingBar(candidate) then return false end
+      hidden=true
     end
   end
   for _,child in ipairs(container.barContainers or {}) do
     if child.IsShown and child:IsShown() then
-      if not self:IsXPContainer(child) then return false end
-      xp=true
+      if not self:IsHiddenTrackingContainer(child) then return false end
+      hidden=true
     end
   end
-  return xp
+  return hidden
 end
 function X:AttachTracking(container)
   if not container then return end
-  self:AttachNative(container.ExperienceBar)
+  self:AttachNative(container.ExperienceBar,nil,"experience")
   if container.ExperienceBar then self.xpFrames[container.ExperienceBar]=true end
+  self:AttachNative(container.ReputationBar,nil,"reputation")
+  if container.ReputationBar then self.reputationFrames[container.ReputationBar]=true end
   for _,bar in pairs(container.bars or {}) do
-    if self:IsXPBar(bar) then self.xpFrames[bar]=true; self:AttachNative(bar) end
+    if self:IsXPBar(bar) then self.xpFrames[bar]=true; self:AttachNative(bar,nil,"experience")
+    elseif self:IsReputationBar(bar) then self.reputationFrames[bar]=true; self:AttachNative(bar,nil,"reputation") end
   end
   local bar=read(container.GetBarFromTemplate,container,"ExpStatusBarTemplate")
-  if bar then self.xpFrames[bar]=true; self:AttachNative(bar) end
+  if bar then self.xpFrames[bar]=true; self:AttachNative(bar,nil,"experience") end
+  local reputation=read(container.GetBarFromTemplate,container,"ReputationStatusBarTemplate")
+  if reputation then self.reputationFrames[reputation]=true; self:AttachNative(reputation,nil,"reputation") end
   for _,key in ipairs({"MainMenuBarTextures","StandaloneTextures"}) do
     for _,region in ipairs(container[key] or {}) do self:AttachNative(region,container) end
   end
   -- Client variants keep their border/background outside the named art arrays,
   -- directly on the container or in decoration child frames. Hide those regions
-  -- only while this container presents XP, without touching its alpha/fades.
+  -- only while its shown bar is being replaced, without touching alpha/fades.
   if container.GetRegions then
     for _,region in ipairs({container:GetRegions()}) do self:AttachNative(region,container) end
   end
@@ -193,7 +233,7 @@ function X:AttachTracking(container)
     local bars={}
     for _,candidate in pairs(container.bars or {}) do bars[candidate]=true end
     for _,child in ipairs({container:GetChildren()}) do
-      if not bars[child] and not self:IsXPBar(child) and not child.bars and not child.barContainers then
+      if not bars[child] and not self:IsXPBar(child) and not self:IsReputationBar(child) and not child.bars and not child.barContainers then
         self:AttachNative(child,container)
       end
     end
@@ -212,9 +252,10 @@ function X:AttachTracking(container)
   end
 end
 function X:SyncNative()
-  for _,name in ipairs({"MainMenuExpBar","MainMenuBarExpBar","ExperienceBar","ExhaustionTick"}) do self:AttachNative(_G[name]) end
+  for _,name in ipairs({"MainMenuExpBar","MainMenuBarExpBar","ExperienceBar","ExhaustionTick"}) do self:AttachNative(_G[name],nil,"experience") end
+  for _,name in ipairs({"ReputationWatchBar","ReputationWatchStatusBar","MainMenuBarReputationBar"}) do self:AttachNative(_G[name],nil,"reputation") end
   -- XP bars may be anonymous entries in a shared tracking container. Never
-  -- suppress that container itself: reputation can reuse it after XP hides.
+  -- suppress that container itself: it can also hold bars we do not replace.
   for _,name in ipairs({"StatusTrackingBarManager","MainStatusTrackingBarContainer","SecondaryStatusTrackingBarContainer"}) do
     local container=_G[name]
     self:AttachTracking(container)
@@ -275,7 +316,8 @@ end
 function X:CreateFrames()
   self:WatchReputationSelection()
   if self.frame then return end
-  self.native={}; self.hooked={}; self.nativeContainers={}; self.xpFrames={}; self.trackingHooked={}
+  self.native={}; self.hooked={}; self.nativeContainers={}; self.nativeKinds={}
+  self.xpFrames={}; self.reputationFrames={}; self.trackingHooked={}
   local f=CreateFrame("Frame","KHQOLExperienceBarFrame",UIParent)
   self.frame=f; self.segments={}
   f:SetFrameStrata("MEDIUM"); f:SetMovable(true); f:SetClampedToScreen(true); f:RegisterForDrag("LeftButton")
@@ -399,6 +441,8 @@ function X:Render()
   local visible=self:IsEnabled() and d and (not db.hideAtMaxLevel or not d.atCap)
   self.frame:SetShown(visible and true or false)
   if visible then
+    local color=d.kind=="reputation" and self.reputationColors[d.reaction] or db.color
+    for _,segment in ipairs(self.segments) do segment:SetStatusBarColor(color[1],color[2],color[3],db.color[4]) end
     local length=self.segments[1].length+(db.mode~="horizontal" and self.segments[2].length or 0)
     local fraction=d.maximum>0 and d.value/d.maximum or ((d.atCap or d.capped) and 1 or 0)
     local rest=d.maximum>0 and clamp((d.value+d.rested)/d.maximum,0,1) or fraction

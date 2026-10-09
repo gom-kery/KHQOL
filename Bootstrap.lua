@@ -6,7 +6,7 @@ KHQOL.modules.environmentTimer = {}
 KHQOL.modules.experienceBar = {}
 KHQOL.modules.procAlert = {experimental=true}
 KHQOL.modules.npcAlert = {}
-KHQOL.VERSION = "1.10.3.1"
+KHQOL.VERSION = "1.10.3.3"
 
 -- Key-binding labels are read by Blizzard's standard binding UI.
 -- Keep the binding action itself in Todo.lua so every entry point shares
