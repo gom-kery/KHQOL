@@ -7,6 +7,8 @@ FR.defaults = {
   hunterMeleeSpellID = nil,
   shape = "\226\150\160",
   length = 1,
+  stateText = false,
+  stateTexts = {available="공격 가능",unavailable="공격 불가",unknown="판정 불가"},
   size = 32,
   x = 0,
   y = 120,

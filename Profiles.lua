@@ -11,6 +11,39 @@ managed[#managed+1]="npcAlert"
 local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID"}
+-- Only a genuinely empty installation or an explicitly created default profile
+-- uses this recipe. Keep legacy module defaults for existing/missing fields.
+local installDefaults = {
+  settings = {
+    enabled = {experienceBar=false,castBar=true,resourceSwing=true,environmentTimer=true,
+      npcAlert=false,combatStatus=true,campfire=true,buffReminder=false,pvpAlert=false,
+      cursorTrail=true,range=true,threat=true,tooltip=true,clock=false,todo=false,
+      questNavigator=true,procAlert=false},
+    general = {autoConfirmDestroy=true,chatEnhancement=true,autoSellJunk=true,
+      autoRepair=true,declinePartyInvites=false,declineGuildInvites=false},
+    modules = {
+      castBar = {behavior={hideBlizzard=true},icon={enabled=true},
+        spellName={enabled=true},castTime={enabled=true}},
+      environmentTimer = {style="hud",timers={BREATH=true}},
+      tooltip = {mouseRight=true,showPlayerInfo=true,hideUnitTooltipInCombat=false,weaponGuide=true},
+    },
+  },
+  legacy = {clock={enabled=false},range={size=20,stateText=true,
+    stateTexts={available="공격 가능",unavailable="공격 불가",unknown="판정 불가"},
+    mouseover={availableText="공격 가능",unavailableText="공격 불가",fontSize=20}}},
+}
+local savedVariables = {"KHQOLDB","ForeverClockDB","ForeverBuffReminderDB",
+  "ForeverWeaponGuideDB","KHQOLResourceSwingDB","CampfireAlertDB",
+  "FRangeDB","KHQOLCursorTrailCharDB"}
+local function overlay(target, source)
+  for key,value in pairs(source) do
+    if type(value)=="table" then
+      if type(target[key])~="table" then target[key]={} end
+      overlay(target[key],value)
+    else target[key]=value end
+  end
+  return target
+end
 local function copy(value, seen)
   if type(value)~="table" then return value end
   seen=seen or {}; if seen[value] then return seen[value] end
@@ -104,7 +137,7 @@ function KHQOL:CaptureProfile()
   result.cursorColor=copy(KHQOLCursorTrailCharDB or {})
   return result
 end
-function KHQOL:MakeDefaultProfile()
+function KHQOL:MakeDefaultProfile(legacyDefaults)
   local m=self.modules
   local result={settings={modules={}},legacy={},cursorColor={}}
   for _,key in ipairs(common) do result.settings[key]=copy(self.defaults[key]) end
@@ -116,6 +149,7 @@ function KHQOL:MakeDefaultProfile()
   result.legacy.resourceSwing=copy(m.resourceSwing.defaults or {})
   result.legacy.resourceSwing.resourceColorOverrides=nil
   result.legacy.campfire=copy(m.campfire.defaults or {})
+  if not legacyDefaults then overlay(result,installDefaults) end
   return result
 end
 function KHQOL:SaveCurrentProfile()
@@ -146,7 +180,7 @@ function KHQOL:GetProfileOptions(excludeDefault)
 end
 function KHQOL:LoadProfileSettings(profile)
   profile=copy(profile)
-  KHQOL.MergeDefaults(profile,self:MakeDefaultProfile(),"types")
+  KHQOL.MergeDefaults(profile,self:MakeDefaultProfile(true))
   local settings=profile.settings
   for _,key in ipairs(common) do
     if type(settings[key])=="table" then
@@ -186,6 +220,22 @@ function KHQOL:LoadProfileSettings(profile)
 end
 function KHQOL:InitializeProfiles()
   if self.profilesReady then return true end
+  -- Decide before any normalizer creates SavedVariables, even if the character
+  -- identity is delayed. Empty/false/legacy-only saved values count as existing.
+  if self.isNewInstall==nil then
+    self.isNewInstall=true
+    for _,variable in ipairs(savedVariables) do
+      if _G[variable]~=nil then self.isNewInstall=false; break end
+    end
+  end
+  if self.isNewInstall and not self.installDefaultsSeeded then
+    KHQOLDB=KHQOL.MergeDefaults(KHQOLDB or {},installDefaults.settings)
+    for key,values in pairs(installDefaults.legacy) do
+      local variable=legacy[key]
+      _G[variable]=KHQOL.MergeDefaults(_G[variable] or {},values)
+    end
+    self.installDefaultsSeeded=true
+  end
   local character=self:GetProfileCharacterKey()
   if not character then self.profileDeferred=true; return false end
   KHQOLDB=KHQOL.MergeDefaults(type(KHQOLDB)=="table" and KHQOLDB or {},self.defaults,"tables")
@@ -201,7 +251,7 @@ function KHQOL:InitializeProfiles()
     global.profileCharacters[character]={range=copy(FRangeDB or {}),cursorColor=copy(KHQOLCursorTrailCharDB or {})}
   end
   if type(self.db.profiles[DEFAULT])~="table" then
-    self.db.profiles[DEFAULT]=fresh and self:CaptureProfile() or self:MakeDefaultProfile()
+    self.db.profiles[DEFAULT]=self:CaptureProfile()
   end
   local name=self.db.characterProfiles[character]
   if type(name)~="string" or type(self.db.profiles[name])~="table" then name=DEFAULT end

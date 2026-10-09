@@ -46,9 +46,21 @@ function Settings:Create(parent)
   b:Description("문구는 한글 포함 최대 8자입니다. Enter로 적용하며 빈 입력은 기본 문구로 복원합니다. X +는 오른쪽, Y +는 위쪽입니다. 사망한 대상은 표시하지 않습니다.")
   b:Description("아래 사거리 기준 주문을 사용합니다. 초록: 공격 가능 / 빨강: 공격 불가 / 노랑: 판정 불가. 재사용 대기시간, 자원, 시야는 확인하지 않습니다.")
   b:Section("표시 모양")
+  b:Checkbox("HUD 상태별 문구 사용",function() return FR.db.stateText==true end,function(v)
+    FR.db.stateText=v; FR:RefreshDisplay(true)
+  end)
+  local function stateTextEnabled() return FR.db.stateText==true end
+  for _,entry in ipairs({{"available","HUD 공격가능 문구"},{"unavailable","HUD 공격불가 문구"}}) do
+    local key,title=entry[1],entry[2]
+    b:Edit(title,function() return FR.db.stateTexts[key] end,function(v)
+      FR.db.stateTexts[key]=v~="" and FR:LimitMouseoverText(v) or FR.defaults.stateTexts[key]
+      FR:RefreshDisplay(true)
+    end,stateTextEnabled)
+  end
+  b:Description("HUD 상태별 문구: 초록은 공격 가능, 빨강은 공격 불가, 노랑은 판정 불가입니다. 끄면 기존 표시 문자를 사용합니다.")
   self.shape=b:Edit("표시 문자",function() return FR.db.shape end,function(v)
     FR.db.shape=v~="" and v or "\226\150\160"; FR:RefreshDisplay(true)
-  end)
+  end,function() return not stateTextEnabled() end)
   UI:AttachTooltip(self.shape,"표시 문자","문자를 입력하고 Enter를 눌러 적용합니다.")
   b:Slider("크기",10,80,1,function() return FR.db.size end,function(v) FR:SetNumber("size",v,10,80) end,function(v) return v.." px" end)
   b:Section("외곽선")

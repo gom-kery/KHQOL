@@ -37,10 +37,17 @@ function Display:Create()
   self:ApplyLayout(true)
 end
 
+function Display:GetStateText(state)
+  local db=FR.db
+  if db.stateText~=true then return db.shape or "\226\150\160" end
+  local key=state=="GREEN" and "available" or (state=="RED" and "unavailable" or "unknown")
+  return db.stateTexts[key]
+end
+
 function Display:ApplyLayout(force)
   if not self.frame or not FR.db then return end
   local db, frame = FR.db, self.frame
-  local text = db.shape or "\226\150\160"
+  local text = self:GetStateText(self.state)
   local font = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
   local flags = db.outline.enabled and "OUTLINE" or ""
   frame.main:SetFont(font, db.size, flags)
@@ -73,8 +80,10 @@ function Display:ShowState(state, force)
   if not color then frame:Hide(); return end
   -- table.concat accepts strings/numbers, not Booleans. Convert persisted
   -- checkbox settings so Test Display and normal updates share one safe cache key.
-  local key = table.concat({ state, db.shape, db.size, db.x, db.y, tostring(db.locked), tostring(db.outline.enabled), db.outline.thickness, table.concat(color, ","), table.concat(db.outline.color, ",") }, "|")
+  local text=self:GetStateText(state)
+  local key = table.concat({ state, text, db.size, db.x, db.y, tostring(db.locked), tostring(db.outline.enabled), db.outline.thickness, table.concat(color, ","), table.concat(db.outline.color, ",") }, "|")
   if force or key ~= self.lastLayoutKey then
+    self.state=state
     self:ApplyLayout()
     frame.main:SetTextColor(color[1], color[2], color[3], color[4])
     for _, shadow in ipairs(frame.shadows) do shadow:SetTextColor(unpack(db.outline.color)) end

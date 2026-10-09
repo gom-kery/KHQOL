@@ -367,11 +367,11 @@ end
 function General:BuildSettings(parent, y)
   local b = KHQOL.UI:CreateBuilder(parent, y)
   b:Section("대화창")
-  b:Checkbox("기본 대화창 편의 기능",function() return General:GetDB().chatEnhancement end,
+  b:Checkbox("기본 대화창 편의",function() return General:GetDB().chatEnhancement end,
     function(on) General:SetConvenienceEnabled("chatEnhancement",on) end)
   b:Description("대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사 기능을 개선합니다.")
   b:Section("아이템 파괴")
-  b:Checkbox("아이템 파괴 확인 문구 자동 입력",function() return General:GetDB().autoConfirmDestroy end,
+  b:Checkbox("아이템 파괴 자동 입력",function() return General:GetDB().autoConfirmDestroy end,
     function(on) General:SetConvenienceEnabled("autoConfirmDestroy",on) end)
   b:Description("파란색 등급 이상 아이템의 파괴 확인창에 확인 문구를 자동 입력합니다. 최종 ‘예’ 버튼은 직접 선택합니다.")
   b:Section("판매")
