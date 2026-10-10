@@ -6,7 +6,7 @@ KHQOL.modules.environmentTimer = {}
 KHQOL.modules.experienceBar = {}
 KHQOL.modules.procAlert = {experimental=true}
 KHQOL.modules.npcAlert = {}
-KHQOL.VERSION = "1.10.4.0"
+KHQOL.VERSION = "1.10.4.1"
 
 -- Profile-owned modern modules share enable dispatch, not UI or position lists.
 -- General/Todo, legacy stores, labs without settings and attached HUDs differ.

@@ -6,7 +6,7 @@ R.pages={
   {"convenience","편의 기능","자동화 편의 기능, 시계, 노트 및 퀘스트 안내를 관리합니다."},
   {"interface","인터페이스","커서, 사거리, 어그로 및 툴팁을 관리합니다."},
   {"bars","바 설정","바 계열 기능과 환경 타이머를 관리합니다."},
-  {"alerts","알림","NPC, 전투, 모닥불, 버프 및 PvP 알림을 관리합니다."},
+  {"alerts","알림","NPC, 전투, 모닥불 및 PvP 알림을 관리합니다."},
   {"labs","실험실","개발 중이나 정상적으로 동작되지 않는 기능입니다."},
   {"profiles","프로필","계정 공용 프로필 및 캐릭터별 사용 프로필 관리"},
 }
@@ -27,7 +27,6 @@ entry("bars","environment","environmentTimer","환경타이머","호흡·피로�
 entry("alerts","npc","npcAlert","NPC","등록한 위험 NPC의 감지·배너·방향 경고를 설정합니다.")
 entry("alerts","combat","combatStatus","전투 상태","전투 시작과 종료 알림을 설정합니다.",{"combat","combatstatus"})
 entry("alerts","campfire","campfire","모닥불","근처 모닥불과 야영 효과 알림을 설정합니다.",{"campfire"})
-entry("alerts","buff","buffReminder","버프","유지할 버프와 만료 전 알림을 설정합니다.",{"buff"})
 entry("alerts","pvp","pvpAlert","PvP","적 플레이어의 주시, 접근 및 시전 경고를 설정합니다.",{"pvp","pvpalert"})
 entry("interface","cursor","cursorTrail","마우스 잔상","마우스 이동 경로에 잔상을 표시합니다.",{"trail","cursortrail"})
 entry("interface","range","range","사거리 측정","선택한 대상의 사거리 상태를 표시합니다.",{"range"})
@@ -37,6 +36,7 @@ entry("convenience","general",nil,"일반","판매·수리·초대 관련 편의
 entry("convenience","clock","clock","시계 설정","시간, 날짜, 요일 및 HUD 정보를 표시합니다.",{"clock"})
 entry("convenience","note","todo","포에버 노트","화면의 노트 창에서 할 일과 메모를 관리합니다.",{"todo"})
 entry("convenience","quest","questNavigator","퀘스트 설정","추적 중인 퀘스트의 목표·반납 위치를 안내합니다.",{"quest","questnavigator"})
+entry("labs","buff","buffReminder","버프 리마인더","유지할 버프와 만료 전 알림을 설정합니다.",{"buff"})
 entry("labs","proc","procAlert","발동 버프","등록한 버프의 전투 중 발동 알림을 설정합니다.")
 entry("labs","highlight","objectHighlight","오브젝트 강조","전리품이 있는 퀘스트 오브젝트의 반짝임 유지 설정을 적용합니다.",{"objecthighlight","sparkles"})
 entry("labs","inspector",nil,"프레임 검사기","마우스 아래 실제 Frame 이름과 부모 구조를 확인합니다.")

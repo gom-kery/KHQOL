@@ -1,6 +1,14 @@
 local _, KHQOL = ...
 local Lab=KHQOL.UI:NewSettingsGroup("labs")
 KHQOL.LabSettings=Lab
+Lab:RegisterTab("buff",nil,function(content,y)
+  local fbr=ForeverBuffReminder
+  fbr:CreateSettingsUI(content)
+  function content:RefreshTab() fbr:RefreshSettings() end
+  content:RefreshTab()
+  return -content:GetHeight()
+end)
+
 local function proc(content,y)
   if not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,y) end
   local P,UI,T=KHQOL.modules.procAlert,KHQOL.UI,KHQOL.UI.Theme
