@@ -66,6 +66,13 @@ function FR:InitializeDB()
   -- The repeat-length control was removed in v0.1.6. Keep the indicator
   -- consistent for existing characters that had a custom saved length.
   FRangeDB.length = 1
+  -- Character-owned references: missing keys only; retain every legacy value.
+  if FRangeDB.rangedSpellID==nil then FRangeDB.rangedSpellID=FRangeDB.rangeSpellID end
+  if FRangeDB.rangedSpellName==nil then FRangeDB.rangedSpellName=FRangeDB.rangeSpellName end
+  if select(2,UnitClass("player"))=="HUNTER" then
+    if FRangeDB.meleeSpellID==nil then FRangeDB.meleeSpellID=FRangeDB.hunterMeleeSpellID end
+    if FRangeDB.meleeSpellName==nil then FRangeDB.meleeSpellName=FRangeDB.hunterMeleeSpellName end
+  end
   self.db = FRangeDB
 end
 

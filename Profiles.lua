@@ -5,7 +5,7 @@ local managed = KHQOL.profileModuleKeys
 local common = {"minimap","locked","debug","enabled","general"}
 local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
-local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID"}
+local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID","hunterMeleeSpellName","meleeSpellID","meleeSpellName","rangedSpellID","rangedSpellName"}
 -- Only a genuinely empty installation or an explicitly created default profile
 -- uses this recipe. Keep legacy module defaults for existing/missing fields.
 local installDefaults = {

@@ -6,7 +6,13 @@ local Range = FR.Range
 Range.actionSlotCache = {}
 Range.spellBookCache = {}
 Range.spellBookIDs = {}
-local function secret(value) return type(issecretvalue)=="function" and issecretvalue(value) end
+local function secret(value) return not KHQOL.IsPublicValue(value) end
+local function publicField(info,key)
+  if secret(info) or type(info)~="table" then return end
+  local ok,value=pcall(function() return info[key] end)
+  if ok and not secret(value) then return value end
+end
+Range.PublicField=publicField
 local function modernBank()
   local bank=Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player
   if not secret(bank) then return bank end
@@ -23,7 +29,7 @@ local function bookSpellID(index)
   if bank~=nil and C_SpellBook and type(C_SpellBook.GetSpellBookItemInfo)=="function" then
     local ok,info=pcall(C_SpellBook.GetSpellBookItemInfo,index,bank)
     if ok and not secret(info) and type(info)=="table" then
-      local kind,id=info.itemType,info.spellID
+      local kind,id=publicField(info,"itemType"),publicField(info,"spellID")
       local spellType=Enum and Enum.SpellBookItemType and Enum.SpellBookItemType.Spell
       if not secret(kind) and not secret(id) and not secret(spellType) then
         if (kind=="SPELL" or (spellType~=nil and kind==spellType)) and type(id)=="number" then return id,true end
@@ -35,7 +41,7 @@ local function bookSpellID(index)
 end
 
 local function normalize(result)
-  if type(issecretvalue)=="function" and issecretvalue(result) then return nil end
+  if secret(result) then return nil end
   if result == true or result == 1 then return true end
   if result == false or result == 0 then return false end
   return nil
@@ -44,7 +50,7 @@ end
 local function protectedCall(fn, ...)
   if type(fn) ~= "function" then return nil end
   for i=1,select("#",...) do
-    if type(issecretvalue)=="function" and issecretvalue(select(i,...)) then return nil end
+    if secret(select(i,...)) then return nil end
   end
   local ok, value = pcall(fn, ...)
   if ok then return normalize(value) end
@@ -52,17 +58,17 @@ local function protectedCall(fn, ...)
 end
 
 function Range:GetSpellInfo(spellID)
-  if not spellID then return nil end
+  if secret(spellID) or not spellID then return nil end
   if C_Spell and type(C_Spell.GetSpellInfo) == "function" then
     local ok, info = pcall(C_Spell.GetSpellInfo, spellID)
-    if ok and not (type(issecretvalue)=="function" and issecretvalue(info)) and type(info)=="table" then
-      local name,id=info.name,info.spellID
-      if not (type(issecretvalue)=="function" and (issecretvalue(name) or issecretvalue(id))) and type(name)=="string" then return name, id or spellID end
+    if ok and not secret(info) and type(info)=="table" then
+      local name,id=publicField(info,"name"),publicField(info,"spellID")
+      if type(name)=="string" then return name, id or spellID end
     end
   end
   if type(GetSpellInfo) == "function" then
     local ok, name = pcall(GetSpellInfo, spellID)
-    if ok and not (type(issecretvalue)=="function" and issecretvalue(name)) and type(name)=="string" then return name, spellID end
+    if ok and not secret(name) and type(name)=="string" then return name, spellID end
   end
   return nil
 end
@@ -91,7 +97,7 @@ function Range:FindActionSlotForSpell(spellID)
   -- to occupy an action-bar slot.
   for slot = 1, 180 do
     local ok, actionType, actionID = pcall(GetActionInfo, slot)
-    if ok and actionType == "spell" and tonumber(actionID) == tonumber(spellID) then
+    if ok and not secret(actionType) and not secret(actionID) and actionType == "spell" and tonumber(actionID) == tonumber(spellID) then
       self.actionSlotCache[spellID] = slot
       return slot
     end
@@ -187,7 +193,7 @@ function Range:FindSpellBookIndex(spellID,spellName)
           if success then offset,size=o,s end
         else
           local success,info=pcall(book.GetSpellBookSkillLineInfo,tab)
-          if success and not secret(info) and type(info)=="table" then offset,size=info.itemIndexOffset,info.numSpellBookItems end
+          if success and not secret(info) and type(info)=="table" then offset,size=publicField(info,"itemIndexOffset"),publicField(info,"numSpellBookItems") end
         end
         if not secret(offset) and not secret(size) and type(offset)=="number" and type(size)=="number" and offset>=0 and size>=0 then
           for index=offset+1,math.min(offset+size,1024) do
@@ -239,14 +245,33 @@ function Range:IsValidHostileTarget()
     and protectedCall(UnitCanAttack,"player","target")==true
 end
 
-function Range:CheckConfiguredSpell(unit)
-  local db = FR.db
-  if not db.rangeSpellID then return nil, "NO_SPELL" end
-  if not self:IsKnownSpell(db.rangeSpellID) then return nil, "UNKNOWN_SPELL" end
-  local name = self:GetSpellInfo(db.rangeSpellID) or db.rangeSpellName
-  local result = self:IsSpellInRange(db.rangeSpellID, name, unit or "target")
-  if result == nil then return nil, "UNSUPPORTED" end
+function Range:CheckReferenceSpell(id,savedName,unit)
+  if secret(id) or type(id)~="number" or id<=0 then return nil,"NO_SPELL" end
+  if not self:IsKnownSpell(id) then return nil,"UNKNOWN_SPELL" end
+  local name=self:GetSpellInfo(id) or savedName
+  local result=self:IsSpellInRange(id,name,unit or "target")
+  if result==nil then return nil,"UNSUPPORTED" end
   return result
+end
+function Range:CheckConfiguredSpell(unit)
+  local db=FR.db
+  local ranged=db.rangedSpellID or db.rangeSpellID
+  if select(2,UnitClass("player"))=="HUNTER" then
+    return self:CheckReferenceSpell(ranged,db.rangedSpellName or db.rangeSpellName,unit)
+  end
+  local configured,unknown=0,false
+  for _,entry in ipairs({{db.meleeSpellID,db.meleeSpellName},{ranged,db.rangedSpellName or db.rangeSpellName}}) do
+    local id=entry[1]
+    if not secret(id) and type(id)=="number" and id>0 then
+      configured=configured+1
+      local value=self:CheckReferenceSpell(id,entry[2],unit)
+      if value==true then return true end
+      if value==nil then unknown=true end
+    end
+  end
+  if configured==0 then return nil,"NO_SPELL" end
+  if unknown then return nil,"UNSUPPORTED" end
+  return false
 end
 
 function Range:FindDefaultHunterMeleeSpell()
@@ -260,7 +285,7 @@ end
 
 local raptorRanks={ [2973]=true,[14260]=true,[14261]=true,[14262]=true,[14263]=true,[14264]=true,[14265]=true,[14266]=true }
 function Range:CheckHunterMelee(unit)
-  local id=FR.db.hunterMeleeSpellID or self:FindDefaultHunterMeleeSpell()
+  local id=FR.db.meleeSpellID or FR.db.hunterMeleeSpellID or self:FindDefaultHunterMeleeSpell()
   local name=id and self:GetSpellInfo(id)
   -- A queued next-swing spell may report activation range rather than melee
   -- reach. Preserve the registered ID, but verify reach with learned Wing Clip.

@@ -8,44 +8,91 @@ function FR:Print(message)
   DEFAULT_CHAT_FRAME:AddMessage("|cff4dff66[FRange]|r " .. tostring(message))
 end
 
+local function read(fn,...) return KHQOL.PublicCall(fn,...) end
+local function validID(id) return KHQOL.IsPublicValue(id) and type(id)=="number" and id>0 and id<2147483648 and id==math.floor(id) end
+local function professionSpell(index)
+  if not index or type(GetProfessions)~="function" or type(GetProfessionInfo)~="function" then return false end
+  local a,b,c,d,e=read(GetProfessions)
+  for _,profession in pairs({a,b,c,d,e}) do
+    if validID(profession) then
+      local _,_,_,_,count,offset=read(GetProfessionInfo,profession)
+      if type(count)=="number" and type(offset)=="number" and count>=0 and offset>=0
+        and count==math.floor(count) and offset==math.floor(offset) and offset+count<=1024
+        and index>offset and index<=offset+count then return true end
+    end
+  end
+  return false
+end
 function FR:ParseSpell(input)
-  input = tostring(input or ""):gsub("^%s+", ""):gsub("%s+$", "")
-  local spellID = tonumber(input) or tonumber(input:match("spell:(%d+)"))
-  if not spellID and input ~= "" and type(GetSpellInfo) == "function" then
-    -- Exact name lookup is only a fallback after ID / Shift-click spell link.
-    local knownID = select(7, GetSpellInfo(input))
-    spellID = tonumber(knownID)
+  if not KHQOL.IsPublicValue(input) then return end
+  input=tostring(input or ""):gsub("^%s+", ""):gsub("%s+$", "")
+  local id=tonumber(input) or tonumber(input:match("spell:(%d+)"))
+  if not id and input~="" then
+    local info=read(C_Spell and C_Spell.GetSpellInfo,input)
+    id=self.Range.PublicField(info,"spellID")
+    if not id then local _,_,_,_,_,_,legacyID=read(GetSpellInfo,input);id=legacyID end
   end
-  if not spellID then return nil end
-  local name, resolvedID = self.Range:GetSpellInfo(spellID)
-  return resolvedID or spellID, name
+  if not validID(id) then return end
+  local name,resolved=self.Range:GetSpellInfo(id)
+  if not validID(resolved) then resolved=id end
+  return resolved,name
 end
-
-function FR:SetRangeSpell(input)
-  local id, name = self:ParseSpell(input)
-  if not id or not name then self:Print("Spell not found. Use a Spell ID or Shift-click a spell link."); return end
-  if not self.Range:IsKnownSpell(id) then self:Print("That spell is not known by this character."); return end
-  self.db.rangeSpellID, self.db.rangeSpellName = id, name
-  self:Print("Registered range skill: " .. name .. " (" .. id .. ").")
-  self:RefreshDisplay(true); self:UpdateSettings()
+function FR:ValidateReferenceSpell(input)
+  local id,name=self:ParseSpell(input)
+  if not id or not name then return nil,"주문 정보를 확인할 수 없습니다. SpellID를 확인하세요." end
+  local index=self.Range:FindSpellBookIndex(id,name)
+  local known=read(IsPlayerSpell,id)==true or read(IsSpellKnown,id)==true
+  if not known and not index then return nil,"이 캐릭터의 학습한 주문을 확인할 수 없습니다." end
+  local bank=Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player
+  local info=index and read(C_SpellBook and C_SpellBook.GetSpellBookItemInfo,index,bank)
+  local passive=self.Range.PublicField(info,"isPassive")
+  if passive==nil and index then passive=read(C_SpellBook and C_SpellBook.IsSpellBookItemPassive,index,bank) end
+  if passive==nil then passive=read(IsPassiveSpell,id) end
+  if passive==true then return nil,"지속효과 주문은 사거리 기준으로 등록할 수 없습니다." end
+  if validID(read(C_MountJournal and C_MountJournal.GetMountFromSpell,id)) then return nil,"탈것 주문은 등록할 수 없습니다." end
+  if professionSpell(index) then return nil,"전문기술 주문은 등록할 수 없습니다." end
+  local hasRange=read((C_Spell and C_Spell.SpellHasRange) or SpellHasRange,id)
+  if hasRange==false then return nil,"사거리 판정이 없는 주문입니다. 전문기술·탈것 등은 제외합니다." end
+  if self.Range.PublicField(info,"isOffSpec")==true then return nil,"현재 활성화되지 않은 전문화의 주문입니다." end
+  local spellInfo=read(C_Spell and C_Spell.GetSpellInfo,id)
+  local icon=self.Range.PublicField(spellInfo,"iconID") or self.Range.PublicField(info,"iconID")
+  if not icon then local _,_,legacyIcon=read(GetSpellInfo,id);icon=legacyIcon end
+  -- No target/range nil is not a rejection; don't run a unit range query here.
+  return {id=id,name=name,icon=icon or "Interface\\Icons\\INV_Misc_QuestionMark"},
+    hasRange==nil and "등록 가능. 사거리 지원 여부는 대상 선택 후 확인하세요." or "등록 가능."
 end
-
-function FR:SetMeleeSpell(input)
-  if tostring(input or ""):match("^%s*$") then
-    self.db.hunterMeleeSpellID, self.db.hunterMeleeSpellName = nil, nil
-    self:RefreshDisplay(true); self:UpdateSettings(); return
+function FR:SetReferenceSpell(slot,input)
+  if slot~="melee" and slot~="ranged" then return false end
+  if not KHQOL.db or not KHQOL:GetEnabled("range") then return false,"사거리 모듈을 먼저 켜세요." end
+  local empty=KHQOL.IsPublicValue(input) and tostring(input or ""):match("^%s*$")
+  local item,message
+  if not empty then
+    item,message=self:ValidateReferenceSpell(input)
+    if not item then self:Print(message);self.registrationMessage=message;self:UpdateSettings();return false,message end
   end
-  local id, name = self:ParseSpell(input)
-  if not id or not name or not self.Range:IsKnownSpell(id) then self:Print("Melee reference spell was not accepted."); return end
-  self.db.hunterMeleeSpellID, self.db.hunterMeleeSpellName = id, name; self:Print("Hunter melee reference: " .. name .. ".")
-  self:RefreshDisplay(true); self:UpdateSettings()
+  self.db[slot.."SpellID"]=item and item.id or nil
+  self.db[slot.."SpellName"]=item and item.name or nil
+  if slot=="ranged" then self.db.rangeSpellID,self.db.rangeSpellName=self.db.rangedSpellID,self.db.rangedSpellName
+  elseif select(2,UnitClass("player"))=="HUNTER" then self.db.hunterMeleeSpellID,self.db.hunterMeleeSpellName=self.db.meleeSpellID,self.db.meleeSpellName end
+  self.Range:ClearActionSlotCache()
+  self.registrationMessage=item and ((slot=="melee" and "근거리" or "원거리").." 등록: "..item.name.." ("..item.id..")") or "등록 해제."
+  if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
+  self:RefreshDisplay(true);self:UpdateSettings()
+  if self.RefreshSpellBookPanel then self:RefreshSpellBookPanel() end
+  return true,self.registrationMessage
+end
+function FR:SetRangeSpell(input) return self:SetReferenceSpell("ranged",input) end
+function FR:SetMeleeSpell(input) return self:SetReferenceSpell("melee",input) end
+function FR:CaptureCursorSpell(slot)
+  -- The fourth return is a SpellID on the referenced client. The second is a
+  -- spellbook index and is never guessed to be a SpellID on unknown clients.
+  local kind,_,_,id=read(GetCursorInfo)
+  if kind~="spell" or not validID(id) then self:Print("지원되는 주문 커서 정보가 없습니다. KHQOL 주문 목록 또는 SpellID 입력을 사용하세요.");return false end
+  local ok=self:SetReferenceSpell(slot or "ranged",id)
+  if ok and type(ClearCursor)=="function" then ClearCursor() end
+  return ok
 end
 
-function FR:CaptureCursorSpell()
-  if type(GetCursorInfo) ~= "function" then self:Print("This client cannot read the cursor spell."); return end
-  local kind, id = GetCursorInfo()
-  if kind == "spell" and id then self:SetRangeSpell(tostring(id)); ClearCursor() else self:Print("Pick up a spell from the spellbook, then press Cursor spell.") end
-end
 
 function FR:SetNumber(key, value, minValue, maxValue)
   value = tonumber(value)
@@ -109,9 +156,14 @@ function FR:OnEvent(event, ...)
     self:InitializeDB(); self.Display:Create(); self.Mouseover:Initialize()
     if select(2,UnitClass("player"))=="HUNTER" then self.Range:PrepareHunterRangeItems() end
     self:RefreshDisplay(true)
+    if self.TryAttachSpellBook then self:TryAttachSpellBook() end
   else
     if event == "SPELLS_CHANGED" or event == "ACTIONBAR_SLOT_CHANGED" or event == "ACTIONBAR_PAGE_CHANGED" or event == "UPDATE_BONUS_ACTIONBAR" then
       self.Range:ClearActionSlotCache()
+      if self.RefreshSpellBookPanel then self:RefreshSpellBookPanel(true) end
+    end
+    if event=="ADDON_LOADED" or event=="PLAYER_REGEN_ENABLED" then
+      if self.TryAttachSpellBook then self:TryAttachSpellBook() end
     end
     self:RefreshDisplay()
   end
@@ -127,6 +179,8 @@ eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 eventFrame:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
 eventFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
 eventFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
+eventFrame:RegisterEvent("ADDON_LOADED")
+eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 eventFrame:SetScript("OnEvent", function(_, event, ...) FR:OnEvent(event, ...) end)
 
 local elapsed = 0
@@ -139,6 +193,8 @@ end
 eventFrame:SetScript("OnUpdate", updateRange)
 
 function FR:SetEnabled(enabled)
+  if enabled and self.TryAttachSpellBook then self:TryAttachSpellBook() end
+  if self.SyncSpellBook then self:SyncSpellBook(enabled) end
   if not enabled and self.Mouseover then self.Mouseover:Hide() end
   -- Retain cache-invalidation events while disabled, so re-enabling uses the
   -- current action bar. Only the idle polling callback is detached.
