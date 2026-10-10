@@ -40,6 +40,7 @@ entry("labs","buff","buffReminder","버프 리마인더","유지할 버프와 �
 entry("labs","proc","procAlert","발동 버프","등록한 버프의 전투 중 발동 알림을 설정합니다.")
 entry("labs","highlight","objectHighlight","오브젝트 강조","전리품이 있는 퀘스트 오브젝트의 반짝임 유지 설정을 적용합니다.",{"objecthighlight","sparkles"})
 entry("labs","inspector",nil,"프레임 검사기","마우스 아래 실제 Frame 이름과 부모 구조를 확인합니다.")
+entry("labs","performance","performanceMonitor","성능 모니터","KHQOL CPU 시간·메모리 사용량을 오버레이로 표시하고 측정 로그를 복사합니다.",{"performance"})
 R.routes.proc=R.modules.procAlert;R.routes.inspector=R.groups.labs.inspector
 R.routes.highlight=R.modules.objectHighlight;R.routes.frameInspector=R.groups.labs.inspector
 R.commands.lab="labs";R.commands.labs="labs";R.commands.proc="procAlert";R.commands.inspector="frameInspector"

@@ -21,6 +21,7 @@ defaults.enabled.experienceBar = false
 defaults.enabled.procAlert = false
 defaults.enabled.objectHighlight = false
 defaults.enabled.npcAlert = false
+defaults.enabled.performanceMonitor = false
 
 function KHQOL:Migrate()
   for key, variable in pairs(legacy) do

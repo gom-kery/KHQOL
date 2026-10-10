@@ -6,13 +6,14 @@ KHQOL.modules.environmentTimer = {}
 KHQOL.modules.experienceBar = {}
 KHQOL.modules.procAlert = {experimental=true}
 KHQOL.modules.npcAlert = {}
-KHQOL.VERSION = "1.10.5.0"
+KHQOL.modules.performanceMonitor = {experimental=true}
+KHQOL.VERSION = "1.10.5.1"
 
 -- Profile-owned modern modules share enable dispatch, not UI or position lists.
 -- General/Todo, legacy stores, labs without settings and attached HUDs differ.
 KHQOL.profileModuleKeys = {"tooltip","cursorTrail","castBar","combatStatus",
   "questNavigator","threat","pvpAlert","environmentTimer","experienceBar",
-  "procAlert","objectHighlight","npcAlert"}
+  "procAlert","objectHighlight","npcAlert","performanceMonitor"}
 KHQOL.legacyProfileVariables = {clock="ForeverClockDB",buffReminder="ForeverBuffReminderDB",
   range="FRangeDB",resourceSwing="KHQOLResourceSwingDB",campfire="CampfireAlertDB"}
 

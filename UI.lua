@@ -29,8 +29,23 @@ UI.Theme = {
   CellLine = { .35, .35, .35, .12 },
 }
 local T = UI.Theme
+-- Register only parents/controls created by KHQOL. Never enumerate UIParent:
+-- standalone spellbook buttons live there alongside forbidden Blizzard dialogs.
+UI.refreshParents=setmetatable({}, {__mode="k"})
+local function refreshSafe(frame)
+  if not frame or frame==UIParent then return false end
+  if frame.IsForbidden then
+    local status,forbidden=KHQOL.ReadPublicAPI(frame.IsForbidden,frame)
+    if status~="ok" or forbidden~=false then return false end
+  end
+  return true
+end
+function UI:RegisterRefreshParent(parent)
+  if refreshSafe(parent) then self.refreshParents[parent]=true end
+end
 function UI:Font() return KHQOL.modules.clock.FONT_PATH or STANDARD_TEXT_FONT end
 function UI:RegisterCaption(parent, region, size)
+  self:RegisterRefreshParent(parent)
   parent.uiCaptions=parent.uiCaptions or {}
   local caption={region=region,text=region:GetText() or "",size=size}
   table.insert(parent.uiCaptions,caption)
@@ -106,6 +121,7 @@ function UI:SetButtonSelected(button,selected)
   self:UpdateButtonSkin(button)
 end
 function UI:SkinButton(button)
+  self:RegisterRefreshParent(button)
   if button.khqolSkinned then return end
   button.khqolSkinned=true
   -- Plain KHQOL-owned buttons deliberately inherit no UIPanel red slices or scripts.
@@ -163,6 +179,9 @@ function UI:ApplyAvailability(control, predicate, labels)
   return enabled
 end
 function UI:RegisterControl(parent, control)
+  -- UIParent is a shared native root, not a KHQOL settings container.
+  if parent==UIParent then parent=control end
+  self:RegisterRefreshParent(parent)
   parent.uiControls = parent.uiControls or {}; table.insert(parent.uiControls, control)
   local hint=CreateFrame("Frame",nil,control); hint:SetAllPoints(control); hint:EnableMouse(true); hint:Hide()
   hint:SetScript("OnEnter",function(self)
@@ -175,6 +194,22 @@ function UI:RegisterControl(parent, control)
   return control
 end
 function UI:Refresh(parent)
+  if not refreshSafe(parent) then return end
+  local pending={}
+  for candidate in pairs(self.refreshParents) do
+    local current=candidate
+    for _=1,64 do
+      if not refreshSafe(current) then break end
+      if current==parent then pending[#pending+1]=candidate;break end
+      local status,nextParent=KHQOL.ReadPublicAPI(current.GetParent,current)
+      if status~="ok" or nextParent==current then break end
+      current=nextParent
+    end
+  end
+  for _,owned in ipairs(pending) do self:RefreshOwned(owned) end
+end
+function UI:RefreshOwned(parent)
+  if not self.refreshParents[parent] or not refreshSafe(parent) then return end
   for _, control in ipairs(parent.uiControls or {}) do if control.Refresh then control:Refresh() end end
   for _, caption in ipairs(parent.uiCaptions or {}) do
     caption.region:SetFont(self:Font(),caption.size,"")
@@ -192,12 +227,11 @@ function UI:Refresh(parent)
       end
     end
   end
-  -- A plain wrapper can contain controls several levels below it.
-  for _, child in ipairs({parent:GetChildren()}) do self:Refresh(child) end
 end
 function UI:Changed(parent)
-  if KHQOL.settings and KHQOL.settings.activeContent then self:Refresh(KHQOL.settings.activeContent)
-  else self:Refresh(parent) end
+  self:Refresh(parent)
+  local active=KHQOL.settings and KHQOL.settings.activeContent
+  if active and active~=parent then self:Refresh(active) end
   if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
 end
 function UI:AttachTooltip(control, title, description)
@@ -245,7 +279,7 @@ function UI:CreateButton(parent, text, x, y, width, click, enabled)
     b:SetText(text)
   end
   b:SetScript("OnClick", function(self, mouseButton)
-    if UI:IsAvailable(b, enabled) then click(self, mouseButton); UI:Changed(parent) end
+    if UI:IsAvailable(b, enabled) then click(self, mouseButton); UI:Changed(parent==UIParent and b or parent) end
   end)
   self:RegisterControl(parent, b); b:Refresh(); return b
 end
@@ -468,6 +502,7 @@ function UI:CreatePreviewBox(parent, x, y, width, lines, fontSize)
   return box
 end
 function UI:CreateBuilder(parent, y)
+  self:RegisterRefreshParent(parent)
   local builder = {parent=parent, y=y or 0}
   function builder:Flush() self.rowKind=nil; self.rowCount=0 end
   function builder:Cell(kind,columns,height)

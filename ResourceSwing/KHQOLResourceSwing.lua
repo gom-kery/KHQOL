@@ -10,7 +10,7 @@ local defaults = {
     comboWidth = 240, comboHeight = 10, comboOrbSize = 18, comboGap = 4,
     comboActiveColor = {1,.78,.16,1}, comboInactiveColor = {.18,.18,.18,.85},
     comboLocked = true, comboPoint = "CENTER", comboRelativePoint = "CENTER", comboX = 0, comboY = -100,
-    showSoulShards = true,
+    showSoulShards = true, showDruidMana = false,
     resourceTextPosition = "CENTER", ammoTextPosition = "RIGHT",
     swingPosition = "INSIDE", swingHeight = 5, barTexture = "DEFAULT",
     swingVisibility = "COMBAT",
@@ -124,7 +124,7 @@ end
 
 -- New auxiliary data never enters comparisons/arithmetic before public checks.
 local RS=NS.modules.resourceSwing
-local comboFrame,auxIcon
+local comboFrame,auxIcon,manaFrame,manaFill
 local function read(fn,...) return NS.PublicCall(fn,...) end
 local function field(info,key)
     if not NS.IsPublicValue(info) or type(info)~="table" then return end
@@ -177,6 +177,53 @@ function RS:GetCarriedItemCount(itemID)
     end
     return bagTotal(itemID)
 end
+
+function RS:IsAmmoClass()
+    local _,class=read(UnitClass,"player")
+    return class=="ROGUE" or class=="WARRIOR" or class=="HUNTER"
+end
+function RS:IsDruid() local _,class=read(UnitClass,"player");return class=="DRUID" end
+function RS:IsWarlock() local _,class=read(UnitClass,"player");return class=="WARLOCK" end
+function RS:UpdateMana()
+    if not manaFrame then return end
+    local mana=Enum and Enum.PowerType and Enum.PowerType.Mana
+    local primary=read(UnitPowerType,"player")
+    local form=read(GetShapeshiftFormID)
+    local visible=db.enabled and db.showDruidMana and self:IsDruid() and integer(form,1,100)
+      and integer(mana,0,100) and integer(primary,0,100) and primary~=mana
+    local current,maximum
+    if visible then
+        current=read(UnitPower,"player",mana);maximum=read(UnitPowerMax,"player",mana)
+        visible=integer(maximum,1,1000000000) and integer(current,0,maximum)
+    end
+    self.manaCurrent=visible and current or nil;self.manaMaximum=visible and maximum or nil
+    manaFrame:SetShown(visible and true or false)
+    manaFrame:SetSize(db.width,8);manaFrame:ClearAllPoints();manaFrame:SetPoint("TOPLEFT",resourceArea,"BOTTOMLEFT",0,-2)
+    manaFrame:SetBackdropColor(unpack(db.colors.background))
+    manaFrame:SetFrameLevel(resourceArea:GetFrameLevel()+1)
+    manaFill:SetStatusBarTexture(barTextures[db.barTexture] or barTextures.DEFAULT)
+    if visible then manaFill:SetMinMaxValues(0,maximum);manaFill:SetValue(current) end
+    if swingLane and db.swingPosition=="BELOW" then
+        local offset=2+(visible and 10 or 0)
+        swingLane:ClearAllPoints();swingLane:SetPoint("TOPLEFT",resourceArea,"BOTTOMLEFT",2,-offset)
+        swingLane:SetPoint("TOPRIGHT",resourceArea,"BOTTOMRIGHT",-2,-offset)
+    end
+end
+function RS:GetEditorBounds(x,y,w,h)
+    local left,bottom,right,top=x-w/2,y-h/2,x+w/2,y+h/2
+    for _,child in ipairs({manaFrame,swingLane}) do
+        if child and child:IsVisible() then
+            local l,b,cw,ch=child:GetRect()
+            local ratio=child:GetEffectiveScale()/UIParent:GetEffectiveScale()
+            if NS.IsPublicValue(l) and type(l)=="number" then
+                left=math.min(left,l*ratio);bottom=math.min(bottom,b*ratio)
+                right=math.max(right,(l+cw)*ratio);top=math.max(top,(b+ch)*ratio)
+            end
+        end
+    end
+    return (left+right)/2,(bottom+top)/2,right-left,top-bottom
+end
+
 function RS:GetAuxData()
     if not db or not db.enabled then return nil,nil,nil,"MODULE_OFF" end
     local _,class=read(UnitClass,"player")
@@ -196,6 +243,7 @@ function RS:GetAuxData()
         if n==nil or not icon then return nil,nil,nil,"ITEM_COUNT_UNREADABLE" end
         return "영혼의 조각",n,icon
     end
+    if not self:IsAmmoClass() then return nil,nil,nil,"UNSUPPORTED_CLASS" end
     if not db.showAmmo then return nil,nil,nil,"DISABLED" end
     local uses=read(UnitUsesAmmo,"player")
     local needed=read(C_PaperDollInfo and C_PaperDollInfo.AmmoNeeded)
@@ -225,7 +273,7 @@ end
 function RS:CanShowAux()
     local _,class=read(UnitClass,"player")
     return db and db.enabled and ((class=="WARLOCK" and db.showSoulShards)
-      or (class~="WARLOCK" and db.showAmmo and (class=="HUNTER" or read(UnitUsesAmmo,"player")==true))) or false
+      or (self:IsAmmoClass() and db.showAmmo)) or false
 end
 local function updateAuxText()
     if not ammoFrame then return end
@@ -251,12 +299,17 @@ function RS:GetComboData()
         local cat=DRUID_CAT_FORM or CAT_FORM
         if not integer(cat,1,100) or form~=cat then return nil,nil,"NOT_CAT_FORM" end
     elseif class~="ROGUE" then return nil,nil,"NOT_COMBO_CLASS" end
-    if read(UnitExists,"target")~=true then return nil,nil,"NO_TARGET" end
     local power=Enum and Enum.PowerType and Enum.PowerType.ComboPoints
     if not integer(power,0,100) then return nil,nil,"COMBO_POWER_UNAVAILABLE" end
+    local maxStatus,maximum=NS.ReadPublicAPI(UnitPowerMax,"player",power)
+    if maxStatus~="ok" or not integer(maximum,1,32) then return nil,nil,"COMBO_UNREADABLE" end
+    local exists=read(UnitExists,"target")
+    if exists~=true then
+        if exists==false and read(UnitAffectingCombat,"player")==false then return nil,maximum,"EMPTY_PREVIEW" end
+        return nil,nil,"NO_TARGET"
+    end
     -- Camelot ComboFrame uses the target-dependent API, not primary UnitPower.
     local status,current=NS.ReadPublicAPI(GetComboPoints,"player","target")
-    local maxStatus,maximum=NS.ReadPublicAPI(UnitPowerMax,"player",power)
     if status~="ok" or maxStatus~="ok" or not integer(maximum,1,32) or not integer(current,0,maximum) then
         return nil,nil,"COMBO_UNREADABLE"
     end
@@ -279,6 +332,7 @@ local function layoutCombo(maximum)
             comboFrame:SetPoint(db.comboPoint,UIParent,db.comboRelativePoint,db.comboX,db.comboY)
         else
             local gap=4+(db.swingPosition==db.comboPosition and db.swingHeight+2 or 0)
+            if db.comboPosition=="BELOW" and manaFrame and manaFrame:IsShown() then gap=gap+10 end
             if db.comboPosition=="ABOVE" then comboFrame:SetPoint("BOTTOM",resourceArea,"TOP",0,gap)
             else comboFrame:SetPoint("TOP",resourceArea,"BOTTOM",0,-gap) end
         end
@@ -315,7 +369,11 @@ local function updateCombo()
         if maximum then RS.comboStatus="COMBO_LAYOUT_UNAVAILABLE" end
         comboFrame.dragging=false;comboFrame:StopMovingOrSizing();comboFrame:EnableMouse(false);comboFrame:Hide();return
     end
-    for i=1,maximum do comboFrame.cells[i]:SetColorTexture(unpack(i<=current and db.comboActiveColor or db.comboInactiveColor)) end
+    for i=1,maximum do
+        local color=db.comboInactiveColor
+        if current and i<=current then color=i==maximum and db.comboLastColor or db.comboActiveColor end
+        comboFrame.cells[i]:SetColorTexture(unpack(color))
+    end
     comboFrame:Show()
 end
 local function createCombo()
@@ -332,7 +390,7 @@ local function createCombo()
     end)
     comboFrame:Hide()
 end
-function RS:RefreshExtraDisplays() updateAuxText();updateCombo() end
+function RS:RefreshExtraDisplays() updateAuxText();self:UpdateMana();updateCombo() end
 
 
 local function saveAmmoPosition()
@@ -434,7 +492,7 @@ local function applyLayout()
     ammoFrame:ClearAllPoints(); ammoFrame:SetPoint(db.ammoPoint, UIParent, db.ammoRelativePoint, db.ammoX, db.ammoY)
     ammoFrame:EnableMouse(not db.ammoLocked); ammoFrame:SetBackdropColor(0, 0, 0, db.ammoLocked and 0 or 0.35)
     frame:SetShown(db.enabled)
-    updateResource(); updateAuxText(); updateCombo(); updateSwingBars()
+    updateResource(); updateAuxText(); RS:UpdateMana(); updateCombo(); updateSwingBars()
 end
 
 local function savePosition()
@@ -469,6 +527,10 @@ local function createUI()
     auxIcon:SetSize(18,18); auxIcon:SetPoint("LEFT",ammoFrame,"LEFT",2,0)
     auxText:ClearAllPoints();auxText:SetPoint("LEFT",auxIcon,"RIGHT",4,0)
     ammoFrame:SetSize(180,22)
+    manaFrame=CreateFrame("Frame",nil,frame,"BackdropTemplate");RS.manaFrame=manaFrame
+    manaFrame:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8"});manaFrame:EnableMouse(false)
+    manaFill=CreateFrame("StatusBar",nil,manaFrame);RS.manaFill=manaFill;manaFill:SetAllPoints(manaFrame)
+    manaFill:SetStatusBarColor(0.15,0.35,1,1);manaFrame:Hide()
     createCombo(); applyLayout()
 end
 
@@ -495,8 +557,15 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
     local function available(condition)
         return function() return moduleEnabled() and (not condition or condition()) end
     end
-    local function check(title, key, enabled)
-        b:Checkbox(title, function() return db[key] end, function(v) db[key]=v; applyLayout() end, available(enabled))
+    local function check(title, key, enabled, classCondition)
+        local control=b:Checkbox(title, function() return (not classCondition or classCondition()) and db[key] end, function(v) db[key]=v; applyLayout() end, available(enabled))
+        if classCondition and control.disabledHint then
+            control.disabledHint:SetScript("OnEnter",function(self)
+                GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(title)
+                GameTooltip:AddLine(not classCondition() and "현재 직업에서 지원하지 않는 옵션입니다. 저장한 선택은 보존됩니다." or "자원/스윙바 모듈 사용을 먼저 켜세요.",.8,.8,.8,true)
+                GameTooltip:Show()
+            end)
+        end
     end
     local function adjust(title, key, min, max, step, enabled)
         b:Slider(title, min, max, step, function() return db[key] end, function(v) db[key]=v; applyLayout() end, tostring, available(enabled))
@@ -531,14 +600,14 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
     adjust("Y 위치", "y", -3000, 3000, 1)
     b:Button("위치 초기화", function() db.point,db.relativePoint,db.x,db.y="CENTER","CENTER",0,-150; applyLayout() end,nil,moduleEnabled)
     b:Section("탄약 / 영혼의 조각 위치")
-    check("탄약 표시", "showAmmo")
-    check("흑마법사 영혼의 조각 표시", "showSoulShards")
+    check("탄약 표시", "showAmmo",function() return RS:IsAmmoClass() end,function() return RS:IsAmmoClass() end)
+    check("흑마법사 영혼의 조각 표시", "showSoulShards",function() return RS:IsWarlock() end,function() return RS:IsWarlock() end)
     b:Description("장착 무기와 탄약 사용 조건을 확인합니다. 소지 수량만 표시하며 은행은 제외합니다. 투척 소비 규칙이나 아이템 정보를 확인하지 못하면 숨깁니다.")
     check("보조 표시 위치 잠금", "ammoLocked", function() return RS:CanShowAux() end)
     b:Button("보조 표시 위치 초기화", function() db.ammoPoint,db.ammoRelativePoint,db.ammoX,db.ammoY="CENTER","CENTER",0,-120; applyLayout() end,180,available(function() return RS:CanShowAux() end))
     adjust("글자 크기", "ammoTextSize", 8, 24, 1, function() return RS:CanShowAux() end)
     b:Section("콤보 포인트")
-    check("콤보 포인트 표시", "showCombo", function() return RS:IsComboClass() end)
+    check("콤보 포인트 표시", "showCombo", function() return RS:IsComboClass() end,function() return RS:IsComboClass() end)
     local function comboEnabled() return db.showCombo and RS:IsComboClass() end
     dropdown("표시 형태", "comboShape", {"BAR","ORB"}, {BAR="분할 바",ORB="원형 구슬"},comboEnabled)
     dropdown("배치", "comboPosition", {"ABOVE","BELOW","FREE"}, {ABOVE="자원바 외부 위",BELOW="자원바 외부 아래",FREE="자유 배치"},comboEnabled)
@@ -546,7 +615,7 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
     adjust("분할 바 높이", "comboHeight", 4,30,1,function() return comboEnabled() and db.comboShape=="BAR" end)
     adjust("구슬 크기", "comboOrbSize", 8,40,1,function() return comboEnabled() and db.comboShape=="ORB" end)
     adjust("포인트 간격", "comboGap", 0,12,1,comboEnabled)
-    for _,entry in ipairs({{"comboActiveColor","활성 색상"},{"comboInactiveColor","비활성 색상"}}) do
+    for _,entry in ipairs({{"comboActiveColor","활성 색상"},{"comboInactiveColor","비활성 색상"},{"comboLastColor","마지막 포인트 활성 색상"}}) do
         local key,title=entry[1],entry[2]
         b:Color(title,function() return unpack(db[key]) end,function(r,g,bl,a) db[key]={r,g,bl,a};updateCombo() end,available(comboEnabled),nil,true)
     end
@@ -554,7 +623,10 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
     check("콤보 자유 배치 잠금", "comboLocked",freeCombo)
     adjust("콤보 X 위치", "comboX", -3000,3000,1,freeCombo)
     adjust("콤보 Y 위치", "comboY", -3000,3000,1,freeCombo)
-    b:Description("도적과 표범 드루이드에 표시합니다. 현재 값·최대값을 읽을 수 없으면 숨깁니다. 자유 배치만 전체 위치 편집에서 독립 이동합니다.")
+    b:Description("도적과 표범 드루이드에 표시합니다. 비전투 무대상에서는 빈칸을 표시합니다. 실제 최대값이나 전투 중 현재값을 읽을 수 없으면 숨깁니다. 자유 배치만 전체 위치 편집에서 독립 이동합니다.")
+    b:Section("드루이드 변신 마나")
+    check("변신 중 마나바 표시", "showDruidMana",function() return RS:IsDruid() end,function() return RS:IsDruid() end)
+    b:Description("드루이드 변신 중 기력·분노와 마나를 함께 표시합니다. 주 자원이 마나이면 중복 표시하지 않습니다. 마나값을 확인할 수 없으면 숨깁니다.")
     b:Section("크기")
     adjust("폭", "width", 200, 600, 10)
     adjust("높이", "height", 10, 50, 1)
@@ -602,7 +674,7 @@ end
 function NS.modules.resourceSwing:ApplyPosition() applyLayout() end
 function NS.modules.resourceSwing:ApplyProfile()
     if not frame then return end
-    NS.MergeDefaults(db,defaults,"tables"); migrateLegacyResourceColor(); applyLayout(); updateResource(); updateAuxText(); updateCombo(); updateSwingBars()
+    NS.MergeDefaults(db,defaults,"tables"); if db.comboLastColor==nil then db.comboLastColor={unpack(db.comboActiveColor)} end; migrateLegacyResourceColor(); applyLayout(); updateResource(); updateAuxText(); RS:UpdateMana(); updateCombo(); updateSwingBars()
 end
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
@@ -613,22 +685,23 @@ eventFrame:SetScript("OnEvent", function(self, event, eventArg, ...)
         if eventArg ~= addonName then return end
         if NS.InitializeProfiles then NS:InitializeProfiles() end
         KHQOLResourceSwingDB = KHQOLResourceSwingDB or {}; NS.MergeDefaults(KHQOLResourceSwingDB, defaults, "tables"); db = KHQOLResourceSwingDB
+        if db.comboLastColor==nil then db.comboLastColor={unpack(db.comboActiveColor)} end
         -- 0.0.4 used this key for weapon selection; 0.0.5 uses it for frame layering.
         if type(db.swingPriority) ~= "number" then db.swingPriority = defaults.swingPriority end
         createUI(); createMinimapButton()
         self:RegisterEvent("PLAYER_LOGIN"); self:RegisterEvent("UNIT_POWER_UPDATE"); self:RegisterEvent("UNIT_MAXPOWER"); self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED"); self:RegisterEvent("UNIT_INVENTORY_CHANGED"); self:RegisterEvent("PLAYER_REGEN_DISABLED"); self:RegisterEvent("PLAYER_REGEN_ENABLED"); self:RegisterEvent("BAG_UPDATE_DELAYED")
         self:RegisterEvent("PLAYER_SWING"); self:RegisterEvent("WEAPON_SLOT_CHANGED")
         for _,event in ipairs({"UNIT_POWER_FREQUENT","PLAYER_TARGET_CHANGED","UPDATE_SHAPESHIFT_FORM","PLAYER_ENTERING_WORLD","GET_ITEM_INFO_RECEIVED"}) do self:RegisterEvent(event) end
-    elseif event == "PLAYER_LOGIN" then playerGUID = UnitGUID("player"); migrateLegacyResourceColor(); updateResource(); updateAuxText(); updateCombo()
-    elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" then if eventArg == "player" then updateResource();updateCombo() end
-    elseif event == "UNIT_POWER_FREQUENT" then if eventArg=="player" then updateCombo() end
-    elseif event == "PLAYER_TARGET_CHANGED" or event == "UPDATE_SHAPESHIFT_FORM" then updateCombo()
-    elseif event == "PLAYER_ENTERING_WORLD" then updateCombo();updateAuxText()
+    elseif event == "PLAYER_LOGIN" then playerGUID = UnitGUID("player"); migrateLegacyResourceColor(); updateResource(); updateAuxText();RS:UpdateMana();updateCombo()
+    elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" then if eventArg == "player" then updateResource();RS:UpdateMana();updateCombo() end
+    elseif event == "UNIT_POWER_FREQUENT" then if eventArg=="player" then RS:UpdateMana();updateCombo() end
+    elseif event == "PLAYER_TARGET_CHANGED" or event == "UPDATE_SHAPESHIFT_FORM" then RS:UpdateMana();updateCombo()
+    elseif event == "PLAYER_ENTERING_WORLD" then RS:UpdateMana();updateCombo();updateAuxText()
     elseif event == "GET_ITEM_INFO_RECEIVED" then updateAuxText()
     elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "UNIT_INVENTORY_CHANGED" then updateAuxText()
     elseif event == "BAG_UPDATE_DELAYED" then updateAuxText()
-    elseif event == "PLAYER_REGEN_DISABLED" then swingLane:SetShown(true);updateCombo()
-    elseif event == "PLAYER_REGEN_ENABLED" then stopAllSwings(); swingFill:SetWidth(0); swingText:SetText(""); swingLane:SetShown(db.swingVisibility == "ALWAYS"); updateSwingBars();updateCombo()
+    elseif event == "PLAYER_REGEN_DISABLED" then swingLane:SetShown(true);RS:UpdateMana();updateCombo()
+    elseif event == "PLAYER_REGEN_ENABLED" then stopAllSwings(); swingFill:SetWidth(0); swingText:SetText(""); swingLane:SetShown(db.swingVisibility == "ALWAYS"); updateSwingBars();RS:UpdateMana();updateCombo()
     elseif event == "PLAYER_SWING" then playerSwingEvent(eventArg, select(1, ...))
     elseif event == "WEAPON_SLOT_CHANGED" then updateAuxText()
     end
@@ -649,7 +722,7 @@ function NS.modules.resourceSwing:SetEnabled(enabled)
     end
     frame:SetShown(enabled)
     if enabled then updateAuxText();updateCombo()
-    else ammoFrame:Hide();comboFrame:Hide();comboFrame:EnableMouse(false);comboFrame:StopMovingOrSizing() end
+    else manaFrame:Hide();ammoFrame:Hide();comboFrame:Hide();comboFrame:EnableMouse(false);comboFrame:StopMovingOrSizing() end
 end
 SlashCmdList.KHQOLRESOURCESWING = function()
     local settings=NS.settings

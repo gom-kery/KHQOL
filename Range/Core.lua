@@ -32,6 +32,15 @@ function FR:ParseSpell(input)
     id=self.Range.PublicField(info,"spellID")
     if not id then local _,_,_,_,_,_,legacyID=read(GetSpellInfo,input);id=legacyID end
   end
+  if not validID(id) and input~="" and self.GetBookCandidates and not self.resolvingBookName then
+    self.resolvingBookName=true
+    local options=self:GetBookCandidates()
+    self.resolvingBookName=false
+    for _,option in ipairs(options) do
+      local name=self.Range:GetSpellInfo(option.value)
+      if name==input then id=option.value;break end
+    end
+  end
   if not validID(id) then return end
   local name,resolved=self.Range:GetSpellInfo(id)
   if not validID(resolved) then resolved=id end
@@ -83,13 +92,24 @@ function FR:SetReferenceSpell(slot,input)
 end
 function FR:SetRangeSpell(input) return self:SetReferenceSpell("ranged",input) end
 function FR:SetMeleeSpell(input) return self:SetReferenceSpell("melee",input) end
+function FR:ReceiveBookSpell(slot)
+  local status,combat=KHQOL.ReadPublicAPI(InCombatLockdown)
+  if status~="ok" or combat~=false then
+    self.registrationMessage="전투 종료 후 스킬을 등록하세요.";self:RefreshSpellBookPanel();return false
+  end
+  local ok=self:CaptureCursorSpell(slot)
+  if not ok and not self.registrationMessage then self.registrationMessage="마법책의 학습한 스킬을 끌어 놓으세요." end
+  self:RefreshSpellBookPanel();return ok
+end
 function FR:CaptureCursorSpell(slot)
   -- The fourth return is a SpellID on the referenced client. The second is a
   -- spellbook index and is never guessed to be a SpellID on unknown clients.
   local kind,_,_,id=read(GetCursorInfo)
-  if kind~="spell" or not validID(id) then self:Print("지원되는 주문 커서 정보가 없습니다. KHQOL 주문 목록 또는 SpellID 입력을 사용하세요.");return false end
+  if kind~="spell" or not validID(id) then self.registrationMessage="지원되는 스킬 커서가 아닙니다. 스킬명 입력 또는 목록을 사용하세요.";self:RefreshSpellBookPanel();self:Print("지원되는 주문 커서 정보가 없습니다. KHQOL 주문 목록 또는 SpellID 입력을 사용하세요.");return false end
   local ok=self:SetReferenceSpell(slot or "ranged",id)
+  if ok then self.bookSelected=id end
   if ok and type(ClearCursor)=="function" then ClearCursor() end
+  if self.RefreshSpellBookPanel then self:RefreshSpellBookPanel() end
   return ok
 end
 

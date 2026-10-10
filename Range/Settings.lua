@@ -194,9 +194,9 @@ function FR:RefreshSpellBookPanel(rebuild)
   if rebuild or not self.bookOptions then self.bookOptions=self:GetBookCandidates() end
   p.selection:Refresh()
   local selected,message=self:ValidateReferenceSpell(self.bookSelected)
-  p.selectedName:SetText(selected and selected.name or "주문 선택 또는 SpellID 입력")
+  p.selectedName:SetText(selected and selected.name or "스킬명 또는 SpellID 입력")
   p.icon:SetTexture(selected and selected.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
-  p.message:SetText(self.registrationMessage or (self.bookSelected and message) or (#self.bookOptions==0 and "학습한 주문 목록 조회 불가. SpellID 직접 입력을 사용하세요." or "등록할 판정 주문을 선택하세요."))
+  p.message:SetText(self.registrationMessage or (self.bookSelected and message) or (#self.bookOptions==0 and "학습한 주문 목록 조회 불가. 스킬명 또는 SpellID를 입력하세요." or "스킬을 아래 등록 버튼으로 끌어 놓으세요. 목록 선택·스킬명 입력도 가능합니다."))
   for _,slot in ipairs({"melee","ranged"}) do
     local id=self.db and self.db[slot.."SpellID"]
     local name=id and (self.Range:GetSpellInfo(id) or self.db[slot.."SpellName"])
@@ -222,11 +222,11 @@ function FR:TryAttachSpellBook()
   if host.IsForbidden and read(host.IsForbidden,host)~=false then return end
   local UI=KHQOL.UI
   if not self.bookButton then
-    local button=UI:CreateButton(UIParent,"KHQOL",0,0,80,function()
+    local button=UI:CreateButton(UIParent,"KHQOL\n사거리 설정",0,0,100,function()
       if FR.bookPanel:IsShown() then FR:CloseSpellBookPanel()
       else FR:OpenSpellBookPanel() end
     end)
-    self.bookButton=button;button:SetFrameStrata("DIALOG");button:SetClampedToScreen(true)
+    self.bookButton=button;button:SetSize(100,44);button:SetFrameStrata("DIALOG");button:SetClampedToScreen(true)
     local p=CreateFrame("Frame","KHQOLRangeBookRegistration",UIParent,"BackdropTemplate")
     self.bookPanel=p;p.uiControls={};p:SetSize(310,366);p:SetFrameStrata("DIALOG");p:SetClampedToScreen(true)
     p:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
@@ -242,8 +242,15 @@ function FR:TryAttachSpellBook()
       local item,message=FR:ValidateReferenceSpell(p.input:GetText())
       FR.bookSelected=item and item.id or nil;FR.registrationMessage=message;FR:RefreshSpellBookPanel()
     end)
-    UI:CreateButton(p,"근거리로 등록",12,-171,137,function() FR:RegisterBookSelection("melee") end)
-    UI:CreateButton(p,"원거리로 등록",161,-171,137,function() FR:RegisterBookSelection("ranged") end)
+    for _,entry in ipairs({{"melee","근거리로 등록",12},{"ranged","원거리로 등록",161}}) do
+      local slot=entry[1]
+      local button=UI:CreateButton(p,entry[2],entry[3],-171,137,function()
+        if read(GetCursorInfo)~=nil then FR:ReceiveBookSpell(slot) else FR:RegisterBookSelection(slot) end
+      end)
+      p[slot.."Button"]=button
+      button:SetScript("OnReceiveDrag",function() FR:ReceiveBookSpell(slot) end)
+      UI:AttachTooltip(button,entry[2],"마법책의 스킬을 이 버튼으로 끌어 놓으면 등록됩니다.")
+    end
     p.meleeInfo=UI:CreateDescription(p,"",12,-216);p.meleeInfo:SetWidth(286)
     p.rangedInfo=UI:CreateDescription(p,"",12,-253);p.rangedInfo:SetWidth(286)
     p.message=UI:CreateDescription(p,"",12,-296);p.message:SetWidth(286)
@@ -251,8 +258,18 @@ function FR:TryAttachSpellBook()
     p:Hide();button:Hide()
   end
   self.bookHost=host
-  self.bookButton:ClearAllPoints();self.bookButton:SetPoint("TOPLEFT",host,"TOPRIGHT",6,-30)
-  self.bookPanel:ClearAllPoints();self.bookPanel:SetPoint("TOPLEFT",self.bookButton,"BOTTOMLEFT",0,-6)
+  self.bookButton:ClearAllPoints()
+  local search=host.SearchBox
+  if search and (not search.IsForbidden or read(search.IsForbidden,search)==false) then
+    self.bookButton:SetPoint("TOPRIGHT",search,"BOTTOMRIGHT",0,-10)
+  else self.bookButton:SetPoint("TOPRIGHT",host,"TOPRIGHT",-30,-80) end
+  local hostTop,buttonTop=read(host.GetTop,host),read(self.bookButton.GetTop,self.bookButton)
+  local hs,bs,ps=read(host.GetEffectiveScale,host),read(self.bookButton.GetEffectiveScale,self.bookButton),read(self.bookPanel.GetEffectiveScale,self.bookPanel)
+  local offset=-90
+  if type(hostTop)=="number" and type(buttonTop)=="number" and type(hs)=="number" and type(bs)=="number" and type(ps)=="number" and ps>0 then
+    offset=(buttonTop*bs-hostTop*hs)/ps
+  end
+  self.bookPanel:ClearAllPoints();self.bookPanel:SetPoint("TOPLEFT",host,"TOPRIGHT",6,offset)
   self.bookHooked=self.bookHooked or {}
   if not self.bookHooked[host] then
     self.bookHooked[host]=true
