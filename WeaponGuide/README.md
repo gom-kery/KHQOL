@@ -1,3 +1,13 @@
+# 구형 WeaponGuide 보존 자료
+
+이 폴더는 KHQOL 1.10.4.0 메인 TOC에서 로드하지 않습니다. 현재 KHQOL의 무기 안내 기능은 `Tooltip/WeaponGuideProvider.lua` 등 Tooltip 제공자 코드가 담당합니다.
+
+구형 소스·하위 TOC·`ForeverWeaponGuideDB` 관련 호환 처리는 삭제하지 않았습니다. 이 폴더를 별도 애드온으로 설치할 필요는 없습니다. 아래 독립 설치 안내와 beta API 설명은 과거 개발 기록이며 현재 KHQOL 설치 지침이 아닙니다.
+
+## 과거 독립 애드온 기록
+
+---
+
 # ForeverWeaponGuide 0.1.0-beta
 
 Install `ForeverWeaponGuide` in the Forever client's `Interface/AddOns` folder, then enable it at character select.

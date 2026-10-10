@@ -6,15 +6,7 @@ Tooltip.defaults = { textSize = 0, weaponGuide = true, showHealthBar = true, sho
 -- Never inspect, compare, concatenate, or forward those values to unit APIs.
 local function isSecret(value) return type(issecretvalue)=="function" and issecretvalue(value) end
 local function publicUnit(value) return not isSecret(value) and type(value)=="string" and value~="" end
-local function publicCall(fn,...)
-  if type(fn)~="function" then return end
-  for i=1,select("#",...) do if isSecret(select(i,...)) then return end end
-  local function collect(...) return {n=select("#",...),...} end
-  local result=collect(pcall(fn,...))
-  if not result[1] then return end
-  for i=2,result.n do if isSecret(result[i]) then return end end
-  return unpack(result,2,result.n)
-end
+local publicCall = KHQOL.PublicCall
 local function unitToken(tooltip,fallback)
   if tooltip and tooltip.GetUnit then
     local ok,_,unit=pcall(tooltip.GetUnit,tooltip)

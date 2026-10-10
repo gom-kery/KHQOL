@@ -1,3 +1,15 @@
+# KHQOL 1.10.4.0 모닥불 통합 경계
+
+현재 모닥불은 이미 KHQOL 메인 TOC가 로드하는 모듈입니다. `KHQOL.modules.campfire`를 공유하며 `CampfireAlertDB`의 기존 저장 이름과 설정 연결을 보존합니다. 아래의 독립 설치·향후 편입·새 마이그레이션 계획은 과거 기록으로, 현재 작업 지침이 아닙니다.
+
+Aura 읽기는 `aura, status`를 반환합니다. `present`/`absent`만 확인된 결과이며 `missing`/`error`/`unreadable`는 불확실합니다. `HasPlayerAura`의 첫 반환은 확인된 true/false 또는 불확실한 nil입니다. 실제 상태 전환은 불확실한 값을 버프 없음으로 확정하지 않습니다. 현대 Forever 타깃 조회는 `GetPlayerAuraBySpellID(spellID)` 단일 인자를 사용하고, 필드 정규화도 보호합니다.
+
+OFF·프로필 변경·새 대기 이후 이전 콜백은 상태 객체/serial/generation 검사로 무효화합니다. 이 문서는 데이터 초기화나 별도 독립 애드온 설치를 요구하지 않습니다.
+
+## 과거 독립 버전 편입 메모
+
+---
+
 # KHQOL 편입 메모
 
 CampfireAlert는 현재 독립적으로 설치·배포되는 WoW Forever 애드온이다. 이 문서는 향후 KHQOL의 독립 모듈로 편입할 때 필요한 최소 변경 사항만 기록한다.

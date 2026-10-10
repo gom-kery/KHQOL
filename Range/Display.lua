@@ -5,6 +5,7 @@ local Display = {}
 FR.Display = Display
 
 function Display:Create()
+  if self.frame then return end
   local frame = CreateFrame("Frame", "FRangeIndicator", UIParent)
   frame:SetSize(260, 72)
   frame:SetFrameStrata("HIGH")

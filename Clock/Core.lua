@@ -179,6 +179,7 @@ end
 function FC:ToggleHUD() self:SetHUDShown(not self.db.enabled) end
 
 function FC:Initialize()
+  if self.initialized then return end
   if KHQOL.InitializeProfiles then KHQOL:InitializeProfiles() end
   -- Keep prior money-display choices when upgrading from the radio-button version.
   local savedMoney = ForeverClockDB and ForeverClockDB.modules and ForeverClockDB.modules.money
@@ -213,6 +214,7 @@ function FC:Initialize()
   -- Settings controls are created in their owning tab on first use.
   self:ApplyAll()
   self:StartMinuteTimer()
+  self.initialized=true
 end
 
 -- Skill-line events can arrive in a short burst while zoning or learning a

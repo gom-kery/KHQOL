@@ -81,6 +81,7 @@ function CFA:CancelDistanceScan()
         self.distanceTicker:Cancel()
     end
     self.distanceTicker = nil
+    self.distanceTicket = nil
 end
 
 function CFA:UpdateCampfireDistance()
@@ -113,7 +114,10 @@ function CFA:StartDistanceScan()
     self:CancelDistanceScan()
     self:UpdateCampfireDistance()
     if type(ClosestGameObjectPosition) == "function" and C_Timer and C_Timer.NewTicker then
-        self.distanceTicker = C_Timer.NewTicker(0.5, function() CFA:UpdateCampfireDistance() end)
+        local ticket={}; self.distanceTicket=ticket
+        self.distanceTicker = C_Timer.NewTicker(0.5, function()
+            if CFA.distanceTicket==ticket then CFA:UpdateCampfireDistance() end
+        end)
     end
 end
 
@@ -141,7 +145,9 @@ function CFA:StopWaiting(message)
         self.ui.progress:Hide()
         if message then self:SetStatusText(message) end
     end
-    if self:HasPlayerAura(self.SPELLS.NEARBY_CAMPFIRE) then
+    local nearby=self:HasPlayerAura(self.SPELLS.NEARBY_CAMPFIRE)
+    if nearby==nil then return end
+    if nearby then
         self:SetState(self.STATES.DETECTED)
     else
         self:SetState(self.STATES.IDLE)
@@ -164,11 +170,15 @@ function CFA:StartWaiting(aura)
     self.ui.progress:Show()
     self:UpdateProgress()
     if C_Timer and C_Timer.NewTicker then
-        self.timer.ticker = C_Timer.NewTicker(0.1, function() CFA:UpdateProgress() end)
+        local timer=self.timer
+        self.timer.ticker = C_Timer.NewTicker(0.1, function()
+            if CFA.timer==timer then CFA:UpdateProgress() end
+        end)
     else
         -- Legacy fallback: attached only for this active timer and removed by CancelTimer.
-        local elapsed = 0
+        local elapsed,timer = 0,self.timer
         self.ui.progress:SetScript("OnUpdate", function(_, delta)
+            if CFA.timer~=timer then return end
             elapsed = elapsed + delta
             if elapsed >= 0.1 then
                 elapsed = 0
@@ -212,7 +222,9 @@ function CFA:OnCampfireClick()
         self:Print("전투 중에는 자동 앉기를 사용할 수 없습니다.")
         return
     end
-    if not self:HasPlayerAura(self.SPELLS.NEARBY_CAMPFIRE) then
+    local nearby=self:HasPlayerAura(self.SPELLS.NEARBY_CAMPFIRE)
+    if nearby==nil then return end
+    if not nearby then
         self:HideDiscovery()
         self:SetState(self.STATES.IDLE)
         return
@@ -236,6 +248,8 @@ function CFA:OnCampfireClick()
 end
 
 function CFA:HideDiscovery()
+    self.completeSerial=(self.completeSerial or 0)+1
+    if self.ui and self.ui.complete then self.ui.complete:Hide() end
     self:CancelTimer()
     self:CancelDistanceScan()
     if self.ui then
@@ -281,8 +295,11 @@ function CFA:ShowComplete()
     self:HideDiscovery()
     self:SetState(self.STATES.COMPLETE)
     self.ui.complete:Show()
+    local serial,profile=self.completeSerial,KHQOL.profileGeneration
     if C_Timer and C_Timer.After then
         C_Timer.After(3, function()
+            if serial~=CFA.completeSerial or profile~=KHQOL.profileGeneration or
+               CFA.state~=CFA.STATES.COMPLETE or not KHQOL:GetEnabled("campfire") then return end
             if CFA.ui then CFA.ui.complete:Hide() end
             if CFA:HasAnyCampBenefit() then CFA:SetState(CFA.STATES.IDLE) end
         end)
@@ -292,10 +309,15 @@ end
 function CFA:ProcessAuras(reason)
     if _G.KHQOL and _G.KHQOL.db and not _G.KHQOL:GetEnabled("campfire") then self:HideDiscovery(); return end
     if not self.initialized then return end
-    local nearby = self:HasPlayerAura(self.SPELLS.NEARBY_CAMPFIRE)
-    local restAura = self:GetPlayerAura(self.SPELLS.REST_PROCESS)
-    local benefit = self:HasAnyCampBenefit()
+    local nearby,nearbyStatus = self:HasPlayerAura(self.SPELLS.NEARBY_CAMPFIRE)
+    local restAura,restStatus = self:GetPlayerAura(self.SPELLS.REST_PROCESS)
+    local benefit,benefitStatus = self:HasAnyCampBenefit()
+    local function known(status) return status=="present" or status=="absent" end
+    if not known(nearbyStatus) or not known(restStatus) or not known(benefitStatus) then
+        return -- Retain last known state; uncertainty is not an aura removal.
+    end
     local previous = self.lastAuraState
+    local previousBenefit = previous.benefit
     local previousExpiration = self.lastBenefitExpiration
     local expiration = benefit and tonumber(benefit.expirationTime) or nil
     local benefitRefreshed = expiration and previousExpiration and expiration > (previousExpiration + 30)
@@ -306,7 +328,7 @@ function CFA:ProcessAuras(reason)
     self.lastAuraState.nearby, self.lastAuraState.rest, self.lastAuraState.benefit = nearby, restAura ~= nil, benefit ~= nil
     self.lastBenefitExpiration = expiration
 
-    if benefit and reason ~= "initial" and reason ~= "test" and (not previous.benefit or benefitRefreshed) then
+    if benefit and reason ~= "initial" and reason ~= "test" and (not previousBenefit or benefitRefreshed) then
         -- Existing benefits often persist. A substantial expiration increase is
         -- the reliable signal that the 60-minute camp benefit was refreshed.
         if benefitRefreshed then self:Debug("Camp benefit duration refreshed to 60 minutes.") end

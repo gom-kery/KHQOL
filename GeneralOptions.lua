@@ -20,13 +20,7 @@ end
 -- Forever exposes C_Container tables; older clients return positional values.
 -- Missing/secret data never qualifies an item for automatic sale.
 local function secret(value) return type(issecretvalue) == "function" and issecretvalue(value) end
-local function publicCall(fn, ...)
-  if type(fn) ~= "function" then return end
-  local values = { pcall(fn, ...) }
-  if not values[1] then return end
-  for i = 2, 20 do if secret(values[i]) then return end end
-  return unpack(values, 2, 20)
-end
+local publicCall = KHQOL.PublicCall
 local function containerAPI(name)
   if C_Container and type(C_Container[name]) == "function" then return C_Container[name] end
   return _G[name]
@@ -36,7 +30,7 @@ local function validNumber(value)
 end
 local BAG_INFO_KEYS = {"stackCount", "isLocked", "quality", "hyperlink", "hasNoValue", "itemID"}
 local INVITE_OPTIONS = {party="declinePartyInvites", guild="declineGuildInvites"}
-local function GetBagItemInfo(bag, slot)
+local function ReadBagItemInfo(bag, slot)
   local fn = containerAPI("GetContainerItemInfo")
   if type(fn) ~= "function" then return nil, false end
   local ok, icon, count, locked, quality, readable, loot, link, filtered, noValue, id = pcall(fn, bag, slot)
@@ -55,6 +49,11 @@ local function GetBagItemInfo(bag, slot)
   end
   return info, true
 end
+local function GetBagItemInfo(bag,slot)
+  local ok,info,readable=pcall(ReadBagItemInfo,bag,slot)
+  if ok then return info,readable end
+  return nil,false
+end
 local function IsNonQuestItem(bag, slot)
   local quest, id = publicCall(containerAPI("GetContainerItemQuestInfo"), bag, slot)
   if type(quest) == "table" then
@@ -64,7 +63,7 @@ local function IsNonQuestItem(bag, slot)
   -- Old APIs may use nil for both non-quest and unavailable data: skip those.
   return quest == false and id == nil
 end
-local function GetSaleCandidate(bag, slot)
+local function ReadSaleCandidate(bag, slot)
   local info = GetBagItemInfo(bag, slot)
   if not info or info.quality ~= 0 or info.isLocked ~= false or info.hasNoValue ~= false then return end
   if not validNumber(info.stackCount) or info.stackCount < 1 or info.stackCount % 1 ~= 0 then return end
@@ -79,6 +78,10 @@ local function GetSaleCandidate(bag, slot)
   if not validNumber(classID) or classID == 12 or not validNumber(bindType) or bindType == 4 then return end
   info.bag, info.slot, info.price = bag, slot, price
   return info
+end
+local function GetSaleCandidate(bag,slot)
+  local ok,candidate=pcall(ReadSaleCandidate,bag,slot)
+  if ok then return candidate end -- Unreadable fields cannot authorize a sale.
 end
 local function ForEachBagItem(callback)
   -- Only backpack + equipped bags (Forever 0..4), never bank/keyring slots.

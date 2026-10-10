@@ -12,10 +12,9 @@ local defaults = {
   },
 }
 
-local legacy = {
-  clock = "ForeverClockDB", buffReminder = "ForeverBuffReminderDB", range = "FRangeDB",
-  weaponGuide = "ForeverWeaponGuideDB", resourceSwing = "KHQOLResourceSwingDB", campfire = "CampfireAlertDB",
-}
+-- WeaponGuide participates only in migration, never modern module dispatch.
+local legacy = {weaponGuide="ForeverWeaponGuideDB"}
+for key,variable in pairs(KHQOL.legacyProfileVariables) do legacy[key]=variable end
 KHQOL.defaults = defaults
 defaults.enabled.environmentTimer = false
 defaults.enabled.experienceBar = false
@@ -48,15 +47,8 @@ end
 
 function KHQOL:GetEnabled(key) return self.db.enabled[key] ~= false end
 
-local managedModules = {
-  procAlert=true,
-  objectHighlight=true,
-  npcAlert=true,
-  experienceBar=true,
-  environmentTimer=true,
-  tooltip=true, cursorTrail=true, castBar=true, combatStatus=true,
-  questNavigator=true, threat=true, pvpAlert=true,
-}
+local managedModules = {}
+for _,key in ipairs(KHQOL.profileModuleKeys) do managedModules[key]=true end
 function KHQOL:SetEnabled(key, enabled, reapply)
   -- Internal reapplication preserves preferences while the lock gates execution.
   if not reapply and self.LabLock:IsExperimental(key) and not self.LabLock:IsUnlocked() then return false end
@@ -94,6 +86,7 @@ function KHQOL:HideLegacyButtons()
 end
 
 function KHQOL:CreateMinimapButton()
+  if self.minimapButton then return end
   local b = CreateFrame("Button", "KHQOLMinimapButton", Minimap)
   b:SetSize(32, 32); b:RegisterForClicks("LeftButtonUp")
   local icon = b:CreateTexture(nil, "BACKGROUND"); icon:SetTexture("Interface\\AddOns\\KHQOL\\Media\\kh-qol-minimap-button.tga"); icon:SetAllPoints(b)
@@ -125,6 +118,9 @@ local commandPages = KHQOL.UI.SettingsRegistry.commands
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_LOGIN")
 events:SetScript("OnEvent", function()
+  if KHQOL.loginStarted then return end
+  KHQOL.loginStarted=true
+  events:UnregisterEvent("PLAYER_LOGIN")
   KHQOL:InitializeProfiles()
   KHQOLDB = KHQOL.MergeDefaults(KHQOLDB or {}, defaults, "tables"); KHQOL.db = KHQOLDB
   KHQOL:Migrate()

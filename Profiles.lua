@@ -1,14 +1,8 @@
 local ADDON_NAME, KHQOL = ...
 local DEFAULT = "기본"
-local legacy = {clock="ForeverClockDB", buffReminder="ForeverBuffReminderDB",
-  range="FRangeDB", resourceSwing="KHQOLResourceSwingDB", campfire="CampfireAlertDB"}
-local managed = {"tooltip","cursorTrail","castBar","combatStatus","questNavigator","threat","pvpAlert"}
+local legacy = KHQOL.legacyProfileVariables
+local managed = KHQOL.profileModuleKeys
 local common = {"minimap","locked","debug","enabled","general"}
-managed[#managed+1]="environmentTimer"
-managed[#managed+1]="experienceBar"
-managed[#managed+1]="procAlert"
-managed[#managed+1]="objectHighlight"
-managed[#managed+1]="npcAlert"
 local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID"}
