@@ -2,7 +2,7 @@ local ADDON_NAME, KHQOL = ...
 local DEFAULT = "기본"
 local legacy = KHQOL.legacyProfileVariables
 local managed = KHQOL.profileModuleKeys
-local common = {"minimap","locked","debug","enabled","general"}
+local common = {"minimap","locked","debug","enabled","general","settingsWindow"}
 local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID","hunterMeleeSpellName","meleeSpellID","meleeSpellName","rangedSpellID","rangedSpellName"}

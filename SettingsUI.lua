@@ -135,8 +135,12 @@ function KHQOL:CreateSettings()
   local texture=f:CreateTexture(nil,"BACKGROUND",nil,1); texture:SetAllPoints(); texture:SetTexture("Interface\\AddOns\\KHQOL\\Media\\SettingsGrain.tga"); texture:SetAlpha(.24)
   f:Hide(); self.settings=f
   function f:FitScreen()
-    local scale=math.min(1,(UIParent:GetWidth()-24)/T.WindowWidth,(UIParent:GetHeight()-24)/T.WindowHeight)
-    self:SetScale(math.max(.1,scale))
+    local db=KHQOL.db.settingsWindow or {scale=100,opacity=100}
+    local requested=math.max(80,math.min(120,tonumber(db.scale) or 100))/100
+    local scale=math.min(requested,(UIParent:GetWidth()-24)/T.WindowWidth,(UIParent:GetHeight()-24)/T.WindowHeight)
+    self:SetScale(math.max(.1,scale)); self:SetAlpha(math.max(20,math.min(100,tonumber(db.opacity) or 100))/100)
+    if self.scaleControl then self.scaleControl:Refresh() end
+    if self.opacityControl then self.opacityControl:Refresh() end
   end
   f:RegisterEvent("DISPLAY_SIZE_CHANGED"); f:RegisterEvent("UI_SCALE_CHANGED")
   f:SetScript("OnEvent",function(self) self:FitScreen() end)
@@ -245,6 +249,7 @@ function KHQOL:CreateSettings()
   local groups={bars=KHQOL.BarsSettings,alerts=KHQOL.AlertSettings,labs=KHQOL.LabSettings,
     interface=KHQOL.InterfaceSettings,convenience=KHQOL.ConvenienceSettings}
   function f:ShowPage(key)
+    if self.buildingPage then return end
     local pageKey,requestedTab=registry:Resolve(key);key=pageKey
     local definition
     for _,item in ipairs(pages) do if item[1]==key then definition=item;break end end
@@ -260,17 +265,26 @@ function KHQOL:CreateSettings()
     if not content then
       content=CreateFrame("Frame",nil,child);content:Hide();content:SetPoint("TOPLEFT");content:SetWidth(T.ContentWidth)
       content:SetHeight(math.max(1,scroll:GetHeight()))
-      self.pageCache[cacheKey]=content
-      local y
-      if locked then y=KHQOL.LabLock:BuildLockedSettings(content,0)
-      elseif key=="general" then y=generalSettings(content,UI:CreatePage(content,definition[2],definition[3]))
-      elseif key=="profiles" then y=profileSettings(content,UI:CreatePage(content,definition[2],definition[3]))
-      else
-        local header=self.groupHeaders[key]
-        local tabY=UI:CreatePage(header,definition[2],definition[3])-T.RowGap
-        y=groups[key]:BuildSettings(content,0,header,tabY)
+      self.buildingPage=true
+      local ok,y=pcall(function()
+        if locked then return KHQOL.LabLock:BuildLockedSettings(content,0)
+        elseif key=="general" then return generalSettings(content,UI:CreatePage(content,definition[2],definition[3]))
+        elseif key=="profiles" then return profileSettings(content,UI:CreatePage(content,definition[2],definition[3]))
+        else
+          local header=self.groupHeaders[key]
+          local tabY=UI:CreatePage(header,definition[2],definition[3])-T.RowGap
+          return groups[key]:BuildSettings(content,0,header,tabY)
+        end
+      end)
+      self.buildingPage=nil
+      if not ok then
+        -- Failed/unfinished pages must never become selectable cached pages.
+        for _,button in pairs(content.tabButtons or {}) do button:Hide();button:SetParent(content) end
+        content:Hide()
+        error(y,0)
       end
       content.contentHeight=-y+T.ContentPadding
+      self.pageCache[cacheKey]=content
     end
     self.activeContent=content
     if groups[key] and not locked then content.SelectSettingsTab(requestedTab or groups[key].selected) end
@@ -289,7 +303,7 @@ function KHQOL:CreateSettings()
     end) end
   end
   local navigation=CreateFrame("ScrollFrame",nil,f)
-  navigation:SetPoint("TOPLEFT",10,-76); navigation:SetPoint("BOTTOMLEFT",10,58); navigation:SetWidth(T.SidebarWidth-20)
+  navigation:SetPoint("TOPLEFT",10,-76); navigation:SetPoint("BOTTOMLEFT",10,156); navigation:SetWidth(T.SidebarWidth-20)
   local menuContent=CreateFrame("Frame",nil,navigation); menuContent:SetWidth(T.SidebarWidth-20); menuContent:SetHeight(600); navigation:SetScrollChild(menuContent)
   navigation:EnableMouseWheel(true); navigation:SetScript("OnMouseWheel",function(self,delta)
     self:SetVerticalScroll(math.max(0,math.min(math.max(0,menuContent:GetHeight()-self:GetHeight()),self:GetVerticalScroll()-delta*36)))
@@ -311,6 +325,16 @@ function KHQOL:CreateSettings()
     end
   end
   menuContent:SetHeight(-menuY+4)
+  local appearance=CreateFrame("Frame",nil,f); appearance:SetPoint("BOTTOMLEFT",18,18); appearance:SetSize(T.SidebarWidth-36,116)
+  local function settings() KHQOL.db.settingsWindow=KHQOL.db.settingsWindow or {scale=100,opacity=100}; return KHQOL.db.settingsWindow end
+  local function slider(title,top,key,min,max)
+    local c=UI:CreateSlider(appearance,title,"설정창 전체의 글자와 컨트롤에 함께 적용됩니다.",0,top,min,max,10,function() return settings()[key] end,function(v) settings()[key]=v; f:FitScreen() end,function(v) return v.."%" end)
+    c:SetWidth(88); c.numberBox:ClearAllPoints(); c.numberBox:SetPoint("TOPLEFT",102,top-20); c.numberBox:SetWidth(62)
+    return c
+  end
+  f.opacityControl=slider("투명도",0,"opacity",20,100)
+  f.scaleControl=slider("배율",-60,"scale",80,120)
+  appearance:HookScript("OnShow",function() UI:Refresh(appearance) end)
   f:SetScript("OnHide",function() UI:CloseDropdown(); GameTooltip:Hide() end)
 end
 function KHQOL:ShowSettings(key)

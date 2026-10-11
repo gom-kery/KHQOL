@@ -3,7 +3,7 @@ local _, KHQOL = ...
 local defaults = {
   version = 1,
   minimap = { show = true, angle = 225 },
-  locked = true, debug = false,
+  locked = true, debug = false, settingsWindow={scale=100,opacity=100},
   enabled = { clock = true, todo = true, buffReminder = true, range = true, tooltip = true, resourceSwing = true, campfire = true, cursorTrail = true, castBar = true, combatStatus = true, questNavigator = true, threat = true, pvpAlert = true },
   migrated = {}, modules = {},
   general = {

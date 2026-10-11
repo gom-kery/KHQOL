@@ -4,9 +4,181 @@ local N,UI=KHQOL.Navigation,KHQOL.NavigationUI
 -- Quest-list presentation is independent of the navigation/watch cache below.
 -- Verified against Gethe/wow-ui-source forever 15666a6 (1.60.1.70245).
 local trackerDefaults={groupByRegion=true,collapsibleRegions=true,showDungeonTag=true,
-  showEliteTag=true,collapsedRegions={},contentWidth=0}
+  showEliteTag=true,collapsedRegions={},contentWidth=0,autoRegion=false,autoRegionDelay=10}
 local function inCombat() return QN.IsTrue(QN.Call(InCombatLockdown)) end
 QN.trackerDefaults = trackerDefaults
+-- The endpoint 5 is a deliberate exception; all other choices are even seconds.
+function QN:NormalizeRegionDelay(value)
+  if not QN.IsNumber(value) then return 10 end
+  value=math.max(5,math.min(30,value))
+  if value<5.5 then return 5 end
+  return math.max(6,math.min(30,math.floor(value/2+.5)*2))
+end
+function QN:AutoRegionEnabled()
+  local t=self:GetTrackerDB()
+  return self.trackerEnabled and KHQOL:GetEnabled("questNavigator") and t.groupByRegion and t.collapsibleRegions and t.autoRegion
+end
+function QN:CancelRegionReservation()
+  local pending=self.regionReservation
+  if pending and pending.timer and pending.timer.Cancel then pending.timer:Cancel() end
+  self.regionReservation=nil
+end
+function QN:ResetAutoRegion()
+  local check=self.regionArrivalCheck
+  if check and check.timer and check.timer.Cancel then check.timer:Cancel() end
+  self.regionArrivalCheck=nil
+  self:CancelRegionReservation(); self.autoRegionState=nil
+end
+function QN:CheckRegionAfterControlChange()
+  if not self:AutoRegionEnabled() or self.regionArrivalCheck then return end
+  if not C_Timer or not C_Timer.NewTimer then return end
+  local check={generation=self.trackerGeneration,profile=KHQOL.profileGeneration}
+  self.regionArrivalCheck=check
+  -- One deferred check per event burst, not a flight-status polling loop.
+  check.timer=C_Timer.NewTimer(.1,function()
+    if self.regionArrivalCheck~=check then return end
+    self.regionArrivalCheck=nil
+    if check.generation~=self.trackerGeneration or check.profile~=KHQOL.profileGeneration then return end
+    self:UpdateAutoRegion()
+  end)
+end
+function QN:PlayerTrackerRegion()
+  local instance,instanceType=QN.Call(IsInInstance)
+  if QN.IsTrue(instance) then
+    if not QN.IsText(instanceType) or (instanceType~="party" and instanceType~="raid") then return end
+    local name,kind,id=QN.Call(function()
+      if type(GetInstanceInfo)~="function" then return end
+      local name,kind,_,_,_,_,_,id=GetInstanceInfo()
+      return name,kind,id
+    end)
+    if QN.IsText(name) and name~="" and QN.IsText(kind) and kind==instanceType and QN.IsID(id) then
+      return "instance:"..id,name,"dungeon"
+    end
+    return
+  end
+  if type(IsInInstance)=="function" and not QN.IsFalse(instance) then return end
+  local id=QN.Call(C_Map and C_Map.GetBestMapForUnit,"player")
+  local zoneType=Enum and Enum.UIMapType and Enum.UIMapType.Zone
+  if not QN.IsNumber(zoneType) then return end
+  local seen={}
+  for _=1,12 do
+    if not QN.IsID(id) or seen[id] then return end
+    seen[id]=true
+    local info=QN.Call(C_Map and C_Map.GetMapInfo,id)
+    if not QN.IsTable(info) then return end
+    local kind,parent,name=QN.Call(function() return info.mapType,info.parentMapID,info.name end)
+    if not QN.IsNumber(kind) then return end
+    -- A city can use a Dungeon map layout without being an instance.
+    local city=QN.IsTrue(QN.Call(C_Map and C_Map.IsCityMap,id))
+    local flags=QN.Call(function() return info.flags end)
+    local cityFlag=Enum.UIMapFlag and Enum.UIMapFlag.IsCityMap
+    if not city and QN.IsNumber(flags) and QN.IsNumber(cityFlag) and cityFlag>0 then
+      city=flags%(cityFlag*2)>=cityFlag
+    end
+    if city then
+      if QN.IsText(name) and name~="" then return id,name,"zone" end
+      return
+    end
+    if kind==zoneType then
+      if QN.IsText(name) and name~="" then return id,name,"zone" end
+      return
+    end
+    -- Non-city dungeon layouts are not geographical quest-log headers.
+    if Enum.UIMapType.Dungeon and kind==Enum.UIMapType.Dungeon then return end
+    id=parent
+  end
+end
+function QN:TrackerTaxiState()
+  if type(UnitOnTaxi)~="function" then return false end -- dwell-only fallback
+  local value=QN.Call(UnitOnTaxi,"player")
+  if QN.IsTrue(value) then return true elseif QN.IsFalse(value) then return false end
+end
+function QN:TrackerEditing()
+  if self.trackerNativeEditing then return true end
+  if EditModeManagerFrame and type(EditModeManagerFrame.IsEditModeActive)=="function" then
+    -- Native IsEditModeActive returns its uninitialized field (nil) before
+    -- first entry. A successful nil is inactive; an API failure is unknown.
+    local status,value=KHQOL.ReadPublicAPI(EditModeManagerFrame.IsEditModeActive,EditModeManagerFrame)
+    if status~="ok" or (value~=nil and not QN.IsFalse(value)) then return true end
+  end
+  return false
+end
+function QN:TrackerRegionCollapsed(key)
+  local t=self.trackerDB or self:GetTrackerDB()
+  if not t.groupByRegion or not t.collapsibleRegions then return false end
+  local state=self.autoRegionState
+  if self:AutoRegionEnabled() and state and state.display and state.display[key]~=nil then return state.display[key] end
+  return t.collapsedRegions[key]==true
+end
+function QN:ToggleTrackerRegion(key)
+  local collapsed=not self:TrackerRegionCollapsed(key)
+  self.trackerDB.collapsedRegions[key]=collapsed
+  local state=self.autoRegionState
+  if state then
+    self:CancelRegionReservation(); state.manual=true
+    if state.display then state.display[key]=collapsed end
+  end
+  self:RequestTrackerLayout()
+end
+function QN:TryApplyAutoRegion()
+  local pending=self.regionReservation; if not pending or not pending.elapsed then return end
+  if not self:AutoRegionEnabled() or pending.generation~=self.trackerGeneration or pending.profile~=KHQOL.profileGeneration then self:CancelRegionReservation(); return end
+  local id,name,kind=self:PlayerTrackerRegion(); local taxi=self:TrackerTaxiState()
+  if taxi~=false then self:CancelRegionReservation(); if self.autoRegionState then self.autoRegionState.taxi=true end; return end
+  if id~=pending.zone or name~=pending.name or kind~=pending.kind then self:CancelRegionReservation(); return end
+  if inCombat() or self:TrackerEditing() then return end
+  local ok,groups=pcall(function()
+    local watches,ready=self:CollectTrackerWatches()
+    if ready==false then return end
+    return self:BuildTrackerGroups(watches)
+  end)
+  if not ok or not QN.IsTable(groups) then return end -- API not ready: retry only on an existing event
+  local match
+  for _,group in ipairs(groups) do
+    if group.name==name and group.key=="header:"..name then
+      if match then self:CancelRegionReservation(); self.autoRegionState.done=true; return end
+      match=group.key
+    end
+  end
+  self:CancelRegionReservation(); local state=self.autoRegionState; state.done=true
+  if not match and kind=="dungeon" then return end -- Unknown dungeon header: do not guess by quest tags.
+  local display={}
+  for _,group in ipairs(groups) do display[group.key]=group.key~=match end
+  state.display=display; state.selected=match;state.appliedZone=id;state.appliedName=name
+  self:RequestTrackerLayout()
+end
+function QN:UpdateAutoRegion(restart)
+  if not self:AutoRegionEnabled() then self:ResetAutoRegion(); return end
+  local state=self.autoRegionState or {}; self.autoRegionState=state
+  local taxi=self:TrackerTaxiState()
+  if taxi~=false then
+    self:CancelRegionReservation(); state.taxi=true; return
+  end
+  if state.taxi then state.zone=nil; state.manual=nil; state.done=nil; state.taxi=nil end
+  local id,name,kind=self:PlayerTrackerRegion()
+  if not id then self:CancelRegionReservation(); return end
+  if state.zone==id and not restart and (self.regionReservation or state.manual or state.done) then self:TryApplyAutoRegion(); return end
+  if state.zone~=id then state.manual=false; state.done=false end
+  if state.manual or state.done then return end
+  self:CancelRegionReservation(); state.zone=id; state.name=name
+  local pending={zone=id,name=name,kind=kind,generation=self.trackerGeneration,profile=KHQOL.profileGeneration}
+  self.regionReservation=pending
+  local function expired()
+    if self.regionReservation~=pending then return end
+    pending.timer=nil; pending.elapsed=true; self:TryApplyAutoRegion()
+  end
+  local delay=self:GetTrackerDB().autoRegionDelay
+  if C_Timer and C_Timer.NewTimer then pending.timer=C_Timer.NewTimer(delay,expired)
+  elseif C_Timer and C_Timer.After then C_Timer.After(delay,expired)
+  else self.regionReservation=nil end
+end
+function QN:AutoRegionOptionsChanged(key)
+  if key=="autoRegionDelay" then
+    local state=self.autoRegionState
+    if self.regionReservation and state and not state.manual and not state.done then self:UpdateAutoRegion(true) end
+  else self:UpdateAutoRegion() end
+  self:RequestTrackerLayout()
+end
 function QN:GetTrackerDB()
   local db=self:GetDB()
   if type(db.questTracker)~="table" then db.questTracker={} end
@@ -16,6 +188,7 @@ function QN:GetTrackerDB()
   if not QN.IsNumber(t.fontSize) then t.fontSize=QN.IsNumber(nativeSize) and nativeSize or 12 end
   t.fontSize=math.max(10,math.min(20,t.fontSize))
   if not QN.IsNumber(t.contentWidth) or (t.contentWidth~=0 and (t.contentWidth<200 or t.contentWidth>500)) then t.contentWidth=0 end
+  t.autoRegionDelay=self:NormalizeRegionDelay(t.autoRegionDelay)
   self.trackerDB=t; return t
 end
 function QN:GetTrackerWidth()
@@ -85,7 +258,7 @@ function QN:BuildTrackerGroups(infos)
       return x.order<y.order
     end)
     group.collapsed=self.trackerDB.groupByRegion and self.trackerDB.collapsibleRegions and
-      self.trackerDB.collapsedRegions[group.key]==true or false
+      self:TrackerRegionCollapsed(group.key) or false
   end
   self.trackerGroups,self.trackerQuestData=groups,data
   return groups
@@ -97,14 +270,15 @@ local function font(fs,size)
   fs:SetFont(path,size,flags); fs:SetWordWrap(true); fs:SetMaxLines(0)
 end
 function QN:CollectTrackerWatches()
-  local api=C_QuestLog; local result={}
+  local api=C_QuestLog; local result={};local ready=true
   local count=api.GetNumQuestWatches()
-  if not QN.IsNumber(count) or count<0 or count>1000 or count%1~=0 then return result end
+  if not QN.IsNumber(count) or count<0 or count>1000 or count%1~=0 then return result,false end
   for i=1,count do
     local id=api.GetQuestIDForQuestWatchIndex(i)
     if QN.IsID(id) then
       local index=api.GetLogIndexForQuestID(id)
       local info=QN.IsID(index) and api.GetInfo(index)
+      if not QN.IsTable(info) then ready=false end
       local classification=C_QuestInfoSystem and C_QuestInfoSystem.GetQuestClassification(id)
       local campaign=Enum and Enum.QuestClassification and Enum.QuestClassification.Campaign
       -- The campaign/task/bounty sections remain native, rather than duplicated here.
@@ -114,9 +288,9 @@ function QN:CollectTrackerWatches()
         and not (campaign and QN.IsNumber(classification) and classification==campaign) then
         result[#result+1]={id=id,index=i,logIndex=index,title=info.title}
       end
-    end
+    else ready=false end
   end
-  return result
+  return result,ready
 end
 function QN:TrackerQuestClick(button,mouseButton)
   local id=button.questID
@@ -163,8 +337,7 @@ function QN:CreateTrackerRow(index)
     if button.regionKey then
       if self.trackerEnabled and self.trackerDB.collapsibleRegions then
         local key=button.regionKey
-        self.trackerDB.collapsedRegions[key]=not self.trackerDB.collapsedRegions[key]
-        self:RequestTrackerLayout()
+        self:ToggleTrackerRegion(key)
       end
     else self:TrackerQuestClick(button,mouseButton) end
   end)
@@ -373,7 +546,7 @@ function QN:InstallObjectiveTracker()
   native:HookScript("OnHide",function() self:RequestTrackerLayout() end)
   if EventRegistry then
     EventRegistry:RegisterCallback("EditMode.Enter",function() self.trackerNativeEditing=true; self:RequestTrackerLayout() end,self)
-    EventRegistry:RegisterCallback("EditMode.Exit",function() self.trackerNativeEditing=false; self:RequestTrackerLayout() end,self)
+    EventRegistry:RegisterCallback("EditMode.Exit",function() self.trackerNativeEditing=false; self:TryApplyAutoRegion(); self:RequestTrackerLayout() end,self)
   end
 end
 function QN:RefreshObjectiveQuestCount()
@@ -487,6 +660,7 @@ function QN:RequestTrackerLayout()
   end)
 end
 function QN:SetObjectiveTrackerEnabled(enabled)
+  self:ResetAutoRegion()
   self:GetTrackerDB(); self.trackerEnabled=enabled==true
   self.trackerGeneration=(self.trackerGeneration or 0)+1
   self.trackerScheduled=false; self.trackerPending=false
@@ -494,7 +668,7 @@ function QN:SetObjectiveTrackerEnabled(enabled)
     local f=CreateFrame("Frame"); self.trackerEvents=f
     f:SetScript("OnEvent",function(_,event,name)
       if event=="ADDON_LOADED" and name~="Blizzard_ObjectiveTracker" then return end
-      if event=="PLAYER_REGEN_ENABLED" then self:RenderObjectiveTracker()
+      if event=="PLAYER_REGEN_ENABLED" then self:TryApplyAutoRegion(); self:RenderObjectiveTracker()
       else self:RequestTrackerLayout() end
     end)
   end
@@ -510,9 +684,10 @@ function QN:SetObjectiveTrackerEnabled(enabled)
       f:RegisterEvent("PLAYER_REGEN_ENABLED")
     end
   end
-  if not self.trackerEnabled then self:RenderObjectiveTracker() else self:RequestTrackerLayout() end
+  if not self.trackerEnabled then self:RenderObjectiveTracker() else self:UpdateAutoRegion(); self:RequestTrackerLayout() end
 end
 function QN:PrintTrackerLayout()
+  self:PrintAutoRegionState()
   self:GetTrackerDB()
   local groups=self:BuildTrackerGroups(self:CollectTrackerWatches())
   if not DEFAULT_CHAT_FRAME then return end
@@ -520,4 +695,27 @@ function QN:PrintTrackerLayout()
     DEFAULT_CHAT_FRAME:AddMessage("KHQOL Quest Layout: ["..group.name.."] "..#group.watches.." / "..(group.collapsed and "CLOSED" or "OPEN"))
   end
   DEFAULT_CHAT_FRAME:AddMessage("KHQOL Quest Layout: addon-owned; font "..self.trackerDB.fontSize.." / width "..self:GetTrackerWidth())
+end
+function QN:PrintAutoRegionState()
+  if not DEFAULT_CHAT_FRAME then return end
+  local t=self:GetTrackerDB();local state=self.autoRegionState;local pending=self.regionReservation
+  local id,name,kind=self:PlayerTrackerRegion();local stage
+  if not self:AutoRegionEnabled() then stage="OFF / 상위 옵션 또는 모듈 확인"
+  elseif state and state.manual then stage="수동 조작 우선"
+  elseif pending then
+    if not pending.elapsed then stage="대기 중"
+    elseif inCombat() then stage="전투 종료 대기"
+    elseif self:TrackerEditing() then stage="편집 모드 종료 또는 API 확인 대기"
+    else stage="지역·퀘스트 데이터 확인 대기" end
+  elseif state and state.taxi then stage="비행·착륙 확인 대기"
+  elseif state and state.done and state.zone~=id then stage="새 지역 적용 전"
+  elseif state and state.done then stage=state.display and "적용 완료" or "일치 던전 그룹 없음"
+  else stage="지역 또는 이동 상태 확인 대기" end
+  local function on(value) return value and "ON" or "OFF" end
+  DEFAULT_CHAT_FRAME:AddMessage("KHQOL Auto Region: v"..KHQOL.VERSION.." / "..stage)
+  DEFAULT_CHAT_FRAME:AddMessage("KHQOL Auto Region: "..(name or "지역 확인 불가").." / "..(id or "NONE").." / "..(kind or "NONE").." / "..t.autoRegionDelay.."초")
+  DEFAULT_CHAT_FRAME:AddMessage("KHQOL Auto Region: 자동 "..on(t.autoRegion).." / 그룹 "..on(t.groupByRegion).." / 접기 "..on(t.collapsibleRegions).." / 목록 모듈 "..on(self.trackerEnabled))
+  DEFAULT_CHAT_FRAME:AddMessage("KHQOL Auto Region: 감지 지역 "..(state and state.zone or "NONE").." / 마지막 적용 "..(state and state.appliedZone or "NONE").." / 펼친 그룹 "..(state and state.selected or "NONE"))
+  local taxi=self:TrackerTaxiState()
+  DEFAULT_CHAT_FRAME:AddMessage("KHQOL Auto Region: 비행 "..(taxi==nil and "UNKNOWN" or on(taxi)).." / 비행 후 대기 "..on(state and state.taxi).." / 도착 재확인 "..on(self.regionArrivalCheck~=nil))
 end

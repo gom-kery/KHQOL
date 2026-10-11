@@ -90,7 +90,7 @@ function Settings:Create(parent)
   self.rangeSpell,self.rangeInfo=spellField("원거리 판정 주문",function() return FR.db.rangedSpellID or FR.db.rangeSpellID or "" end,function(v) FR:SetRangeSpell(v) end)
   b:Flush()
   b:Button("스킬북에서 등록",function() FR:OpenSpellBookPanel() end,180)
-  self.registrationResult=b:Description("")
+  self.registrationResult=b:Description("",true)
   b:Description("일반 직업: 하나라도 사거리 안이면 가능, 모두 밖이면 불가. 하나 이상 판정 불가이면 기존 미확인 처리. 빈 입력 적용은 해당 등록 해제입니다.")
   if hunter() then
     b:Section("사냥꾼 판정")

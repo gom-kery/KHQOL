@@ -315,7 +315,7 @@ function UI:CreateButton(parent, text, x, y, width, click, enabled)
   self:RegisterControl(parent, b); b:Refresh(); return b
 end
 local serial = 0
-function UI:CreateSlider(parent, title, description, x, y, min, max, step, getter, setter, format, enabled)
+function UI:CreateSlider(parent, title, description, x, y, min, max, step, getter, setter, format, enabled, normalize)
   local titleLabel = self:CreateLabel(parent, title, x, y)
   titleLabel:SetWidth((T.ContentWidth-T.ColumnGap)/2)
   serial = serial + 1
@@ -341,6 +341,7 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   box:SetText(format(getter()))
   slider.numberBox = box
   local function rounded(value)
+    if normalize then return normalize(value) end
     return math.max(min, math.min(max, min + math.floor((value-min)/step+.5)*step))
   end
   local function commit()
@@ -558,9 +559,9 @@ function UI:CreateBuilder(parent, y)
     local control=UI:CreateCheckbox(parent,title,x,y,getter,setter,enabled)
     control.text:SetWidth(width-T.CheckboxSize-T.CheckboxLabelGap); self.lastControl,self.lastTitle=control,title; return control
   end
-  function builder:Slider(title,min,max,step,getter,setter,format,enabled,description)
+  function builder:Slider(title,min,max,step,getter,setter,format,enabled,description,normalize)
     local x,y=self:Cell("field",2,T.SliderRowHeight)
-    local control,box=UI:CreateSlider(parent,title,description or "",x,y,min,max,step,getter,setter,format,enabled)
+    local control,box=UI:CreateSlider(parent,title,description or "",x,y,min,max,step,getter,setter,format,enabled,normalize)
     self.lastControl,self.lastTitle=control,title; return control,box
   end
   function builder:Dropdown(title,options,getter,setter,enabled)

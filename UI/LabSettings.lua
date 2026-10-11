@@ -1,6 +1,7 @@
 local _, KHQOL = ...
 local Lab=KHQOL.UI:NewSettingsGroup("labs")
 KHQOL.LabSettings=Lab
+Lab:RegisterTab("units",nil,function(content,y) return KHQOL.modules.unitFrames:BuildSettings(content,y) end)
 Lab:RegisterTab("buff",nil,function(content,y)
   local fbr=ForeverBuffReminder
   fbr:CreateSettingsUI(content)

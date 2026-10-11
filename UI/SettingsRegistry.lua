@@ -32,7 +32,7 @@ entry("interface","cursor","cursorTrail","마우스 잔상","마우스 이동 �
 entry("interface","range","range","사거리 측정","선택한 대상의 사거리 상태를 표시합니다.",{"range"})
 entry("interface","threat","threat","위협 수치","현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다.")
 entry("interface","basic","basicUI","기본 UI","가방 버튼과 메뉴바의 표시 방식을 설정합니다.",{"basicui"})
-entry("interface","units","unitFrames","유닛 프레임","플레이어·대상 프레임의 크기, 모양과 수치 표시를 설정합니다.",{ "unitframes" })
+entry("labs","units","unitFrames","유닛 프레임","플레이어·대상 프레임의 크기, 모양과 수치 표시를 설정합니다.",{ "unitframes" })
 entry("interface","tooltip","tooltip","툴팁 설정","툴팁의 위치, 표시 방식 및 무기 전문가 안내를 조정합니다.",{"tooltip","weapon"})
 entry("convenience","general",nil,"일반","아이템, 자동 거절, 채집 및 상점 기능을 각각 설정합니다.")
 R.routes.generalConvenience=R.groups.convenience.general

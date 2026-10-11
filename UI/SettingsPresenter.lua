@@ -16,6 +16,7 @@ function Group:BuildSettings(content,y,host,tabY)
   host=host or content;tabY=tabY or y
   local bodyY=host==content and y-T.ButtonHeight-T.SectionGap or y
   local buttons,panels={},{}
+  content.tabsBuilding=true
   content.tabPanels,content.tabButtons=panels,buttons
   -- Compatibility aliases for existing callers; internal code uses neutral names.
   if self.id=="bars" then content.barsPanels=panels;content.tabHeader=host end
@@ -24,6 +25,7 @@ function Group:BuildSettings(content,y,host,tabY)
     if KHQOL.settings and KHQOL.settings.activeContent==content then KHQOL.settings:UpdateContentHeight() end
   end
   local function selectTab(id)
+    if content.tabsBuilding then return end
     if self.id=="labs" and not KHQOL.LabLock:IsUnlocked() then
       if KHQOL.settings then KHQOL.settings:ShowPage("labs") end
       return
@@ -51,9 +53,14 @@ function Group:BuildSettings(content,y,host,tabY)
     x=x+buttons[id]:GetWidth()+T.RowGap
     local panel=CreateFrame("Frame",nil,content);panel:SetPoint("TOPLEFT",0,bodyY);panel:SetWidth(T.ContentWidth);panel:Hide()
     panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
-    local bottom=tab.build(panel,0);panel:SetHeight(math.max(1,-bottom))
     panel:HookScript("OnSizeChanged",function() if self.selected==id then updateHeight(panel) end end)
   end
+  -- Allocate every tab before a builder can trigger a refresh or selection.
+  for _,tab in ipairs(self.tabs) do
+    local panel=panels[tab.id]
+    local bottom=tab.build(panel,0);panel:SetHeight(math.max(1,-bottom))
+  end
+  content.tabsBuilding=nil
   selectTab(self.selected)
   return -content.contentHeight+T.ContentPadding
 end
@@ -90,6 +97,7 @@ function UI:BuildModuleTab(content,key,title,description,build)
   content.moduleKey=key;return build(content,0)
 end
 function UI:RefreshSettingsViews()
+  if KHQOL.settings and KHQOL.settings.FitScreen then KHQOL.settings:FitScreen() end
   local s=KHQOL.settings;if not s then return end
   for _,content in pairs(s.pageCache) do self:Refresh(content) end
   local fc=KHQOL.modules.clock;local fbr=ForeverBuffReminder;local fr=KHQOL.modules.range

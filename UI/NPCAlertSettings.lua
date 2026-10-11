@@ -8,7 +8,7 @@ local function build(content,y)
   b:Description("등록한 위험 NPC가 현재 지역에서 감지되면 화면 경고와 위험 방향을 표시합니다.")
   b:Description("현재 클라이언트에 보이는 NamePlate·대상·마우스오버만 감지합니다. 비공개 정보는 감지할 수 없으며, 위치를 읽을 수 없으면 방향을 표시하지 않습니다.")
   b:Section("현재 지역")
-  local region=b:Description("")
+  local region=b:Description("",true)
   content.uiControls[#content.uiControls+1]={Refresh=function()
     local map,name=N:CurrentMap(); region:SetText((name or "지역 확인 불가").." · Map ID: "..(map or "확인 불가"))
   end}

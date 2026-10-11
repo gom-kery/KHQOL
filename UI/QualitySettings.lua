@@ -132,7 +132,7 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
         check("길드 자금 우선 사용",legacy("useGuildFunds"),function(v) G:GetDB().useGuildFunds=v end,"권한·잔액·한도가 충분하면 길드 자금으로, 부족하면 개인 골드로 수리합니다.")}),
       check("이미 습득한 아이템 표시",get("knownItems"),set("knownItems"),"습득 여부가 확인된 도안·탈것에 체크 표시합니다.",supportedItems,{
         check("도안",get("recipes"),set("recipes")),check("탈것",get("mounts"),set("mounts")),
-        check("가방에 표시",get("bags"),set("bags")),check("상점에 표시",get("merchant"),set("merchant"))})}},
+        check("가방",get("bags"),set("bags")),check("상점",get("merchant"),set("merchant"))})}},
     {title="자동 거절",items={
       check("결투 요청",get("declineDuel"),set("declineDuel"),"결투 요청을 자동 거절합니다. 펫 대전·대기열은 제외합니다.",function() return type(CancelDuel)=="function" and type(StaticPopup_FindVisible)=="function" end),
       check("파티 초대",party,legacySet("declinePartyInvites"),"파티 초대를 자동 거절합니다. 명단을 확인할 수 없으면 초대를 유지합니다. 그룹 찾기·대기열은 제외합니다.",function() return type(DeclineGroup)=="function" and type(StaticPopup_FindVisible)=="function" end,{
@@ -158,10 +158,13 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
       for index,child in ipairs(item.children) do
         section.measure[#section.measure+1]=child
         local function enabled() return item.get() and (not item.enabled or item.enabled()) end
-        local control=UI:CreateCheckbox(cell,child.title,0,-index*step,child.get,child.set,enabled)
+        local childColumn=item.title=="이미 습득한 아이템 표시" and (index-1)%2 or 0
+        local childRow=item.title=="이미 습득한 아이템 표시" and math.floor((index-1)/2)+1 or index
+        local control=UI:CreateCheckbox(cell,child.title,childColumn*100,-childRow*step,child.get,child.set,enabled)
+        control.childColumn,control.childRow=childColumn,childRow
         UI:AttachTooltip(control,child.title,child.tip); item.controls[#item.controls+1]=control
       end
-      cell:SetHeight(#item.controls*step)
+      cell:SetHeight((item.title=="이미 습득한 아이템 표시" and 3 or #item.controls)*step)
     end
   end
   local status=UI:CreateDescription(page,"",0,0)
@@ -176,7 +179,8 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
         local column=(index-1)%columns
         if column==0 and index>1 then rowTop=rowTop-rowHeight; rowHeight=0 end
         if reposition then item.cell:ClearAllPoints(); item.cell:SetPoint("TOPLEFT",column*(cellWidth+T.ColumnGap),rowTop) end; item.cell:SetWidth(cellWidth)
-        for _,control in ipairs(item.controls) do control.text:SetWidth(cellWidth-T.CheckboxSize-T.CheckboxLabelGap) end
+        for _,control in ipairs(item.controls) do control.text:SetWidth((control.childColumn and item.title=="이미 습득한 아이템 표시" and (cellWidth-T.RowGap)/2 or cellWidth)-T.CheckboxSize-T.CheckboxLabelGap)
+          if reposition and control.childColumn and item.title=="이미 습득한 아이템 표시" then control:ClearAllPoints(); control:SetPoint("TOPLEFT",control.childColumn*(cellWidth+T.RowGap)/2,-control.childRow*step) end end
         rowHeight=math.max(rowHeight,item.cell:GetHeight())
       end
       f:SetHeight(-rowTop+rowHeight); top=top-f:GetHeight()
@@ -226,6 +230,9 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     local function enabled() return db()[u].compact and M:UnitParts(u)~=nil end
     b:Slider("폭",120,400,5,function() return db()[u].width end,function(v) db()[u].width=v; M:ApplySettings() end,function(v) return v.." px" end,enabled,"간결한 프레임에만 적용됩니다. 프레임 위치는 유지합니다.")
     b:Slider("높이",44,120,2,function() return db()[u].height end,function(v) db()[u].height=v; M:ApplySettings() end,function(v) return v.." px" end,enabled,"이름·체력·자원 영역의 전체 높이입니다. 간결한 프레임에만 적용됩니다.")
+    b:Slider("체력·자원 사이 간격",0,20,1,function() return db()[u].gap end,function(v) db()[u].gap=v; M:ApplySettings() end,function(v) return v.." px" end,enabled)
+    b:Slider("검은 테두리 투명도",0,1,.1,function() return db()[u].borderAlpha end,function(v) db()[u].borderAlpha=v; M:ApplySettings() end,function(v) return string.format("%d%%",v*100) end,enabled)
+    b:Slider("체력·자원 글자 크기",8,24,1,function() return db()[u].textSize end,function(v) db()[u].textSize=v; M:ApplySettings() end,function(v) return v.." px" end,function() return M:UnitParts(u)~=nil end,"현재값·최대값·백분율 등 직접 선택한 수치에 적용합니다. 기본 설정 따름은 게임의 글꼴 설정을 유지합니다.")
     l:Fields(f,-b.y)
   end
   return l:Finish()

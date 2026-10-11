@@ -1,9 +1,9 @@
 local _, KHQOL = ...
 local B=KHQOL.modules.basicUI
-local M={Write=B.Write,Release=B.Release}; KHQOL.modules.unitFrames=M
+local M={experimental=true,Write=B.Write,Release=B.Release}; KHQOL.modules.unitFrames=M
 local call,public=KHQOL.PublicCall,KHQOL.IsPublicValue
-M.defaults={player={compact=false,health="default",power="default",width=200,height=58},
- target={compact=false,health="default",power="default",width=200,height=58}}
+M.defaults={player={compact=false,health="default",power="default",width=200,height=58,gap=2,borderAlpha=.85,textSize=12},
+ target={compact=false,health="default",power="default",width=200,height=58,gap=2,borderAlpha=.85,textSize=12}}
 function KHQOL:MigrateUnitFrameSettings(settings)
   settings.modules=settings.modules or {}; settings.enabled=settings.enabled or {}
   local old=type(settings.modules.basicUI)=="table" and settings.modules.basicUI or nil
@@ -18,7 +18,7 @@ function M:GetDB()
   KHQOL.db.modules.unitFrames=KHQOL.MergeDefaults(KHQOL.db.modules.unitFrames or {},self.defaults,"tables")
   return KHQOL.db.modules.unitFrames
 end
-function M:IsEnabled() return KHQOL.db and KHQOL:GetEnabled("unitFrames") end
+function M:IsEnabled() return KHQOL:CanRunModule("unitFrames") end
 local function combat() return call(InCombatLockdown)==true end
 local function editing() return EditModeManagerFrame and call(EditModeManagerFrame.IsShown,EditModeManagerFrame)==true end
 function M:UnitParts(unit)
@@ -40,9 +40,7 @@ function M:FormatValue(unit,kind,mode)
   local current,maximum
   if kind=="health" then current=call(UnitHealth,unit); maximum=call(UnitHealthMax,unit)
   else
-    local powerType=call(UnitPowerType,unit)
-    if not valid(powerType) then return "" end
-    current=call(UnitPower,unit,powerType); maximum=call(UnitPowerMax,unit,powerType)
+    current=call(UnitPower,unit); maximum=call(UnitPowerMax,unit)
   end
   if not valid(current) or not valid(maximum) or maximum<=0 then return "" end
   local value=string.format("%.0f",current); local max=string.format("%.0f",maximum)
@@ -51,6 +49,35 @@ function M:FormatValue(unit,kind,mode)
   elseif mode=="percent" then return percent elseif mode=="currentPercent" then return value.." ("..percent..")" end
   return ""
 end
+-- Secret health/power values are passed only to the engine's text renderer.
+-- Never perform Lua arithmetic, stringify, compare, or inspect protected values.
+function M:RenderValue(text,unit,kind,mode)
+  local ordinary=self:FormatValue(unit,kind,mode)
+  if ordinary~="" then text:SetText(ordinary); return true end
+  if mode=="hide" or mode=="default" or call(UnitExists,unit)~=true then return false end
+  local function read(fn,...)
+    if type(fn)~="function" then return false,nil end
+    return pcall(fn,...)
+  end
+  local ok,current=read(kind=="health" and UnitHealth or UnitPower,unit)
+  local maxOK,maximum=read(kind=="health" and UnitHealthMax or UnitPowerMax,unit)
+  if not ok or type(current)~="number" then return false end
+  if public(current) and public(maximum) then return false end -- invalid public numbers
+  if mode=="current" then return pcall(text.SetFormattedText,text,"%.0f",current) end
+  if mode=="both" then
+    if not maxOK or type(maximum)~="number" then return false end
+    return pcall(text.SetFormattedText,text,"%.0f / %.0f",current,maximum)
+  end
+  local curve=CurveConstants and CurveConstants.ScaleTo100
+  if not curve then return false end
+  local percentOK,percent
+  if kind=="health" then percentOK,percent=read(UnitHealthPercent,unit,true,curve)
+  else percentOK,percent=read(UnitPowerPercent,unit,nil,false,curve) end
+  if not percentOK or type(percent)~="number" then return false end
+  if mode=="percent" then return pcall(text.SetFormattedText,text,"%.0f%%",percent) end
+  if mode=="currentPercent" then return pcall(text.SetFormattedText,text,"%.0f (%.0f%%)",current,percent) end
+  return false
+end
 function M:UpdateBarText(owner,bar,unit,kind)
   if self.updatingText then return end
   self.updatingText=true
@@ -58,17 +85,24 @@ function M:UpdateBarText(owner,bar,unit,kind)
   owner.textOwners=owner.textOwners or {}; local state=owner.textOwners[kind]
   if not state then
     state={}; owner.textOwners[kind]=state
-    local text=bar:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
+    local layer=CreateFrame("Frame",nil,owner.parts and owner.parts.root or bar:GetParent()); state.layer=layer
+    layer:SetAllPoints(bar); layer:SetFrameLevel(math.max(bar:GetFrameLevel(),layer:GetParent():GetFrameLevel())+30); layer:EnableMouse(false)
+    local text=layer:CreateFontString(nil,"OVERLAY")
     text:SetPoint("CENTER",bar,"CENTER"); text:SetWidth(bar:GetWidth()); state.text=text
   end
-  state.text:Hide()
+  state.text:Hide(); state.layer:Hide()
+  state.text:SetFont(KHQOL.UI:Font(),math.max(8,math.min(24,tonumber(self:GetDB()[unit].textSize) or 12)),"OUTLINE")
+  state.text:SetTextColor(1,1,1,1)
   if mode=="default" then
     self:Release(state)
   else
+    state.text:SetWidth(bar:GetWidth())
+    local rendered=mode=="hide" or self:RenderValue(state.text,unit,kind,mode)
+    if not rendered then self:Release(state); self.updatingText=false; return end
     for _,key in ipairs({"TextString","LeftText","RightText","HealthBarText","ManaBarText"}) do
       if bar[key] then self:Write(state,bar[key],"alpha",0) end
     end
-    state.text:SetWidth(bar:GetWidth()); state.text:SetText(self:FormatValue(unit,kind,mode)); state.text:Show()
+    if mode~="hide" then state.text:Show(); state.layer:SetShown(call(bar.IsShown,bar)==true) end
   end
   self.updatingText=false
 end
@@ -130,14 +164,16 @@ function M:ApplyCompact(owner,p,unit,on)
   local db=self:GetDB()[unit]
   local width=math.max(120,math.min(400,tonumber(db.width) or 200))
   local height=math.max(44,math.min(120,tonumber(db.height) or 58))
-  local healthHeight=math.floor((height-18)*.6); local powerHeight=height-18-healthHeight
+  local gap=math.max(0,math.min(20,tonumber(db.gap) or 2))
+  height=math.max(height,36+gap)
+  local healthHeight=math.floor((height-16-gap)*.6); local powerHeight=height-16-gap-healthHeight
   owner.compactWidth,owner.compactHeight=width,height
   if not owner.background then
     local t=p.root:CreateTexture(nil,"BACKGROUND",nil,-8)
-    t:SetColorTexture(.04,.04,.04,.85); t:SetPoint("TOPLEFT",p.root,16,-24); t:SetSize(width,height)
+    t:SetColorTexture(.04,.04,.04,1); t:SetPoint("TOPLEFT",p.root,16,-24); t:SetSize(width,height)
     owner.background=t
   end
-  owner.background:SetSize(width,height); owner.background:Show()
+  owner.background:SetSize(width,height); owner.background:SetAlpha(math.max(0,math.min(1,tonumber(db.borderAlpha) or .85))); owner.background:Show()
   self:Write(owner,p.root,"width",width+32); self:Write(owner,p.root,"height",height+48)
   self:Write(owner,p.portrait,"alpha",0)
   for _,key in ipairs({"FrameTexture","VehicleFrameTexture","AlternatePowerFrameTexture","BossPortraitFrameTexture"}) do self:Write(owner,p.container[key],"alpha",0) end
@@ -149,7 +185,7 @@ function M:ApplyCompact(owner,p,unit,on)
   self:Write(owner,p.healthContainer,"width",width)
   self:Write(owner,p.health,"width",width)
   self:Write(owner,p.healthContainer,"height",healthHeight); self:Write(owner,p.health,"height",healthHeight)
-  self:Write(owner,p.power,"points",{{"TOPLEFT",p.healthContainer,"BOTTOMLEFT",0,-2}})
+  self:Write(owner,p.power,"points",{{"TOPLEFT",p.healthContainer,"BOTTOMLEFT",0,-gap}})
   self:Write(owner,p.power,"width",width)
   self:Write(owner,p.power,"height",powerHeight)
   self:Write(owner,p.name,"points",{{"TOPLEFT",p.root,"TOPLEFT",20,-26}})

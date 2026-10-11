@@ -11,7 +11,7 @@ local EVENTS = {
   "PLAYER_ENTERING_WORLD", "QUEST_LOG_UPDATE", "QUEST_WATCH_UPDATE",
   "QUEST_WATCH_LIST_CHANGED", "QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED",
   "QUEST_POI_UPDATE", "SUPER_TRACKING_CHANGED", "SUPER_TRACKING_PATH_UPDATED",
-  "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED",
+  "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "PLAYER_MAP_CHANGED", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED", "UNIT_FLAGS", "PLAYER_FLAGS_CHANGED",
 }
 function QN.IsSecret(value) return issecretvalue and issecretvalue(value) or false end
 function QN.IsNumber(value)
@@ -68,6 +68,17 @@ end
 
 function QN:OnEvent(event, questID, added)
   if not self.active then return end
+  if event=="UNIT_FLAGS" or event=="PLAYER_FLAGS_CHANGED" then
+    if QN.IsText(questID) and questID=="player" then
+      self:UpdateAutoRegion()
+      self:CheckRegionAfterControlChange()
+    end
+    return
+  end
+  if event=="PLAYER_CONTROL_GAINED" then self:CheckRegionAfterControlChange() end
+  if event=="PLAYER_ENTERING_WORLD" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" or event=="ZONE_CHANGED_INDOORS" or event=="PLAYER_MAP_CHANGED" or event=="PLAYER_CONTROL_LOST" or event=="PLAYER_CONTROL_GAINED" then self:UpdateAutoRegion() end
+  if event=="PLAYER_CONTROL_LOST" or event=="PLAYER_CONTROL_GAINED" or event=="ZONE_CHANGED_INDOORS" or event=="PLAYER_MAP_CHANGED" then return end
+  self:TryApplyAutoRegion()
   if event=="QUEST_WATCH_LIST_CHANGED" then self:WatchChanged(questID,added)
   elseif event=="QUEST_REMOVED" and QN.IsID(questID) then
     self:WatchChanged(questID,false)
@@ -161,6 +172,7 @@ function QN:GetDebugSnapshot()
 end
 function QN:HandleCommand(message)
   local command=(message or ""):lower():match("^%s*%S+%s+(%S+)")
+  if command=="auto" then self:PrintAutoRegionState(); return end
   if command=="layout" then self:PrintTrackerLayout(); return end
   if command~="status" and command~="debug" then KHQOL:OpenModule("questNavigator"); return end
   local s=self:GetDebugSnapshot()

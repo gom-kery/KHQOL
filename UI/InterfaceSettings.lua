@@ -3,7 +3,6 @@ local UI=KHQOL.UI
 local Interface=UI:NewSettingsGroup("interface")
 KHQOL.InterfaceSettings=Interface
 Interface:RegisterTab("basic",nil,function(content,y) return KHQOL.modules.basicUI:BuildSettings(content,y) end)
-Interface:RegisterTab("units",nil,function(content,y) return KHQOL.modules.unitFrames:BuildSettings(content,y) end)
 Interface:RegisterTab("cursor",nil,function(content,y) return KHQOL.modules.cursorTrail:BuildSettings(content,y) end)
 Interface:RegisterTab("range",nil,function(content,y)
   local fr=KHQOL.modules.range
