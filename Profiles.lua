@@ -393,6 +393,10 @@ function KHQOL:ResetProfileModule(key)
   if key=="resourceSwing" then profile.resourceColor=nil end
   local temporary=self:CaptureProfile()
   self.profileApplying=true; self.profileGeneration=(self.profileGeneration or 0)+1
+  if key=="generalConvenience" then
+    profile.settings.general.declinePartyInvites=false
+    profile.settings.general.declineGuildInvites=false
+  end
   local ok,errorMessage=pcall(function() self:LoadProfileSettings(profile); self:ApplyProfileModules() end)
   if not ok then self:LoadProfileSettings(temporary); pcall(self.ApplyProfileModules,self) end
   self.profileApplying=false; self:SaveCurrentProfile()

@@ -149,52 +149,9 @@ function General:CancelInviteDecline(kind)
   CancelDeferred(pending)
 end
 
-local function PartyInvitePopup()
-  if type(StaticPopup_FindVisible) == "function" then return publicCall(StaticPopup_FindVisible, "PARTY_INVITE") end
-  local name, frame = publicCall(StaticPopup_Visible, "PARTY_INVITE")
-  return frame or (type(name) == "string" and _G[name])
-end
-local function InviteDeclineAPI(kind)
-  if kind == "party" then return DeclineGroup end
-  if kind == "guild" then return DeclineGuild end
-end
-
 function General:QueueInviteDecline(kind, inviter, guildName)
-  local key = INVITE_OPTIONS[kind]
-  if not key or self:GetDB()[key] ~= true or type(InviteDeclineAPI(kind)) ~= "function" then return end
-  if secret(inviter) or type(inviter) ~= "string" or inviter == "" then return end
-  if kind == "guild" and (secret(guildName) or type(guildName) ~= "string" or guildName == "") then return end
-  self.inviteDeclines = self.inviteDeclines or {}
-  local old = self.inviteDeclines[kind]
-  if old and old.inviter == inviter and old.guildName == guildName then return end
-  self:CancelInviteDecline(kind)
-  local pending = { inviter=inviter, guildName=guildName }
-  self.inviteDeclines[kind] = pending
-  -- Let the native UI finish handling this invite, regardless of frame order.
-  DeferOnce(pending, function()
-    if General.inviteDeclines[kind] ~= pending then return end
-    General.inviteDeclines[kind] = nil
-    if General:GetDB()[key] ~= true then return end
-    local fn = InviteDeclineAPI(kind)
-    if type(fn) ~= "function" then return end
-    local frame, accepted
-    if kind == "party" then frame = PartyInvitePopup() else frame = _G.GuildInviteFrame end
-    if frame and publicCall(frame.IsShown, frame) == true then
-      if kind == "party" then accepted = frame.inviteAccepted else accepted = frame.accepted end
-      if secret(accepted) or accepted then return end
-      if kind == "guild" and (secret(frame.inviter) or frame.inviter ~= inviter) then return end
-      -- Native PARTY_INVITE and GuildInviteFrame OnHide already decline.
-      -- Use that single path; do not change dialog definitions or scripts.
-      if type(publicCall(frame.GetScript, frame, "OnHide")) ~= "function" then return end
-      if kind == "party" then
-        if type(StaticPopup_Hide) == "function" then pcall(StaticPopup_Hide, "PARTY_INVITE") end
-      elseif type(frame.Hide) == "function" then
-        pcall(frame.Hide, frame)
-      end
-    else
-      pcall(fn) -- No native invite UI: decline this still-pending request once.
-    end
-  end)
+  local module=KHQOL.modules.generalConvenience
+  if module then module:QueueInvite(kind,inviter,guildName) end
 end
 local function SellBagItem(bag, slot)
   if not MerchantIsOpen() then return false end
@@ -369,6 +326,15 @@ end
 
 function General:BuildSettings(parent, y)
   local b = KHQOL.UI:CreateBuilder(parent, y)
+  function b:Checkbox(title,getter,setter,enabled)
+    self:Flush()
+    local UI,T=KHQOL.UI,KHQOL.UI.Theme
+    UI:CellBackground(parent,0,self.y,parent:GetWidth(),T.RowHeight+T.RowGap)
+    local c=UI:CreateCheckbox(parent,title,0,self.y,getter,setter,enabled)
+    self.y=self.y-T.RowHeight-T.RowGap
+    c.text:SetWidth(parent:GetWidth()-KHQOL.UI.Theme.CheckboxSize-KHQOL.UI.Theme.CheckboxLabelGap)
+    return c
+  end
   b:Section("대화창")
   b:Checkbox("기본 대화창 편의",function() return General:GetDB().chatEnhancement end,
     function(on) General:SetConvenienceEnabled("chatEnhancement",on) end)
@@ -389,10 +355,6 @@ function General:BuildSettings(parent, y)
   local guild = b:Checkbox("길드 자금 우선 사용", function() return General:GetDB().useGuildFunds end,
     function(on) General:GetDB().useGuildFunds = on end, function() return General:GetDB().autoRepair == true end)
   KHQOL.UI:AttachTooltip(guild, "길드 자금 우선 사용", "길드 수리 권한, 잔액, 사용 한도가 충분하면 길드 자금으로 수리합니다. 사용 불가 또는 부족하면 개인 골드로 수리합니다.")
-  b:Section("초대")
-  local party = b:Checkbox("파티초대 거절", function() return General:GetDB().declinePartyInvites end, function(on) General:SetConvenienceEnabled("declinePartyInvites",on) end)
-  KHQOL.UI:AttachTooltip(party, "파티초대 거절", "다른 플레이어에게 받은 파티초대를 자동으로 거절합니다. 기존 파티나 공격대와 다른 종류의 요청에는 영향을 주지 않습니다.")
-  local invite = b:Checkbox("길드초대 거절", function() return General:GetDB().declineGuildInvites end, function(on) General:SetConvenienceEnabled("declineGuildInvites",on) end)
-  KHQOL.UI:AttachTooltip(invite, "길드초대 거절", "받은 길드초대를 자동으로 거절합니다. 현재 가입한 길드와 기본 차단 설정은 변경하지 않습니다.")
   return b.y
 end
+

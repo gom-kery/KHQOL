@@ -27,8 +27,19 @@ local function noteSettings(content,y)
   b:Description("단축키는 게임 메뉴의 설정 > 단축키에서 지정할 수 있습니다. 노트 내용과 메모는 노트 창에서 직접 편집합니다."); return b.y
 end
 Convenience:RegisterTab("general",nil,function(content,y)
-  y=KHQOL.modules.general:BuildSettings(content,y)
-  return KHQOL.modules.frameMover:BuildSettings(content,y)
+  content.moduleKey=nil -- Existing general options are outside the new group.
+  local legacy=CreateFrame("Frame",nil,content); legacy:SetPoint("TOPLEFT",0,y); legacy:SetWidth(content:GetWidth())
+  local bottom=KHQOL.modules.general:BuildSettings(legacy,0); legacy:SetHeight(math.max(1,-bottom))
+  local quality=CreateFrame("Frame",nil,content); quality:SetPoint("TOPLEFT",0,y+bottom); quality:SetWidth(content:GetWidth())
+  KHQOL.modules.generalConvenience:BuildSettings(quality,0)
+  local mover=CreateFrame("Frame",nil,content); mover:SetWidth(content:GetWidth())
+  local moverBottom=KHQOL.modules.frameMover:BuildSettings(mover,0); mover:SetHeight(math.max(1,-moverBottom))
+  local function resize()
+    mover:ClearAllPoints(); mover:SetPoint("TOPLEFT",0,y+bottom-quality:GetHeight())
+    content:SetHeight(-y-bottom+quality:GetHeight()+mover:GetHeight())
+  end
+  quality:HookScript("OnSizeChanged",resize); resize()
+  return -content:GetHeight()
 end)
 Convenience:RegisterTab("clock",nil,function(content,y)
   local fc=KHQOL.modules.clock
