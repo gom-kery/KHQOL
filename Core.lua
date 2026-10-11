@@ -24,6 +24,7 @@ defaults.enabled.npcAlert = false
 defaults.enabled.performanceMonitor = false
 -- General convenience features have individual switches, no master switch.
 defaults.enabled.basicUI = true
+defaults.enabled.unitFrames = true
 
 function KHQOL:Migrate()
   for key, variable in pairs(legacy) do

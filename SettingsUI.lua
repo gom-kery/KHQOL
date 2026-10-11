@@ -82,7 +82,7 @@ local function generalSettings(content,y)
   b:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter() end)
   b:Description("활성화된 화면 요소를 함께 이동합니다. 완료하면 저장·잠금, 취소 또는 ESC는 변경 전 상태를 유지합니다.")
   b:Section("모듈 관리")
-  b:Description("설정은 변경 즉시 저장됩니다.")
+  b:Description("설정은 변경 즉시 저장됩니다.",true)
   local gap=T.ColumnGap
   content.moduleControls={}
   for _,group in ipairs(moduleGroups) do

@@ -17,7 +17,7 @@ function X:BuildSettings(content,y)
   b:Section("경험치 바")
   local native=check(b,"Blizzard 기본 경험치 바 숨김","hideBlizzard",function() return true end)
   native.ignoreModuleEnabled=true; native:Refresh()
-  b:Description("두 옵션은 독립적입니다. KHQOL 바를 꺼도 기본 바 숨김 설정은 유지됩니다.")
+  b:Description("두 옵션은 독립적입니다. KHQOL 바를 꺼도 기본 바 숨김 설정은 유지됩니다.",true)
   b:Section("표시 형태")
   dropdown(b,"표시 형태","mode",{{value="horizontal",text="기본 가로형"},{value="wrapTop",text="PlayerFrame 위쪽 감싸기",disabled=true},{value="wrapBottom",text="PlayerFrame 아래쪽 감싸기",disabled=true}})
   b:Description("PlayerFrame 감싸기는 개선 후 제공할 예정입니다.")
@@ -52,7 +52,7 @@ function X:BuildSettings(content,y)
   check(c,"현재 레벨 표시","showLevel"); check(c,"경험치 텍스트 표시","showText")
   dropdown(c,"경험치 텍스트 형식","textMode",{
     {value="percent",text="퍼센트"},{value="currentMax",text="현재 / 필요"},
-    {value="remaining",text="남은 경험치"},{value="currentMaxPercent",text="현재 / 필요 + 퍼센트"}},
+    {value="remaining",text="남은 경험치"},{value="remainingPercent",text="남은 경험치 + 남은 퍼센트"},{value="currentMaxPercent",text="현재 / 필요 + 퍼센트"}},
     function() return enabled() and db.showText end)
   dropdown(c,"가로형 텍스트 위치","textPosition",{{value="left",text="왼쪽"},{value="center",text="중앙"},{value="right",text="오른쪽"}},
     function() return enabled() and db.showText and db.mode=="horizontal" end)

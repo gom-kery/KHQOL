@@ -238,6 +238,6 @@ function M:BuildSettings(content,y)
   b:Dropdown("이동 키 (+ 드래그)",{{value="SHIFT",text="Shift"},{value="CTRL",text="Ctrl"},{value="ALT",text="Alt"}},
     function() return M:GetDB().modifier end,function(v) M:GetDB().modifier=v end)
   b:Button("모든 프레임 위치 초기화",function() M:ResetPositions() end)
-  b:Description("OFF 시 저장 위치를 삭제하고 기본 위치로 복원합니다. 전투 중 이동은 차단되며 초기화·복원은 전투 종료 후 적용합니다.")
+  b:Description("OFF 시 저장 위치를 삭제하고 기본 위치로 복원합니다. 전투 중 이동은 차단되며 초기화·복원은 전투 종료 후 적용합니다.",true)
   return b.y
 end

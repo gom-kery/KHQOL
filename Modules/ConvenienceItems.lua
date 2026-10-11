@@ -16,19 +16,20 @@ local function merchantOpen() return MerchantFrame and call(MerchantFrame.IsShow
 local conflicts={"Leatrix_Plus","Leatrix_Plus_Forever","WideMerchant","ExtendedVendorUI","BuyEmAll","ElvUI"}
 function M:MerchantSupported()
   if not MerchantFrame or not MerchantItem12 or type(MerchantFrame_Update)~="function" then return false,"상점 UI가 아직 로드되지 않았습니다." end
-  if self.merchantOwner and self.merchantOwner.lastWidth and MerchantFrame:GetWidth()~=self.merchantOwner.lastWidth then
-    return false,"다른 기능이 상점 폭을 변경했습니다. 이후 변경을 유지합니다."
-  end
-  if not self.merchantOwner and MerchantFrame:GetWidth()~=336 then return false,"기본 상점 폭이 다른 기능에 의해 변경되어 있습니다." end
-  if self.merchantOwner and MerchantFrame.selectedTab==1 then
-    for i,p in pairs(self.merchantOwner.lastSlots or {}) do
-      if not same(points(_G["MerchantItem"..i]),p) then return false,"다른 기능이 확장 슬롯의 위치를 변경했습니다." end
-    end
-  end
   for _,name in ipairs(conflicts) do
     if C_AddOns and call(C_AddOns.IsAddOnLoaded,name)==true then return false,name.."와 상점 영역이 겹칩니다." end
   end
-  if MERCHANT_ITEMS_PER_PAGE~=10 and not self.merchantOwner then return false,"다른 애드온이 상점 페이지 크기를 변경했습니다." end
+  if self.merchantOwner and self.merchantOwner.lastWidth and MerchantFrame:GetWidth()~=self.merchantOwner.lastWidth then
+    return false,"상점 폭 "..tostring(MerchantFrame:GetWidth()).." (KHQOL 적용값 "..tostring(self.merchantOwner.lastWidth).."). 변경 주체를 확인할 수 없습니다."
+  end
+  if not self.merchantOwner and MerchantFrame:GetWidth()~=336 then return false,"상점 폭 "..tostring(MerchantFrame:GetWidth()).." (기본 336). 변경 주체를 확인할 수 없습니다." end
+  if self.merchantOwner and MerchantFrame.selectedTab==1 then
+    for i,p in pairs(self.merchantOwner.lastSlots or {}) do
+      if not same(points(_G["MerchantItem"..i]),p) then return false,"상점 슬롯 MerchantItem"..i.."의 위치가 변경되었습니다. 변경 주체를 확인할 수 없습니다." end
+    end
+  end
+
+  if MERCHANT_ITEMS_PER_PAGE~=10 and not self.merchantOwner then return false,"상점 페이지 크기 "..tostring(MERCHANT_ITEMS_PER_PAGE).." (기본 10). 변경 주체를 확인할 수 없습니다." end
   for i=13,20 do
     local frame=_G["MerchantItem"..i]
     if frame and frame~= (self.extraMerchantItems and self.extraMerchantItems[i]) then return false,"다른 애드온의 확장 상점 슬롯을 감지했습니다." end
@@ -128,7 +129,7 @@ function M:ApplyMerchant()
   local size=expanded and 20 or 10
   local owned=self.merchantOwner~=nil
   if owned and MERCHANT_ITEMS_PER_PAGE~=20 then
-    self.merchantUnavailable="다른 기능이 상점 페이지 크기를 변경했습니다. 이후 변경을 유지합니다."
+    self.merchantUnavailable="상점 페이지 크기 "..tostring(MERCHANT_ITEMS_PER_PAGE).." (KHQOL 적용값 20). 변경 주체를 확인할 수 없습니다."
     self:MerchantLayout(false); self.applyingMerchant=false; return
   end
   -- Never write another addon's page size when we do not own this layout.

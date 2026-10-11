@@ -10,6 +10,9 @@ local function layout(parent,y,key)
     rows[#rows+1]={frame=f,height=height,visible=visible,indent=indent or 0}; return f
   end
   local L={page=page}
+  function L:Fields(frame,height)
+    local f=row(height); frame:SetParent(f); frame:SetPoint("TOPLEFT",0,0); frame:SetHeight(height)
+  end
   function L:Section(title)
     local f=row(T.SectionGap+36); UI:CreateSection(f,title,0)
   end
@@ -73,10 +76,10 @@ local function layout(parent,y,key)
       local wide=width>=560
       local labelWidth=wide and 170 or width; label:SetWidth(labelWidth)
       for index,c in ipairs(controls) do
-        local x=wide and (180+(index-1)*(width-180+T.ColumnGap)/2) or T.ContentPadding
+        local x=wide and (180+(index-1)*(width-180+T.ColumnGap-T.ContentPadding)/2) or T.ContentPadding
         local top=wide and -24 or (-28-(index-1)*T.DropdownRowHeight)
         c:ClearAllPoints(); c:SetPoint("TOPLEFT",x,top)
-        if kind~="compact" then c:SetWidth(wide and (width-180-T.ColumnGap)/2 or math.min(T.DropdownWidth,width-T.ContentPadding)) end
+        if kind~="compact" then c.layoutWidth=wide and (width-180-T.ColumnGap-T.ContentPadding)/2 or math.min(T.DropdownWidth,width-T.ContentPadding); c:SetWidth(c.layoutWidth) end
         captions[index]:ClearAllPoints(); captions[index]:SetPoint("TOPLEFT",x,top+20)
         captions[index]:SetWidth(wide and (width-180-T.ColumnGap)/2 or width-T.ContentPadding)
       end
@@ -131,14 +134,12 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
         check("도안",get("recipes"),set("recipes")),check("탈것",get("mounts"),set("mounts")),
         check("가방에 표시",get("bags"),set("bags")),check("상점에 표시",get("merchant"),set("merchant"))})}},
     {title="자동 거절",items={
-      check("결투",get("declineDuel"),set("declineDuel"),"결투 요청을 자동 거절합니다. 펫 대전·대기열은 제외합니다.",function() return type(CancelDuel)=="function" and type(StaticPopup_FindVisible)=="function" end,{
-        check("거절 채팅 알림",get("duelReport"),set("duelReport"))}),
-      check("파티",party,legacySet("declinePartyInvites"),"파티 초대를 자동 거절합니다. 명단을 확인할 수 없으면 초대를 유지합니다. 그룹 찾기·대기열은 제외합니다.",function() return type(DeclineGroup)=="function" and type(StaticPopup_FindVisible)=="function" end,{
-        check("거절 채팅 알림",get("partyReport"),set("partyReport")),
+      check("결투 요청",get("declineDuel"),set("declineDuel"),"결투 요청을 자동 거절합니다. 펫 대전·대기열은 제외합니다.",function() return type(CancelDuel)=="function" and type(StaticPopup_FindVisible)=="function" end),
+      check("파티 초대",party,legacySet("declinePartyInvites"),"파티 초대를 자동 거절합니다. 명단을 확인할 수 없으면 초대를 유지합니다. 그룹 찾기·대기열은 제외합니다.",function() return type(DeclineGroup)=="function" and type(StaticPopup_FindVisible)=="function" end,{
         check("친구 허용",get("allowFriends"),set("allowFriends"),"게임 내 캐릭터 친구 목록 기준입니다. Battle.net 친구는 포함하지 않습니다."),
         check("길드원 허용",get("allowGuild"),set("allowGuild"))}),
-      check("길드",guild,legacySet("declineGuildInvites"),"길드 초대를 자동 거절합니다.",function() return type(DeclineGuild)=="function" end,{
-        check("거절 채팅 알림",get("guildReport"),set("guildReport"))})}},
+      check("길드 초대",guild,legacySet("declineGuildInvites"),"길드 초대를 자동 거절합니다.",function() return type(DeclineGuild)=="function" end),
+      check("거절 채팅 알림",get("declineReport"),set("declineReport"),"결투 요청·파티 초대·길드 초대의 거절 결과를 공통으로 대화창에 표시합니다.")}},
     {title="채집",items={check("채집 추적 상태 유지",get("keepTracking"),set("keepTracking"),"직접 선택한 채광·약초 추적을 부활 후 복원합니다. 직접 끈 추적은 복원하지 않습니다.",supportedTracking,{
       check("복원 채팅 알림",get("trackingReport"),set("trackingReport"))})}},
     {title="상점",items={check("상인 판매목록 확장",get("merchantExpanded"),set("merchantExpanded"),"기본 순서대로 4열 × 5행으로 확장합니다. 상점 변경 애드온과 충돌하면 적용하지 않습니다.")}},
@@ -165,24 +166,24 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
   end
   local status=UI:CreateDescription(page,"",0,0)
   local function refresh()
-    local top=0; local width=parent:GetWidth(); page:SetWidth(width)
+    local top=0; local width=parent:GetWidth(); local reposition=page.gridWidth~=width; page.gridWidth=width; page:SetWidth(width)
     for _,section in ipairs(sections) do
-      local f=section.frame; f:ClearAllPoints(); f:SetPoint("TOPLEFT",0,top); f:SetWidth(width)
+      local f=section.frame; if reposition then f:ClearAllPoints(); f:SetPoint("TOPLEFT",0,top) end; f:SetWidth(width)
       local columns=UI:GridColumns(f,section.measure,false); section.columns=columns
       local cellWidth=(width-(columns-1)*T.ColumnGap)/columns
       local rowTop=-(T.SectionGap+36); local rowHeight=0
       for index,item in ipairs(section.items) do
         local column=(index-1)%columns
         if column==0 and index>1 then rowTop=rowTop-rowHeight; rowHeight=0 end
-        item.cell:ClearAllPoints(); item.cell:SetPoint("TOPLEFT",column*(cellWidth+T.ColumnGap),rowTop); item.cell:SetWidth(cellWidth)
+        if reposition then item.cell:ClearAllPoints(); item.cell:SetPoint("TOPLEFT",column*(cellWidth+T.ColumnGap),rowTop) end; item.cell:SetWidth(cellWidth)
         for _,control in ipairs(item.controls) do control.text:SetWidth(cellWidth-T.CheckboxSize-T.CheckboxLabelGap) end
         rowHeight=math.max(rowHeight,item.cell:GetHeight())
       end
       f:SetHeight(-rowTop+rowHeight); top=top-f:GetHeight()
     end
     local text=M.merchantPending and "상점 확장: 전투가 끝나면 적용합니다." or (M:GetDB().merchantExpanded and M.merchantUnavailable and "상점 확장 미적용: "..M.merchantUnavailable or "")
-    status:ClearAllPoints(); status:SetPoint("TOPLEFT",0,top-6); status:SetWidth(width); status:SetText(text)
-    if text~="" then top=top-math.max(step,status:GetStringHeight()+T.RowGap) end
+    if reposition then status:ClearAllPoints(); status:SetPoint("TOPLEFT",0,top-6) end; status:SetWidth(width); status:SetText(text)
+    top=top-step*2 -- Reserve a stable two-line status area on OFF/ON.
     page:SetHeight(-top); parent:SetHeight(-y-top)
   end
   local sentinel=CreateFrame("Frame",nil,page); sentinel.Refresh=refresh; sentinel.layoutRefresh=true
@@ -195,18 +196,37 @@ local textModes={{value="default",text="기본 설정 따름"},{value="hide",tex
 function KHQOL.modules.basicUI:BuildSettings(parent,y)
   local M=self; local l=layout(parent,y,"basicUI")
   local function db() return M:GetDB() end
-  local function set(key) return function(value) db()[key]=value; M:ApplySettings() end end
-  l:Description("기본 UI가 비활성화되어 있습니다. 상단의 모듈 사용으로 켤 수 있습니다.",function() return not M:IsEnabled() end)
   l:Description("전투 중 변경은 전투 종료 후 적용합니다.",function() return M.pending==true end)
   l:Section("가방·메뉴바")
-  l:Dropdown("가방 버튼 표시 방식",barModes,function() return db().bags end,set("bags"),nil,nil,function() return _G.BagsBar~=nil end)
-  l:Dropdown("메뉴바 표시 방식",barModes,function() return db().micro end,set("micro"),nil,nil,function() return _G.MicroMenu~=nil end)
-  l:Slider("공통 숨김 지연",0,2,.1,function() return db().hideDelay end,set("hideDelay"),function(v) return string.format("%.1f초",v) end,function() return db().bags=="hover" or db().micro=="hover" end)
+  -- Shared builder fields use two columns and refresh preserves their width.
+  local f=CreateFrame("Frame",nil,l.page); f:SetWidth(parent:GetWidth())
+  local b=UI:CreateBuilder(f,0)
+  local bags=b:Dropdown("가방 버튼 표시 방식",barModes,function() return db().bags end,function(v) db().bags=v; M:ApplySettings() end,function() return _G.BagsBar~=nil end)
+  local micro=b:Dropdown("메뉴바 표시 방식",barModes,function() return db().micro end,function(v) db().micro=v; M:ApplySettings() end,function() return _G.MicroMenu~=nil end)
+  UI:AttachTooltip(bags,"가방 버튼 표시 방식","마우스 오버 모드에서는 버튼 영역에 마우스를 올리면 표시합니다.")
+  UI:AttachTooltip(micro,"메뉴바 표시 방식","마우스 오버 모드에서는 메뉴 영역에 마우스를 올리면 표시합니다.")
+  -- The detail layout owns this fixed two-column row.
+  l:Fields(f,-b.y)
+  l:Slider("공통 숨김 지연",0,2,.1,function() return db().hideDelay end,function(v) db().hideDelay=v; M:ApplySettings() end,function(v) return string.format("%.1f초",v) end,function() return db().bags=="hover" or db().micro=="hover" end)
+  return l:Finish()
+end
+function KHQOL.modules.unitFrames:BuildSettings(parent,y)
+  local M=self; local l=layout(parent,y,"unitFrames")
+  local function db() return M:GetDB() end
+  l:Description("전투 중 크기·모양 변경은 전투 종료 후 적용합니다.",function() return M.pending==true end)
   l:Section("유닛 프레임")
-  l:Description("기본 프레임 구조를 확인할 수 없는 유닛의 설정은 사용할 수 없습니다.",function() return not M:UnitParts("player") or not M:UnitParts("target") end)
   l:Compare("간결한 프레임 사용","compact",nil,db,M)
   l:Compare("체력 수치 표시 방식","health",textModes,db,M)
   l:Compare("자원 수치 표시 방식","power",textModes,db,M)
-  l:Description("공통 CVar를 바꾸지 않으며, 읽을 수 없는 수치는 표시하지 않습니다.")
+  for _,unit in ipairs({"player","target"}) do
+    local u=unit
+    l:Section(u=="player" and "플레이어 크기" or "대상 크기")
+    local f=CreateFrame("Frame",nil,l.page); f:SetWidth(parent:GetWidth())
+    local b=UI:CreateBuilder(f,0)
+    local function enabled() return db()[u].compact and M:UnitParts(u)~=nil end
+    b:Slider("폭",120,400,5,function() return db()[u].width end,function(v) db()[u].width=v; M:ApplySettings() end,function(v) return v.." px" end,enabled,"간결한 프레임에만 적용됩니다. 프레임 위치는 유지합니다.")
+    b:Slider("높이",44,120,2,function() return db()[u].height end,function(v) db()[u].height=v; M:ApplySettings() end,function(v) return v.." px" end,enabled,"이름·체력·자원 영역의 전체 높이입니다. 간결한 프레임에만 적용됩니다.")
+    l:Fields(f,-b.y)
+  end
   return l:Finish()
 end

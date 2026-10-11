@@ -118,6 +118,7 @@ local function filteredRange(db)
   return result
 end
 function KHQOL:CaptureProfile()
+  self:MigrateUnitFrameSettings(self.db)
   local result={settings={modules={}},legacy={}}
   for _,key in ipairs(common) do result.settings[key]=copy(self.db[key]) end
   for _,key in ipairs(managed) do result.settings.modules[key]=copy(self.db.modules and self.db.modules[key]) end
@@ -177,6 +178,8 @@ function KHQOL:GetProfileOptions(excludeDefault)
 end
 function KHQOL:LoadProfileSettings(profile)
   profile=copy(profile)
+  profile.settings=profile.settings or {}
+  self:MigrateUnitFrameSettings(profile.settings)
   KHQOL.MergeDefaults(profile,self:MakeDefaultProfile(true))
   local settings=profile.settings
   if settings.enabled then settings.enabled.generalConvenience=nil end
@@ -239,6 +242,8 @@ function KHQOL:InitializeProfiles()
   if not character then self.profileDeferred=true; return false end
   KHQOLDB=KHQOL.MergeDefaults(type(KHQOLDB)=="table" and KHQOLDB or {},self.defaults,"tables")
   self.db=KHQOLDB
+  self:MigrateUnitFrameSettings(self.db)
+  for _,profile in pairs(self.db.profiles or {}) do if type(profile)=="table" and profile.settings then self:MigrateUnitFrameSettings(profile.settings) end end
   self.db.enabled.generalConvenience=nil
   self.db.general.autoSellJunkReport=nil
   for _,profile in pairs(self.db.profiles or {}) do

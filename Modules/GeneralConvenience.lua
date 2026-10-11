@@ -2,11 +2,16 @@ local _, KHQOL = ...
 local M = {}; KHQOL.modules.generalConvenience = M
 local call, public = KHQOL.PublicCall, KHQOL.IsPublicValue
 M.defaults = {
-  declineDuel=false, duelReport=true, partyReport=true, guildReport=true,
+  declineDuel=false, declineReport=true,
   allowFriends=true, allowGuild=true, keepTracking=false, trackingReport=false,
   merchantExpanded=false, knownItems=false, recipes=true, mounts=true, bags=true, merchant=true,
 }
 function M:GetDB()
+  local old=KHQOL.db.modules.generalConvenience
+  if old and old.declineReport==nil and (old.duelReport~=nil or old.partyReport~=nil or old.guildReport~=nil) then
+    old.declineReport=old.duelReport~=false or old.partyReport~=false or old.guildReport~=false
+  end
+  if old then old.duelReport=nil; old.partyReport=nil; old.guildReport=nil end
   KHQOL.db.modules.generalConvenience=KHQOL.MergeDefaults(KHQOL.db.modules.generalConvenience or {},self.defaults,"tables")
   return KHQOL.db.modules.generalConvenience
 end
@@ -76,7 +81,7 @@ function M:IsAllowedParty(inviter)
 end
 local inviteKeys={party="declinePartyInvites",guild="declineGuildInvites"}
 local dialogs={party="PARTY_INVITE",duel="DUEL_REQUESTED"}
-local reports={party="partyReport",guild="guildReport",duel="duelReport"}
+-- All request kinds share declineReport.
 function M:InviteEnabled(kind)
   return self:IsEnabled() and (kind=="duel" and self:GetDB().declineDuel or
     kind~="duel" and KHQOL.modules.general:GetDB()[inviteKeys[kind]]==true)
@@ -124,7 +129,7 @@ function M:QueueInvite(kind,inviter,guild)
     end
     if ok and call(frame.IsShown,frame)==false then
       pending.completed=true
-      if M:GetDB()[reports[kind]] then M:Message(({party="파티",guild="길드",duel="결투"})[kind].." 요청 거절: "..inviter) end
+      if M:GetDB().declineReport then M:Message(({party="파티",guild="길드",duel="결투"})[kind].." 요청 거절: "..inviter) end
     end
     -- Retain the token until cancellation/end/new inviter to absorb duplicates.
   end

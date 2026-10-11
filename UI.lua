@@ -238,12 +238,28 @@ function UI:Changed(parent)
   if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
 end
 function UI:AttachTooltip(control, title, description)
-  if not description or description == "" then return end
-  control:HookScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT"); GameTooltip:SetText(title, unpack(T.Accent))
-    GameTooltip:AddLine(description, .94, .94, .94, true); GameTooltip:Show()
-  end)
-  control:HookScript("OnLeave", function() GameTooltip:Hide() end)
+  if not description or description=="" then return end
+  control.tooltipTitle=title
+  control.tooltipDescription=control.tooltipDescription and (control.tooltipDescription.."\n"..description) or description
+  if control.tooltipAttached then return end
+  control.tooltipAttached=true
+  local function enter(self)
+    GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:SetText(control.tooltipTitle or "설명",unpack(T.Accent))
+    GameTooltip:AddLine(control.tooltipDescription,.94,.94,.94,true); GameTooltip:Show()
+  end
+  local function leave() GameTooltip:Hide() end
+  control:HookScript("OnEnter",enter); control:HookScript("OnLeave",leave)
+  if control.disabledHint then control.disabledHint:HookScript("OnEnter",enter); control.disabledHint:HookScript("OnLeave",leave) end
+  local regions={control.tooltipLabel or control.text}
+  for _,label in ipairs(control.uiLabels or {}) do regions[#regions+1]=label end
+  for _,region in ipairs(regions) do
+    if type(region)=="table" or type(region)=="userdata" then
+      if region.GetObjectType and region:GetObjectType()=="FontString" then
+        local area=CreateFrame("Frame",nil,region:GetParent()); area:SetAllPoints(region); area:EnableMouse(true)
+        area:SetScript("OnEnter",enter); area:SetScript("OnLeave",leave)
+      end
+    end
+  end
 end
 function UI:GridColumns(parent,items,shortcut)
   parent.gridMeasure=parent.gridMeasure or parent:CreateFontString(nil,"OVERLAY")
@@ -353,7 +369,9 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
     if slider.setting or not UI:IsAvailable(slider, enabled) then return end
     setter(rounded(value)); box:SetText(format(getter())); UI:Changed(parent)
   end)
+  slider.tooltipLabel=titleLabel
   self:AttachTooltip(slider, title, description)
+  self:AttachTooltip(box, title, description)
   self:AttachTooltip(box, title, "수치를 직접 입력한 후 Enter를 누르면 적용됩니다. Esc는 입력을 취소합니다.")
   -- Nested settings panels may first appear after their controls were created.
   -- Refresh on visibility changes too, while retaining a focused user draft.
@@ -439,7 +457,7 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
       b.menuViewport:SetVerticalScroll(math.min(b.menuViewport:GetVerticalScroll(),math.max(0,contentHeight-visibleHeight)))
     end
     b:SetText(selected .. "  ▼")
-    b:SetWidth(width)
+    b:SetWidth(b.layoutWidth or width)
     UI:ApplyAvailability(b, enabled)
   end
   b:Refresh(); return b
@@ -530,38 +548,46 @@ function UI:CreateBuilder(parent, y)
     UI:CellBackground(parent,x,self.rowY,width,height)
     return x,self.rowY,width
   end
-  function builder:Section(title) self:Flush(); self.y=UI:CreateSection(parent,title,self.y) end
+  function builder:Section(title)
+    self:Flush(); self.y=UI:CreateSection(parent,title,self.y)
+    local hint=CreateFrame("Frame",nil,parent); hint:SetPoint("TOPLEFT",0,self.y+36); hint:SetSize(parent:GetWidth(),24); hint:EnableMouse(true)
+    self.lastControl,self.lastTitle=hint,title
+  end
   function builder:Checkbox(title,getter,setter,enabled)
     local x,y,width=self:Cell("check",2,T.RowHeight+T.RowGap)
     local control=UI:CreateCheckbox(parent,title,x,y,getter,setter,enabled)
-    control.text:SetWidth(width-T.CheckboxSize-T.CheckboxLabelGap); return control
+    control.text:SetWidth(width-T.CheckboxSize-T.CheckboxLabelGap); self.lastControl,self.lastTitle=control,title; return control
   end
   function builder:Slider(title,min,max,step,getter,setter,format,enabled,description)
     local x,y=self:Cell("field",2,T.SliderRowHeight)
-    return UI:CreateSlider(parent,title,description or "",x,y,min,max,step,getter,setter,format,enabled)
+    local control,box=UI:CreateSlider(parent,title,description or "",x,y,min,max,step,getter,setter,format,enabled)
+    self.lastControl,self.lastTitle=control,title; return control,box
   end
   function builder:Dropdown(title,options,getter,setter,enabled)
     if self.rowKind=="color" and self.rowCount==1 and self.y==self.rowBottom then self.rowKind="field" end
     local x,y,width=self:Cell("field",2,T.DropdownRowHeight)
     local label=UI:CreateLabel(parent,title,x,y); label:SetWidth(width)
     local control=UI:CreateDropdown(parent,x,y-24,width,options,getter,setter,enabled)
-    control.uiLabels={label}; control:Refresh(); return control
+    control.uiLabels={label}; control:Refresh(); self.lastControl,self.lastTitle=control,title; return control
   end
   function builder:Edit(title,getter,setter,enabled)
     local x,y,width=self:Cell("field",2,T.DropdownRowHeight)
     local label=UI:CreateLabel(parent,title,x,y); label:SetWidth(width)
     local control=UI:CreateEditBox(parent,x,y-24,width,getter,setter,enabled)
-    control.uiLabels={label}; control:Refresh(); return control
+    control.uiLabels={label}; control:Refresh(); self.lastControl,self.lastTitle=control,title; return control
   end
   function builder:Color(title,getter,setter,enabled,restore,alpha)
     local x,y=self:Cell("field",2,T.ColorRowHeight)
-    return UI:CreateColorPicker(parent,title,x,y,getter,setter,enabled,restore,alpha)
+    local control=UI:CreateColorPicker(parent,title,x,y,getter,setter,enabled,restore,alpha)
+    self.lastControl,self.lastTitle=control,title; return control
   end
   function builder:Button(title,callback,width,enabled)
     local x,y,cellWidth=self:Cell("button",2,T.RowHeight+T.RowGap)
-    return UI:CreateButton(parent,title,x,y,math.min(width or cellWidth,cellWidth),callback,enabled)
+    local control=UI:CreateButton(parent,title,x,y,math.min(width or cellWidth,cellWidth),callback,enabled)
+    self.lastControl,self.lastTitle=control,title; return control
   end
-  function builder:Description(text)
+  function builder:Description(text,important)
+    if not important and self.lastControl then UI:AttachTooltip(self.lastControl,self.lastTitle,text); return self.lastControl end
     self:Flush()
     local fs=UI:CreateDescription(parent,text,0,self.y); self.y=self.y-math.max(18,fs:GetStringHeight())-T.RowGap; return fs
   end

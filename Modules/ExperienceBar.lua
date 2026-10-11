@@ -32,7 +32,7 @@ function X:GetDB()
     for i=1,4 do db[key][i]=clamp(number(db[key][i]) and db[key][i] or self.defaults[key][i],0,1) end
   end
   if db.mode~="horizontal" and db.mode~="wrapTop" and db.mode~="wrapBottom" then db.mode="horizontal" end
-  local formats={percent=true,currentMax=true,remaining=true,currentMaxPercent=true}
+  local formats={percent=true,currentMax=true,remaining=true,remainingPercent=true,currentMaxPercent=true}
   if not formats[db.textMode] then db.textMode="currentMaxPercent" end
   if db.textPosition~="left" and db.textPosition~="right" and db.textPosition~="center" then db.textPosition="center" end
   self.db=db; return db
@@ -107,6 +107,7 @@ function X:Text()
   local prefix=d.kind=="reputation" and (d.name.." · "..d.standing.." · ") or ""
   local percent=string.format("%.1f%%",d.percent)
   if db.textMode=="percent" then return prefix..percent end
+  if db.textMode=="remainingPercent" then return prefix..self:FormatNumber(d.remaining).." 남음 ("..string.format("%.1f%%",math.max(0,100-d.percent)).." 남음)" end
   if db.textMode=="remaining" then return prefix..self:FormatNumber(d.remaining).." 남음" end
   local result=self:FormatNumber(d.value).." / "..self:FormatNumber(d.maximum)
   return prefix..(db.textMode=="currentMaxPercent" and result.." ("..percent..")" or result)

@@ -57,7 +57,7 @@ function Settings:Create(parent)
       FR:RefreshDisplay(true)
     end,stateTextEnabled)
   end
-  b:Description("스킬 사거리 별 문구 OFF 시 특수 문자를 사용합니다.")
+  b:Description("스킬 사거리 별 문구 OFF 시 특수 문자를 사용합니다.",true)
   self.shape=b:Edit("특수 문자",function() return FR.db.shape end,function(v)
     FR.db.shape=v~="" and v or "\226\150\160"; FR:RefreshDisplay(true)
   end,function() return not stateTextEnabled() end)

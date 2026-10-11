@@ -1,9 +1,7 @@
 local _, KHQOL = ...
 local M={}; KHQOL.modules.basicUI=M
 local call,public=KHQOL.PublicCall,KHQOL.IsPublicValue
-M.defaults={bags="default",micro="default",hideDelay=.5,
-  player={compact=false,health="default",power="default"},
-  target={compact=false,health="default",power="default"}}
+M.defaults={bags="default",micro="default",hideDelay=.5}
 function M:GetDB()
   KHQOL.db.modules.basicUI=KHQOL.MergeDefaults(KHQOL.db.modules.basicUI or {},self.defaults,"tables")
   return KHQOL.db.modules.basicUI
@@ -117,137 +115,10 @@ function M:ApplyBars()
     end
   end
 end
-function M:UnitParts(unit)
-  local root=unit=="player" and _G.PlayerFrame or _G.TargetFrame
-  if not root then return end
-  local content=unit=="player" and root.PlayerFrameContent or root.TargetFrameContent
-  local main=content and (unit=="player" and content.PlayerFrameContentMain or content.TargetFrameContentMain)
-  local container=unit=="player" and root.PlayerFrameContainer or root.TargetFrameContainer
-  local health=main and main.HealthBarsContainer
-  local power=main and (unit=="player" and main.ManaBarArea and main.ManaBarArea.ManaBar or main.ManaBar)
-  if not main or not container or not health or not health.HealthBar or not power then return end
-  return {root=root,main=main,container=container,healthContainer=health,health=health.HealthBar,power=power,
-    name=unit=="player" and _G.PlayerName or main.Name,level=unit=="player" and _G.PlayerLevelText or main.LevelText,
-    portrait=unit=="player" and container.PlayerPortrait or container.Portrait}
-end
-local function valid(v) return public(v) and type(v)=="number" and v==v and v>=0 and v<math.huge end
-function M:FormatValue(unit,kind,mode)
-  if mode=="hide" or mode=="default" or call(UnitExists,unit)~=true then return "" end
-  local current,maximum
-  if kind=="health" then current=call(UnitHealth,unit); maximum=call(UnitHealthMax,unit)
-  else
-    local powerType=call(UnitPowerType,unit)
-    if not valid(powerType) then return "" end
-    current=call(UnitPower,unit,powerType); maximum=call(UnitPowerMax,unit,powerType)
-  end
-  if not valid(current) or not valid(maximum) or maximum<=0 then return "" end
-  local value=string.format("%.0f",current); local max=string.format("%.0f",maximum)
-  local percent=string.format("%.0f%%",math.min(100,current/maximum*100))
-  if mode=="current" then return value elseif mode=="both" then return value.." / "..max
-  elseif mode=="percent" then return percent elseif mode=="currentPercent" then return value.." ("..percent..")" end
-  return ""
-end
-function M:UpdateBarText(owner,bar,unit,kind)
-  if self.updatingText then return end
-  self.updatingText=true
-  local mode=self:IsEnabled() and self:GetDB()[unit][kind] or "default"
-  owner.textOwners=owner.textOwners or {}; local state=owner.textOwners[kind]
-  if not state then
-    state={}; owner.textOwners[kind]=state
-    local text=bar:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
-    text:SetPoint("CENTER",bar,"CENTER"); text:SetWidth(bar:GetWidth()); state.text=text
-  end
-  state.text:Hide()
-  if mode=="default" then
-    self:Release(state)
-  else
-    for _,key in ipairs({"TextString","LeftText","RightText","HealthBarText","ManaBarText"}) do
-      if bar[key] then self:Write(state,bar[key],"alpha",0) end
-    end
-    state.text:SetWidth(bar:GetWidth()); state.text:SetText(self:FormatValue(unit,kind,mode)); state.text:Show()
-  end
-  self.updatingText=false
-end
-function M:ApplyCompact(owner,p,unit,on)
-  if combat() then self.pending=true; return end
-  if not on then
-    self:Release(owner); if owner.background then owner.background:Hide() end
-    return
-  end
-  if not owner.background then
-    local t=p.root:CreateTexture(nil,"BACKGROUND",nil,-8)
-    t:SetColorTexture(.04,.04,.04,.85); t:SetPoint("TOPLEFT",p.root,16,-24); t:SetPoint("BOTTOMRIGHT",p.root,-16,24)
-    owner.background=t
-  end
-  owner.background:Show()
-  self:Write(owner,p.portrait,"alpha",0)
-  for _,key in ipairs({"FrameTexture","VehicleFrameTexture","AlternatePowerFrameTexture","BossPortraitFrameTexture"}) do self:Write(owner,p.container[key],"alpha",0) end
-  self:Write(owner,p.main.LevelBackgroundCircle,"alpha",0)
-  -- Expand real native bars into the former portrait space. Root anchors, scale,
-  -- secure unit button, prediction children and external HUD anchors stay intact.
-  self:Write(owner,p.healthContainer,"points",{{"TOPLEFT",p.root,"TOPLEFT",16,-40}})
-  self:Write(owner,p.healthContainer,"width",200)
-  self:Write(owner,p.health,"width",200)
-  self:Write(owner,p.power,"points",{{"TOPLEFT",p.healthContainer,"BOTTOMLEFT",0,-2}})
-  self:Write(owner,p.power,"width",200)
-  self:Write(owner,p.name,"points",{{"TOPLEFT",p.root,"TOPLEFT",20,-26}})
-  self:Write(owner,p.name,"width",158)
-  self:Write(owner,p.level,"points",{{"TOPRIGHT",p.root,"TOPRIGHT",-20,-26}})
-  self:Write(owner,p.main.PvpBackgroundCircle,"points",{{"CENTER",p.root,"TOPLEFT",3,-30}})
-  if unit=="target" and p.root.TargetFrameContent.TargetFrameContentContextual then
-    local context=p.root.TargetFrameContent.TargetFrameContentContextual
-    self:Write(owner,context.PvpBackgroundCircle,"points",{{"CENTER",p.root,"TOPLEFT",3,-30}})
-    self:Write(owner,context.HighLevelTexture,"points",{{"CENTER",p.level,"CENTER",0,0}})
-  end
-  if unit=="target" then
-    self:Write(owner,p.main.ReputationColor,"points",{{"TOPLEFT",p.root,"TOPLEFT",16,-24}})
-    self:Write(owner,p.main.ReputationColor,"width",200)
-  end
-  -- Masks cover prediction/absorb regions too, so resize them with the bars.
-  if p.healthContainer.HealthBarMask then
-    self:Write(owner,p.healthContainer.HealthBarMask,"points",{{"TOPLEFT",p.healthContainer,"TOPLEFT",0,0}})
-    self:Write(owner,p.healthContainer.HealthBarMask,"width",200)
-    self:Write(owner,p.healthContainer.HealthBarMask,"height",20)
-  end
-  if p.power.ManaBarMask then
-    self:Write(owner,p.power.ManaBarMask,"points",{{"TOPLEFT",p.power,"TOPLEFT",0,0}})
-    self:Write(owner,p.power.ManaBarMask,"width",200)
-    self:Write(owner,p.power.ManaBarMask,"height",p.power:GetHeight())
-  end
-end
-function M:ApplyUnits()
-  if self.applyingUnits then return end
-  self.applyingUnits=true
-  self.units=self.units or {}
-  for _,unit in ipairs({"player","target"}) do
-    local p=self:UnitParts(unit)
-    if p then
-      local owner=self.units[unit] or {}; self.units[unit]=owner; owner.parts=p
-      local compact=self:IsEnabled() and self:GetDB()[unit].compact and not editing()
-      self:ApplyCompact(owner,p,unit,compact)
-      for _,kind in ipairs({"health","power"}) do
-        local bar=p[kind]
-        self:UpdateBarText(owner,bar,unit,kind)
-        if not bar.khqolBasicTextHook and type(bar.UpdateTextStringWithValues)=="function" then
-          bar.khqolBasicTextHook=true
-          hooksecurefunc(bar,"UpdateTextStringWithValues",function() M:UpdateBarText(owner,bar,unit,kind) end)
-        end
-      end
-      if not owner.eventHook then
-        owner.eventHook=true
-        p.root:HookScript("OnEvent",function(_,event)
-          if M:IsEnabled() then M:ApplyUnits() end
-        end)
-        p.root:HookScript("OnShow",function() if M:IsEnabled() then M:ApplyUnits() end end)
-      end
-    end
-  end
-  self.applyingUnits=false
-end
 function M:ApplySettings()
   if self.applying then return end
   self.applying=true
-  self:ApplyBars(); self:ApplyUnits()
+  self:ApplyBars()
   if not combat() then self.pending=nil end
   self.applying=false
 end
@@ -256,7 +127,7 @@ function M:SetEnabled(on)
   self.events:UnregisterAllEvents()
   for _,event in ipairs({"PLAYER_REGEN_ENABLED","ADDON_LOADED"}) do self.events:RegisterEvent(event) end
   if on then
-    for _,event in ipairs({"PLAYER_ENTERING_WORLD","PLAYER_TARGET_CHANGED","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE","UNIT_MAXPOWER","UNIT_DISPLAYPOWER"}) do pcall(self.events.RegisterEvent,self.events,event) end
+    for _,event in ipairs({"PLAYER_ENTERING_WORLD"}) do pcall(self.events.RegisterEvent,self.events,event) end
   end
   for _,owner in pairs(self.bars or {}) do cancel(owner) end
   self:ApplySettings()
@@ -264,7 +135,7 @@ end
 function M:Initialize()
   if self.events then return end
   self.events=CreateFrame("Frame")
-  for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_ENTERING_WORLD","PLAYER_TARGET_CHANGED","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE","UNIT_MAXPOWER","UNIT_DISPLAYPOWER","ADDON_LOADED"}) do pcall(self.events.RegisterEvent,self.events,event) end
+  for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_ENTERING_WORLD","ADDON_LOADED"}) do pcall(self.events.RegisterEvent,self.events,event) end
   self.events:SetScript("OnEvent",function(_,event,unit)
     if event=="PLAYER_REGEN_ENABLED" then M:ApplySettings()
     elseif M:IsEnabled() and (not unit or unit=="player" or unit=="target" or event=="ADDON_LOADED") then M:ApplySettings() end
@@ -272,11 +143,5 @@ function M:Initialize()
   if EditModeManagerFrame then
     EditModeManagerFrame:HookScript("OnShow",function() M:ApplySettings() end)
     EditModeManagerFrame:HookScript("OnHide",function() M:ApplySettings() end)
-  end
-  if type(PlayerFrame_UpdatePlayerNameTextAnchor)=="function" then
-    hooksecurefunc("PlayerFrame_UpdatePlayerNameTextAnchor",function() if M:IsEnabled() then M:ApplyUnits() end end)
-  end
-  if TargetFrame and type(TargetFrame.CheckClassification)=="function" then
-    hooksecurefunc(TargetFrame,"CheckClassification",function() if M:IsEnabled() then M:ApplyUnits() end end)
   end
 end

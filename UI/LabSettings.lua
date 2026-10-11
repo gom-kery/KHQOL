@@ -17,7 +17,7 @@ local function proc(content,y)
   local b=UI:CreateBuilder(content,y)
   local function enabled() return P:IsEnabled() end
   b:Section("발동 알림")
-  b:Description("등록한 버프가 전투 중 활성화되면 곡선형 HUD로 표시합니다.")
+  b:Description("등록한 버프가 전투 중 활성화되면 곡선형 HUD로 표시합니다.",true)
   b:Section("등록된 버프")
   local options={}
   for _,token in ipairs({"WARRIOR","PALADIN","HUNTER","ROGUE","PRIEST","SHAMAN","MAGE","WARLOCK","DRUID","DEATHKNIGHT","MONK","DEMONHUNTER","EVOKER"}) do
