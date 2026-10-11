@@ -33,7 +33,8 @@ entry("interface","range","range","사거리 측정","선택한 대상의 사거
 entry("interface","threat","threat","위협 수치","현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다.")
 entry("interface","basic","basicUI","기본 UI","가방·메뉴바 표시와 플레이어·대상 프레임 설정.",{"basicui"})
 entry("interface","tooltip","tooltip","툴팁 설정","툴팁의 위치, 표시 방식 및 무기 전문가 안내를 조정합니다.",{"tooltip","weapon"})
-entry("convenience","general","generalConvenience","일반","일반 편의 사용은 초대·채집·상점 확장·습득 표시만 제어합니다.")
+entry("convenience","general",nil,"일반","아이템, 자동 거절, 채집 및 상점 기능을 각각 설정합니다.")
+R.routes.generalConvenience=R.groups.convenience.general
 entry("convenience","clock","clock","시계 설정","시간, 날짜, 요일 및 HUD 정보를 표시합니다.",{"clock"})
 entry("convenience","note","todo","포에버 노트","화면의 노트 창에서 할 일과 메모를 관리합니다.",{"todo"})
 entry("convenience","quest","questNavigator","퀘스트 설정","추적 중인 퀘스트의 목표·반납 위치를 안내합니다.",{"quest","questnavigator"})
@@ -50,7 +51,7 @@ for _,page in ipairs(R.pages) do
     local group={title=page[2],items={}}
     for _,id in ipairs(R.orders[page[1]]) do
       local meta=R.groups[page[1]][id]
-      if meta.key then group.items[#group.items+1]={meta.key,meta.key=="generalConvenience" and "일반 편의" or meta.title} end
+      if meta.key then group.items[#group.items+1]={meta.key,meta.title} end
     end
     if page[1]=="convenience" then
       for index,item in ipairs({{"autoConfirmDestroy","아이템 파괴 자동 입력",true},

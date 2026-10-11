@@ -83,15 +83,16 @@ local function generalSettings(content,y)
   b:Description("활성화된 화면 요소를 함께 이동합니다. 완료하면 저장·잠금, 취소 또는 ESC는 변경 전 상태를 유지합니다.")
   b:Section("모듈 관리")
   b:Description("설정은 변경 즉시 저장됩니다.")
-  local gap=T.ColumnGap/2
-  local width=(T.ContentWidth-gap)/2
+  local gap=T.ColumnGap
   content.moduleControls={}
   for _,group in ipairs(moduleGroups) do
     b:Section(group.title)
     local top=b.y
+    local columns=UI:GridColumns(content,group.items,function(item) return registry.modules[item[1]]~=nil end)
+    local width=(content:GetWidth()-(columns-1)*gap)/columns
     for index,item in ipairs(group.items) do
       local key,name,isGeneral=item[1],item[2],item[3]
-      local column=(index-1)%2;local row=math.floor((index-1)/2)
+      local column=(index-1)%columns;local row=math.floor((index-1)/columns)
       local checkbox=UI:CreateCheckbox(content,name,column*(width+gap),top-row*moduleRowStep,
         function() return isGeneral and KHQOL.modules.general:GetDB()[key] or (not isGeneral and KHQOL:GetEnabled(key)) end,
         function(on)
@@ -105,11 +106,11 @@ local function generalSettings(content,y)
       if meta then
         UI:AttachTooltip(checkbox,name,meta.description)
         checkbox.text:SetWidth(width-T.CheckboxSize-T.CheckboxLabelGap-T.ButtonHeight-T.RowGap)
-        UI:CreateButton(content,"⚙",column*(width+gap)+width-T.ButtonHeight,top-row*moduleRowStep,T.ButtonHeight,function() KHQOL:OpenModule(key) end)
+        UI:CreateButton(content,"→",column*(width+gap)+width-T.ButtonHeight,top-row*moduleRowStep,T.ButtonHeight,function() KHQOL:OpenModule(key) end)
       end
       content.moduleControls[key]=checkbox
     end
-    b.y=top-math.ceil(#group.items/2)*moduleRowStep
+    b.y=top-math.ceil(#group.items/columns)*moduleRowStep
   end
   b.y=KHQOL.modules.general:BuildGlobalSettings(content,b.y)
   b:Section("미니맵")

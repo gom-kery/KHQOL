@@ -121,6 +121,8 @@ function KHQOL:CaptureProfile()
   local result={settings={modules={}},legacy={}}
   for _,key in ipairs(common) do result.settings[key]=copy(self.db[key]) end
   for _,key in ipairs(managed) do result.settings.modules[key]=copy(self.db.modules and self.db.modules[key]) end
+  if result.settings.enabled then result.settings.enabled.generalConvenience=nil end
+  if result.settings.general then result.settings.general.autoSellJunkReport=nil end
   result.legacy.clock=filteredClock(ForeverClockDB)
   result.legacy.buffReminder=filteredBuff(ForeverBuffReminderDB)
   result.legacy.range=filteredRange(FRangeDB)
@@ -177,6 +179,8 @@ function KHQOL:LoadProfileSettings(profile)
   profile=copy(profile)
   KHQOL.MergeDefaults(profile,self:MakeDefaultProfile(true))
   local settings=profile.settings
+  if settings.enabled then settings.enabled.generalConvenience=nil end
+  if settings.general then settings.general.autoSellJunkReport=nil end
   for _,key in ipairs(common) do
     if type(settings[key])=="table" then
       self.db[key]=replace(type(self.db[key])=="table" and self.db[key] or {},settings[key])
@@ -235,6 +239,15 @@ function KHQOL:InitializeProfiles()
   if not character then self.profileDeferred=true; return false end
   KHQOLDB=KHQOL.MergeDefaults(type(KHQOLDB)=="table" and KHQOLDB or {},self.defaults,"tables")
   self.db=KHQOLDB
+  self.db.enabled.generalConvenience=nil
+  self.db.general.autoSellJunkReport=nil
+  for _,profile in pairs(self.db.profiles or {}) do
+    local settings=type(profile)=="table" and profile.settings
+    if settings then
+      if settings.enabled then settings.enabled.generalConvenience=nil end
+      if settings.general then settings.general.autoSellJunkReport=nil end
+    end
+  end
   local fresh=self.db.profileSchema~=1
   if type(self.db.profiles)~="table" then self.db.profiles={} end
   if type(self.db.characterProfiles)~="table" then self.db.characterProfiles={} end
@@ -307,6 +320,7 @@ function KHQOL:ApplyProfileModules()
   m.range:RefreshDisplay(true)
   m.cursorTrail.color=nil; m.cursorTrail:ApplyAppearance()
   m.resourceSwing:ApplyProfile()
+  m.campfire:CancelRediscovery(); m.campfire.rediscoveryUntil=nil; m.campfire.benefitAcquiredAt=nil
   m.campfire.db=CampfireAlertDB; m.campfire:HideDiscovery(); m.campfire:ApplyLayout()
   m.campfire.ui.complete:Hide()
   local cp=m.campfire.db.position
@@ -315,6 +329,8 @@ function KHQOL:ApplyProfileModules()
   m.combatStatus:StopVisual()
   m.threat:StopTest(); m.threat:ResetAggroAlert()
   m.pvpAlert:SetMoving(false); m.pvpAlert:StopTest()
+  self.db.enabled.generalConvenience=nil
+  m.generalConvenience:SetEnabled(true)
   for key in pairs(self.defaults.enabled) do self:SetEnabled(key,self:GetEnabled(key),true) end
   if not self:GetEnabled("buffReminder") then
     for _,frame in ipairs(fbr.alertFrames or {}) do frame:Hide() end

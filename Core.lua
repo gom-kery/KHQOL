@@ -7,7 +7,7 @@ local defaults = {
   enabled = { clock = true, todo = true, buffReminder = true, range = true, tooltip = true, resourceSwing = true, campfire = true, cursorTrail = true, castBar = true, combatStatus = true, questNavigator = true, threat = true, pvpAlert = true },
   migrated = {}, modules = {},
   general = {
-    centerTextScale = 100, autoSellJunk = false, autoSellJunkReport = false, autoConfirmDestroy = false, chatEnhancement = false,
+    centerTextScale = 100, autoSellJunk = false, autoConfirmDestroy = false, chatEnhancement = false,
     autoRepair = false, useGuildFunds = false, declinePartyInvites = false, declineGuildInvites = false,
   },
 }
@@ -22,7 +22,7 @@ defaults.enabled.procAlert = false
 defaults.enabled.objectHighlight = false
 defaults.enabled.npcAlert = false
 defaults.enabled.performanceMonitor = false
-defaults.enabled.generalConvenience = true
+-- General convenience features have individual switches, no master switch.
 defaults.enabled.basicUI = true
 
 function KHQOL:Migrate()
@@ -53,6 +53,7 @@ function KHQOL:GetEnabled(key) return self.db.enabled[key] ~= false end
 local managedModules = {}
 for _,key in ipairs(KHQOL.profileModuleKeys) do managedModules[key]=true end
 function KHQOL:SetEnabled(key, enabled, reapply)
+  if key=="generalConvenience" then self.db.enabled[key]=nil; self.modules[key]:SetEnabled(true); return true end
   -- Internal reapplication preserves preferences while the lock gates execution.
   if not reapply and self.LabLock:IsExperimental(key) and not self.LabLock:IsUnlocked() then return false end
   if not reapply then self.db.enabled[key] = enabled and true or false end
@@ -141,6 +142,7 @@ events:SetScript("OnEvent", function()
   KHQOL:CreateMinimapButton()
   C_Timer.After(0, function()
     KHQOL:HideLegacyButtons()
+    KHQOL.modules.generalConvenience:SetEnabled(true)
     for key in pairs(KHQOL.db.enabled) do KHQOL:SetEnabled(key, KHQOL:GetEnabled(key), true) end
     if KHQOL.modules.tooltip and KHQOL.modules.tooltip.Initialize then KHQOL.modules.tooltip:Initialize() end
     if KHQOL.modules.cursorTrail and KHQOL.modules.cursorTrail.Initialize then KHQOL.modules.cursorTrail:Initialize() end

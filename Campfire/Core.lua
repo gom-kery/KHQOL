@@ -43,6 +43,7 @@ CFA.dismissedForCurrentCampfire = false
 local defaults = {
     version = 1,
     debug = false,
+    rediscoveryDelay = 30,
     position = { point = "CENTER", x = 0, y = 80 },
     iconSize = 100,
     fontSize = 50,
@@ -291,6 +292,23 @@ function CFA:SetStatusText(message)
     end
 end
 
+function CFA:CancelRediscovery()
+    if self.rediscoveryTimer then self.rediscoveryTimer:Cancel(); self.rediscoveryTimer=nil end
+end
+function CFA:ScheduleRediscovery()
+    self:CancelRediscovery()
+    local now=GetTime()
+    local delay=math.max(0,math.min(300,tonumber(self.db.rediscoveryDelay) or 30))
+    self.rediscoveryUntil=(self.benefitAcquiredAt or now)+math.max(3,delay)
+    if self.rediscoveryUntil>now then
+        self.rediscoveryTimer=C_Timer.NewTimer(self.rediscoveryUntil-now,function()
+            self.rediscoveryTimer=nil
+            self:ProcessAuras("rediscovery")
+        end)
+    else
+        self:ProcessAuras("rediscovery")
+    end
+end
 function CFA:ShowComplete()
     self:HideDiscovery()
     self:SetState(self.STATES.COMPLETE)
@@ -332,7 +350,13 @@ function CFA:ProcessAuras(reason)
         -- Existing benefits often persist. A substantial expiration increase is
         -- the reliable signal that the 60-minute camp benefit was refreshed.
         if benefitRefreshed then self:Debug("Camp benefit duration refreshed to 60 minutes.") end
+        self.benefitAcquiredAt=GetTime()
         self:ShowComplete()
+        self:ScheduleRediscovery()
+        return
+    end
+    if self.rediscoveryUntil and GetTime()<self.rediscoveryUntil then
+        -- Preserve the completion message while proximity/rest auras change.
         return
     end
     if not nearby then

@@ -101,45 +101,94 @@ local function layout(parent,y,key)
     end
     page:SetHeight(math.max(1,-top)); parent:SetHeight(math.max(1,-y+page:GetHeight()))
   end
-  local sentinel=CreateFrame("Frame",nil,page); sentinel.Refresh=refresh; sentinel.ignoreModuleEnabled=true
+  local sentinel=CreateFrame("Frame",nil,page); sentinel.Refresh=refresh; sentinel.layoutRefresh=true; sentinel.ignoreModuleEnabled=true
   UI:RegisterControl(page,sentinel)
   function L:Finish() refresh(); return y-page:GetHeight() end
   return L
 end
+-- Stable cells keep subordinate controls in place when switches change.
+-- Availability changes, never row visibility, so neighboring labels cannot shift.
 function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
-  local M=self; local general=KHQOL.modules.general
-  local l=layout(parent,y,"generalConvenience")
-  local function db() return M:GetDB() end
-  local function get(key) return function() return db()[key] end end
-  local function set(key) return function(value) db()[key]=value; M:ApplySettings() end end
-  local function trackingSupported() return C_Minimap and type(C_Minimap.GetTrackingInfo)=="function" and type(C_Minimap.SetTracking)=="function" end
-  local function itemSupported() return C_TooltipInfo and type(C_TooltipInfo.GetItemByID)=="function" and type(ITEM_SPELL_KNOWN)=="string" end
-  l:Section("일반 편의")
-  l:Description("이 묶음은 초대·채집·상점 확장·습득 표시만 관리합니다.")
-  l:Check("일반 편의 사용",function() return KHQOL:GetEnabled("generalConvenience") end,function(on) KHQOL:SetEnabled("generalConvenience",on) end,nil,nil,true)
-  l:Description("일반 편의가 비활성화되어 있습니다. 위의 사용 옵션으로 켤 수 있습니다.",function() return not M:IsEnabled() end)
-  l:Section("초대 관리")
-  l:Check("결투 요청 자동 거절",get("declineDuel"),set("declineDuel"),nil,"직접 결투 요청만 처리합니다. 펫 대전·대기열에는 영향을 주지 않습니다.",nil,function() return type(CancelDuel)=="function" and type(StaticPopup_FindVisible)=="function" end)
-  l:Children({{"거절 채팅 알림",get("duelReport"),set("duelReport")}},get("declineDuel"))
-  local function party() return general:GetDB().declinePartyInvites end
-  local function guild() return general:GetDB().declineGuildInvites end
-  l:Check("파티 초대 자동 거절",party,function(on) general:SetConvenienceEnabled("declinePartyInvites",on) end,nil,"친구·길드원 예외는 파티 초대에만 적용합니다. 명단 정보가 미로딩이면 최대 3회 확인 후 요청을 그대로 유지합니다. 그룹 찾기·대기열은 제외합니다.",nil,function() return type(DeclineGroup)=="function" and type(StaticPopup_FindVisible)=="function" end)
-  l:Children({{"거절 채팅 알림",get("partyReport"),set("partyReport")},{"친구 허용",get("allowFriends"),set("allowFriends"),"게임 내 캐릭터 친구 목록에서 이름과 서버가 일치하는 친구입니다. Battle.net 친구는 포함하지 않습니다."},{"길드원 허용",get("allowGuild"),set("allowGuild"),"현재 로드된 길드 명단에서 이름과 서버가 일치하는 길드원입니다."}},party)
-  l:Check("길드 초대 자동 거절",guild,function(on) general:SetConvenienceEnabled("declineGuildInvites",on) end,nil,nil,nil,function() return type(DeclineGuild)=="function" end)
-  l:Children({{"거절 채팅 알림",get("guildReport"),set("guildReport")}},guild)
-  l:Section("채집")
-  l:Check("채집 추적 상태 유지",get("keepTracking"),set("keepTracking"),nil,"사용자가 선택한 채광·약초 추적을 부활 후 복원합니다. 직접 끈 추적은 복원하지 않으며 다른 주문 추적이 활성화되어 있으면 복원을 건너뜁니다.",nil,trackingSupported)
-  l:Description("이 클라이언트에서는 필요한 채집 추적 API를 사용할 수 없습니다.",function() return not trackingSupported() end)
-  l:Children({{"복원 채팅 알림",get("trackingReport"),set("trackingReport")}},get("keepTracking"))
-  l:Section("상인·아이템")
-  l:Check("상인 판매목록 확장",get("merchantExpanded"),set("merchantExpanded"),nil,"기본 상품 순서를 유지한 4열 × 5행입니다. 상점 변경 애드온과 충돌하면 적용하지 않습니다.")
-  l:Description("상점 확장 적용 대기: 전투가 끝나면 적용합니다.",function() return M.merchantPending==true end)
-  l:Description(function() return "상점 확장 미적용: "..(M.merchantUnavailable or "") end,function() return db().merchantExpanded and M.merchantUnavailable~=nil end)
-  l:Check("이미 습득한 아이템 표시",get("knownItems"),set("knownItems"),nil,"도안은 기본 툴팁의 ‘이미 습득’ 판정, 탈것은 수집 API 또는 같은 기본 툴팁 판정을 사용합니다. 확인할 수 없는 아이템은 표시하지 않습니다.",nil,itemSupported)
-  l:Description("이 클라이언트에서는 습득 판정에 필요한 기본 툴팁 API를 사용할 수 없습니다.",function() return not itemSupported() end)
-  l:Children({{"도안",get("recipes"),set("recipes")},{"탈것",get("mounts"),set("mounts")}},get("knownItems"),"표시 대상")
-  l:Children({{"가방",get("bags"),set("bags")},{"상점",get("merchant"),set("merchant")}},get("knownItems"),"표시 위치")
-  return l:Finish()
+  local M=self; local G=KHQOL.modules.general
+  local function get(k) return function() return M:GetDB()[k] end end
+  local function set(k) return function(v) M:GetDB()[k]=v; M:ApplySettings() end end
+  local function legacy(k) return function() return G:GetDB()[k] end end
+  local function legacySet(k) return function(v) G:SetConvenienceEnabled(k,v) end end
+  local function supportedTracking() return C_Minimap and type(C_Minimap.GetTrackingInfo)=="function" and type(C_Minimap.SetTracking)=="function" end
+  local function supportedItems() return C_TooltipInfo and type(C_TooltipInfo.GetItemByID)=="function" and type(ITEM_SPELL_KNOWN)=="string" end
+  local function check(title,getter,setter,tip,enabled,children)
+    return {title=title,get=getter,set=setter,tip=tip,enabled=enabled,children=children or {}}
+  end
+  local party,guild=legacy("declinePartyInvites"),legacy("declineGuildInvites")
+  local sections={
+    {title="대화창",items={check("기본 대화창 편의",legacy("chatEnhancement"),legacySet("chatEnhancement"),"대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사를 개선합니다.")}},
+    {title="아이템",items={
+      check("아이템 파괴 자동 입력",legacy("autoConfirmDestroy"),legacySet("autoConfirmDestroy"),"파괴 확인 문구를 자동 입력합니다. 최종 확인은 직접 선택합니다."),
+      check("잡템 자동 판매",legacy("autoSellJunk"),legacySet("autoSellJunk"),"상점에서 판매 가능한 회색 아이템을 판매합니다. 퀘스트 아이템과 불확실한 아이템은 제외합니다."),
+      check("자동 수리",legacy("autoRepair"),legacySet("autoRepair"),"상점에서 수리 비용을 지불할 수 있을 때 수리합니다.",nil,{
+        check("길드 자금 우선 사용",legacy("useGuildFunds"),function(v) G:GetDB().useGuildFunds=v end,"권한·잔액·한도가 충분하면 길드 자금으로, 부족하면 개인 골드로 수리합니다.")}),
+      check("이미 습득한 아이템 표시",get("knownItems"),set("knownItems"),"습득 여부가 확인된 도안·탈것에 체크 표시합니다.",supportedItems,{
+        check("도안",get("recipes"),set("recipes")),check("탈것",get("mounts"),set("mounts")),
+        check("가방에 표시",get("bags"),set("bags")),check("상점에 표시",get("merchant"),set("merchant"))})}},
+    {title="자동 거절",items={
+      check("결투",get("declineDuel"),set("declineDuel"),"결투 요청을 자동 거절합니다. 펫 대전·대기열은 제외합니다.",function() return type(CancelDuel)=="function" and type(StaticPopup_FindVisible)=="function" end,{
+        check("거절 채팅 알림",get("duelReport"),set("duelReport"))}),
+      check("파티",party,legacySet("declinePartyInvites"),"파티 초대를 자동 거절합니다. 명단을 확인할 수 없으면 초대를 유지합니다. 그룹 찾기·대기열은 제외합니다.",function() return type(DeclineGroup)=="function" and type(StaticPopup_FindVisible)=="function" end,{
+        check("거절 채팅 알림",get("partyReport"),set("partyReport")),
+        check("친구 허용",get("allowFriends"),set("allowFriends"),"게임 내 캐릭터 친구 목록 기준입니다. Battle.net 친구는 포함하지 않습니다."),
+        check("길드원 허용",get("allowGuild"),set("allowGuild"))}),
+      check("길드",guild,legacySet("declineGuildInvites"),"길드 초대를 자동 거절합니다.",function() return type(DeclineGuild)=="function" end,{
+        check("거절 채팅 알림",get("guildReport"),set("guildReport"))})}},
+    {title="채집",items={check("채집 추적 상태 유지",get("keepTracking"),set("keepTracking"),"직접 선택한 채광·약초 추적을 부활 후 복원합니다. 직접 끈 추적은 복원하지 않습니다.",supportedTracking,{
+      check("복원 채팅 알림",get("trackingReport"),set("trackingReport"))})}},
+    {title="상점",items={check("상인 판매목록 확장",get("merchantExpanded"),set("merchantExpanded"),"기본 순서대로 4열 × 5행으로 확장합니다. 상점 변경 애드온과 충돌하면 적용하지 않습니다.")}},
+  }
+  local page=CreateFrame("Frame",nil,parent); page:SetPoint("TOPLEFT",0,y); page:SetWidth(parent:GetWidth())
+  local step=T.RowHeight+T.RowGap
+  for _,section in ipairs(sections) do
+    section.frame=CreateFrame("Frame",nil,page); section.frame:SetWidth(page:GetWidth())
+    UI:CreateSection(section.frame,section.title,0)
+    section.measure={}
+    for _,item in ipairs(section.items) do
+      local cell=CreateFrame("Frame",nil,section.frame); cell:SetWidth(page:GetWidth()); item.cell=cell; item.controls={}
+      section.measure[#section.measure+1]=item
+      local c=UI:CreateCheckbox(cell,item.title,0,0,item.get,item.set,item.enabled)
+      UI:AttachTooltip(c,item.title,item.tip); item.controls[1]=c
+      for index,child in ipairs(item.children) do
+        section.measure[#section.measure+1]=child
+        local function enabled() return item.get() and (not item.enabled or item.enabled()) end
+        local control=UI:CreateCheckbox(cell,child.title,0,-index*step,child.get,child.set,enabled)
+        UI:AttachTooltip(control,child.title,child.tip); item.controls[#item.controls+1]=control
+      end
+      cell:SetHeight(#item.controls*step)
+    end
+  end
+  local status=UI:CreateDescription(page,"",0,0)
+  local function refresh()
+    local top=0; local width=parent:GetWidth(); page:SetWidth(width)
+    for _,section in ipairs(sections) do
+      local f=section.frame; f:ClearAllPoints(); f:SetPoint("TOPLEFT",0,top); f:SetWidth(width)
+      local columns=UI:GridColumns(f,section.measure,false); section.columns=columns
+      local cellWidth=(width-(columns-1)*T.ColumnGap)/columns
+      local rowTop=-(T.SectionGap+36); local rowHeight=0
+      for index,item in ipairs(section.items) do
+        local column=(index-1)%columns
+        if column==0 and index>1 then rowTop=rowTop-rowHeight; rowHeight=0 end
+        item.cell:ClearAllPoints(); item.cell:SetPoint("TOPLEFT",column*(cellWidth+T.ColumnGap),rowTop); item.cell:SetWidth(cellWidth)
+        for _,control in ipairs(item.controls) do control.text:SetWidth(cellWidth-T.CheckboxSize-T.CheckboxLabelGap) end
+        rowHeight=math.max(rowHeight,item.cell:GetHeight())
+      end
+      f:SetHeight(-rowTop+rowHeight); top=top-f:GetHeight()
+    end
+    local text=M.merchantPending and "상점 확장: 전투가 끝나면 적용합니다." or (M:GetDB().merchantExpanded and M.merchantUnavailable and "상점 확장 미적용: "..M.merchantUnavailable or "")
+    status:ClearAllPoints(); status:SetPoint("TOPLEFT",0,top-6); status:SetWidth(width); status:SetText(text)
+    if text~="" then top=top-math.max(step,status:GetStringHeight()+T.RowGap) end
+    page:SetHeight(-top); parent:SetHeight(-y-top)
+  end
+  local sentinel=CreateFrame("Frame",nil,page); sentinel.Refresh=refresh; sentinel.layoutRefresh=true
+  UI:RegisterControl(page,sentinel); refresh()
+  parent.generalSections=sections
+  return y-page:GetHeight()
 end
 local barModes={{value="default",text="기본 표시"},{value="hide",text="항상 숨김"},{value="hover",text="마우스 오버 시 표시"}}
 local textModes={{value="default",text="기본 설정 따름"},{value="hide",text="숨김"},{value="current",text="현재값"},{value="both",text="현재값 / 최대값"},{value="percent",text="백분율"},{value="currentPercent",text="현재값 + 백분율"}}

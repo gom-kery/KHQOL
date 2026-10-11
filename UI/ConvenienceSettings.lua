@@ -28,9 +28,8 @@ local function noteSettings(content,y)
 end
 Convenience:RegisterTab("general",nil,function(content,y)
   content.moduleKey=nil -- Existing general options are outside the new group.
-  local legacy=CreateFrame("Frame",nil,content); legacy:SetPoint("TOPLEFT",0,y); legacy:SetWidth(content:GetWidth())
-  local bottom=KHQOL.modules.general:BuildSettings(legacy,0); legacy:SetHeight(math.max(1,-bottom))
-  local quality=CreateFrame("Frame",nil,content); quality:SetPoint("TOPLEFT",0,y+bottom); quality:SetWidth(content:GetWidth())
+  local bottom=0
+  local quality=CreateFrame("Frame",nil,content); quality:SetPoint("TOPLEFT",0,y); quality:SetWidth(content:GetWidth())
   KHQOL.modules.generalConvenience:BuildSettings(quality,0)
   local mover=CreateFrame("Frame",nil,content); mover:SetWidth(content:GetWidth())
   local moverBottom=KHQOL.modules.frameMover:BuildSettings(mover,0); mover:SetHeight(math.max(1,-moverBottom))

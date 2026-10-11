@@ -206,11 +206,14 @@ function UI:Refresh(parent)
       current=nextParent
     end
   end
+  for _,owned in ipairs(pending) do
+    for _,control in ipairs(owned.uiControls or {}) do if control.layoutRefresh then control:Refresh() end end
+  end
   for _,owned in ipairs(pending) do self:RefreshOwned(owned) end
 end
 function UI:RefreshOwned(parent)
   if not self.refreshParents[parent] or not refreshSafe(parent) then return end
-  for _, control in ipairs(parent.uiControls or {}) do if control.Refresh then control:Refresh() end end
+  for _, control in ipairs(parent.uiControls or {}) do if control.Refresh and not control.layoutRefresh then control:Refresh() end end
   for _, caption in ipairs(parent.uiCaptions or {}) do
     caption.region:SetFont(self:Font(),caption.size,"")
     caption.region:SetText(caption.text)
@@ -241,6 +244,18 @@ function UI:AttachTooltip(control, title, description)
     GameTooltip:AddLine(description, .94, .94, .94, true); GameTooltip:Show()
   end)
   control:HookScript("OnLeave", function() GameTooltip:Hide() end)
+end
+function UI:GridColumns(parent,items,shortcut)
+  parent.gridMeasure=parent.gridMeasure or parent:CreateFontString(nil,"OVERLAY")
+  local measure=parent.gridMeasure; measure:SetFont(self:Font(),T.LabelFontSize,"")
+  local required=0
+  for _,item in ipairs(items) do
+    local hasShortcut=type(shortcut)=="function" and shortcut(item) or shortcut==true
+    measure:SetText(item.title or item[2] or item[1]); required=math.max(required,measure:GetStringWidth()+T.CheckboxSize+T.CheckboxLabelGap+(hasShortcut and T.ButtonHeight+T.RowGap or 0))
+  end
+  measure:Hide()
+  local width=parent:GetWidth()
+  return (width-2*T.ColumnGap)/3>=required and 3 or 2
 end
 function UI:CreateCheckbox(parent, text, x, y, getter, setter, enabled)
   local b = CreateFrame("CheckButton", nil, parent, "BackdropTemplate")

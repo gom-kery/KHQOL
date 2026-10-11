@@ -2,7 +2,7 @@ local _, KHQOL = ...
 local General = KHQOL.modules.general
 
 local defaults = {
-  centerTextScale = 100, autoSellJunk = false, autoSellJunkReport = false, autoConfirmDestroy = false, chatEnhancement = false,
+  centerTextScale = 100, autoSellJunk = false, autoConfirmDestroy = false, chatEnhancement = false,
   autoRepair = false, useGuildFunds = false, declinePartyInvites = false, declineGuildInvites = false,
 }
 
@@ -224,13 +224,8 @@ function General:ProcessJunkSale(state)
     end
   end
   self:CancelJunkSale()
-  if state.total > 0 and state.reportReliable and self:GetDB().autoSellJunkReport == true and DEFAULT_CHAT_FRAME then
-    local gold = math.floor(state.total / 10000)
-    local silver = math.floor(state.total / 100) % 100
-    local copper = state.total % 100
-    DEFAULT_CHAT_FRAME:AddMessage(string.format("[KHQOL] 잡템 판매 완료: %d골드 %d실버 %d코퍼", gold, silver, copper))
-  end
-  -- All sale confirmations and the report finish before any repair deduction.
+
+  -- All sale confirmations finish before any repair deduction.
   self:TryAutoRepair(self.merchantVisit)
 end
 
@@ -324,37 +319,6 @@ function General:BuildGlobalSettings(parent,y)
   return b.y
 end
 
-function General:BuildSettings(parent, y)
-  local b = KHQOL.UI:CreateBuilder(parent, y)
-  function b:Checkbox(title,getter,setter,enabled)
-    self:Flush()
-    local UI,T=KHQOL.UI,KHQOL.UI.Theme
-    UI:CellBackground(parent,0,self.y,parent:GetWidth(),T.RowHeight+T.RowGap)
-    local c=UI:CreateCheckbox(parent,title,0,self.y,getter,setter,enabled)
-    self.y=self.y-T.RowHeight-T.RowGap
-    c.text:SetWidth(parent:GetWidth()-KHQOL.UI.Theme.CheckboxSize-KHQOL.UI.Theme.CheckboxLabelGap)
-    return c
-  end
-  b:Section("대화창")
-  b:Checkbox("기본 대화창 편의",function() return General:GetDB().chatEnhancement end,
-    function(on) General:SetConvenienceEnabled("chatEnhancement",on) end)
-  b:Description("대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사 기능을 개선합니다.")
-  b:Section("아이템 파괴")
-  b:Checkbox("아이템 파괴 자동 입력",function() return General:GetDB().autoConfirmDestroy end,
-    function(on) General:SetConvenienceEnabled("autoConfirmDestroy",on) end)
-  b:Description("파란색 등급 이상 아이템의 파괴 확인창에 확인 문구를 자동 입력합니다. 최종 ‘예’ 버튼은 직접 선택합니다.")
-  b:Section("판매")
-  local sell = b:Checkbox("잡템 자동 판매", function() return General:GetDB().autoSellJunk end, function(on) General:SetConvenienceEnabled("autoSellJunk",on) end)
-  KHQOL.UI:AttachTooltip(sell, "잡템 자동 판매", "상점이 열릴 때 판매 가능한 회색 아이템을 판매합니다. 퀘스트 아이템과 판정이 불확실한 아이템은 제외합니다.")
-  local report = b:Checkbox("판매 완료 후 획득 골드 출력", function() return General:GetDB().autoSellJunkReport end,
-    function(on) General:GetDB().autoSellJunkReport = on end, function() return General:GetDB().autoSellJunk == true end)
-  KHQOL.UI:AttachTooltip(report, "판매 완료 후 획득 골드 출력", "판매 완료 금액을 채팅에 표시합니다. 판매 결과나 다른 골드 변동으로 금액 확인이 불확실하면 출력하지 않습니다.")
-  b:Section("수리")
-  local repair = b:Checkbox("자동 수리", function() return General:GetDB().autoRepair end, function(on) General:SetConvenienceEnabled("autoRepair",on) end)
-  KHQOL.UI:AttachTooltip(repair, "자동 수리", "수리 가능한 상점이 열리면 전체 수리 비용을 지불할 수 있을 때 한 번 수리합니다. 잡템 자동 판매가 켜져 있으면 판매 확인 후 수리합니다.")
-  local guild = b:Checkbox("길드 자금 우선 사용", function() return General:GetDB().useGuildFunds end,
-    function(on) General:GetDB().useGuildFunds = on end, function() return General:GetDB().autoRepair == true end)
-  KHQOL.UI:AttachTooltip(guild, "길드 자금 우선 사용", "길드 수리 권한, 잔액, 사용 한도가 충분하면 길드 자금으로 수리합니다. 사용 불가 또는 부족하면 개인 골드로 수리합니다.")
-  return b.y
+function General:BuildSettings(parent,y)
+  return KHQOL.modules.generalConvenience:BuildSettings(parent,y)
 end
-

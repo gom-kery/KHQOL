@@ -10,7 +10,7 @@ function M:GetDB()
   KHQOL.db.modules.generalConvenience=KHQOL.MergeDefaults(KHQOL.db.modules.generalConvenience or {},self.defaults,"tables")
   return KHQOL.db.modules.generalConvenience
 end
-function M:IsEnabled() return KHQOL.db and KHQOL:GetEnabled("generalConvenience") end
+function M:IsEnabled() return KHQOL.db~=nil end
 function M:GetTrackingStates()
   local key=KHQOL.profileCharacter or KHQOL:GetProfileCharacterKey()
   if not key then return {} end
@@ -209,6 +209,7 @@ function M:ApplySettings()
   if self.RefreshKnownItems then self.knownCache={}; self:RefreshKnownItems() end
 end
 function M:SetEnabled(on)
+  on=true -- Internal lifecycle only; each feature owns its switch.
   self:Initialize()
   self:StopTracking()
   -- Login/profile reapplication must not replace an existing saved selection.
