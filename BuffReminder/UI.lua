@@ -140,5 +140,11 @@ function FBR:ShowAlerts(alerts)
     for index = #alerts + 1, #self.alertFrames do
         local frame = self.alertFrames[index]; frame:Hide(); if frame.glow:IsPlaying() then frame.glow:Stop() end
     end
-    self:StartCountdownIfNeeded(alerts)
+end
+
+function FBR:HideAlerts()
+    for _, frame in ipairs(self.alertFrames or {}) do
+        frame:Hide()
+        if frame.glow and frame.glow:IsPlaying() then frame.glow:Stop() end
+    end
 end

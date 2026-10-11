@@ -9,6 +9,9 @@ end
 FBR.VERSION = 1
 FBR.DEFAULT_THRESHOLD = 10
 FBR.DEFAULT_ICON_SIZE = 80
+FBR.BUFF_STATE_ACTIVE = "ACTIVE"
+FBR.BUFF_STATE_MISSING = "MISSING"
+FBR.BUFF_STATE_UNKNOWN = "UNKNOWN"
 FBR.CLASS_TOKENS = {
     "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID",
 }
@@ -138,13 +141,17 @@ function FBR:GetSpellDetails(spellID)
     if C_Spell and C_Spell.GetSpellInfo then
         ok, name = pcall(C_Spell.GetSpellInfo, spellID)
         if ok and type(name) == "table" then
-            icon = name.iconID
-            name = name.name
+            local info = name
+            ok, name, icon = pcall(function()
+                local spellName, spellIcon = info.name, info.iconID
+                if isSecret(spellName) or isSecret(spellIcon) then return nil, nil end
+                return spellName, spellIcon
+            end)
         end
     elseif GetSpellInfo then
         ok, name, _, icon = pcall(GetSpellInfo, spellID)
     end
-    if not ok or type(name) ~= "string" or name == "" then
+    if not ok or isSecret(name) or isSecret(icon) or type(name) ~= "string" or name == "" then
         if C_Spell and C_Spell.RequestLoadSpellData then pcall(C_Spell.RequestLoadSpellData, spellID) end
         return nil
     end
@@ -227,36 +234,47 @@ function FBR:FindPlayerAura(spellID, spellName)
     return nil -- no supported aura reader
 end
 
-function FBR:StoreAuraSnapshot(spellID, aura)
-    if type(aura) ~= "table" or type(aura.expirationTime) ~= "number" or aura.expirationTime <= 0 then return end
-    self.auraSnapshots = self.auraSnapshots or {}
-    self.auraSnapshots[spellID] = { duration = aura.duration, expirationTime = aura.expirationTime }
+function FBR:RecordBuffState(spellID, state, source, aura)
+    self.buffStateCache = self.buffStateCache or {}
+    local entry = self.buffStateCache[spellID] or {}
+    entry.state = state
+    entry.source = source
+    if state == self.BUFF_STATE_UNKNOWN then
+        entry.confidence = "UNKNOWN"
+        entry.lastAttemptAt = GetTime()
+    else
+        entry.confidence = "CONFIRMED"
+        entry.observedAt = GetTime()
+        entry.lastConfirmedState = state
+        if state == self.BUFF_STATE_ACTIVE and type(aura) == "table" then
+            entry.duration = type(aura.duration) == "number" and aura.duration or nil
+            entry.expirationTime = type(aura.expirationTime) == "number" and aura.expirationTime or nil
+        else
+            entry.duration = nil
+            entry.expirationTime = nil
+        end
+    end
+    self.buffStateCache[spellID] = entry
+    return entry
 end
 
-function FBR:GetAuraSnapshot(spellID)
-    local snapshot = self.auraSnapshots and self.auraSnapshots[spellID]
-    if not snapshot or type(snapshot.expirationTime) ~= "number" then return nil end
-    -- Once the saved time has elapsed, its state is no longer reliable: the
-    -- aura may have been refreshed during combat while its new data is secret.
-    if snapshot.expirationTime <= GetTime() then return nil end
-    return snapshot
+function FBR:EvaluateAuraState(spellID, spellName)
+    local aura = self:FindPlayerAura(spellID, spellName)
+    if aura == nil then return self.BUFF_STATE_UNKNOWN, nil, "aura-unreadable" end
+    if aura == false then return self.BUFF_STATE_MISSING, nil, "aura-scan" end
+    return self.BUFF_STATE_ACTIVE, aura, "aura-scan"
 end
 
 function FBR:GetBuffState(buff)
     local name, icon = self:GetSpellDetails(buff.spellID)
-    if not name then return "UNKNOWN", nil, nil, nil end
-    local aura = self:FindPlayerAura(buff.spellID, name)
-    if aura == nil then
-        -- In combat, Forever can expose aura duration/expiry as protected
-        -- values. Reuse the last readable snapshot captured before combat.
-        aura = self:GetAuraSnapshot(buff.spellID)
-        if not aura then return "UNKNOWN", nil, name, icon end
-    elseif aura == false then
-        if self.auraSnapshots then self.auraSnapshots[buff.spellID] = nil end
-        return "MISSING", nil, name, icon
-    else
-        self:StoreAuraSnapshot(buff.spellID, aura)
+    if not name then
+        self:RecordBuffState(buff.spellID, self.BUFF_STATE_UNKNOWN, "spell-data")
+        return self.BUFF_STATE_UNKNOWN, nil, nil, nil
     end
+    local auraState, aura, source = self:EvaluateAuraState(buff.spellID, name)
+    self:RecordBuffState(buff.spellID, auraState, source, aura)
+    if auraState == self.BUFF_STATE_UNKNOWN then return self.BUFF_STATE_UNKNOWN, nil, name, icon end
+    if auraState == self.BUFF_STATE_MISSING then return self.BUFF_STATE_MISSING, nil, name, icon end
     local duration, expiration = aura.duration, aura.expirationTime
     if type(duration) ~= "number" or type(expiration) ~= "number" or duration <= 0 or expiration <= 0 then
         return "NORMAL", nil, name, icon
@@ -410,17 +428,33 @@ function FBR:GetThreshold()
 end
 
 function FBR:RefreshAlerts()
-    if _G.KHQOL and _G.KHQOL.db and not _G.KHQOL:GetEnabled("buffReminder") then self:StopCountdown(); if self.container then self.container:Hide() end; return end
+    if _G.KHQOL and _G.KHQOL.db and not _G.KHQOL:GetEnabled("buffReminder") then
+        self:StopCountdown()
+        if self.HideAlerts then self:HideAlerts() end
+        return
+    end
     if not self.initialized then return end
     local alerts = {}
+    local nextRefreshDelay
+    local function scheduleAt(delay)
+        if type(delay) ~= "number" then return end
+        if delay < 0 then delay = 0 end
+        if not nextRefreshDelay or delay < nextRefreshDelay then nextRefreshDelay = delay end
+    end
     if self.testMode then
         alerts = self:GetTestAlerts()
+        scheduleAt(0.5)
     else
         for index, buff in ipairs(self:GetCurrentClassBuffs()) do
             if buff.enabled then
                 local state, remaining, name, icon = self:GetBuffState(buff)
                 if self:IsDisplayModeActive(buff) and (state == "MISSING" or state == "EXPIRING") then
                     alerts[#alerts + 1] = { key = buff.spellID, index = index, state = state, remaining = remaining, name = name, icon = icon }
+                end
+                if state == "EXPIRING" then
+                    scheduleAt(0.5)
+                elseif state == "NORMAL" and type(remaining) == "number" then
+                    scheduleAt(remaining - self:GetThreshold())
                 end
             end
         end
@@ -429,14 +463,16 @@ function FBR:RefreshAlerts()
         end
     end
     self:ShowAlerts(alerts)
+    self:ScheduleNextRefresh(nextRefreshDelay)
 end
 
-function FBR:StartCountdownIfNeeded(alerts)
-    -- Aura events do not fire when an existing buff simply crosses the
-    -- threshold, so keep this lightweight monitor active after login.
-    if not self.countdownTicker and C_Timer and C_Timer.NewTicker then
-        self.countdownTicker = C_Timer.NewTicker(0.5, function() FBR:RefreshAlerts() end)
-    end
+function FBR:ScheduleNextRefresh(delay)
+    self:StopCountdown()
+    if type(delay) ~= "number" or not C_Timer or not C_Timer.NewTimer then return end
+    self.countdownTicker = C_Timer.NewTimer(math.max(0.1, delay), function()
+        FBR.countdownTicker = nil
+        FBR:RefreshAlerts()
+    end)
 end
 
 function FBR:StopCountdown()
@@ -469,6 +505,8 @@ FBR:RegisterEvent("UNIT_AURA")
 FBR:RegisterEvent("SPELL_DATA_LOAD_RESULT")
 FBR:RegisterEvent("PLAYER_REGEN_DISABLED")
 FBR:RegisterEvent("PLAYER_REGEN_ENABLED")
+FBR:RegisterEvent("PLAYER_DEAD")
+FBR:RegisterEvent("PLAYER_ALIVE")
 FBR:RegisterEvent("PLAYER_TOTEM_UPDATE")
 FBR:RegisterEvent("WEAPON_ENCHANT_CHANGED")
 FBR:SetScript("OnEvent", function(self, event, unit)
@@ -479,7 +517,7 @@ FBR:SetScript("OnEvent", function(self, event, unit)
         self:CreateMinimapButton()
         self.initialized = true
         self:RefreshAlerts()
-    elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_TOTEM_UPDATE" or event == "WEAPON_ENCHANT_CHANGED" then
+    elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_DEAD" or event == "PLAYER_ALIVE" or event == "PLAYER_TOTEM_UPDATE" or event == "WEAPON_ENCHANT_CHANGED" then
         self:RefreshAlerts()
     elseif event == "UNIT_AURA" and unit == "player" then
         self:RefreshAlerts()

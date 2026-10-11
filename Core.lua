@@ -64,7 +64,13 @@ function KHQOL:SetEnabled(key, enabled, reapply)
   end
   if key == "range" and fr and fr.SetEnabled then fr:SetEnabled(enabled) end
   if key == "buffReminder" and ForeverBuffReminder then
-    if enabled then ForeverBuffReminder:RefreshAlerts() else ForeverBuffReminder:StopCountdown(); if ForeverBuffReminder.container then ForeverBuffReminder.container:Hide() end end
+    if enabled then
+      ForeverBuffReminder:RefreshAlerts()
+    else
+      ForeverBuffReminder:StopCountdown()
+      if ForeverBuffReminder.HideAlerts then ForeverBuffReminder:HideAlerts()
+      elseif ForeverBuffReminder.container then ForeverBuffReminder.container:Hide() end
+    end
   end
   if key == "resourceSwing" then
     if self.modules.resourceSwing.SetEnabled then self.modules.resourceSwing:SetEnabled(enabled)
