@@ -3,6 +3,9 @@ local UI,T=KHQOL.UI,KHQOL.UI.Theme
 local function campfireSettings(content,y)
   local cfa=KHQOL.modules.campfire
   local b=UI:CreateBuilder(content,y)
+  b:Section("알림 간격")
+  b:Slider("야영 효과 획득 후 재알림 지연",0,300,5,function() return cfa.db.rediscoveryDelay or 30 end,function(v) cfa.db.rediscoveryDelay=v; if cfa.benefitAcquiredAt then cfa:ScheduleRediscovery() end end,function(v) return v.."초" end)
+  b:Description("야영 효과를 얻은 뒤 이 시간 동안 모닥불 발견 알림을 숨깁니다. 기본값 30초이며, 0초에서도 획득 메시지는 3초간 유지합니다.")
   b:Section("위치")
   b:Checkbox("위치 잠금",function() return cfa.db.locked end,function(on)
     cfa.db.locked=on
@@ -14,9 +17,6 @@ local function campfireSettings(content,y)
     cfa.db.position={point="CENTER",x=0,y=80}
     cfa.ui.root:ClearAllPoints(); cfa.ui.root:SetPoint("CENTER",UIParent,"CENTER",0,80)
   end)
-  b:Section("알림 간격")
-  b:Slider("야영 효과 획득 후 재알림 지연",0,300,5,function() return cfa.db.rediscoveryDelay or 30 end,function(v) cfa.db.rediscoveryDelay=v; if cfa.benefitAcquiredAt then cfa:ScheduleRediscovery() end end,function(v) return v.."초" end)
-  b:Description("야영 효과를 얻은 뒤 이 시간 동안 모닥불 발견 알림을 숨깁니다. 기본값 30초이며, 0초에서도 획득 메시지는 3초간 유지합니다.")
   b:Section("알림 모양")
   b:Slider("아이콘 크기",100,140,5,function() return cfa.db.iconSize end,function(v) cfa.db.iconSize=v; cfa:ApplyLayout() end,function(v) return v.." px" end)
   b:Slider("글자 크기",40,70,5,function() return cfa.db.fontSize end,function(v) cfa.db.fontSize=v; cfa:ApplyLayout() end,function(v) return v.." px" end)

@@ -186,14 +186,19 @@ function UI:RegisterControl(parent, control)
   local hint=CreateFrame("Frame",nil,control); hint:SetAllPoints(control); hint:EnableMouse(true); hint:Hide()
   hint:SetScript("OnEnter",function(self)
     GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:SetText("사용할 수 없는 설정",unpack(T.Accent))
-    local p=control:GetParent(); local disabledModule=false
-    while p do if p.moduleKey and not KHQOL:GetEnabled(p.moduleKey) then disabledModule=true; break end; p=p:GetParent() end
-    GameTooltip:AddLine(disabledModule and "상단의 모듈 사용을 먼저 켜세요." or "연결된 기능을 켜거나 해당 표시 모드를 선택하면 변경할 수 있습니다.",T.TextSecondary[1],T.TextSecondary[2],T.TextSecondary[3],true); GameTooltip:Show()
+    local p=control; local disabledModule=false; local labLocked=false
+    while p do
+      if (p.labProtected or p.moduleKey and KHQOL.LabLock:IsExperimental(p.moduleKey)) and not KHQOL.LabLock:IsUnlocked() then labLocked=true end
+      if p.moduleKey and not KHQOL:GetEnabled(p.moduleKey) then disabledModule=true end
+      p=p:GetParent()
+    end
+    GameTooltip:AddLine(labLocked and "실험실에서 접근 잠금을 먼저 해제하세요." or disabledModule and "상단의 모듈 사용을 먼저 켜세요." or "연결된 기능을 켜거나 해당 표시 모드를 선택하면 변경할 수 있습니다.",T.TextSecondary[1],T.TextSecondary[2],T.TextSecondary[3],true); GameTooltip:Show()
   end)
   hint:SetScript("OnLeave",function() GameTooltip:Hide() end); control.disabledHint=hint
   return control
 end
 function UI:Refresh(parent)
+  if (self.settingDepth or 0)>0 then return end
   if not refreshSafe(parent) then return end
   local pending={}
   for candidate in pairs(self.refreshParents) do
@@ -232,10 +237,25 @@ function UI:RefreshOwned(parent)
   end
 end
 function UI:Changed(parent)
+  if (self.settingDepth or 0)>0 then return end
+  if KHQOL.profileApplying or KHQOL.profileClosingEditors then return end
   self:Refresh(parent)
   local active=KHQOL.settings and KHQOL.settings.activeContent
   if active and active~=parent then self:Refresh(active) end
   if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
+end
+-- A regular setting may invoke its module's own Changed/Save path. Commit
+-- the profile and refresh once after that setter, rather than twice per click.
+-- Profile commands and explicit action buttons intentionally do not use this.
+function UI:CommitSetting(parent,setter,...)
+  self.settingDepth=(self.settingDepth or 0)+1
+  local ok,reason=pcall(setter,...)
+  self.settingDepth=self.settingDepth-1
+  if not ok then
+    if self.settingDepth==0 then self:Refresh(parent) end
+    error(reason,0)
+  end
+  if self.settingDepth==0 then self:Changed(parent) end
 end
 function UI:AttachTooltip(control, title, description)
   if not description or description=="" then return end
@@ -249,7 +269,9 @@ function UI:AttachTooltip(control, title, description)
   end
   local function leave() GameTooltip:Hide() end
   control:HookScript("OnEnter",enter); control:HookScript("OnLeave",leave)
-  if control.disabledHint then control.disabledHint:HookScript("OnEnter",enter); control.disabledHint:HookScript("OnLeave",leave) end
+  if control.disabledHint then control.disabledHint:HookScript("OnEnter",function()
+    GameTooltip:AddLine(control.tooltipDescription,.94,.94,.94,true); GameTooltip:Show()
+  end); control.disabledHint:HookScript("OnLeave",leave) end
   local regions={control.tooltipLabel or control.text}
   for _,label in ipairs(control.uiLabels or {}) do regions[#regions+1]=label end
   for _,region in ipairs(regions) do
@@ -294,7 +316,7 @@ function UI:CreateCheckbox(parent, text, x, y, getter, setter, enabled)
     UI:ApplyAvailability(b, enabled)
   end
   b:SetScript("OnClick", function()
-    if UI:IsAvailable(b, enabled) then setter(b:GetChecked() and true or false); UI:Changed(parent) end
+    if UI:IsAvailable(b, enabled) then UI:CommitSetting(parent,setter,b:GetChecked() and true or false) end
   end)
   self:RegisterControl(parent, b); b:Refresh(); return b
 end
@@ -352,15 +374,12 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
     if raw == "기본" and min <= 0 and max >= 0 and format(0) == "기본" then value = 0 end
     if value and value == value and value ~= math.huge and value ~= -math.huge then
       -- Fractional opacity controls display percentages; other ranges retain their units.
-      if max <= 1 and tostring(format(getter())):find("%", 1, true) then value = value / 100 end
-      setter(rounded(value)); slider:Refresh(); UI:Changed(parent)
+      if tostring(format(getter())):find("%",1,true) and tostring(format(1)):match("^100%%$") then value=value/100 end
+      UI:CommitSetting(parent,setter,rounded(value)); slider:Refresh()
     end
     box:SetText(format(getter()))
   end
-  box:SetScript("OnEnterPressed", function() commit(); box.cancelFocus=true; box:ClearFocus(); box.cancelFocus=nil end)
-  box:SetScript("OnEscapePressed", function() box.cancelFocus=true; box:ClearFocus(); box.cancelFocus=nil; box:SetText(format(getter())) end)
-  box:SetScript("OnEditFocusLost", function() if not box.cancelFocus then commit() end end)
-  box:SetScript("OnEditFocusGained", function() box:HighlightText() end)
+  UI:BindInput(box,parent,function() box:SetText(format(getter())) end,commit)
   slider.Refresh = function()
     slider.setting = true; slider:SetValue(getter()); slider.setting = false
     if not box:HasFocus() then box:SetText(format(getter())) end
@@ -368,7 +387,7 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   end
   slider:SetScript("OnValueChanged", function(_, value)
     if slider.setting or not UI:IsAvailable(slider, enabled) then return end
-    setter(rounded(value)); box:SetText(format(getter())); UI:Changed(parent)
+    UI:CommitSetting(parent,setter,rounded(value)); box:SetText(format(getter()))
   end)
   slider.tooltipLabel=titleLabel
   self:AttachTooltip(slider, title, description)
@@ -432,7 +451,9 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
           row.text=UI:CreateLabel(row,"",28,-5)
           row:SetScript("OnClick",function()
             if not row.option or unavailable(row.option) then return end
-            setter(row.option.value); UI:CloseDropdown(); UI:Changed(parent)
+            if b.profileCommand then setter(row.option.value);UI:Changed(parent)
+            else UI:CommitSetting(parent,setter,row.option.value) end
+            UI:CloseDropdown()
           end)
           b.rows[i]=row
         end
@@ -467,9 +488,11 @@ function UI:OpenColorPicker(getter, setter, refresh, captureRestore, supportsOpa
   local picker = ColorPickerFrame; if not picker or not picker.GetColorRGB then return end
   local r, g, b, a = getter(); a = a or 1
   local restore = captureRestore and captureRestore(); local initializing = true
+  UI:CloseColorPicker();UI.ownsColorPicker=true
+  local token=UI.colorGeneration
   local generation=KHQOL.profileGeneration
   local function apply()
-    if initializing or generation~=KHQOL.profileGeneration then return end
+    if initializing or token~=UI.colorGeneration or generation~=KHQOL.profileGeneration then return end
     local nr, ng, nb = picker:GetColorRGB(); local alpha = a
     if supportsOpacity then
       if picker.GetColorAlpha then alpha = picker:GetColorAlpha()
@@ -480,7 +503,7 @@ function UI:OpenColorPicker(getter, setter, refresh, captureRestore, supportsOpa
     if refresh then refresh() end
   end
   local function cancel()
-    if generation~=KHQOL.profileGeneration then return end
+    if token~=UI.colorGeneration or generation~=KHQOL.profileGeneration then return end
     if restore then restore() elseif supportsOpacity then setter(r,g,b,a) else setter(r,g,b) end
     if refresh then refresh() end
   end
@@ -510,19 +533,73 @@ function UI:CreateColorPicker(parent, title, x, y, getter, setter, enabled, capt
   end
   b:Refresh(); return b
 end
+function UI:RegisterDraft(parent,cancel)
+  self.draftEditors=self.draftEditors or setmetatable({}, {__mode="k"})
+  self.draftEditors[parent]=cancel
+end
+function UI:CancelDrafts()
+  for _,cancel in pairs(self.draftEditors or {}) do cancel() end
+end
+function UI:CloseColorPicker()
+  self.colorGeneration=(self.colorGeneration or 0)+1
+  if self.ownsColorPicker and ColorPickerFrame then ColorPickerFrame:Hide() end
+  self.ownsColorPicker=nil
+end
+function UI:CancelInputs(parent)
+  for box in pairs(self.editInputs or {}) do
+    local ancestor=box; local included=not parent
+    for _=1,64 do
+      if ancestor==parent then included=true; break end
+      if not ancestor or ancestor==UIParent then break end
+      ancestor=ancestor:GetParent()
+    end
+    if included and box.CancelEdit then box:CancelEdit() end
+  end
+end
+function UI:BindInput(box,parent,restore,commit)
+  self.editInputs=self.editInputs or setmetatable({}, {__mode="k"})
+  self.editInputs[box]=true
+  function box:CancelEdit()
+    self.cancelFocus=true; self:ClearFocus(); restore(); self.cancelFocus=nil
+  end
+  box:SetScript("OnEditFocusGained",function(self)
+    self.editGeneration=KHQOL.profileGeneration; self:HighlightText()
+  end)
+  local function apply()
+    if box.cancelFocus then return end
+    if box.editGeneration~=nil and box.editGeneration~=KHQOL.profileGeneration then restore();return end
+    commit(); restore()
+  end
+  box:SetScript("OnEnterPressed",function(self) apply(); self.cancelFocus=true;self:ClearFocus();self.cancelFocus=nil end)
+  box:SetScript("OnEscapePressed",function(self) self:CancelEdit() end)
+  box:SetScript("OnEditFocusLost",apply)
+  box:HookScript("OnHide",function(self) self:CancelEdit() end)
+  UI:AttachTooltip(box,"입력 확정","Enter 또는 다른 항목 클릭: 적용. ESC·창 닫기·프로필 전환: 미확정 입력 취소.")
+end
 function UI:CreateEditBox(parent, x, y, width, getter, setter, enabled)
   local box = CreateFrame("EditBox", nil, parent, "InputBoxTemplate,BackdropTemplate")
   box:SetSize(width or T.DropdownWidth, T.EditBoxHeight); box:SetPoint("TOPLEFT", x, y)
   for _,region in ipairs({box:GetRegions()}) do if region:GetObjectType()=="Texture" then region:SetAlpha(0) end end
   UI:Surface(box)
   box:SetAutoFocus(false); box:SetFont(self:Font(), T.LabelFontSize, ""); box:SetTextInsets(8,8,0,0)
-  box:SetScript("OnEscapePressed", function(self) self:ClearFocus(); self:Refresh() end)
-  box:SetScript("OnEnterPressed", function(self)
-    if setter and UI:IsAvailable(box, enabled) then setter(self:GetText()) end
-    self:ClearFocus(); UI:Changed(parent)
-  end)
+  box:SetTextColor(unpack(T.TextPrimary))
+  local function restore() if getter then box:SetText(tostring(getter() or "")) end end
+  if getter and setter then
+    UI:BindInput(box,parent,restore,function()
+      if UI:IsAvailable(box,enabled) then UI:CommitSetting(parent,setter,box:GetText()) end
+    end)
+  else
+    -- Explicit lookup/registration fields have their own apply action.
+    if getter then
+      self.editInputs=self.editInputs or setmetatable({}, {__mode="k"});self.editInputs[box]=true
+      function box:CancelEdit() self:ClearFocus();restore() end
+      box:HookScript("OnHide",function(self) self:CancelEdit() end)
+    end
+    box:SetScript("OnEscapePressed",function(self) if self.CancelEdit then self:CancelEdit() else self:ClearFocus();restore() end end)
+    box:SetScript("OnEnterPressed",function(self) if setter then setter(self:GetText()) end;self:ClearFocus() end)
+  end
   box.Refresh = function()
-    if getter and not box:HasFocus() then box:SetText(tostring(getter() or "")) end
+    if not box:HasFocus() then restore() end
     UI:ApplyAvailability(box, enabled)
   end
   self:RegisterControl(parent, box); box:Refresh(); return box
@@ -553,6 +630,14 @@ function UI:CreateBuilder(parent, y)
     self:Flush(); self.y=UI:CreateSection(parent,title,self.y)
     local hint=CreateFrame("Frame",nil,parent); hint:SetPoint("TOPLEFT",0,self.y+36); hint:SetSize(parent:GetWidth(),24); hint:EnableMouse(true)
     self.lastControl,self.lastTitle=hint,title
+    local root=parent
+    while root and root~=UIParent and not root.settingsModuleKey do root=root:GetParent() end
+    local key=root and root.settingsModuleKey
+    if key and title:find("위치",1,true) and not root.positionShortcut and UI.SettingsRegistry.positionModules[key] then
+      root.positionShortcut=true
+      self:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter(key) end)
+      self:Flush()
+    end
   end
   function builder:Checkbox(title,getter,setter,enabled)
     local x,y,width=self:Cell("check",2,T.RowHeight+T.RowGap)

@@ -4,7 +4,18 @@ local Convenience=UI:NewSettingsGroup("convenience")
 KHQOL.ConvenienceSettings=Convenience
 local function noteSettings(content,y)
   local b=UI:CreateBuilder(content,y); b:Section("노트 사용")
-  b:Description("시계 우클릭 또는 ForeverNote 미니맵 버튼으로 노트 창을 열고 닫을 수 있습니다.")
+  b:Button("노트 열기",function() local fc=KHQOL.modules.clock;if not fc.todoFrame or not fc.todoFrame:IsShown() then fc:ToggleTodo() end end)
+  b:Description("시계 우클릭 · ForeverNote 미니맵 · 게임 메뉴 > 단축키. 본문·체크리스트는 노트 창에서 편집합니다.",true)
+  b:Section("위치")
+  b:Checkbox("위치 잠금",function() return KHQOL.modules.clock.db.todo.window.positionLocked end,function(v) KHQOL.modules.clock.db.todo.window.positionLocked=v end)
+
+  b:Section("창 크기·모양")
+  b:Description("노트 우측 하단을 드래그해 크기 조절. 창의 위치·크기·글자·불투명도는 현재 프로필에 저장합니다.",true)
+  b:Slider("글자 크기",15,30,1,function() return KHQOL.modules.clock.db.todo.fontSize end,function(v) KHQOL.modules.clock:SetTodoFontSize(v) end,function(v) return v.." px" end)
+  b:Slider("배경 불투명도",10,95,5,function() return math.floor((KHQOL.modules.clock.db.todo.backgroundAlpha or .85)*100+.5) end,function(v) KHQOL.modules.clock:SetTodoOpacity(v) end,function(v) return v.."%" end)
+  b:Section("열기·닫기")
+  b:Checkbox("노트 미니맵 버튼 표시",function() return KHQOL.modules.clock.db.todo.minimap.show~=false end,function(v) KHQOL.modules.clock.db.todo.minimap.show=v;KHQOL.modules.clock:UpdateTodoMinimapButton() end)
+  b:Button("미니맵 위치 편집",function() KHQOL.PositionEditor:Enter("note.minimap") end)
   b:Checkbox("ESC로 노트 닫기",function() return KHQOL.modules.clock.db.todo.closeOnEscape ~= false end,function(on)
     KHQOL.modules.clock.db.todo.closeOnEscape=on and true or false
     KHQOL.modules.clock:UpdateTodoEscapeBinding()
@@ -27,26 +38,7 @@ local function noteSettings(content,y)
   b:Description("단축키는 게임 메뉴의 설정 > 단축키에서 지정할 수 있습니다. 노트 내용과 메모는 노트 창에서 직접 편집합니다."); return b.y
 end
 Convenience:RegisterTab("general",nil,function(content,y)
-  content.moduleKey=nil -- Existing general options are outside the new group.
-  local bottom=0
-  local quality=CreateFrame("Frame",nil,content); quality:SetPoint("TOPLEFT",0,y); quality:SetWidth(content:GetWidth())
-  KHQOL.modules.generalConvenience:BuildSettings(quality,0)
-  local mover=CreateFrame("Frame",nil,content); mover:SetWidth(content:GetWidth())
-  local moverBottom=KHQOL.modules.frameMover:BuildSettings(mover,0); mover:SetHeight(math.max(1,-moverBottom))
-  local function resize()
-    mover:ClearAllPoints(); mover:SetPoint("TOPLEFT",0,y+bottom-quality:GetHeight())
-    content:SetHeight(-y-bottom+quality:GetHeight()+mover:GetHeight())
-  end
-  quality:HookScript("OnSizeChanged",resize); resize()
-  return -content:GetHeight()
-end)
-Convenience:RegisterTab("clock",nil,function(content,y)
-  local fc=KHQOL.modules.clock
-  fc:CreateSettings(content)
-  fc:CreateHeaderHelp(content)
-  function content:RefreshTab() fc:RefreshSettings() end
-  content:RefreshTab()
-  return -content:GetHeight()
+  content.moduleKey=nil
+  return KHQOL.modules.generalConvenience:BuildSettings(content,y)
 end)
 Convenience:RegisterTab("note",nil,noteSettings)
-Convenience:RegisterTab("quest",nil,function(content,y) return KHQOL.modules.questNavigator:BuildSettings(content,y) end)

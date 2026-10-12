@@ -151,6 +151,7 @@ function KHQOL:MakeDefaultProfile(legacyDefaults)
   return result
 end
 function KHQOL:SaveCurrentProfile()
+  if self.UI and (self.UI.settingDepth or 0)>0 then return end
   if self.profileApplying or self.profileResetting or not self.profilesReady or not self.db or not self.db.profiles then return end
   local fc=self.modules.clock
   if fc.db and fc.SaveTodoPage then fc:SaveTodoPage() end
@@ -282,17 +283,34 @@ function KHQOL:FinishProfileLogin()
   self.profileLoginComplete=true; self:RefreshRuntimeProfile(); self:SaveCurrentProfile()
 end
 function KHQOL:CloseProfileEditors()
-  if self.UI then self.UI:CloseDropdown() end
-  if ColorPickerFrame and ColorPickerFrame:IsShown() then ColorPickerFrame:Hide() end
-  if GetCurrentKeyBoardFocus then
-    local box=GetCurrentKeyBoardFocus(); if box and box.ClearFocus then box:ClearFocus() end
-  end
+  self.profileClosingEditors=true
+  if self.UI then self.UI:CancelInputs();self.UI:CancelDrafts();self.UI:CloseColorPicker();self.UI:CloseDropdown() end
+  self.PositionStore:FinishDrags()
   -- Finish a drag using the OLD settings, never after loading the new position.
   if self.NavigationUI and self.NavigationUI.dragging then self.NavigationUI:SavePosition() end
   for _,module in pairs(self.modules) do
     if module.dragging and module.SavePosition then module:SavePosition() end
   end
+  local fc=self.modules.clock
+  if fc.db then
+    for _,entry in ipairs({{"tools",fc.clockToolsFrame},{"stopwatch",fc.stopwatchFrame},{"alert",fc.alertMessageFrame}}) do
+      if entry[2] and entry[2].positionMoving then fc:SaveClockTool(entry[2],entry[1]) end
+    end
+    if fc.todoFrame and fc.todoFrame:IsShown() then fc.todoFrame:StopMovingOrSizing();fc:SaveTodoWindow() end
+    if fc.clockFrame and fc.clockFrame.dragStartX then
+      fc.clockFrame:StopMovingOrSizing();self.PositionStore:Point(fc.clockFrame,fc.db.position)
+      fc.clockFrame.dragStartX,fc.clockFrame.dragStartY=nil,nil
+    end
+    for key,frame in pairs(fc.modules or {}) do
+      if frame.dragStartX then frame:StopMovingOrSizing();fc:SetModulePosition(key,frame);frame.dragStartX,frame.dragStartY=nil,nil end
+    end
+    if fc.professionsButton and fc.professionsButton.dragX then
+      fc.professionsButton:StopMovingOrSizing();fc:SetModulePosition("professions",fc.professionsButton)
+      fc.professionsButton.dragX,fc.professionsButton.dragY=nil,nil
+    end
+  end
   if self.modules.pvpAlert.moving then self.modules.pvpAlert:SetMoving(false) end
+  self.profileClosingEditors=nil
 end
 function KHQOL:ApplyProfileModules()
   local m=self.modules

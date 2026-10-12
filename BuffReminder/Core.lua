@@ -176,62 +176,12 @@ function FBR:ResolveSpellInput(input)
     return nil, "이름만으로는 안전하게 Spell ID를 확인할 수 없습니다. Spell ID를 입력하세요."
 end
 
-function FBR:FindPlayerAura(spellID, spellName)
-    -- Modern API first. Reading any protected/secret value is enclosed in pcall.
-    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
-        local ok, result = pcall(function()
-            for index = 1, 255 do
-                local aura = C_UnitAuras.GetAuraDataByIndex("player", index, "HELPFUL")
-                if not aura then break end
-                if isSecret(aura.spellId) then return "UNKNOWN" end
-                -- Some Forever effects use a different internal aura ID than
-                -- their cast Spell ID. The localized spell name is a safe
-                -- fallback after the exact numeric match.
-                local matches = aura.spellId == spellID
-                if not matches and type(spellName) == "string" then
-                    if isSecret(aura.name) then return "UNKNOWN" end
-                    matches = aura.name == spellName
-                end
-                if matches then
-                    if isSecret(aura.duration) or isSecret(aura.expirationTime) then return "UNKNOWN" end
-                    return { duration = aura.duration, expirationTime = aura.expirationTime }
-                end
-            end
-            return false
-        end)
-        if ok then
-            if result == "UNKNOWN" then return nil end
-            return result or false
-        end
-        self:Debug("C_UnitAuras returned protected/unreadable data")
-        return nil -- UNKNOWN
-    end
-    if UnitAura then
-        local ok, result = pcall(function()
-            for index = 1, 255 do
-                local name, icon, _, _, duration, expirationTime, _, _, _, auraSpellID = UnitAura("player", index, "HELPFUL")
-                if not name then break end
-                if isSecret(auraSpellID) then return "UNKNOWN" end
-                local matches = auraSpellID == spellID
-                if not matches and type(spellName) == "string" then
-                    if isSecret(name) then return "UNKNOWN" end
-                    matches = name == spellName
-                end
-                if matches then
-                    if isSecret(duration) or isSecret(expirationTime) then return "UNKNOWN" end
-                    return { duration = duration, expirationTime = expirationTime }
-                end
-            end
-            return false
-        end)
-        if ok then
-            if result == "UNKNOWN" then return nil end
-            return result or false
-        end
-        self:Debug("UnitAura returned protected/unreadable data")
-        return nil -- UNKNOWN
-    end
-    return nil -- no supported aura reader
+function FBR:FindPlayerAura(spellID,spellName)
+    local result=self.auraBatch or KHQOL.AuraReader:Read({[spellID]={name=spellName}})
+    local value=result[spellID]
+    if not value or value.state=="UNKNOWN" then return nil end
+    if value.state=="MISSING" then return false end
+    return value
 end
 
 function FBR:RecordBuffState(spellID, state, source, aura)
@@ -241,6 +191,7 @@ function FBR:RecordBuffState(spellID, state, source, aura)
     entry.source = source
     if state == self.BUFF_STATE_UNKNOWN then
         entry.confidence = "UNKNOWN"
+        entry.duration=nil;entry.expirationTime=nil
         entry.lastAttemptAt = GetTime()
     else
         entry.confidence = "CONFIRMED"
@@ -280,7 +231,7 @@ function FBR:GetBuffState(buff)
         return "NORMAL", nil, name, icon
     end
     local ok, remaining = pcall(function() return expiration - GetTime() end)
-    if not ok or type(remaining) ~= "number" then return "UNKNOWN", nil, name, icon end
+    if not ok or type(remaining) ~= "number" or remaining<=0 then return "UNKNOWN", nil, name, icon end
     if remaining <= self:GetThreshold() then
         return "EXPIRING", math.max(0, remaining), name, icon
     end
@@ -288,96 +239,72 @@ function FBR:GetBuffState(buff)
 end
 
 function FBR:GetWeaponAuraFallback()
-    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
-        local ok, result = pcall(function()
-            for index = 1, 255 do
-                local aura = C_UnitAuras.GetAuraDataByIndex("player", index, "HELPFUL")
-                if not aura then break end
-                if isSecret(aura.spellId) then return "UNKNOWN" end
-                local matches = self.SHAMAN_WEAPON_AURA_SPELLS[aura.spellId]
-                if not matches then
-                    if isSecret(aura.name) then return "UNKNOWN" end
-                    matches = self:IsShamanWeaponAuraName(aura.name)
-                end
-                if matches then
-                    if isSecret(aura.duration) or isSecret(aura.expirationTime) then return "UNKNOWN" end
-                    if type(aura.duration) ~= "number" or type(aura.expirationTime) ~= "number" then return "NORMAL" end
-                    return math.max(0, aura.expirationTime - GetTime())
-                end
-            end
-            return false
-        end)
-        if not ok or result == "UNKNOWN" then return nil end
-        return result
+    local registered={}
+    for id in pairs(self.SHAMAN_WEAPON_AURA_SPELLS) do registered[id]={} end
+    for _,id in ipairs(self.SHAMAN_WEAPON_NAME_SPELLS) do
+        local name=self:GetSpellDetails(id)
+        if KHQOL.IsPublicValue(name) and type(name)=="string" then registered[id].name=name end
     end
-    if UnitAura then
-        local ok, result = pcall(function()
-            for index = 1, 255 do
-                local name, _, _, _, duration, expirationTime, _, _, _, spellID = UnitAura("player", index, "HELPFUL")
-                if not name then break end
-                if isSecret(spellID) then return "UNKNOWN" end
-                local matches = self.SHAMAN_WEAPON_AURA_SPELLS[spellID]
-                if not matches then
-                    if isSecret(name) then return "UNKNOWN" end
-                    matches = self:IsShamanWeaponAuraName(name)
-                end
-                if matches then
-                    if isSecret(duration) or isSecret(expirationTime) then return "UNKNOWN" end
-                    if type(duration) ~= "number" or type(expirationTime) ~= "number" then return "NORMAL" end
-                    return math.max(0, expirationTime - GetTime())
-                end
-            end
-            return false
-        end)
-        if not ok or result == "UNKNOWN" then return nil end
-        return result
+    local observations=KHQOL.AuraReader:Read(registered)
+    local unreadable=false
+    for _,aura in pairs(observations) do
+        if aura.state=="ACTIVE" then return aura.remaining or "NORMAL" end
+        if aura.state=="UNKNOWN" then unreadable=true end
     end
-    return nil
+    if unreadable then return nil end
+    return false
 end
 
 function FBR:GetWeaponEnchantInfo(slot)
-    local ok, active, remaining
-    if C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo then
-        ok, active = pcall(C_PaperDollInfo.GetTemporaryEnchantmentInfo, slot)
-        if ok and active and type(active) == "table" and not isSecret(active.remainingTimeMs) then
-            remaining = active.remainingTimeMs
-            if type(remaining) == "number" then return "ACTIVE", math.max(0, remaining / 1000) end
-            return "NORMAL", nil
-        end
+    local modern=C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo
+    if type(modern)=="function" then
+        local status,info=KHQOL.ReadPublicAPI(modern,slot)
+        if status~="ok" then return nil end
+        if type(info)=="table" then
+            local fieldStatus,remaining=KHQOL.ReadPublicAPI(function() return info.remainingTimeMs end)
+            if fieldStatus~="ok" or not KHQOL.PositionStore:Number(remaining) or remaining<=0 then return nil end
+            return "ACTIVE",remaining/1000
+        elseif info~=nil and info~=false then return nil end
     end
-    if GetWeaponEnchantInfo then
-        local hasMain, mainMs, _, _, hasOff, offMs
-        ok, hasMain, mainMs, _, _, hasOff, offMs = pcall(GetWeaponEnchantInfo)
-        if ok and not isSecret(hasMain) and not isSecret(hasOff) then
-            if slot == 16 then active, remaining = hasMain, mainMs else active, remaining = hasOff, offMs end
-            if active and not isSecret(remaining) then
-                if type(remaining) == "number" then return "ACTIVE", math.max(0, remaining / 1000) end
-                return "NORMAL", nil
-            end
-        end
+    if type(GetWeaponEnchantInfo)=="function" then
+        local status,hasMain,mainMs,_,_,hasOff,offMs=KHQOL.ReadPublicAPI(GetWeaponEnchantInfo)
+        if status~="ok" then return nil end
+        local active,remaining=hasMain,mainMs
+        if slot~=16 then active,remaining=hasOff,offMs end
+        if active==true then
+            if not KHQOL.PositionStore:Number(remaining) or remaining<=0 then return nil end
+            return "ACTIVE",remaining/1000
+        elseif active~=false then return nil end
     end
-    -- Forever beta can show a shaman imbue as an aura while omitting it from
-    -- the temporary-enchant summary. The aura does not identify the hand, so
-    -- it is intentionally a main-hand-only fallback.
-    if slot == 16 then
-        local auraRemaining = self:GetWeaponAuraFallback()
-        if auraRemaining == nil then return nil end
-        if auraRemaining == false then return false end
-        if auraRemaining == "NORMAL" then return "NORMAL", nil end
-        return "ACTIVE", auraRemaining
+    -- Forever may expose an imbue only as an aura. It cannot identify the hand.
+    if slot==16 then
+        local remaining=self:GetWeaponAuraFallback()
+        if remaining==nil then return nil end
+        if remaining==false then return false end
+        if remaining=="NORMAL" then return "NORMAL",nil end
+        return "ACTIVE",remaining
     end
     return false
 end
 
 function FBR:GetTotemState(slot)
-    if not GetTotemInfo then return nil end
-    local ok, _, name, startTime, duration, icon = pcall(GetTotemInfo, slot)
-    if not ok or isSecret(name) or isSecret(startTime) or isSecret(duration) or isSecret(icon) then return nil end
-    if type(name) ~= "string" or name == "" then return false end
-    if type(startTime) ~= "number" or type(duration) ~= "number" or duration <= 0 then return "NORMAL", nil, icon end
-    local remaining = startTime + duration - GetTime()
-    if remaining <= self:GetThreshold() then return "EXPIRING", math.max(0, remaining), icon end
-    return "NORMAL", remaining, icon
+    if C_Secrets and type(C_Secrets.ShouldTotemSlotBeSecret)=="function" then
+        local state,value=KHQOL.ReadPublicAPI(C_Secrets.ShouldTotemSlotBeSecret,slot)
+        if state~="ok" or value~=false then return nil end
+    end
+    local status,haveTotem,name,startTime,duration,icon=KHQOL.ReadPublicAPI(GetTotemInfo,slot)
+    if status~="ok" then return nil end
+    if haveTotem==false then return false end
+    if type(name)~="string" then return nil end
+    if name=="" then return false end
+    if not KHQOL.PositionStore:Number(startTime) or not KHQOL.PositionStore:Number(duration) or startTime<0 or duration<0 then return nil end
+    if duration==0 then return "NORMAL",nil,icon end
+    local timeStatus,now=KHQOL.ReadPublicAPI(GetTime)
+    if timeStatus~="ok" or not KHQOL.PositionStore:Number(now) then return nil end
+    local remaining=startTime+duration-now
+    if remaining<=0 then return nil end
+    if remaining<=self:GetThreshold() then return "EXPIRING",remaining,icon end
+    return "NORMAL",remaining,icon
 end
 
 function FBR:GetShamanSpecialAlerts()
@@ -393,7 +320,7 @@ function FBR:GetShamanSpecialAlerts()
                 local texture = "Interface\\Icons\\INV_Misc_QuestionMark"
                 if GetInventoryItemTexture then
                     local ok, icon = pcall(GetInventoryItemTexture, "player", entry.slot)
-                    if ok and icon then texture = icon end
+                    if ok and KHQOL.IsPublicValue(icon) and icon then texture = icon end
                 end
                 alerts[#alerts + 1] = { key = "shaman-weapon-" .. entry.key, state = state == false and "MISSING" or "EXPIRING", remaining = remaining, name = entry.label, icon = texture }
             end
@@ -445,6 +372,11 @@ function FBR:RefreshAlerts()
         alerts = self:GetTestAlerts()
         scheduleAt(0.5)
     else
+        local registered={}
+        for _,buff in ipairs(self:GetCurrentClassBuffs()) do
+            if buff.enabled then local name=self:GetSpellDetails(buff.spellID);registered[buff.spellID]={name=name} end
+        end
+        self.auraBatch=KHQOL.AuraReader:Read(registered)
         for index, buff in ipairs(self:GetCurrentClassBuffs()) do
             if buff.enabled then
                 local state, remaining, name, icon = self:GetBuffState(buff)
@@ -458,6 +390,7 @@ function FBR:RefreshAlerts()
                 end
             end
         end
+        self.auraBatch=nil
         if self:GetCurrentClass() == "SHAMAN" then
             for _, alert in ipairs(self:GetShamanSpecialAlerts()) do alerts[#alerts + 1] = alert end
         end

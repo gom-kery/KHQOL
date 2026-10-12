@@ -14,7 +14,27 @@ end
 function Group:BuildSettings(content,y,host,tabY)
   if self.id=="labs" and not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,y) end
   host=host or content;tabY=tabY or y
-  local bodyY=host==content and y-T.ButtonHeight-T.SectionGap or y
+  table.sort(self.tabs,function(a,b)
+    local order=R.orders[self.id]; local ai,bi
+    for i,id in ipairs(order) do if id==a.id then ai=i end; if id==b.id then bi=i end end
+    return ai<bi
+  end)
+  local positions,height={},0
+  local measure=host:CreateFontString(nil,"OVERLAY"); measure:SetFont(UI:Font(),T.LabelFontSize,"")
+  local x,top=0,tabY
+  for _,tab in ipairs(self.tabs) do
+    if tab.meta.category then
+      if x>0 then top=top-T.ButtonHeight-T.RowGap end
+      local label=UI:CreateDescription(host,tab.meta.category,0,top)
+      label:SetWidth(T.ContentWidth); top=top-22; x=0
+    end
+    measure:SetText(tab.title); local width=math.ceil(measure:GetStringWidth())+24
+    if x>0 and x+width>T.ContentWidth then x=0;top=top-T.ButtonHeight-T.RowGap end
+    positions[tab.id]={x=x,y=top,width=width}; x=x+width+T.RowGap
+  end
+  measure:Hide(); height=tabY-top+T.ButtonHeight+T.SectionGap
+  local bodyY=host==content and y-height or y
+  if host~=content then host:SetHeight(-tabY+height) end
   local buttons,panels={},{}
   content.tabsBuilding=true
   content.tabPanels,content.tabButtons=panels,buttons
@@ -39,6 +59,7 @@ function Group:BuildSettings(content,y,host,tabY)
     if panel.RefreshTab then panel:RefreshTab() end
     updateHeight(panel);panel:Show();UI:Refresh(panel)
     if KHQOL.settings then
+      KHQOL.settings:SetPageScrollLayout(self.id)
       local meta=R.groups[self.id][id]
       KHQOL.settings:SetModuleHeader(meta)
       if KHQOL.settings.activeContent==content then KHQOL.settings.scroll:SetVerticalScroll(0) end
@@ -46,13 +67,12 @@ function Group:BuildSettings(content,y,host,tabY)
   end
   content.SelectSettingsTab=selectTab
   content.SelectAlertTab=selectTab;content.SelectBarsTab=selectTab
-  local x=0;local width=(T.ContentWidth-(#self.tabs-1)*T.RowGap)/#self.tabs
   for _,tab in ipairs(self.tabs) do
     local id=tab.id
-    buttons[id]=UI:CreateButton(host,tab.title,x,tabY,width,function() selectTab(id) end)
-    x=x+buttons[id]:GetWidth()+T.RowGap
+    local pos=positions[id]
+    buttons[id]=UI:CreateButton(host,tab.title,pos.x,pos.y,pos.width,function() selectTab(id) end)
     local panel=CreateFrame("Frame",nil,content);panel:SetPoint("TOPLEFT",0,bodyY);panel:SetWidth(T.ContentWidth);panel:Hide()
-    panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
+    panel.settingsModuleKey=tab.meta.key; panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
     panel:HookScript("OnSizeChanged",function() if self.selected==id then updateHeight(panel) end end)
   end
   -- Allocate every tab before a builder can trigger a refresh or selection.
@@ -119,4 +139,15 @@ function UI:AcceptModuleReset(data)
   end
   local ok,message=KHQOL:ResetProfileModule(key)
   if not ok then KHQOL:ProfileMessage(message) end
+end
+
+function UI:Confirmation(data)
+  data=data or {};data.profile=KHQOL:GetCurrentProfileName();data.generation=KHQOL.profileGeneration
+  return data
+end
+function UI:IsCurrentConfirmation(data)
+  if type(data)~="table" or data.profile~=KHQOL:GetCurrentProfileName() or data.generation~=KHQOL.profileGeneration then
+    KHQOL:ProfileMessage("프로필이 변경되었습니다. 대상을 다시 확인하세요.");return false
+  end
+  return true
 end

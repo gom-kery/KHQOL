@@ -210,18 +210,9 @@ function RS:UpdateMana()
     end
 end
 function RS:GetEditorBounds(x,y,w,h)
-    local left,bottom,right,top=x-w/2,y-h/2,x+w/2,y+h/2
-    for _,child in ipairs({manaFrame,swingLane}) do
-        if child and child:IsVisible() then
-            local l,b,cw,ch=child:GetRect()
-            local ratio=child:GetEffectiveScale()/UIParent:GetEffectiveScale()
-            if NS.IsPublicValue(l) and type(l)=="number" then
-                left=math.min(left,l*ratio);bottom=math.min(bottom,b*ratio)
-                right=math.max(right,(l+cw)*ratio);top=math.max(top,(b+ch)*ratio)
-            end
-        end
-    end
-    return (left+right)/2,(bottom+top)/2,right-left,top-bottom
+    local children={}
+    for _,child in ipairs({manaFrame,swingLane}) do if child and child:IsVisible() then children[#children+1]=child end end
+    return NS.PositionStore:Bounds(frame,x,y,w,h,children)
 end
 
 function RS:GetAuxData()
@@ -386,7 +377,7 @@ local function createCombo()
         if not dragging or db.comboPosition~="FREE" then return end
         local point,_,relativePoint,x,y=self:GetPoint(1)
         db.comboPoint,db.comboRelativePoint,db.comboX,db.comboY=point,relativePoint,x,y
-        if NS.SaveCurrentProfile then NS:SaveCurrentProfile() end
+        NS.PositionStore:Committed()
     end)
     comboFrame:Hide()
 end
@@ -396,7 +387,7 @@ function RS:RefreshExtraDisplays() updateAuxText();self:UpdateMana();updateCombo
 local function saveAmmoPosition()
     local point, _, relativePoint, x, y = ammoFrame:GetPoint(1)
     db.ammoPoint, db.ammoRelativePoint, db.ammoX, db.ammoY = point, relativePoint, x, y
-    if NS.SaveCurrentProfile then NS:SaveCurrentProfile() end
+    NS.PositionStore:Committed()
 end
 
 local function speedFor(kind)
@@ -498,14 +489,15 @@ end
 local function savePosition()
     local point, _, relativePoint, x, y = frame:GetPoint(1)
     db.point, db.relativePoint, db.x, db.y = point, relativePoint, x, y
+    NS.PositionStore:Committed()
 end
 
 local function createUI()
     frame = CreateFrame("Frame", ADDON .. "Frame", UIParent, "BackdropTemplate")
     frame:SetClampedToScreen(true); frame:SetMovable(true); frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(self) if not db.locked then self:StartMoving() end end)
-    frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing(); savePosition() end)
+    frame:SetScript("OnDragStart", function(self) if not db.locked then self.positionMoving=true;self:StartMoving() end end)
+    frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing();self.positionMoving=nil;savePosition() end)
     frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
     frame:SetBackdropColor(unpack(db.colors.background))
 
@@ -517,8 +509,8 @@ local function createUI()
     ammoFrame = CreateFrame("Frame", ADDON .. "AmmoAnchor", UIParent, "BackdropTemplate")
     ammoFrame:SetSize(140, 20); ammoFrame:SetMovable(true); ammoFrame:SetClampedToScreen(true); ammoFrame:RegisterForDrag("LeftButton")
     ammoFrame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
-    ammoFrame:SetScript("OnDragStart", function(self) if not db.ammoLocked then self:StartMoving() end end)
-    ammoFrame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing(); saveAmmoPosition() end)
+    ammoFrame:SetScript("OnDragStart", function(self) if not db.ammoLocked then self.positionMoving=true;self:StartMoving() end end)
+    ammoFrame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing();self.positionMoving=nil;saveAmmoPosition() end)
     auxText = ammoFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); auxText:SetPoint("CENTER")
     swingLane = CreateFrame("Frame", nil, frame, "BackdropTemplate"); swingLane:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" }); swingLane:SetBackdropColor(0, 0, 0, 0.55)
     swingFill = swingLane:CreateTexture(nil, "ARTWORK"); swingFill:SetPoint("LEFT", swingLane, "LEFT", 0, 0); swingFill:SetTexture(barTextures.DEFAULT)
@@ -568,7 +560,7 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
         end
     end
     local function adjust(title, key, min, max, step, enabled)
-        b:Slider(title, min, max, step, function() return db[key] end, function(v) db[key]=v; applyLayout() end, tostring, available(enabled))
+        b:Slider(title, min, max, step, function() return db[key] end, function(v) db[key]=v; applyLayout() end, function(v) return tostring(v)..(key:find("Priority") and "" or " px") end, available(enabled))
     end
     local function dropdown(title, key, order, labels, enabled)
         local items={}
@@ -594,20 +586,22 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
             end
         end, true)
     end
+    b:Section("표시 대상")
+    check("탄약 표시", "showAmmo",function() return RS:IsAmmoClass() end,function() return RS:IsAmmoClass() end)
+    check("흑마법사 영혼의 조각 표시", "showSoulShards",function() return RS:IsWarlock() end,function() return RS:IsWarlock() end)
+    check("콤보 포인트 표시", "showCombo", function() return RS:IsComboClass() end,function() return RS:IsComboClass() end)
+    check("변신 중 마나바 표시", "showDruidMana",function() return RS:IsDruid() end,function() return RS:IsDruid() end)
     b:Section("위치")
     check("위치 잠금", "locked")
     adjust("X 위치", "x", -3000, 3000, 1)
     adjust("Y 위치", "y", -3000, 3000, 1)
     b:Button("위치 초기화", function() db.point,db.relativePoint,db.x,db.y="CENTER","CENTER",0,-150; applyLayout() end,nil,moduleEnabled)
     b:Section("탄약 / 영혼의 조각 위치")
-    check("탄약 표시", "showAmmo",function() return RS:IsAmmoClass() end,function() return RS:IsAmmoClass() end)
-    check("흑마법사 영혼의 조각 표시", "showSoulShards",function() return RS:IsWarlock() end,function() return RS:IsWarlock() end)
     b:Description("장착 무기와 탄약 사용 조건을 확인합니다. 소지 수량만 표시하며 은행은 제외합니다. 투척 소비 규칙이나 아이템 정보를 확인하지 못하면 숨깁니다.")
     check("보조 표시 위치 잠금", "ammoLocked", function() return RS:CanShowAux() end)
     b:Button("보조 표시 위치 초기화", function() db.ammoPoint,db.ammoRelativePoint,db.ammoX,db.ammoY="CENTER","CENTER",0,-120; applyLayout() end,180,available(function() return RS:CanShowAux() end))
     adjust("글자 크기", "ammoTextSize", 8, 24, 1, function() return RS:CanShowAux() end)
     b:Section("콤보 포인트")
-    check("콤보 포인트 표시", "showCombo", function() return RS:IsComboClass() end,function() return RS:IsComboClass() end)
     local function comboEnabled() return db.showCombo and RS:IsComboClass() end
     dropdown("표시 형태", "comboShape", {"BAR","ORB"}, {BAR="분할 바",ORB="원형 구슬"},comboEnabled)
     dropdown("배치", "comboPosition", {"ABOVE","BELOW","FREE"}, {ABOVE="자원바 외부 위",BELOW="자원바 외부 아래",FREE="자유 배치"},comboEnabled)
@@ -625,7 +619,6 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
     adjust("콤보 Y 위치", "comboY", -3000,3000,1,freeCombo)
     b:Description("도적과 표범 드루이드에 표시합니다. 비전투 무대상에서는 빈칸을 표시합니다. 실제 최대값이나 전투 중 현재값을 읽을 수 없으면 숨깁니다. 자유 배치만 전체 위치 편집에서 독립 이동합니다.",true)
     b:Section("드루이드 변신 마나")
-    check("변신 중 마나바 표시", "showDruidMana",function() return RS:IsDruid() end,function() return RS:IsDruid() end)
     b:Description("드루이드 변신 중 기력·분노와 마나를 함께 표시합니다. 주 자원이 마나이면 중복 표시하지 않습니다. 마나값을 확인할 수 없으면 숨깁니다.")
     b:Section("크기")
     adjust("폭", "width", 200, 600, 10)

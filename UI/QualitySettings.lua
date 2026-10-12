@@ -55,8 +55,8 @@ local function layout(parent,y,key)
     UI:AttachTooltip(c,title,tooltip); return c
   end
   function L:Slider(title,min,max,step,get,set,format,visible)
-    local f=row(T.SliderRowHeight,visible)
-    UI:CreateSlider(f,title,"",0,0,min,max,step,get,set,format)
+    local f=row(T.SliderRowHeight)
+    UI:CreateSlider(f,title,"",0,0,min,max,step,get,set,format,visible)
   end
   function L:Compare(title,kind,options,db,module)
     local f=row(T.DropdownRowHeight)
@@ -65,8 +65,8 @@ local function layout(parent,y,key)
     for index,unit in ipairs({"player","target"}) do
       local u=unit
       captions[index]=UI:CreateLabel(f,u=="player" and "플레이어" or "대상",0,0)
-      if kind=="compact" then
-        controls[index]=UI:CreateCheckbox(f,"사용",0,0,function() return db()[u][kind] end,function(v) db()[u][kind]=v; module:ApplySettings() end,function() return module:UnitParts(u)~=nil end)
+      if kind=="compact" or kind=="showPower" then
+        controls[index]=UI:CreateCheckbox(f,"사용",0,0,function() return kind=="showPower" and db()[u][kind]~=false or kind=="compact" and db()[u][kind] end,function(v) db()[u][kind]=v; module:ApplySettings() end,function() return module:UnitParts(u)~=nil end)
         controls[index].text:SetWidth(40)
       else
         controls[index]=UI:CreateDropdown(f,0,0,T.DropdownWidth,options,function() return db()[u][kind] end,function(v) db()[u][kind]=v; module:ApplySettings() end,function() return module:UnitParts(u)~=nil end)
@@ -79,7 +79,7 @@ local function layout(parent,y,key)
         local x=wide and (180+(index-1)*(width-180+T.ColumnGap-T.ContentPadding)/2) or T.ContentPadding
         local top=wide and -24 or (-28-(index-1)*T.DropdownRowHeight)
         c:ClearAllPoints(); c:SetPoint("TOPLEFT",x,top)
-        if kind~="compact" then c.layoutWidth=wide and (width-180-T.ColumnGap-T.ContentPadding)/2 or math.min(T.DropdownWidth,width-T.ContentPadding); c:SetWidth(c.layoutWidth) end
+        if kind~="compact" and kind~="showPower" then c.layoutWidth=wide and (width-180-T.ColumnGap-T.ContentPadding)/2 or math.min(T.DropdownWidth,width-T.ContentPadding); c:SetWidth(c.layoutWidth) end
         captions[index]:ClearAllPoints(); captions[index]:SetPoint("TOPLEFT",x,top+20)
         captions[index]:SetWidth(wide and (width-180-T.ColumnGap)/2 or width-T.ContentPadding)
       end
@@ -172,7 +172,7 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
     local top=0; local width=parent:GetWidth(); local reposition=page.gridWidth~=width; page.gridWidth=width; page:SetWidth(width)
     for _,section in ipairs(sections) do
       local f=section.frame; if reposition then f:ClearAllPoints(); f:SetPoint("TOPLEFT",0,top) end; f:SetWidth(width)
-      local columns=UI:GridColumns(f,section.measure,false); section.columns=columns
+      local columns=2; section.columns=columns
       local cellWidth=(width-(columns-1)*T.ColumnGap)/columns
       local rowTop=-(T.SectionGap+36); local rowHeight=0
       for index,item in ipairs(section.items) do
@@ -212,14 +212,18 @@ function KHQOL.modules.basicUI:BuildSettings(parent,y)
   -- The detail layout owns this fixed two-column row.
   l:Fields(f,-b.y)
   l:Slider("공통 숨김 지연",0,2,.1,function() return db().hideDelay end,function(v) db().hideDelay=v; M:ApplySettings() end,function(v) return string.format("%.1f초",v) end,function() return db().bags=="hover" or db().micro=="hover" end)
+  l:Description("상단 모듈 사용과 하단 모듈 초기화는 가방·메뉴바에 적용됩니다. 기본창 이동은 아래 별도 스위치와 위치 초기화를 사용합니다.")
+  local mover=CreateFrame("Frame",nil,l.page); mover:SetWidth(parent:GetWidth())
+  l:Fields(mover,-KHQOL.modules.frameMover:BuildSettings(mover,0))
   return l:Finish()
 end
 function KHQOL.modules.unitFrames:BuildSettings(parent,y)
   local M=self; local l=layout(parent,y,"unitFrames")
   local function db() return M:GetDB() end
-  l:Description("전투 중 크기·모양 변경은 전투 종료 후 적용합니다.",function() return M.pending==true end)
+  l:Description("전투 중이거나 기본 프레임 정보를 확인할 수 없으면 변경을 보류합니다. 전투 종료·다음 프레임 갱신에서 안전하게 적용합니다.",function() return M.pending==true end)
   l:Section("유닛 프레임")
   l:Compare("간결한 프레임 사용","compact",nil,db,M)
+  l:Compare("자원 바 표시","showPower",nil,db,M)
   l:Compare("체력 수치 표시 방식","health",textModes,db,M)
   l:Compare("자원 수치 표시 방식","power",textModes,db,M)
   for _,unit in ipairs({"player","target"}) do
@@ -229,8 +233,10 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     local b=UI:CreateBuilder(f,0)
     local function enabled() return db()[u].compact and M:UnitParts(u)~=nil end
     b:Slider("폭",120,400,5,function() return db()[u].width end,function(v) db()[u].width=v; M:ApplySettings() end,function(v) return v.." px" end,enabled,"간결한 프레임에만 적용됩니다. 프레임 위치는 유지합니다.")
-    b:Slider("높이",44,120,2,function() return db()[u].height end,function(v) db()[u].height=v; M:ApplySettings() end,function(v) return v.." px" end,enabled,"이름·체력·자원 영역의 전체 높이입니다. 간결한 프레임에만 적용됩니다.")
-    b:Slider("체력·자원 사이 간격",0,20,1,function() return db()[u].gap end,function(v) db()[u].gap=v; M:ApplySettings() end,function(v) return v.." px" end,enabled)
+    b:Slider("높이",24,236,1,function() return select(2,M:CompactLayout(db()[u])) end,function(v) M:SetTotalHeight(u,v) end,function(v) return v.." px" end,enabled,"이름·표시 중인 바·간격의 전체 높이입니다. 변경하면 체력/자원 높이를 함께 조정합니다. 자원 OFF에서는 체력만 포함합니다. 간결한 프레임에만 적용됩니다.")
+    b:Slider("체력 바 높이",8,100,1,function() return select(4,M:CompactLayout(db()[u])) end,function(v) M:SetBarHeight(u,"health",v) end,function(v) return v.." px" end,enabled,"체력 바만 조정합니다. 간결한 프레임에만 적용됩니다.")
+    b:Slider("자원 바 높이",4,100,1,function() return select(5,M:CompactLayout(db()[u])) end,function(v) M:SetBarHeight(u,"power",v) end,function(v) return v.." px" end,function() return enabled() and db()[u].showPower~=false end,"자원 표시 ON·간결한 프레임에서 조정합니다. OFF해도 설정 높이는 유지합니다.")
+    b:Slider("체력·자원 사이 간격",0,20,1,function() return db()[u].gap end,function(v) db()[u].gap=v; M:ApplySettings() end,function(v) return v.." px" end,function() return enabled() and db()[u].showPower~=false end,"0 px에서는 체력 바 아래에 자원 바를 여백 없이 연결합니다. 자원 OFF 시 값은 유지합니다.")
     b:Slider("검은 테두리 투명도",0,1,.1,function() return db()[u].borderAlpha end,function(v) db()[u].borderAlpha=v; M:ApplySettings() end,function(v) return string.format("%d%%",v*100) end,enabled)
     b:Slider("체력·자원 글자 크기",8,24,1,function() return db()[u].textSize end,function(v) db()[u].textSize=v; M:ApplySettings() end,function(v) return v.." px" end,function() return M:UnitParts(u)~=nil end,"현재값·최대값·백분율 등 직접 선택한 수치에 적용합니다. 기본 설정 따름은 게임의 글꼴 설정을 유지합니다.")
     l:Fields(f,-b.y)

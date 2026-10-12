@@ -18,12 +18,6 @@ function FC:ApplyTextStyleTarget(target)
     if self.ApplyProfessionFont then self:ApplyProfessionFont() end
   end
 end
-function FC:CreateHeaderHelp(content)
-  local help=UI:CreateButton(content,"설명서",UI.Theme.ContentWidth-92,-42,92,function() end)
-  help.ignoreModuleEnabled=true; help:Refresh()
-  UI:AttachTooltip(help,"Clock 조작","좌클릭: 알람 / 스톱워치 / 타이머\n우클릭: Forever Note\nAlt+좌클릭: 달력\nAlt+우클릭: UI 새로고침\n/fc 또는 /fclock: 설정")
-  content.helpButton=help
-end
 function FC:CreateSettings(parent)
   if self.settingsFrame then return self.settingsFrame end
   if not parent then
@@ -43,18 +37,6 @@ function FC:CreateSettings(parent)
       local key=target(); FC:SetTextStyleValue(key,"effect",v); FC:ApplyTextStyleTarget(key)
     end)
   end
-  b:Section("위치")
-  b:Checkbox("위치 잠금",function() return FC.db.locked end,function(v) FC.db.locked=v; FC:ApplyClock(); FC:ApplyLayout() end)
-  b:Section("시간")
-  b:Slider("글자 크기",24,80,1,function() return FC.db.fontSize end,function(v) FC.db.fontSize=v; FC:ApplyClock() end,function(v) return v.." px" end)
-  style(function() return "clock" end)
-  b:Section("사이드 텍스트")
-  f.sideTargetKey="common"
-  local targets={}
-  for _,key in ipairs({"common","date","money","weekday","performance","professions"}) do targets[#targets+1]={value=key,text=targetNames[key]} end
-  b:Dropdown("설정 대상",targets,function() return f.sideTargetKey end,function(v) f.sideTargetKey=v; FC:RefreshSettings() end)
-  b:Slider("글자 크기",10,28,1,function() return FC:GetSideFontSize(f.sideTargetKey) end,function(v) FC:SetSideFontSize(f.sideTargetKey,v) end,function(v) return v.." px" end)
-  style(function() return f.sideTargetKey end)
   b:Section("표시 정보")
   for _,item in ipairs({{"performance",L.PERFORMANCE},{"date",L.DATE},{"weekday",L.WEEKDAY},{"money",L.MONEY}}) do
     local key,title=item[1],item[2]
@@ -71,6 +53,19 @@ function FC:CreateSettings(parent)
     local unit,title=item[1],item[2]
     b:Checkbox(title,function() return FC.db.modules.money.units[unit] end,function(v) FC.db.modules.money.units[unit]=v; FC:UpdateMoney() end,function() return FC.db.modules.money.enabled end)
   end
+  b:Section("위치")
+  b:Checkbox("위치 잠금",function() return FC.db.locked end,function(v) FC.db.locked=v; FC:ApplyClock(); FC:ApplyLayout() end)
+
+  b:Section("시간 글자·모양")
+  b:Slider("글자 크기",24,80,1,function() return FC.db.fontSize end,function(v) FC.db.fontSize=v; FC:ApplyClock() end,function(v) return v.." px" end)
+  style(function() return "clock" end)
+  b:Section("사이드 텍스트")
+  f.sideTargetKey="common"
+  local targets={}
+  for _,key in ipairs({"common","date","money","weekday","performance","professions"}) do targets[#targets+1]={value=key,text=targetNames[key]} end
+  b:Dropdown("설정 대상",targets,function() return f.sideTargetKey end,function(v) f.sideTargetKey=v; FC:RefreshSettings() end)
+  b:Slider("글자 크기",10,28,1,function() return FC:GetSideFontSize(f.sideTargetKey) end,function(v) FC:SetSideFontSize(f.sideTargetKey,v) end,function(v) return v.." px" end)
+  style(function() return f.sideTargetKey end)
   b:Section("전문기술")
   b:Checkbox("전문기술 버튼 표시",function() return FC.db.modules.professions.enabled end,function(v) FC.db.modules.professions.enabled=v; FC:UpdateProfessionsVisibility() end)
   local function professionsEnabled() return FC.db.modules.professions.enabled end
@@ -81,6 +76,16 @@ function FC:CreateSettings(parent)
   b:Checkbox("숙련도 표시",function() return FC.db.modules.professions.showSkill end,function(v)
     FC.db.modules.professions.showSkill=v; if FC.professionsPanel and FC.professionsPanel:IsShown() then FC:RenderProfessions() end
   end,professionsEnabled)
+  b:Section("알람·타이머·스톱워치")
+  for _,entry in ipairs({{"알람 열기","alarm"},{"타이머 열기","timer"},{"스톱워치 열기","stopwatch"}}) do
+    local mode=entry[2]
+    b:Button(entry[1],function()
+      if mode=="stopwatch" then FC.stopwatchFrame:Show()
+      else FC.clockToolsFrame:SelectMode(mode);FC.clockToolsFrame:Show() end
+    end)
+  end
+  b:Checkbox("도구 창 위치 잠금",function() return FC.db.clockTools.positionLocked end,function(v) FC.db.clockTools.positionLocked=v end)
+  b:Description("시간 HUD와 도구 창은 독립 위치입니다. 직접 드래그와 통합 편집 모두 현재 프로필에 저장합니다. 중앙 테스트 알림은 Alt+드래그로 이동합니다.",true)
   f:SetHeight(-b.y); self:RefreshSettings()
   return f
 end

@@ -130,8 +130,7 @@ function FC:ApplyTodoFontSize()
 end
 
 function FC:ChangeTodoFontSize(delta)
-  self.db.todo.fontSize = math.max(15, math.min(30, (self.db.todo.fontSize or 15) + delta))
-  if self.todoFrame and self.todoFrame.fontSlider then self.todoFrame.fontSlider:SetValue(self.db.todo.fontSize) else self:ApplyTodoFontSize(); self:UpdateTodoEditorSize() end
+  self:SetTodoFontSize((self.db.todo.fontSize or 15)+delta)
 end
 
 function FC:EnsureTodoGroups(page)
@@ -235,10 +234,20 @@ function FC:RefreshTodoFavorites()
 end
 
 function FC:SaveTodoWindow()
-  local f = self.todoFrame; local point, _, relativePoint, x, y = f:GetPoint(1)
-  local saved=self.db.todo.window
-  saved.point,saved.relativePoint,saved.x,saved.y=point,relativePoint,x,y
-  saved.width,saved.height=f:GetWidth(),f:GetHeight()
+  if not self.todoFrame or not self.db or KHQOL.profileApplying then return end
+  if KHQOL.PositionStore:Point(self.todoFrame,self.db.todo.window,true) then KHQOL.PositionStore:Committed() end
+end
+function FC:SetTodoFontSize(value)
+  local size=math.max(15,math.min(30,math.floor(value+.5)))
+  if self.db.todo.fontSize==size then return end
+  self.db.todo.fontSize=size;self:ApplyTodoFontSize();self:UpdateTodoEditorSize()
+  if self.todoFrame and self.todoFrame.fontSlider then self.todoFrame.fontSlider:SetValue(size) end
+  KHQOL.PositionStore:Committed()
+end
+function FC:SetTodoOpacity(percent)
+  local alpha=math.max(.1,math.min(.95,math.floor(percent+.5)/100))
+  if self.db.todo.backgroundAlpha==alpha then return end
+  self.db.todo.backgroundAlpha=alpha;self:ApplyTodoAppearance();KHQOL.PositionStore:Committed()
 end
 
 -- Register only the note frame with Blizzard's built-in Escape handling.
@@ -287,7 +296,7 @@ function FC:CreateTodoMinimapButton()
     x, y = x / scale, y / scale
     local mx, my = Minimap:GetCenter()
     FC.db.todo.minimap.angle = math.deg(math.atan2(y - my, x - mx))
-    FC:UpdateTodoMinimapButton()
+    FC:UpdateTodoMinimapButton(); KHQOL.PositionStore:Committed()
   end)
   button:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
@@ -412,14 +421,14 @@ function FC:CreateTodo()
   f.fontSlider:SetSize(90, 14); f.fontSlider:SetOrientation("HORIZONTAL"); f.fontSlider:SetPoint("LEFT", f.addTask, "RIGHT", 12, 0); f.fontSlider:SetMinMaxValues(15, 30); f.fontSlider:SetValueStep(1); f.fontSlider:SetObeyStepOnDrag(true)
   local track = f.fontSlider:CreateTexture(nil, "BACKGROUND"); track:SetPoint("LEFT", f.fontSlider, "LEFT", 0, 0); track:SetPoint("RIGHT", f.fontSlider, "RIGHT", 0, 0); track:SetHeight(5); track:SetColorTexture(1, 1, 1, 0.8)
   local thumb = f.fontSlider:CreateTexture(nil, "OVERLAY"); thumb:SetSize(5, 18); thumb:SetColorTexture(1, 0.82, 0.15, 1); f.fontSlider:SetThumbTexture(thumb)
-  f.fontSlider:SetScript("OnValueChanged", function(_, value) if FC.db then FC.db.todo.fontSize = math.floor(value + 0.5); FC:ApplyTodoFontSize(); FC:UpdateTodoEditorSize() end end)
+  f.fontSlider:SetScript("OnValueChanged", function(_, value) if FC.db then FC:SetTodoFontSize(value) end end)
   f.fontValue = f.fontSlider:CreateFontString(nil, "OVERLAY"); f.fontValue:SetPoint("LEFT", f.fontSlider, "RIGHT", 8, 0); f.fontValue:SetFont(FC.FONT_PATH, 14, "OUTLINE"); f.fontValue:SetTextColor(1, 0.84, 0.18, 1)
   local opacityLabel = f:CreateFontString(nil, "OVERLAY"); opacityLabel:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 14, 13); opacityLabel:SetFont(FC.FONT_PATH, 13, "OUTLINE"); opacityLabel:SetText("투명도"); opacityLabel:SetTextColor(1, 0.84, 0.18, 1)
   f.opacitySlider = CreateFrame("Slider", nil, f); f.opacitySlider:SetSize(65, 14); f.opacitySlider:SetOrientation("HORIZONTAL"); f.opacitySlider:SetPoint("LEFT", opacityLabel, "RIGHT", 8, 0); f.opacitySlider:SetMinMaxValues(10, 95); f.opacitySlider:SetValueStep(5); f.opacitySlider:SetObeyStepOnDrag(true)
   local opacityTrack = f.opacitySlider:CreateTexture(nil, "BACKGROUND"); opacityTrack:SetPoint("LEFT", f.opacitySlider, "LEFT", 0, 0); opacityTrack:SetPoint("RIGHT", f.opacitySlider, "RIGHT", 0, 0); opacityTrack:SetHeight(5); opacityTrack:SetColorTexture(1, 1, 1, 0.8)
   local opacityThumb = f.opacitySlider:CreateTexture(nil, "OVERLAY"); opacityThumb:SetSize(5, 18); opacityThumb:SetColorTexture(1, 0.82, 0.15, 1); f.opacitySlider:SetThumbTexture(opacityThumb)
   f.opacityValue = f.opacitySlider:CreateFontString(nil, "OVERLAY"); f.opacityValue:SetPoint("LEFT", f.opacitySlider, "RIGHT", 7, 0); f.opacityValue:SetFont(FC.FONT_PATH, 13, "OUTLINE"); f.opacityValue:SetTextColor(1, 1, 1, 1)
-  f.opacitySlider:SetScript("OnValueChanged", function(_, value) if FC.db and not f.updatingOpacity then FC.db.todo.backgroundAlpha = math.floor(value + 0.5) / 100; FC:ApplyTodoAppearance() end end)
+  f.opacitySlider:SetScript("OnValueChanged", function(_, value) if FC.db and not f.updatingOpacity then FC:SetTodoOpacity(value) end end)
   f.nav = CreateFrame("Frame", nil, f); f.nav:SetSize(198, 28); f.nav:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -12, 8)
   f.previous = Button(f, "<", 24, function() FC:SaveTodoPage(); FC.db.todo.currentPage = math.max(1, FC.db.todo.currentPage - 1); FC:RefreshTodo() end); f.previous:SetPoint("LEFT", f.nav, "LEFT", 0, 0)
   f.pageLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); f.pageLabel:SetPoint("LEFT", f.previous, "RIGHT", 8, 0); f.pageLabel:SetWidth(120); f.pageLabel:SetJustifyH("CENTER"); f.pageLabel:SetWordWrap(false); f.pageLabel:SetFont(FC.FONT_PATH, 13, "OUTLINE")

@@ -1,6 +1,6 @@
 local FBR = _G.ForeverBuffReminder
 
-local MINIMAP_ICON_TEXTURE = "Interface\\AddOns\\ForeverBuffReminder\\Media\\ForeverBuffReminder-Minimap-BR.png"
+local MINIMAP_ICON_TEXTURE = "Interface\\AddOns\\KHQOL\\Media\\kh-qol-minimap-button.tga"
 
 local function createFrame(frameType, name, parent, template)
     if template then
@@ -17,11 +17,12 @@ function FBR:CreateAlertUI()
     anchor:SetSize(140, 36)
     anchor:SetPoint(db.position.point, UIParent, db.position.point, db.position.x, db.position.y)
     anchor:SetMovable(true); anchor:EnableMouse(not db.locked); anchor:RegisterForDrag("LeftButton")
-    anchor:SetScript("OnDragStart", anchor.StartMoving)
+    anchor:SetScript("OnDragStart",function(frame) frame.positionMoving=true;frame:StartMoving() end)
     anchor:SetScript("OnDragStop", function(frame)
-        frame:StopMovingOrSizing()
+        frame:StopMovingOrSizing();frame.positionMoving=nil
         local point, _, _, x, y = frame:GetPoint(1)
         db.position.point, db.position.x, db.position.y = point, math.floor(x + 0.5), math.floor(y + 0.5)
+        KHQOL.PositionStore:Committed()
     end)
     if anchor.SetBackdrop then
         anchor:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12 })

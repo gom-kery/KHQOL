@@ -8,7 +8,7 @@ function X:BuildSettings(content,y)
   end
   local function slider(b,title,key,lo,hi,step)
     return b:Slider(title,lo,hi,step or 1,function() return db[key] end,function(v) db[key]=v; self:Changed() end,
-      function(v) return string.format(step and step<1 and "%.2f" or "%d",v) end,enabled)
+      function(v) return (key=="scale" or key=="alpha") and string.format("%.0f%%",v*100) or string.format("%.0f px",v) end,enabled)
   end
   local function dropdown(b,title,key,options,available)
     return b:Dropdown(title,options,function() return db[key] end,function(v) db[key]=v; self:Changed() end,available or enabled)
@@ -28,8 +28,7 @@ function X:BuildSettings(content,y)
     return f,UI:CreateBuilder(f,0)
   end
   local horizontal,h=panel()
-  h:Section("크기 및 위치")
-  slider(h,"폭","width",120,1200); slider(h,"높이","height",8,80)
+  h:Section("위치")
   slider(h,"X 위치","x",-3000,3000); slider(h,"Y 위치","y",-3000,3000)
   h:Checkbox("위치 잠금",function() return not self.unlocked end,function(locked)
     if locked then self:SavePosition() end
@@ -37,6 +36,9 @@ function X:BuildSettings(content,y)
   end,enabled)
   h:Button("위치 기본값 복원",function() db.x,db.y=self.defaults.x,self.defaults.y; self:Changed() end,nil,enabled)
   h:Description("잠금 해제 후 바를 드래그합니다. 잠긴 상태에서는 클릭을 통과시킵니다.")
+
+  h:Section("크기·모양")
+  slider(h,"폭","width",120,1200); slider(h,"높이","height",8,80)
   horizontal:SetHeight(-h.y)
   local wrap,w=panel()
   w:Section("PlayerFrame 감싸기")

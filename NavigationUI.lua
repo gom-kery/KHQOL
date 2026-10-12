@@ -68,7 +68,7 @@ function UI:SavePosition()
   if N.IsNumber(x) and N.IsNumber(y) and N.IsNumber(px) and N.IsNumber(py) then
     self.db.positionX=math.floor(x-px+.5); self.db.positionY=math.floor(y-py+.5)
   end
-  self:ApplyLayout()
+  KHQOL.PositionStore:Committed(function() self:ApplyLayout() end)
 end
 function UI:ResetPosition()
   self:SavePosition(); self.db.positionX=0; self.db.positionY=180; self:ApplyLayout()

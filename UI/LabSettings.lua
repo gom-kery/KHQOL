@@ -1,7 +1,6 @@
 local _, KHQOL = ...
 local Lab=KHQOL.UI:NewSettingsGroup("labs")
 KHQOL.LabSettings=Lab
-Lab:RegisterTab("units",nil,function(content,y) return KHQOL.modules.unitFrames:BuildSettings(content,y) end)
 Lab:RegisterTab("buff",nil,function(content,y)
   local fbr=ForeverBuffReminder
   fbr:CreateSettingsUI(content)
@@ -18,6 +17,7 @@ local function proc(content,y)
   local b=UI:CreateBuilder(content,y)
   local function enabled() return P:IsEnabled() end
   b:Section("발동 알림")
+  b:Description("버프 상태·시간을 확인할 수 없으면 표시를 생략합니다. 다음 버프/전투 이벤트에서 다시 확인합니다.",true)
   b:Description("등록한 버프가 전투 중 활성화되면 곡선형 HUD로 표시합니다.",true)
   b:Section("등록된 버프")
   local options={}
@@ -31,16 +31,17 @@ local function proc(content,y)
   local editor=CreateFrame("Frame",nil,content); editor:SetWidth(T.ContentWidth); editor:Hide()
   local lower=CreateFrame("Frame",nil,content); lower:SetWidth(T.ContentWidth)
   local rows,draft,original,editingClass={},nil,nil,nil
+  local draftGeneration
   local refreshList,reflow
   local function closeEditor()
-    if ColorPickerFrame then ColorPickerFrame:Hide() end
+    UI:CloseColorPicker()
     draft=nil; original=nil; editingClass=nil; editor:Hide()
     reflow()
   end
   b:Dropdown("클래스",options,function() return class end,function(v) class=v; closeEditor(); refreshList() end)
   local function openEditor(id)
-    if ColorPickerFrame then ColorPickerFrame:Hide() end
-    original=id; editingClass=class
+    UI:CloseColorPicker()
+    draftGeneration=KHQOL.profileGeneration;original=id; editingClass=class
     draft=id and KHQOL.CopyProfileValue(P:GetBuffs(class)[id]) or {
       spellID="",name="",enabled=true,side="LEFT",slot=1,color={r=.1,g=.6,b=1,a=1},priority="NORMAL",showIcon=true,showName=false,showTime=true}
     editor:Show(); UI:Refresh(editor); reflow()
@@ -48,7 +49,7 @@ local function proc(content,y)
   b:Button("+ 버프 추가",function() openEditor() end,nil,enabled); b:Flush()
   local listY=b.y
   local e=UI:CreateBuilder(editor,0)
-  local function editing() return draft~=nil and enabled() end
+  local function editing() return draft~=nil and draftGeneration==KHQOL.profileGeneration and enabled() end
   local function field(key) return draft and draft[key] end
   local function set(key,v) if draft then draft[key]=v end end
   e:Section("버프 정보")
@@ -88,7 +89,7 @@ local function proc(content,y)
     e:Checkbox(title,function() return field(key) end,function(v) set(key,v) end,editing)
   end
   local function save()
-    if not draft then return end
+    if not editing() then closeEditor();return end
     local id=tonumber(idInput:GetText()); local name=nameInput:GetText()
     if not id or id<=0 or id~=math.floor(id) or id>2147483647 then message:SetText("유효한 양의 정수 Spell ID를 입력하세요."); return end
     local buffs=P:GetBuffs(editingClass)
@@ -107,16 +108,20 @@ local function proc(content,y)
   idInput:SetScript("OnEnterPressed",function() lookup(); idInput:ClearFocus() end)
   idInput:HookScript("OnEditFocusLost",lookup)
   local l=UI:CreateBuilder(lower,0)
-  l:Section("HUD")
+  l:Section("위치")
   l:Checkbox("위치 잠금",function() return not P.unlocked end,function(v) P:SetUnlocked(not v) end,enabled)
   local function slider(title,key,lo,hi,step)
     l:Slider(title,lo,hi,step,function() return P:GetDB().hud[key] end,function(v) P:GetDB().hud[key]=v; P:Changed() end,
-      function(v) return string.format(step<1 and "%.2f" or "%d",v) end,enabled)
+      function(v)
+        if key=="scale" or key=="alpha" then return string.format("%.0f%%",v*100) end
+        return tostring(v).." px"
+      end,enabled)
   end
-  slider("전체 크기","scale",.5,2,.05); slider("곡선 높이","size",100,600,5)
-  slider("좌우 간격","spacing",80,800,5); slider("투명도","alpha",.1,1,.05)
-  slider("X 위치","x",-1500,1500,1); slider("Y 위치","y",-1000,1000,1)
-  l:Button("위치 기본값 복원",function() local h=P:GetDB().hud; h.x=0; h.y=-180; h.spacing=280; P:Changed() end,nil,enabled)
+  slider("X 위치","x",-1500,1500,1);slider("Y 위치","y",-1000,1000,1)
+  l:Button("위치·간격 기본값 복원",function() local h=P:GetDB().hud;h.x=0;h.y=-180;h.spacing=280;P:Changed() end,nil,enabled)
+  l:Section("HUD 모양")
+  slider("전체 배율","scale",.5,2,.05);slider("곡선 높이","size",100,600,5)
+  slider("좌우 간격","spacing",80,800,5);slider("투명도","alpha",.1,1,.05)
   l:Section("표시")
   l:Checkbox("HUD 애니메이션",function() return P:GetDB().animation end,function(v) P:GetDB().animation=v; P:Changed() end,enabled)
   l:Description("아이콘·이름·남은 시간 및 색상은 버프별 편집에서 설정합니다. 시간 정보가 없으면 활성 상태만 표시합니다.")
@@ -166,7 +171,8 @@ local function proc(content,y)
     list.empty:SetShown(#records==0); list:SetHeight(math.max(40,#records*82)); reflow()
   end
   list.uiControls[1]={Refresh=refreshList}
-  content:HookScript("OnHide",function() P:SetUnlocked(false); P.testUntil=nil; P:Render(); closeEditor() end)
+  UI:RegisterDraft(content,closeEditor)
+  content:HookScript("OnHide",function() if not (KHQOL.PositionEditor and KHQOL.PositionEditor.active) then P.testUntil=nil; P:Render() end; closeEditor() end)
   refreshList()
   return -content:GetHeight()
 end

@@ -17,10 +17,11 @@ local function build(content,y)
   local editor=CreateFrame("Frame",nil,content); editor:SetWidth(T.ContentWidth); editor:Hide()
   local lower=CreateFrame("Frame",nil,content); lower:SetWidth(T.ContentWidth)
   local rows,draft,editingID={},nil,nil
+  local draftGeneration
   local reflow,refreshList
   local function close() draft=nil; editingID=nil; editor:Hide(); reflow() end
   local function open(key)
-    editingID=key
+    draftGeneration=KHQOL.profileGeneration;editingID=key
     draft=key and KHQOL.CopyProfileValue(N:GetData().entries[key]) or
       {mapID=N.mapID or "",npcID="",name="",enabled=true,dangerLevel="HIGH",showBanner=true,showIndicator=true,sound=true}
     if not draft.npcID then draft.npcID="" end
@@ -33,7 +34,7 @@ local function build(content,y)
   end,nil,enabled)
   b:Flush(); local listY=b.y
   local e=UI:CreateBuilder(editor,0)
-  local function editing() return draft~=nil and enabled() end
+  local function editing() return draft~=nil and draftGeneration==KHQOL.profileGeneration and enabled() end
   local function field(title,key)
     local box=e:Edit(title,function() return draft and draft[key] end,function(v) if draft then draft[key]=v end end,editing)
     box:SetMaxLetters(key=="name" and 100 or 10)
@@ -46,7 +47,7 @@ local function build(content,y)
   e:Checkbox("사용",function() return draft and draft.enabled end,function(v) if draft then draft.enabled=v end end,editing)
   e:Dropdown("위험도",{{value="NORMAL",text="보통"},{value="HIGH",text="높음"},{value="CRITICAL",text="치명적"}},
     function() return draft and draft.dangerLevel end,function(v) if draft then draft.dangerLevel=v end end,editing)
-  for _,item in ipairs({{"showBanner","중앙 위험 배너"},{"showIndicator","Danger Indicator"},{"sound","사운드"}}) do
+  for _,item in ipairs({{"showBanner","중앙 위험 배너"},{"showIndicator","위험 방향 표시"},{"sound","사운드"}}) do
     local key,title=item[1],item[2]
     e:Checkbox(title,function() return draft and draft[key] end,function(v) if draft then draft[key]=v end end,editing)
   end
@@ -55,7 +56,7 @@ local function build(content,y)
     local value=tonumber(text); if value and value>0 and value%1==0 and value<=2147483647 then return value end
   end
   e:Button("저장",function()
-    if not draft then return end
+    if not editing() then close();return end
     local map=positive(mapBox:GetText()); local raw=npcBox:GetText():match("^%s*(.-)%s*$")
     local npc=raw~="" and positive(raw) or nil
     local name=nameBox:GetText():gsub("^[ \t\r\n]+",""):gsub("[ \t\r\n]+$","")
@@ -88,7 +89,7 @@ local function build(content,y)
   check("중앙 위험 배너 사용","banner",db)
   slider("배너 표시 시간","bannerDuration",1,10,1,db)
   slider("배너 크기","bannerScale",.5,2,.05,db); slider("배너 투명도","bannerAlpha",.1,1,.05,db)
-  l:Section("Danger Indicator")
+  l:Section("위험 방향 표시")
   check("위험 방향 표시","enabled",indicator)
   slider("크기","size",24,128,1,indicator); slider("중심 거리","radius",40,500,5,indicator)
   slider("투명도","alpha",.1,1,.05,indicator)
@@ -142,6 +143,7 @@ local function build(content,y)
     list.empty:SetShown(#records==0); list:SetHeight(math.max(40,#records*102)); reflow()
   end
   list.uiControls[1]={Refresh=refreshList}
+  UI:RegisterDraft(content,close)
   content:HookScript("OnHide",function() if N.testing then N:StopTest() end; close() end)
   refreshList(); UI:Refresh(content)
   return -content:GetHeight()

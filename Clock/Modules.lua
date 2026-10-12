@@ -20,9 +20,8 @@ function FC:SetModulePosition(name, frame)
   local parentX, parentY = self.clockFrame:GetCenter()
   local frameX, frameY = frame:GetCenter()
   local x, y = self:ConstrainModulePosition(name, frame, frameX - parentX, frameY - parentY)
-  self.db.modules[name].position = { x = math.floor(x + 0.5), y = math.floor(y + 0.5) }
-  self:ApplyLayout()
-  if self.RefreshSettings then self:RefreshSettings() end
+  local p=self.db.modules[name].position;p.x,p.y=math.floor(x+.5),math.floor(y+.5)
+  KHQOL.PositionStore:Committed(function() self:ApplyLayout() end)
 end
 
 function FC:ConstrainModulePosition(name, frame, x, y)
@@ -44,6 +43,7 @@ function FC:EnableModuleDrag(name, frame)
       local moved = math.abs(x - (f.dragStartX or x)) > 5 or math.abs(y - (f.dragStartY or y)) > 5
       f:StopMovingOrSizing()
       if moved then FC:SetModulePosition(name, f) else FC:ApplyLayout() end
+      f.dragStartX,f.dragStartY=nil,nil
     end
   end)
 end

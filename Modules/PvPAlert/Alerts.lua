@@ -76,12 +76,12 @@ function PA:SavePosition()
     self.db.point,self.db.relativePoint="CENTER","CENTER"
     self.db.x,self.db.y=(x-ux/ratio),(y-uy/ratio)
   end
-  self:ApplyLayout()
-  if self.settingsContent then KHQOL.UI:Refresh(self.settingsContent) end
+  KHQOL.PositionStore:Committed(function() self:ApplyLayout() end)
 end
 function PA:SetMoving(on)
   if self.dragging then self:SavePosition() end
   self.moving=on and self:IsEnabled() and not self.combat or false
+  if KHQOL.AlertLayout then KHQOL.AlertLayout:Reflow() end
   if not self.frame then return end
   self.moveText:SetShown(self.moving); self.frame:EnableMouse(self.moving)
   if self.moving then self:Test("TARGETED",true)
@@ -234,6 +234,7 @@ function PA:Animate(dt)
   end
 end
 function PA:Test(state,moving)
+  if self.primary and not self.primary.testing and not moving then return end
   if not self:IsEnabled() then return end
   if state=="WATCHING" then state="TARGETED" end
   local now=PA.Now()

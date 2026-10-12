@@ -13,12 +13,13 @@ function Display:Create()
   frame:EnableMouse(false)
   frame:RegisterForDrag("LeftButton")
   frame:SetMovable(true)
-  frame:SetScript("OnDragStart", function(f) if not FR.db.locked then f:StartMoving() end end)
+  frame:SetScript("OnDragStart", function(f) if not FR.db.locked then f.positionMoving=true;f:StartMoving() end end)
   frame:SetScript("OnDragStop", function(f)
-    f:StopMovingOrSizing()
+    f:StopMovingOrSizing();f.positionMoving=nil
     local _, _, _, x, y = f:GetPoint(1)
     FR.db.x, FR.db.y = math.floor(x + 0.5), math.floor(y + 0.5)
     FR:RefreshDisplay(true)
+    KHQOL.PositionStore:Committed()
     if FR.UpdateSettings then FR:UpdateSettings() end
   end)
 

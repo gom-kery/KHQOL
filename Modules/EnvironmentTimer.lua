@@ -133,7 +133,7 @@ function E:CreateFrames()
     row.textLayer:SetScript("OnDragStart",function(frame)
       if self.unlocked and self.db.style=="hud" and row.hudTimer then row.textDragging=true; frame:StartMoving() end
     end)
-    row.textLayer:SetScript("OnDragStop",function() if self:SaveTextPosition(row) then self:Changed() end end)
+    row.textLayer:SetScript("OnDragStop",function() if self:SaveTextPosition(row) then self:Changed();KHQOL.PositionStore:Committed() end end)
     row.text=row.textLayer:CreateFontString(nil,"OVERLAY","GameFontHighlight"); row.text:SetFont(KHQOL.UI:Font(),13,"OUTLINE")
     -- Keep the supplied layers on matching texture coordinates. Clip the fill
     -- vertically rather than stretching the curved artwork as time changes.
@@ -200,7 +200,7 @@ function E:SavePosition()
   local x,y=self.frame:GetCenter(); local cx,cy=UIParent:GetCenter()
   local scale=self.frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
   if x and cx then self.db.x,self.db.y=x*scale-cx,y*scale-cy end
-  self:Changed()
+  self:Changed();KHQOL.PositionStore:Committed()
 end
 function E:Layout(count)
   local db,f=self.db,self.frame

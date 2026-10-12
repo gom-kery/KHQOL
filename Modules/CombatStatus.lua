@@ -231,6 +231,7 @@ end
 function CombatStatus:Play(kind, duration, test)
   self:StopVisual()
   if not self:IsEnabled() or (not self:ShouldShowMessage(kind) and not self:ShouldShowSwords()) then return end
+  self.isTest=test and true or false
   self.kind,self.duration=kind,duration
   self:SetPose(kind=="leave"); self:SwitchColor(kind=="enter" and "blue" or "red")
   self:RefreshMessage(); self.text:SetShown(self:ShouldShowMessage(kind) and (kind=="leave" or not self:ShouldShowSwords()))
@@ -248,6 +249,7 @@ function CombatStatus:Play(kind, duration, test)
   end
 end
 function CombatStatus:Test(kind)
+  if self.kind and not self.isTest then return end
   -- Demo duration only; never mutate combatActive/combatStartTime.
   if self:IsEnabled() then self:Play(kind,kind=="leave" and 87 or nil,true) end
 end
@@ -271,7 +273,7 @@ function CombatStatus:SavePosition()
     local scale=self.root:GetEffectiveScale()/UIParent:GetEffectiveScale()
     self.db.position={point="CENTER",relativePoint="CENTER",x=x*scale-cx,y=y*scale-cy}
   end
-  self:ApplyLayout()
+  KHQOL.PositionStore:Committed(function() self:ApplyLayout() end)
 end
 function CombatStatus:ApplyLayout()
   if not self.root then return end
@@ -286,6 +288,7 @@ function CombatStatus:ApplyLayout()
   self.root:SetShown(self.anchor:IsShown() or self.visual:IsShown())
 end
 function CombatStatus:Changed(key)
+  if key=="locked" and KHQOL.AlertLayout then KHQOL.AlertLayout:Reflow() end
   if key=="locked" and self.db.locked then self:SavePosition() end
   -- Size changes during native transforms restart only the preview/visual,
   -- preserving combat recording and reusing the same groups and textures.
@@ -319,16 +322,16 @@ function CombatStatus:BuildSettings(content,y)
   local function color(title,key,flag)
     b:Color(title,function() return unpack(db[key]) end,function(r,g,bl) db[key]={r,g,bl}; self:Changed(key) end,function() return db[flag] end)
   end
+  b:Section("전투 시작")
+  check("문구 표시","showEnter"); message("문구 (Enter로 저장)","enterText","showEnter"); color("색상","enterColor","showEnter")
+  b:Section("전투 종료")
+  check("문구 표시","showLeave"); message("문구 (Enter로 저장)","leaveText","showLeave"); color("색상","leaveColor","showLeave")
   b:Section("위치")
   check("위치 잠금","locked")
   b:Description("잠금을 해제하면 이동 앵커를 드래그할 수 있습니다. 전투 알림은 잠금 상태와 관계없이 표시됩니다.")
   b:Button("위치 초기화",function()
     self:SavePosition(); db.position={point="CENTER",relativePoint="CENTER",x=0,y=150}; self:ApplyLayout()
   end)
-  b:Section("전투 시작")
-  check("문구 표시","showEnter"); message("문구 (Enter로 저장)","enterText","showEnter"); color("색상","enterColor","showEnter")
-  b:Section("전투 종료")
-  check("문구 표시","showLeave"); message("문구 (Enter로 저장)","leaveText","showLeave"); color("색상","leaveColor","showLeave")
   b:Section("공통 설정")
   b:Slider("글씨 크기",40,80,1,function() return db.fontSize end,function(v) db.fontSize=v; self:Changed("fontSize") end,function(v) return v.." px" end)
   b:Section("칼 애니메이션")

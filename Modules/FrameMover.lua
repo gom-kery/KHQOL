@@ -232,12 +232,19 @@ function M:Initialize()
 end
 function M:BuildSettings(content,y)
   local b=KHQOL.UI:CreateBuilder(content,y)
+  -- This account-wide tool remains independent of the merged Basic UI toggle.
+  local function independent(control)
+    control.ignoreModuleEnabled=true
+    if control.Refresh then control:Refresh() end
+    return control
+  end
   b:Section("Blizzard 기본 프레임 이동")
   b:Description("Blizzard 기본 창의 제목 표시줄을 지정한 보조키와 함께 드래그하여 이동합니다. 지도·캐릭터창·특성·마법책·매크로창을 지원합니다.")
-  b:Checkbox("Blizzard 기본 프레임 이동",function() return M:GetDB().enabled end,function(on) M:SetEnabled(on) end)
-  b:Dropdown("이동 키 (+ 드래그)",{{value="SHIFT",text="Shift"},{value="CTRL",text="Ctrl"},{value="ALT",text="Alt"}},
-    function() return M:GetDB().modifier end,function(v) M:GetDB().modifier=v end)
-  b:Button("모든 프레임 위치 초기화",function() M:ResetPositions() end)
+  independent(b:Checkbox("Blizzard 기본 프레임 이동",function() return M:GetDB().enabled end,function(on) M:SetEnabled(on) end))
+  independent(b:Dropdown("이동 키 (+ 드래그)",{{value="SHIFT",text="Shift"},{value="CTRL",text="Ctrl"},{value="ALT",text="Alt"}},
+    function() return M:GetDB().modifier end,function(v) M:GetDB().modifier=v end))
+  independent(b:Button("모든 프레임 위치 초기화",function() M:ResetPositions() end))
+  b:Description("계정 공용 위치이며 프로필 변경·복사에 포함되지 않습니다.",true)
   b:Description("OFF 시 저장 위치를 삭제하고 기본 위치로 복원합니다. 전투 중 이동은 차단되며 초기화·복원은 전투 종료 후 적용합니다.",true)
   return b.y
 end

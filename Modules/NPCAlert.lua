@@ -293,7 +293,7 @@ function N:Changed()
   if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
 end
 function N:Test()
-  if not self:IsEnabled() then return end
+  if not self:IsEnabled() or (self.banner and self.banner:IsShown() and not self.testing) or next(self.activeNPCs) then return end
   self:ClearVisuals(); self.testing=true; local serial=self.testSerial
   self:ShowBanner({name="테스트 위험 NPC",dangerLevel="HIGH"}); self:PlayWarning({sound=true}); self:RenderIndicator()
   C_Timer.After(5,function() if serial==self.testSerial then self:StopTest() end end)

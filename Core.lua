@@ -54,9 +54,11 @@ function KHQOL:GetEnabled(key) return self.db.enabled[key] ~= false end
 local managedModules = {}
 for _,key in ipairs(KHQOL.profileModuleKeys) do managedModules[key]=true end
 function KHQOL:SetEnabled(key, enabled, reapply)
+  if not reapply and not enabled and self.PositionEditor and self.PositionEditor.active then self.PositionEditor:Finish(false) end
   if key=="generalConvenience" then self.db.enabled[key]=nil; self.modules[key]:SetEnabled(true); return true end
   -- Internal reapplication preserves preferences while the lock gates execution.
   if not reapply and self.LabLock:IsExperimental(key) and not self.LabLock:IsUnlocked() then return false end
+  if not reapply and not enabled then self.PositionStore:FinishDrags(key) end
   if not reapply then self.db.enabled[key] = enabled and true or false end
   if self.LabLock:IsExperimental(key) then enabled=enabled and self.LabLock:IsUnlocked() end
   local fc, fr, cfa = self.modules.clock, self.modules.range, self.modules.campfire
@@ -115,7 +117,7 @@ function KHQOL:CreateMinimapButton()
     local x, y = GetCursorPosition(); local scale = Minimap:GetEffectiveScale(); x, y = x / scale, y / scale
     local mx, my = Minimap:GetCenter()
     KHQOL.db.minimap.angle = math.deg(math.atan2(y - my, x - mx))
-    KHQOL:UpdateMinimapButton()
+    KHQOL.PositionStore:Committed(function() KHQOL:UpdateMinimapButton() end)
   end)
   self.minimapButton = b; self:UpdateMinimapButton()
 end

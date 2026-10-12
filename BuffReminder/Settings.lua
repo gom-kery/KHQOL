@@ -16,6 +16,7 @@ function FBR:CreateSettingsUI(parent)
   panel:SetWidth(T.ContentWidth); self.settings=panel
   _G.ForeverBuffReminderSettings=panel
   local b=UI:CreateBuilder(panel)
+  b:Description("상태 확인 불가 시 버프 없음·만료 알림을 생략합니다. 등록한 버프만 확인하며 실험 기능으로 유지됩니다.",true)
   b:Section("위치")
   b:Checkbox("위치 잠금",function() return ForeverBuffReminderDB.locked end,function(value) FBR:SetLocked(value) end)
   b:Section("알림 모양")

@@ -56,7 +56,9 @@ function FC:CreateClock()
           f:ClearAllPoints()
           f:SetPoint("CENTER", UIParent, "CENTER", centerX - uiWidth / 2, centerY - uiHeight / 2)
           local point, _, relativePoint, px, py = f:GetPoint(1)
-          FC.db.position = { point = point, relativePoint = relativePoint, x = math.floor(px + 0.5), y = math.floor(py + 0.5) }
+          local p=FC.db.position
+          p.point,p.relativePoint,p.x,p.y=point,relativePoint,math.floor(px+.5),math.floor(py+.5)
+          KHQOL.PositionStore:Committed(function() FC:ApplyClock();FC:ApplyLayout() end)
         end
       end
       f.dragStartX, f.dragStartY = nil, nil

@@ -86,7 +86,9 @@ function CFA:CreateUI()
         -- The root is always anchored to UIParent; retain a valid saved anchor.
         root:ClearAllPoints()
         root:SetPoint(CFA.db.position.point, UIParent, CFA.db.position.point, CFA.db.position.x, CFA.db.position.y)
+        KHQOL.PositionStore:Committed()
     end
+    CFA.StopPositionDrag=StopMove
     -- Positioning is attached to the visible icon only, so transparent space
     -- and the message area continue passing drags through to the game camera.
     button:RegisterForDrag("LeftButton")

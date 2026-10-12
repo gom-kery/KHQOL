@@ -19,9 +19,11 @@ end
 function KHQOL:BuildPositionTargets()
   local list={}; local m=self.modules; local fc=m.clock
   local function add(id,key,name,frame,write,lock,apply,extra)
-    if key and m[key] and m[key].experimental then return end
+    if key and not self:CanRunModule(key) then return end
+    -- Buff runtime is a legacy exception, but its editor remains behind lab access.
+    if key=="buffReminder" and not self.LabLock:IsUnlocked() then return end
     if not frame or (key and not self:GetEnabled(key)) then return end
-    local t=extra or {}; t.id=id; t.name=name; t.frame=frame; t.write=write; t.lock=lock; t.apply=apply
+    local t=extra or {}; t.id=id; t.key=key; t.name=name; t.frame=frame; t.write=write; t.lock=lock; t.apply=apply
     list[#list+1]=t; return t
   end
   local function pointWriter(p,xKey,yKey)
@@ -59,14 +61,12 @@ function KHQOL:BuildPositionTargets()
     local p=fc.db.todo.window
     local note=fc.todoFrame or E:Virtual("note",p,p.width or 430,p.height or 310)
     add("note","todo","Forever Note",note,pointWriter(p),lock(p,"positionLocked"),function() if fc.todoFrame then applyPoint(fc.todoFrame,p) end end,{bounds=function(x,y,w,h)
-      local left,bottom,right,top=x-w/2,y-h/2,x+w/2,y+h/2
-      if fc.todoFrame then for _,child in ipairs({fc.todoFrame.favoriteList,fc.todoFrame.pageJump}) do
-        if child and child:IsShown() then
-          local l,b,cw,ch=child:GetRect(); local scale=child:GetEffectiveScale()/UIParent:GetEffectiveScale()
-          if l then left=math.min(left,l*scale);bottom=math.min(bottom,b*scale);right=math.max(right,(l+cw)*scale);top=math.max(top,(b+ch)*scale) end
-        end
-      end end
-      return (left+right)/2,(bottom+top)/2,right-left,top-bottom
+      local children={}
+      if fc.todoFrame then
+        if fc.todoFrame.favoriteList then children[#children+1]=fc.todoFrame.favoriteList end
+        if fc.todoFrame.pageJump then children[#children+1]=fc.todoFrame.pageJump end
+      end
+      return KHQOL.PositionStore:Bounds(note,x,y,w,h,children)
     end})
   end
   local fbr=_G.ForeverBuffReminder
@@ -78,21 +78,26 @@ function KHQOL:BuildPositionTargets()
       local size=db.iconSize; local left,bottom,right,top
       for _,frame in ipairs(fbr.alertFrames or {}) do if frame:IsShown() then
         local l,b,w,h=frame:GetRect()
+        local ratio=frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
+        if l then l,b,w,h=l*ratio,b*ratio,w*ratio,h*ratio end
         if l then left=math.min(left or l,l); bottom=math.min(bottom or b,b); right=math.max(right or l+w,l+w); top=math.max(top or b+h,b+h) end
       end end
-      if left then return (left+right)/2,(bottom+top)/2,right-left,top-bottom end
+      if left then
+        local ax,ay=KHQOL.PositionStore:Center(fbr.anchor)
+        return x+(left+right)/2-ax,y+(bottom+top)/2-ay,right-left,top-bottom
+      end
       return x+size/2,y-size/2,size,size
     end})
   end
   local fr=m.range
-  if fr.db then add("range","range","Range · 사거리",fr.Display.frame,pointWriter(fr.db),lock(fr.db),function() fr.Display:ApplyLayout(true) end,{sample=fr.db.shape,sampleSize=fr.db.size,bounds=function(x,y) local size=fr.db.size+8;return x,y,size,size end}) end
+  if fr.db then add("range","range","Range · 사거리",fr.Display.frame,pointWriter(fr.db),lock(fr.db),function() fr.Display:ApplyLayout(true) end,{sample=fr.db.shape,sampleSize=fr.db.size,bounds=function(x,y) local w,h=fr.Display.frame:GetSize();return x,y,math.max(16,w),math.max(16,h) end}) end
   local rs=KHQOLResourceSwingDB
   if rs and rs.enabled~=false then
     add("resource","resourceSwing","Resource Swing · 자원 / 스윙",KHQOLResourceSwingFrame,pointWriter(rs),lock(rs),function() m.resourceSwing:ApplyPosition() end,{bounds=function(x,y,w,h) return m.resourceSwing:GetEditorBounds(x,y,w,h) end})
     if m.resourceSwing:CanShowAux() then
       add("ammo","resourceSwing","Resource Swing · 탄약 / 영혼의 조각",_G.KHQOLResourceSwingAmmoAnchor,pointWriter(rs,"ammoX","ammoY"),lock(rs,"ammoLocked"),function() m.resourceSwing:ApplyPosition() end,{sample="탄약 / 영혼의 조각"})
     end
-    if rs.showCombo and rs.comboPosition=="FREE" and m.resourceSwing:IsComboClass() then
+    if rs.showCombo and rs.comboPosition=="FREE" and select(2,m.resourceSwing:GetComboData()) then
       local combo=m.resourceSwing.comboFrame
       if combo then
         local p={point=rs.comboPoint,relativePoint=rs.comboRelativePoint,x=rs.comboX,y=rs.comboY}
@@ -108,7 +113,7 @@ function KHQOL:BuildPositionTargets()
     add("campfire.complete","campfire","Campfire · 효과 획득",complete,function(dx,dy)
       cfa.db.completePosition=cfa.db.completePosition or {point="CENTER",x=0,y=80}
       pointWriter(cfa.db.completePosition)(dx,dy)
-    end,lock(cfa.db),function() self:ApplyEditorPositions() end,{sample="야영 효과를 받았습니다!"})
+    end,lock(cfa.db),function() self:ApplyEditorPositions() end,{sample="야영 효과를 받았습니다!",bounds=function(x,y) return x,y,complete:GetStringWidth()+8,complete:GetStringHeight()+8 end})
   end
   local cb=m.castBar
   if cb.db then
@@ -127,11 +132,52 @@ function KHQOL:BuildPositionTargets()
        bounds=function(x,y) return x,y,math.max(220,showSwords and width*3 or 0,textWidth),(showSwords and width*1.5 or 0)+2*cs.db.fontSize+40 end})
   end
   local qn=m.questNavigator
-  if qn.db then add("quest","questNavigator","Quest Navigator · 안내 / 완료",qn.root,pointWriter(qn.db,"positionX","positionY"),lock(qn.db),function() qn:ApplyLayout() end,{sample="퀘스트 방향 · 120 m",sampleY=-30,art={{texture="Interface\\AddOns\\KHQOL\\Media\\QuestNavigator\\Arrow.tga",width=qn.db.arrowSize,height=qn.db.arrowSize,y=30}}}) end
+  local noteNavigation=fc.db and fc.db.todo.navigation and fc.db.todo.navigation.enabled and self:GetEnabled("todo")
+  if qn.db then add("quest",self:GetEnabled("questNavigator") and "questNavigator" or noteNavigation and "todo" or "questNavigator","퀘스트 / 노트 · 공용 안내 HUD",qn.root,pointWriter(qn.db,"positionX","positionY"),lock(qn.db),function() qn:ApplyLayout() end,{sample="퀘스트 방향 · 120 m",sampleY=-30,art={{texture="Interface\\AddOns\\KHQOL\\Media\\QuestNavigator\\Arrow.tga",width=qn.db.arrowSize,height=qn.db.arrowSize,y=30}}}) end
   local th=m.threat
   if th.db then add("threat","threat","Threat · 위협 수준",th.root,pointWriter(th.db.position),lock(th.db),function() th:ApplyLayout() end,{sample="위협 수준 78%"}) end
   local pa=m.pvpAlert
   if pa.db then add("pvp","pvpAlert","PvP Alert · 경고 / 보조 목록",pa.frame,pointWriter(pa.db),function() pa.moving=false; pa.frame:EnableMouse(false); pa.moveText:Hide() end,function() pa:ApplyLayout() end,{sample="상대 플레이어 · 주시 중"}) end
+  local xp=m.experienceBar
+  if xp.db and xp.db.mode=="horizontal" then
+    add("experience","experienceBar","경험치 바",xp.frame,function(dx,dy)
+      xp.db.x=xp.db.x+dx*xp.db.scale;xp.db.y=xp.db.y+dy*xp.db.scale
+    end,function() xp.unlocked=false end,function() xp:ApplyLayout();xp:Update() end,{sample="경험치 / 평판"})
+  end
+  local env=m.environmentTimer
+  if env.db and self:CanRunModule("environmentTimer") then
+    local db=env.db;local hud=db.style=="hud";local scale=hud and 1 or db.scale
+    local timers={};for _,id in ipairs({"BREATH","EXHAUSTION","FEIGNDEATH"}) do if db.timers[id] then timers[#timers+1]=id end end
+    if #timers>0 then
+      local width=hud and math.max(480,db.hudGap+2*(db.hudSize*128/420*(db.hudThickness/8))*104/128+32) or db.width
+      local height=hud and (db.hudSize*464/420+100) or (db.height*#timers+32*(#timers-1))
+      local frame=E:Virtual("environment",{x=db.x/scale,y=db.y/scale},width,height);frame:SetScale(scale)
+      add("environment","environmentTimer","환경 타이머 · 그룹",frame,function(dx,dy)
+        db.x=db.x+dx*scale;db.y=db.y+dy*scale
+      end,function() env.unlocked=false end,function() env.layoutCount=nil;env:Render(0) end,
+        {sample="호흡 · 피로도 · 죽은척",suppress={env.frame},mirror=env.frame})
+      if hud then
+        local names={BREATH="호흡",EXHAUSTION="피로도",FEIGNDEATH="죽은척"}
+        for index,timer in ipairs(timers) do
+          local id=timer;local p=db.hudTextPositions[id]
+          local dx=index<=2 and (index==1 and -1 or 1)*(db.hudGap/2+db.hudThickness+db.hudSize*.12) or 0
+          local dy=-db.hudSize/2-(index<=2 and 24 or 56)
+          local original={x=p and p.x or dx,y=p and p.y or dy}
+          local text=E:Virtual("environment.text."..id,{x=db.x+original.x,y=db.y+original.y},math.max(80,db.hudTextSize*7),db.hudTextSize+16)
+          local target=add("environment.text."..id,"environmentTimer","환경 · "..names[id].." 텍스트",text,function(x,y)
+            db.hudTextPositions[id]={x=original.x+x,y=original.y+y}
+          end,function() env.unlocked=false end,nil,{parentID="environment",sample=names[id].." 42초",sampleSize=db.hudTextSize})
+          target.textDefault={x=dx,y=dy};target.textOriginal=original;target.textTimer=id
+        end
+      end
+    end
+  end
+  local proc=m.procAlert
+  if proc.db then add("proc","procAlert","발동 버프 · HUD",proc.frame,function(dx,dy)
+    proc.db.hud.x=proc.db.hud.x+dx*proc.db.hud.scale;proc.db.hud.y=proc.db.hud.y+dy*proc.db.hud.scale
+  end,function() proc.unlocked=false;proc.testUntil=nil end,function() proc:Layout();proc:Render() end,{sample="발동 버프 미리보기"}) end
+  local monitor=m.performanceMonitor
+  if monitor.db then add("monitor","performanceMonitor","성능 모니터",monitor.frame,pointWriter(monitor.db),lock(monitor.db,"positionLocked"),function() monitor:ApplyLayout() end) end
   -- Minimap buttons keep their circular relationship, rather than becoming free HUDs.
   local function minimap(id,key,name,frame,db,apply)
     if not db or db.show==false then return end
@@ -144,5 +190,54 @@ function KHQOL:BuildPositionTargets()
   end
   minimap("minimap",nil,"KHQOL · 미니맵",self.minimapButton,self.db.minimap,function() self:UpdateMinimapButton() end)
   if fc.db then minimap("note.minimap","todo","Note · 미니맵",fc.todoMinimapButton,fc.db.todo.minimap,function() fc:UpdateTodoMinimapButton() end) end
+  self:ConfigurePositionResets(list)
   return list
+end
+
+function KHQOL:ConfigurePositionResets(list)
+  local m,fc=self.modules,self.modules.clock
+  local function point(t,getDB,defaults,fields)
+    if not defaults then return end
+    fields=fields or {point="point",relativePoint="relativePoint",x="x",y="y"}
+    local p={point=defaults.point or "CENTER",relativePoint=defaults.relativePoint or defaults.point or "CENTER",x=defaults.x or 0,y=defaults.y or 0}
+    t.resetPoint=p
+    t.resetWrite=function()
+      local db=getDB()
+      for k,field in pairs(fields) do if field then db[field]=p[k] end end
+    end
+  end
+  for _,t in ipairs(list) do
+    local id=t.id
+    if id=="clock" then point(t,function() return fc.db.position end,fc.DEFAULTS.position)
+    elseif id=="note" then point(t,function() return fc.db.todo.window end,fc.DEFAULTS.todo.window)
+    elseif id=="range" then point(t,function() return m.range.db end,m.range.defaults)
+    elseif id=="resource" then point(t,function() return KHQOLResourceSwingDB end,m.resourceSwing.defaults)
+    elseif id=="ammo" then local d=m.resourceSwing.defaults;point(t,function() return KHQOLResourceSwingDB end,{point=d.ammoPoint,relativePoint=d.ammoRelativePoint,x=d.ammoX,y=d.ammoY},{point="ammoPoint",relativePoint="ammoRelativePoint",x="ammoX",y="ammoY"})
+    elseif id=="resource.combo" then local d=m.resourceSwing.defaults;point(t,function() return KHQOLResourceSwingDB end,{point=d.comboPoint,relativePoint=d.comboRelativePoint,x=d.comboX,y=d.comboY},{point="comboPoint",relativePoint="comboRelativePoint",x="comboX",y="comboY"})
+    elseif id=="campfire" then point(t,function() return m.campfire.db.position end,m.campfire.defaults.position)
+    elseif id=="campfire.complete" then point(t,function() m.campfire.db.completePosition=m.campfire.db.completePosition or {};return m.campfire.db.completePosition end,{y=80})
+    elseif id=="cast" and not t.linked then point(t,function() return m.castBar.db.position.free end,m.castBar.defaults.position.free)
+    elseif id=="combat" then point(t,function() return m.combatStatus.db.position end,m.combatStatus.defaults.position)
+    elseif id=="threat" then point(t,function() return m.threat.db.position end,m.threat.defaults.position)
+    elseif id=="pvp" then point(t,function() return m.pvpAlert.db end,{y=165})
+    elseif id=="quest" then point(t,function() return m.questNavigator.db end,{x=0,y=180},{x="positionX",y="positionY"})
+    elseif id=="buffs" then point(t,function() return ForeverBuffReminderDB.position end,ForeverBuffReminder.profileDefaults.position)
+    elseif id=="experience" then point(t,function() return m.experienceBar.db end,m.experienceBar.defaults,{x="x",y="y"});t.resetPhysical=true
+    elseif id=="environment" then point(t,function() return m.environmentTimer.db end,m.environmentTimer.defaults,{x="x",y="y"});t.resetPhysical=true
+    elseif id=="proc" then point(t,function() return m.procAlert.db.hud end,m.procAlert.defaults.hud,{x="x",y="y"});t.resetPhysical=true
+    elseif id=="monitor" then point(t,function() return m.performanceMonitor.db end,m.performanceMonitor.defaults,{x="x",y="y"})
+    elseif t.textDefault then
+      point(t,function() local db=m.environmentTimer.db.hudTextPositions;db[t.textTimer]=db[t.textTimer] or {};return db[t.textTimer] end,t.textDefault,{x="x",y="y"})
+      t.write=function(dx,dy)
+        local p=t.handle.resetting and t.textDefault or t.textOriginal
+        m.environmentTimer.db.hudTextPositions[t.textTimer]={x=p.x+dx,y=p.y+dy}
+      end
+    elseif id:match("^clock%.") then
+      local key=id:match("^clock%.(.+)$")
+      if fc.db.modules[key] then point(t,function() return fc.db.modules[key].position end,fc.DEFAULTS.modules[key].position,{x="x",y="y"})
+      elseif key=="alert" or key=="tools" or key=="stopwatch" then
+        point(t,function() local d=fc.db.clockTools;d.positions=d.positions or {};d.positions[key]=d.positions[key] or {};return d.positions[key] end,{y=key=="alert" and 160 or key=="tools" and -80 or 110})
+      end
+    elseif t.minimap then t.resetAngle=id=="minimap" and 225 or 135 end
+  end
 end

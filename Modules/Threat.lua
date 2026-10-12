@@ -339,7 +339,7 @@ function Threat:SavePosition()
     local scale=self.root:GetEffectiveScale()/UIParent:GetEffectiveScale()
     self.db.position={point="CENTER",relativePoint="CENTER",x=x*scale-cx,y=y*scale-cy}
   end
-  self:ApplyLayout()
+  KHQOL.PositionStore:Committed(function() self:ApplyLayout() end)
 end
 function Threat:ResetPosition()
   if self.dragging then self.root:StopMovingOrSizing(); self.dragging=false end
@@ -518,20 +518,6 @@ function Threat:StopTest() self.testing=false end
 function Threat:BuildSettings(content,y)
   local db=self:GetDB(); local b=KHQOL.UI:CreateBuilder(content,y)
   local function change(key,v) db[key]=v; self:Changed() end
-  b:Section("위치")
-  b:Checkbox("위치 잠금",function() return db.locked end,function(v) change("locked",v) end)
-  b:Description("잠금을 풀면 이동 영역이 표시됩니다. 원하는 곳으로 드래그한 뒤 다시 잠그세요.")
-  local function setCoordinate(axis,v)
-    v=tonumber(v)
-    if v and v==v and v~=math.huge and v~=-math.huge then
-      if self.dragging then self:SavePosition() end
-      db.position[axis]=math.max(-5000,math.min(5000,v)); self:Changed()
-    end
-  end
-  b:Edit("X 위치 (Enter로 저장)",function() return string.format("%.0f",db.position.x) end,function(v) setCoordinate("x",v) end)
-  b:Edit("Y 위치 (Enter로 저장)",function() return string.format("%.0f",db.position.y) end,function(v) setCoordinate("y",v) end)
-  b:Button("위치 초기화",function() self:ResetPosition(); self:RefreshControls() end)
-  b:Description("기본 위치는 화면 중앙에서 아래 120입니다. X는 오른쪽, Y는 위쪽이 양수입니다.")
   b:Section("어그로 표시")
   b:Description("현재 선택한 적 한 마리에 대한 내 Threat를 화면 독립 표시창에 보여줍니다.")
   b:Dropdown("표시 방식",{{value="percent",text="퍼센트 (권장)"},{value="value",text="누적 수치"},{value="both",text="수치 + 퍼센트"}},function() return db.displayMode end,function(v) change("displayMode",v) end)
@@ -555,6 +541,20 @@ function Threat:BuildSettings(content,y)
   b:Dropdown("역할 판정",{{value="AUTO",text="자동 (파티 역할 / 전문화)"},{value="TANK",text="탱"},{value="DAMAGER",text="딜"},{value="HEALER",text="힐"}},function() return db.instanceRole end,function(v) change("instanceRole",v) end)
   b:Description("자동 인식이 안 되면 역할을 직접 선택하세요. 역할 미확인 시에는 숨기며, 세 역할을 모두 체크하면 표시합니다.")
   b:Description("필드의 기존 표시 조건은 유지합니다. 위치 미리보기와 가상 테스트는 역할 설정과 관계없이 사용할 수 있습니다.")
+  b:Section("위치")
+  b:Checkbox("위치 잠금",function() return db.locked end,function(v) change("locked",v) end)
+  b:Description("잠금을 풀면 이동 영역이 표시됩니다. 원하는 곳으로 드래그한 뒤 다시 잠그세요.")
+  local function setCoordinate(axis,v)
+    v=tonumber(v)
+    if v and v==v and v~=math.huge and v~=-math.huge then
+      if self.dragging then self:SavePosition() end
+      db.position[axis]=math.max(-5000,math.min(5000,v)); self:Changed()
+    end
+  end
+  b:Edit("X 위치 (Enter로 저장)",function() return string.format("%.0f",db.position.x) end,function(v) setCoordinate("x",v) end)
+  b:Edit("Y 위치 (Enter로 저장)",function() return string.format("%.0f",db.position.y) end,function(v) setCoordinate("y",v) end)
+  b:Button("위치 초기화",function() self:ResetPosition(); self:RefreshControls() end)
+  b:Description("기본 위치는 화면 중앙에서 아래 120입니다. X는 오른쪽, Y는 위쪽이 양수입니다.")
   b:Section("위협 수준 알림")
   b:Checkbox("위협 아이콘 표시",function() return db.iconEnabled end,function(v) change("iconEnabled",v) end)
   b:Checkbox("주의 단계에서도 아이콘 표시",function() return db.showCautionIcon end,function(v) change("showCautionIcon",v) end,function() return db.iconEnabled end)
@@ -581,7 +581,7 @@ function Threat:BuildSettings(content,y)
   content:HookScript("OnHide",function()
     if KHQOL.PositionEditor and KHQOL.PositionEditor.active then return end
     if self.dragging then self:SavePosition() end
-    db.locked=true; self.testing=false; self:Changed()
+    self.testing=false; self:Changed()
   end)
   return b.y
 end

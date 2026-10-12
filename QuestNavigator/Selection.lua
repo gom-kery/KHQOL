@@ -203,9 +203,82 @@ function QN:PublishCandidates(excludedID,force)
   N:SetSourceDestinations("Quest",destinations)
 end
 function QN:FindClosestQuest(excludedID)
+  local region=self:CurrentNavigationRegion()
+  if region then
+    local chosen=self:FindRegionQuest(region,excludedID)
+    if chosen then return chosen end
+  end
   self:PublishCandidates(excludedID,true)
   local destination=N:GetNearestDestination("Quest",excludedID,self.db.preferSameRegion)
   return destination and destination.id or nil
+end
+
+-- Regional focus uses the same accepted watches/header as the visible tracker.
+-- Read native distance (including a valid zero), never compare map XY across
+-- maps or guess missing/secret distances. No new polling or saved selection.
+function QN:CurrentNavigationRegion()
+  local state=self.autoRegionState
+  if not self.active or not self.db.autoTrack or not self:AutoRegionEnabled() or
+     not state or state.manual or not state.selected then return end
+  local zone,name=self:PlayerTrackerRegion()
+  if zone==state.appliedZone and name==state.appliedName then return state.selected end
+end
+function QN:FindRegionQuest(region,excludedID)
+  local ok,watches,ready=pcall(self.CollectTrackerWatches,self)
+  if not ok or ready==false or not QN.IsTable(watches) then return nil,true end
+  local best,bestLevel,bestDistance,bestOrder,deferred
+  local api=C_QuestLog
+  local playerMap=QN.Call(C_Map and C_Map.GetBestMapForUnit,"player")
+  for _,watch in ipairs(watches) do
+    local id=watch.id
+    if QN.IsID(id) and id~=excludedID then
+      local read,info=pcall(self.GetTrackerQuestInfo,self,id,watch.index)
+      if not read or not QN.IsTable(info) then deferred=true
+      elseif info.regionKey==region then
+        local accepted=QN.Call(api and api.IsOnQuest,id)
+        local complete=self:IsQuestReadyForTurnIn(id)
+        if not QN.IsTrue(accepted) or not QN.IsFalse(complete) then
+          if not QN.IsFalse(accepted) and not QN.IsTrue(complete) then deferred=true end
+        else
+          local distance,onContinent=QN.Call(api and api.GetDistanceSqToQuest,id)
+          if QN.IsNumber(distance) and distance>=0 and QN.IsTrue(onContinent) then
+            local map,x,y=self:GetWaypoint(id,playerMap)
+            if validPoint(map,x,y) then
+              local level=QN.IsNumber(info.level) and info.level>0 and info.level or math.huge
+              local order=QN.IsNumber(watch.index) and watch.index or math.huge
+              if not best or level<bestLevel or (level==bestLevel and (distance<bestDistance or
+                 (distance==bestDistance and (order<bestOrder or (order==bestOrder and id<best))))) then
+                best,bestLevel,bestDistance,bestOrder=id,level,distance,order
+              end
+            else deferred=true end
+          elseif not QN.IsFalse(onContinent) then deferred=true end
+        end
+      end
+    end
+  end
+  return best,deferred==true
+end
+function QN:TryFocusRegionQuest()
+  local request=self.regionFocus
+  if not request then return end
+  if not self.active or not self.db.autoTrack or not self:AutoRegionEnabled() or
+     request.generation~=self.trackerGeneration or request.profile~=KHQOL.profileGeneration or
+     request.selection~=(self.regionSelectionGeneration or 0) then self.regionFocus=nil;return end
+  local zone,name=self:PlayerTrackerRegion()
+  if zone~=request.zone or name~=request.name or self:CurrentNavigationRegion()~=request.region then self.regionFocus=nil;return end
+  if QN.IsTrue(QN.Call(InCombatLockdown)) or self:TrackerEditing() or self:TrackerTaxiState()~=false then return end
+  if self:OtherNavigationActive() or (N.manual and N.manual.source~="Quest") then self.regionFocus=nil;return end
+  if UI:IsTransitioning("Quest") or (self.selectedQuestID and QN.IsTrue(self:IsQuestReadyForTurnIn(self.selectedQuestID))) then return end
+  local chosen,deferred=self:FindRegionQuest(request.region)
+  if not chosen then if not deferred then self.regionFocus=nil end;return end
+  if chosen==self:GetTrackedQuest() then self.regionFocus=nil;return end
+  if type(C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID)~="function" then self.regionFocus=nil;return end
+  self.settingSuperTrack=true
+  QN.Call(C_SuperTrack.SetSuperTrackedQuestID,chosen)
+  self.settingSuperTrack=nil
+  if self:GetTrackedQuest()~=chosen then return end -- failed native call: existing events may retry
+  self.regionFocus=nil
+  self:AdoptQuest(chosen,false)
 end
 
 local function objectiveLabel(text)

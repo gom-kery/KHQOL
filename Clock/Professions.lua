@@ -183,11 +183,12 @@ function FC:CreateProfessions()
       local x, y = GetCursorPosition(); self.didDrag = math.abs(x - (self.dragX or x)) > 5 or math.abs(y - (self.dragY or y)) > 5; self:StopMovingOrSizing()
       if self.didDrag then
         local clockX, clockY = FC.clockFrame:GetCenter(); local buttonX, buttonY = self:GetCenter()
-        FC.db.modules.professions.position = { x = math.floor(buttonX - clockX + .5), y = math.floor(buttonY - clockY + .5) }
-        FC:UpdateProfessionAnchor()
+        local p=FC.db.modules.professions.position;p.x,p.y=math.floor(buttonX-clockX+.5),math.floor(buttonY-clockY+.5)
+        KHQOL.PositionStore:Committed(function() FC:UpdateProfessionAnchor() end)
       end
     end
   end)
+  button:HookScript("OnMouseUp",function(self) self.dragX,self.dragY=nil,nil end)
   button:SetScript("OnClick", function(self) if self.didDrag then self.didDrag = nil; return end; FC:ToggleProfessions() end)
   local panel = CreateFrame("Frame", "ForeverClockProfessionsPanel", UIParent, "BackdropTemplate")
   panel:SetFrameStrata("DIALOG"); panel:SetClampedToScreen(true); FC.MakeBackdrop(panel, .95, .73, .15, .92)

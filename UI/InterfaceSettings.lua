@@ -19,5 +19,16 @@ Interface:RegisterTab("range",nil,function(content,y)
     fr:UpdateSettings()
   end)
 end)
-Interface:RegisterTab("threat",nil,function(content,y) return KHQOL.modules.threat:BuildSettings(content,y) end)
 Interface:RegisterTab("tooltip",nil,function(content,y) return KHQOL.modules.tooltip:BuildSettings(content,y) end)
+
+Interface:RegisterTab("units",nil,function(content,y) return KHQOL.modules.unitFrames:BuildSettings(content,y) end)
+Interface:RegisterTab("clock",nil,function(content,y)
+  local fc=KHQOL.modules.clock
+  fc:CreateSettings(content)
+  function content:RefreshTab() fc:RefreshSettings() end
+  content:RefreshTab()
+  return -content:GetHeight()
+end)
+local Quest=UI:NewSettingsGroup("quest")
+KHQOL.QuestSettings=Quest
+Quest:RegisterTab("navigation",nil,function(content,y) return KHQOL.modules.questNavigator:BuildSettings(content,y) end)

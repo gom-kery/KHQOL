@@ -32,7 +32,7 @@ end
 function L:RefreshUI()
   local s=KHQOL.settings
   if KHQOL.UI then KHQOL.UI:CloseDropdown() end
-  if ColorPickerFrame then ColorPickerFrame:Hide() end
+  if KHQOL.UI then KHQOL.UI:CloseColorPicker() end
   if s then
     if s.page=="labs" then s:ShowPage("labs") else s:RefreshActivePage() end
   end
@@ -50,6 +50,7 @@ function L:Unlock(value)
   return true,"잠금을 해제했습니다."
 end
 function L:Relock()
+  if KHQOL.PositionEditor and KHQOL.PositionEditor.active then KHQOL.PositionEditor:Finish(false) end
   local d=self:GetStorage();d.unlocked=false;d.unlockVerifier=nil
   self:RefreshRuntime();self:RefreshUI()
   local h=KHQOL.modules.objectHighlight

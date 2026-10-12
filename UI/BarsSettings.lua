@@ -12,7 +12,10 @@ local function environment(content,y)
   end
   local function slider(title,key,lo,hi,step,available)
     return b:Slider(title,lo,hi,step or 1,function() return db[key] end,function(v) db[key]=v; E:Changed() end,
-      function(v) return string.format(step and step<1 and "%.2f" or "%d",v) end,available or enabled)
+      function(v)
+        if key=="scale" or key=="alpha" then return string.format("%.0f%%",v*100) end
+        return string.format("%d",v)..(key=="critical" and " 초" or (key=="caution" or key=="danger") and "%" or " px")
+      end,available or enabled)
   end
   local function dropdown(title,key,options,available)
     return b:Dropdown(title,options,function() return db[key] end,function(v) db[key]=v; E:Changed() end,available or enabled)
@@ -27,11 +30,13 @@ local function environment(content,y)
   local function vertical() return enabled() and db.style=="vertical" end
   local function hud() return enabled() and db.style=="hud" end
   b:Section("위치")
-  b:Button("위치 잠금 해제",function() E.unlocked=true; E:Changed() end,nil,enabled)
-  b:Button("위치 잠금",function() E:SavePosition(); E.unlocked=false; E:Changed() end,nil,enabled)
+  b:Checkbox("위치 잠금",function() return not E.unlocked end,function(v)
+    E:SavePosition();E.unlocked=not v;E:Changed()
+  end,enabled)
+
   slider("X 위치","x",-3000,3000); slider("Y 위치","y",-3000,3000)
   b:Button("위치 기본값 복원",function() db.x,db.y=E.defaults.x,E.defaults.y; E:Changed() end,nil,enabled)
-  b:Description("잠금 해제 상태에서는 타이머가 없어도 이동용 예시가 표시됩니다. 위치는 즉시 저장됩니다.")
+  b:Description("잠금 해제 상태에서는 타이머가 없어도 이동용 예시가 표시됩니다. 드래그 후 프로필 반영. 잠금 해제는 현재 접속에서만 유지됩니다.")
   b:Section("모양 및 크기")
   slider("폭","width",40,800,1,bar); slider("높이","height",8,500,1,bar)
   slider("배율","scale",.5,2,.05,bar)

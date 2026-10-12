@@ -83,16 +83,16 @@ function CastBar:CreateBar()
   name:SetWordWrap(false); name:SetNonSpaceWrap(false); name:SetMaxLines(1)
   local time=textLayer:CreateFontString(nil,"OVERLAY","GameFontHighlight")
   self.frame,self.bar,self.background,self.icon,self.nameText,self.timeText=frame,bar,bg,icon,name,time
-  frame:SetScript("OnDragStart",function(f) if self:IsEnabled() and not self.db.position.locked and not self.linked then f:StartMoving() end end)
+  frame:SetScript("OnDragStart",function(f) if self:IsEnabled() and not self.db.position.locked and not self.linked then f.positionMoving=true;f:StartMoving() end end)
   frame:SetScript("OnDragStop",function(f)
-    f:StopMovingOrSizing()
+    f:StopMovingOrSizing();f.positionMoving=nil
     if self.linked then return end
     local x,y=f:GetCenter(); local cx,cy=UIParent:GetCenter()
     if x and cx then
       local scale=f:GetEffectiveScale()/UIParent:GetEffectiveScale()
       local free=self.db.position.free
       free.point,free.relativePoint,free.x,free.y="CENTER","CENTER",x*scale-cx,y*scale-cy
-      self:ApplyLayout(); self:RefreshControls()
+      KHQOL.PositionStore:Committed(function() self:ApplyLayout() end); self:RefreshControls()
     end
   end)
   self.updateCallback=function(_,elapsed) self:Tick(elapsed) end

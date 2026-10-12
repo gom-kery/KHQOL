@@ -5,7 +5,7 @@ FC.L = {}
 
 local enUS = {
   TITLE = "ForeverClock", SETTINGS = "Settings", CLOCK = "Clock", MODULES = "Modules",
-  ENABLE = "Enable", FONT_SIZE = "Font Size", SIDE_FONT_SIZE = "Side Font Size", POSITION = "Position", LOCK = "LOCK", UNLOCK = "UNLOCK", DRAG_TO_MOVE = "Unlock, then drag a side panel to a new dock slot.",
+  ENABLE = "Enable", FONT_SIZE = "Font Size", SIDE_FONT_SIZE = "Side Font Size", POSITION = "Position", LOCK = "LOCK", UNLOCK = "UNLOCK", DRAG_TO_MOVE = "Unlock, then drag the clock or side panel to the desired position.",
   DATE = "Date", MONEY = "Money", PERFORMANCE = "Performance", MONEY_DISPLAY = "Money Display",
   DATE_FORMAT = "Date Format", WEEKDAY = "Weekday", WEEKDAY_OFF = "Off", WEEKDAY_KO = "Korean", WEEKDAY_EN = "English",
   GOLD = "Gold", SILVER = "Silver", COPPER = "Copper", GOLD_SILVER = "Gold + Silver", GOLD_SILVER_COPPER = "Gold + Silver + Copper",
@@ -16,7 +16,7 @@ local enUS = {
 }
 local koKR = {
   TITLE = "ForeverClock", SETTINGS = "설정", CLOCK = "시계", MODULES = "모듈",
-  ENABLE = "사용", FONT_SIZE = "글씨 크기", SIDE_FONT_SIZE = "사이드 글씨 크기", POSITION = "위치", LOCK = "잠금", UNLOCK = "잠금 해제", DRAG_TO_MOVE = "잠금 해제 후 사이드 패널을 끌어 원하는 Dock Slot에 놓으세요.",
+  ENABLE = "사용", FONT_SIZE = "글씨 크기", SIDE_FONT_SIZE = "사이드 글씨 크기", POSITION = "위치", LOCK = "잠금", UNLOCK = "잠금 해제", DRAG_TO_MOVE = "잠금 해제 후 시계나 사이드 패널을 원하는 위치로 끌어 놓으세요.",
   DATE = "날짜", MONEY = "소지금", PERFORMANCE = "FPS / 지연시간", MONEY_DISPLAY = "소지금 표시",
   DATE_FORMAT = "날짜 표시", WEEKDAY = "요일", WEEKDAY_OFF = "미표시", WEEKDAY_KO = "한글", WEEKDAY_EN = "영문",
   GOLD = "골드", SILVER = "실버", COPPER = "코퍼", GOLD_SILVER = "골드 + 실버", GOLD_SILVER_COPPER = "골드 + 실버 + 코퍼",

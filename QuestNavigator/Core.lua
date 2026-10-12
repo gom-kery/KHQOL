@@ -76,6 +76,11 @@ function QN:OnEvent(event, questID, added)
     return
   end
   if event=="PLAYER_CONTROL_GAINED" then self:CheckRegionAfterControlChange() end
+  if event=="SUPER_TRACKING_CHANGED" then
+    if self.settingSuperTrack then return end
+    self.regionSelectionGeneration=(self.regionSelectionGeneration or 0)+1
+    self.regionFocus=nil
+  end
   if event=="PLAYER_ENTERING_WORLD" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" or event=="ZONE_CHANGED_INDOORS" or event=="PLAYER_MAP_CHANGED" or event=="PLAYER_CONTROL_LOST" or event=="PLAYER_CONTROL_GAINED" then self:UpdateAutoRegion() end
   if event=="PLAYER_CONTROL_LOST" or event=="PLAYER_CONTROL_GAINED" or event=="ZONE_CHANGED_INDOORS" or event=="PLAYER_MAP_CHANGED" then return end
   self:TryApplyAutoRegion()
@@ -89,7 +94,6 @@ function QN:OnEvent(event, questID, added)
   elseif event=="QUEST_TURNED_IN" and QN.IsID(questID) then
     self:QuestTurnedIn(questID)
   elseif event=="SUPER_TRACKING_CHANGED" then
-    if self.settingSuperTrack then return end
     local id=self:GetTrackedQuest()
     if id then self:CancelTransition(); self:AdoptQuest(id,true)
     elseif self:OtherNavigationActive() then self:CancelTransition(); self:AdoptQuest(nil,true)

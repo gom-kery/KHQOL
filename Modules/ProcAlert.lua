@@ -46,58 +46,15 @@ function P:GetSpellDetails(id)
   -- Existing safe helper supports C_Spell and the legacy spell API.
   return ForeverBuffReminder:GetSpellDetails(id)
 end
-local function readAura(a,id)
-  if a==nil then return end
-  if not safe(a) or type(a)~="table" or not number(a.spellId) then error("Unreadable aura identity") end
-  if a.spellId~=id then return end
-  if not safe(a.isHelpful) then error("Unreadable aura kind") end
-  if a.isHelpful==false then return end
-  for _,key in ipairs({"duration","expirationTime"}) do
-    if not safe(a[key]) or (a[key]~=nil and not number(a[key])) then error("Unreadable aura time") end
-  end
-  if not safe(a.icon) then error("Unreadable aura icon") end
-  return {duration=a.duration or 0,expirationTime=a.expirationTime or 0,icon=a.icon}
-end
 function P:ReadAuras(buffs)
-  if not self:IsEnabled() then return {} end
-  local found,unresolved,unknown={},{},{}
-  for id,b in pairs(buffs) do
-    if self:Normalize(b,id) and b.enabled then
-      local api=C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
-      if type(api)=="function" then
-        local status,a=KHQOL.ReadPublicAPI(api,id)
-        if status=="ok" then
-          local ok,value=pcall(readAura,a,id)
-          if ok then found[id]=value else unknown[id]=true end
-        else unknown[id]=true end -- Never bypass a rejected/restricted modern read.
-      else unresolved[id]=true end
-    end
+  local registered={}
+  if not self:IsEnabled() then return {},{} end
+  for id,b in pairs(buffs) do if self:Normalize(b,id) and b.enabled then registered[id]={} end end
+  local states=KHQOL.AuraReader:Read(registered);local found,unknown={},{}
+  for id,a in pairs(states) do
+    if a.state=="ACTIVE" then found[id]=a elseif a.state=="UNKNOWN" then unknown[id]=true end
   end
-  if next(unresolved) then
-    -- One bounded event-driven traversal for all older-client registrations.
-    local complete=false
-    local ok=pcall(function()
-      for i=1,255 do
-        local a
-        if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
-          a=C_UnitAuras.GetAuraDataByIndex("player",i,"HELPFUL")
-        elseif UnitAura then
-          local name,icon,_,_,duration,expiration,_,_,_,id=UnitAura("player",i,"HELPFUL")
-          if not safe(name) then error("Unreadable aura name") end
-          if not name then complete=true;break end
-          a={spellId=id,icon=icon,duration=duration,expirationTime=expiration}
-        else error("No supported Aura API") end
-        if not safe(a) then error("Unreadable aura") end
-        if not a then complete=true;break end
-        if not number(a.spellId) then error("Unreadable aura identity") end
-        if unresolved[a.spellId] then found[a.spellId]=readAura(a,a.spellId) end
-      end
-    end)
-    if not ok or not complete then
-      for id in pairs(unresolved) do unknown[id]=true end
-    end
-  end
-  self.apiUnavailable=next(unknown)~=nil
+  self.auraStates=states;self.apiUnavailable=next(unknown)~=nil
   return found,unknown
 end
 function P:Scan()
@@ -110,11 +67,8 @@ function P:Scan()
     a.started=continued and old.started or now; a.id=id; a.buff=buffs[id]
     active[id]=a
   end
-  -- Uncertainty is not an aura removal; only keep an already verified live aura.
-  for id in pairs(unknown or {}) do
-    local old=self.active[id]
-    if old and (old.expirationTime<=0 or old.expirationTime>now) and buffs[id] and buffs[id].enabled then active[id]=old end
-  end
+  -- Do not carry old countdowns/glows through an unreadable observation.
+  -- The next aura/combat event can restore a freshly verified state.
   self.active=active
 end
 function P:Winners(now)
@@ -247,7 +201,7 @@ function P:Render()
       if a then
         self:Visual(row,a,now); visible=true
         if a.expirationTime>0 then updating=true end
-      else self:HideRow(row,not enabled or not self.inCombat and not preview) end
+      else self:HideRow(row,self.apiUnavailable or not enabled or not self.inCombat and not preview) end
       if row:IsShown() then visible=true end
     end
   end

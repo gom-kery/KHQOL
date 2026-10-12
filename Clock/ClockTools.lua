@@ -59,10 +59,22 @@ local function Format(seconds)
   seconds = math.max(0, math.floor(seconds or 0))
   return string.format("%02d:%02d:%02d", math.floor(seconds / 3600), math.floor(seconds / 60) % 60, seconds % 60)
 end
-local function MakeMovable(frame)
+function FC:SaveClockTool(frame,key)
+  if not frame or not self.db or KHQOL.profileApplying then return end
+  frame:StopMovingOrSizing()
+  if not frame.positionMoving then return end
+  frame.positionMoving=nil
+  self.db.clockTools.positions=self.db.clockTools.positions or {}
+  local positions=self.db.clockTools.positions
+  local p=positions[key] or {}
+  if KHQOL.PositionStore:Point(frame,p) then positions[key]=p;KHQOL.PositionStore:Committed() end
+end
+local function MakeMovable(frame,key)
   frame:SetMovable(true); frame:EnableMouse(true)
-  frame:SetScript("OnMouseDown", function(self, button) if button == "LeftButton" and not FC.db.clockTools.positionLocked then self:StartMoving() end end)
-  frame:SetScript("OnMouseUp", function(self, button) if button == "LeftButton" then self:StopMovingOrSizing() end end)
+  frame:SetScript("OnMouseDown", function(self, button) if button == "LeftButton" and not FC.db.clockTools.positionLocked then self.positionMoving=true;self:StartMoving() end end)
+  frame:SetScript("OnMouseUp", function(self, button) if button == "LeftButton" then FC:SaveClockTool(self,key) end end)
+  frame:HookScript("OnHide",function(self) FC:SaveClockTool(self,key) end)
+  frame:SetClampedToScreen(true)
 end
 local function Choices(first, last, step)
   local values = {}
@@ -102,14 +114,17 @@ function FC:CreateClockTools()
   messageLayer:Hide()
   self.alertMessageFrame = messageLayer
   messageLayer:SetScript("OnMouseDown", function(layer, button)
-    if button == "LeftButton" and not FC.db.clockTools.positionLocked and layer.isTest and IsAltKeyDown and IsAltKeyDown() then layer:StartMoving() end
+    if button == "LeftButton" and not FC.db.clockTools.positionLocked and layer.isTest and IsAltKeyDown and IsAltKeyDown() then layer.positionMoving=true;layer:StartMoving() end
   end)
   messageLayer:SetScript("OnMouseUp", function(layer, button)
-    if button == "LeftButton" then layer:StopMovingOrSizing() end
+    if button == "LeftButton" then FC:SaveClockTool(layer,"alert") end
   end)
+  messageLayer:SetClampedToScreen(true)
+  messageLayer:HookScript("OnHide",function(layer) FC:SaveClockTool(layer,"alert") end)
   function self:ShowAlertMessage(message, isTest)
     local layer = self.alertMessageFrame
     if not layer then return end
+    if isTest and layer:IsShown() and not layer.isTest then return end
     layer.text:SetFont(self.FONT_PATH, settings.alertFontSize or 24, "OUTLINE")
     layer.text:SetText(message)
     layer.isTest = isTest and true or false
@@ -122,7 +137,7 @@ function FC:CreateClockTools()
   -- Stopwatch remains a separate, independently movable popup.
   local stopwatch = CreateFrame("Frame", "ForeverClockStopwatchFrame", UIParent, "BackdropTemplate")
   stopwatch:SetSize(300, 58); stopwatch:SetPoint("CENTER", 0, 110); stopwatch:SetFrameStrata("DIALOG")
-  self.MakeBackdrop(stopwatch, 1, .78, .18, .95); MakeMovable(stopwatch)
+  self.MakeBackdrop(stopwatch, 1, .78, .18, .95); MakeMovable(stopwatch,"stopwatch")
   stopwatch.time = NewLabel(stopwatch, "00:00:00", 22); stopwatch.time:SetPoint("LEFT", 14, 0)
   stopwatch.start = IconButton(stopwatch, "play", 42, function()
     stopwatch.running = not stopwatch.running
@@ -150,7 +165,7 @@ function FC:CreateClockTools()
 
   local f = CreateFrame("Frame", "ForeverClockToolsFrame", UIParent, "BackdropTemplate")
   f:SetSize(390, 282); f:SetPoint("CENTER", 0, -80); f:SetFrameStrata("DIALOG")
-  self.MakeBackdrop(f, 1, .78, .18, .95); MakeMovable(f)
+  self.MakeBackdrop(f, 1, .78, .18, .95); MakeMovable(f,"tools")
   local title = NewLabel(f, "알람 / 타이머", 17); title:SetPoint("TOPLEFT", 14, -12)
   f.stopwatchButton = WatchIconButton(f, function() stopwatch:SetShown(not stopwatch:IsShown()) end); f.stopwatchButton:SetPoint("TOPRIGHT", -42, -8)
   f.close = PlainCloseButton(f, function() f:Hide() end); f.close:SetPoint("TOPRIGHT", -9, -7)

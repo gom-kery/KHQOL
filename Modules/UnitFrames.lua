@@ -35,6 +35,45 @@ function M:UnitParts(unit)
     portrait=unit=="player" and container.PlayerPortrait or container.Portrait}
 end
 local function valid(v) return public(v) and type(v)=="number" and v==v and v>=0 and v<math.huge end
+local function bounded(v,fallback,low,high)
+  local n=public(v) and tonumber(v) or nil
+  if not valid(n) then n=fallback end
+  return math.max(low,math.min(high,n))
+end
+-- Missing independent heights retain the exact legacy split. New fields are
+-- written only when the user changes a height or resource visibility option.
+function M:CompactLayout(db)
+  local width=bounded(db.width,200,120,400)
+  local gap=bounded(db.gap,2,0,20)
+  local legacyHeight=math.max(bounded(db.height,58,44,120),36+gap)
+  local legacyHealth=math.floor((legacyHeight-16-gap)*.6)
+  local healthHeight=bounded(db.healthHeight,legacyHealth,8,100)
+  local powerHeight=bounded(db.powerHeight,legacyHeight-16-gap-legacyHealth,4,100)
+  local showPower=db.showPower~=false
+  local height=16+healthHeight+(showPower and gap+powerHeight or 0)
+  return width,height,gap,healthHeight,powerHeight,showPower
+end
+function M:SetBarHeight(unit,kind,value)
+  local db=self:GetDB()[unit]
+  local _,_,_,healthHeight,powerHeight=self:CompactLayout(db)
+  db.healthHeight,db.powerHeight=healthHeight,powerHeight
+  local key=kind=="health" and "healthHeight" or "powerHeight"
+  db[key]=bounded(value,db[key],kind=="health" and 8 or 4,100)
+  self:ApplySettings()
+end
+function M:SetTotalHeight(unit,value)
+  local db=self:GetDB()[unit]
+  local _,_,gap,healthHeight,powerHeight,showPower=self:CompactLayout(db)
+  local height=bounded(value,16+healthHeight+(showPower and gap+powerHeight or 0),24,236)
+  if showPower then
+    local available=math.max(12,math.min(200,height-16-gap))
+    healthHeight=math.max(8,math.min(100,math.floor(available*.6)))
+    powerHeight=math.max(4,math.min(100,available-healthHeight))
+    healthHeight=available-powerHeight
+  else healthHeight=bounded(height-16,healthHeight,8,100) end
+  db.height,db.healthHeight,db.powerHeight=height,healthHeight,powerHeight
+  self:ApplySettings()
+end
 function M:FormatValue(unit,kind,mode)
   if mode=="hide" or mode=="default" or call(UnitExists,unit)~=true then return "" end
   local current,maximum
@@ -81,30 +120,51 @@ end
 function M:UpdateBarText(owner,bar,unit,kind)
   if self.updatingText then return end
   self.updatingText=true
+  local ok,err=pcall(self.UpdateBarTextNow,self,owner,bar,unit,kind)
+  self.updatingText=false
+  if not ok then error(err,0) end
+end
+function M:UpdateBarTextNow(owner,bar,unit,kind)
   local mode=self:IsEnabled() and self:GetDB()[unit][kind] or "default"
-  owner.textOwners=owner.textOwners or {}; local state=owner.textOwners[kind]
+  local state=owner.textOwners and owner.textOwners[kind]
+  if state then
+    if state.text then state.text:Hide() end
+    if state.layer then state.layer:Hide() end
+  end
+  if mode=="default" or (kind=="power" and owner.powerHidden) then
+    if state then self:Release(state) end
+    return
+  end
+  owner.textOwners=owner.textOwners or {}
   if not state then
     state={}; owner.textOwners[kind]=state
-    local layer=CreateFrame("Frame",nil,owner.parts and owner.parts.root or bar:GetParent()); state.layer=layer
-    layer:SetAllPoints(bar); layer:SetFrameLevel(math.max(bar:GetFrameLevel(),layer:GetParent():GetFrameLevel())+30); layer:EnableMouse(false)
+  end
+  if mode=="hide" then
+    for _,key in ipairs({"TextString","LeftText","RightText","HealthBarText","ManaBarText"}) do
+      if bar[key] then self:Write(state,bar[key],"alpha",0) end
+    end
+    return
+  end
+  if not state.layer then
+    local parent=owner.parts and owner.parts.root or bar:GetParent()
+    local layer=CreateFrame("Frame",nil,parent); state.layer=layer
+    layer:SetAllPoints(bar); layer:EnableMouse(false)
+    local barLevel,parentLevel=call(bar.GetFrameLevel,bar),call(parent.GetFrameLevel,parent)
+    if valid(barLevel) and valid(parentLevel) then layer:SetFrameLevel(math.max(barLevel,parentLevel)+30) end
     local text=layer:CreateFontString(nil,"OVERLAY")
-    text:SetPoint("CENTER",bar,"CENTER"); text:SetWidth(bar:GetWidth()); state.text=text
+    -- Anchor geometry is resolved by the engine. Never copy secret GetWidth()
+    -- results into a size setter, even after a secret text has been rendered.
+    text:SetPoint("LEFT",bar,"LEFT",0,0); text:SetPoint("RIGHT",bar,"RIGHT",0,0)
+    text:SetJustifyH("CENTER"); text:SetJustifyV("MIDDLE"); state.text=text
   end
   state.text:Hide(); state.layer:Hide()
   state.text:SetFont(KHQOL.UI:Font(),math.max(8,math.min(24,tonumber(self:GetDB()[unit].textSize) or 12)),"OUTLINE")
   state.text:SetTextColor(1,1,1,1)
-  if mode=="default" then
-    self:Release(state)
-  else
-    state.text:SetWidth(bar:GetWidth())
-    local rendered=mode=="hide" or self:RenderValue(state.text,unit,kind,mode)
-    if not rendered then self:Release(state); self.updatingText=false; return end
-    for _,key in ipairs({"TextString","LeftText","RightText","HealthBarText","ManaBarText"}) do
-      if bar[key] then self:Write(state,bar[key],"alpha",0) end
-    end
-    if mode~="hide" then state.text:Show(); state.layer:SetShown(call(bar.IsShown,bar)==true) end
+  if not self:RenderValue(state.text,unit,kind,mode) then self:Release(state); return end
+  for _,key in ipairs({"TextString","LeftText","RightText","HealthBarText","ManaBarText"}) do
+    if bar[key] then self:Write(state,bar[key],"alpha",0) end
   end
-  self.updatingText=false
+  state.text:Show(); state.layer:SetShown(call(bar.IsShown,bar)==true)
 end
 -- Mirror the native threat flash onto rectangular compact edges. Native event,
 -- color and pulse timing remain the source of truth; no threat values are read.
@@ -162,11 +222,14 @@ function M:ApplyCompact(owner,p,unit,on)
     return
   end
   local db=self:GetDB()[unit]
-  local width=math.max(120,math.min(400,tonumber(db.width) or 200))
-  local height=math.max(44,math.min(120,tonumber(db.height) or 58))
-  local gap=math.max(0,math.min(20,tonumber(db.gap) or 2))
-  height=math.max(height,36+gap)
-  local healthHeight=math.floor((height-16-gap)*.6); local powerHeight=height-16-gap-healthHeight
+  -- Do not create half a compact layout if its native baseline is unreadable.
+  -- Public explicit dimensions may remain available when the resolved rect is secret.
+  for _,entry in ipairs({{p.root,"width"},{p.root,"height"},{p.healthContainer,"width"},
+    {p.healthContainer,"height"},{p.health,"width"},{p.health,"height"},
+    {p.power,"width"},{p.power,"height"}}) do
+    if not B:CanRead(entry[1],entry[2]) then self.propertyDeferred=true;self.pending=true;return end
+  end
+  local width,height,gap,healthHeight,powerHeight=self:CompactLayout(db)
   owner.compactWidth,owner.compactHeight=width,height
   if not owner.background then
     local t=p.root:CreateTexture(nil,"BACKGROUND",nil,-8)
@@ -183,6 +246,7 @@ function M:ApplyCompact(owner,p,unit,on)
   -- secure unit button, prediction children and external HUD anchors stay intact.
   self:Write(owner,p.healthContainer,"points",{{"TOPLEFT",p.root,"TOPLEFT",16,-40}})
   self:Write(owner,p.healthContainer,"width",width)
+  self:Write(owner,p.health,"points",{{"TOPLEFT",p.healthContainer,"TOPLEFT",0,0}})
   self:Write(owner,p.health,"width",width)
   self:Write(owner,p.healthContainer,"height",healthHeight); self:Write(owner,p.health,"height",healthHeight)
   self:Write(owner,p.power,"points",{{"TOPLEFT",p.healthContainer,"BOTTOMLEFT",0,-gap}})
@@ -211,12 +275,32 @@ function M:ApplyCompact(owner,p,unit,on)
   if p.power.ManaBarMask then
     self:Write(owner,p.power.ManaBarMask,"points",{{"TOPLEFT",p.power,"TOPLEFT",0,0}})
     self:Write(owner,p.power.ManaBarMask,"width",width)
-    self:Write(owner,p.power.ManaBarMask,"height",p.power:GetHeight())
+    self:Write(owner,p.power.ManaBarMask,"height",powerHeight)
+  end
+end
+function M:ApplyPowerVisibility(owner,p,unit)
+  if combat() then self.pending=true; return end
+  local hide=self:IsEnabled() and not editing() and self:GetDB()[unit].showPower==false
+  if hide then
+    owner.powerOwner=owner.powerOwner or {}
+    owner.powerHidden=self:Write(owner.powerOwner,p.power,"alpha",0)==true
+    if owner.powerHidden and type(p.power.IsMouseMotionEnabled)=="function" and type(p.power.EnableMouseMotion)=="function" then
+      self:Write(owner.powerOwner,p.power,"motion",false)
+    end
+  else
+    if owner.powerOwner then self:Release(owner.powerOwner) end
+    owner.powerHidden=false
   end
 end
 function M:ApplyUnits()
   if self.applyingUnits then return end
   self.applyingUnits=true
+  local ok,err=pcall(self.ApplyUnitsNow,self)
+  self.applyingUnits=false
+  if not ok then error(err,0) end
+end
+function M:ApplyUnitsNow()
+  self.propertyDeferred=false
   self.units=self.units or {}
   for _,unit in ipairs({"player","target"}) do
     local p=self:UnitParts(unit)
@@ -224,6 +308,7 @@ function M:ApplyUnits()
       local owner=self.units[unit] or {}; self.units[unit]=owner; owner.parts=p
       local compact=self:IsEnabled() and self:GetDB()[unit].compact and not editing()
       self:ApplyCompact(owner,p,unit,compact)
+      self:ApplyPowerVisibility(owner,p,unit)
       for _,kind in ipairs({"health","power"}) do
         local bar=p[kind]
         self:UpdateBarText(owner,bar,unit,kind)
@@ -241,10 +326,9 @@ function M:ApplyUnits()
       end
     end
   end
-  self.applyingUnits=false
 end
 function M:ApplySettings()
-  self:ApplyUnits(); if not combat() then self.pending=nil end
+  self:ApplyUnits(); if not combat() and not self.propertyDeferred then self.pending=nil end
 end
 function M:SetEnabled(on)
   self:Initialize(); self:ApplySettings()

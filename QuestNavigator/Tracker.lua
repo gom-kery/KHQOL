@@ -27,7 +27,7 @@ function QN:ResetAutoRegion()
   local check=self.regionArrivalCheck
   if check and check.timer and check.timer.Cancel then check.timer:Cancel() end
   self.regionArrivalCheck=nil
-  self:CancelRegionReservation(); self.autoRegionState=nil
+  self:CancelRegionReservation(); self.autoRegionState=nil; self.regionFocus=nil
 end
 function QN:CheckRegionAfterControlChange()
   if not self:AutoRegionEnabled() or self.regionArrivalCheck then return end
@@ -115,12 +115,13 @@ function QN:ToggleTrackerRegion(key)
   self.trackerDB.collapsedRegions[key]=collapsed
   local state=self.autoRegionState
   if state then
-    self:CancelRegionReservation(); state.manual=true
+    self:CancelRegionReservation(); state.manual=true; self.regionFocus=nil
     if state.display then state.display[key]=collapsed end
   end
   self:RequestTrackerLayout()
 end
 function QN:TryApplyAutoRegion()
+  self:TryFocusRegionQuest()
   local pending=self.regionReservation; if not pending or not pending.elapsed then return end
   if not self:AutoRegionEnabled() or pending.generation~=self.trackerGeneration or pending.profile~=KHQOL.profileGeneration then self:CancelRegionReservation(); return end
   local id,name,kind=self:PlayerTrackerRegion(); local taxi=self:TrackerTaxiState()
@@ -146,22 +147,28 @@ function QN:TryApplyAutoRegion()
   for _,group in ipairs(groups) do display[group.key]=group.key~=match end
   state.display=display; state.selected=match;state.appliedZone=id;state.appliedName=name
   self:RequestTrackerLayout()
+  if match and self.db.autoTrack then
+    self.regionFocus={zone=id,name=name,region=match,generation=pending.generation,
+      profile=pending.profile,selection=pending.selection}
+    self:TryFocusRegionQuest()
+  end
 end
 function QN:UpdateAutoRegion(restart)
   if not self:AutoRegionEnabled() then self:ResetAutoRegion(); return end
   local state=self.autoRegionState or {}; self.autoRegionState=state
   local taxi=self:TrackerTaxiState()
   if taxi~=false then
-    self:CancelRegionReservation(); state.taxi=true; return
+    self:CancelRegionReservation(); self.regionFocus=nil; state.taxi=true; return
   end
   if state.taxi then state.zone=nil; state.manual=nil; state.done=nil; state.taxi=nil end
   local id,name,kind=self:PlayerTrackerRegion()
   if not id then self:CancelRegionReservation(); return end
   if state.zone==id and not restart and (self.regionReservation or state.manual or state.done) then self:TryApplyAutoRegion(); return end
-  if state.zone~=id then state.manual=false; state.done=false end
+  if state.zone~=id then state.manual=false; state.done=false;self.regionFocus=nil end
   if state.manual or state.done then return end
   self:CancelRegionReservation(); state.zone=id; state.name=name
-  local pending={zone=id,name=name,kind=kind,generation=self.trackerGeneration,profile=KHQOL.profileGeneration}
+  local pending={zone=id,name=name,kind=kind,generation=self.trackerGeneration,profile=KHQOL.profileGeneration,
+    selection=self.regionSelectionGeneration or 0}
   self.regionReservation=pending
   local function expired()
     if self.regionReservation~=pending then return end
