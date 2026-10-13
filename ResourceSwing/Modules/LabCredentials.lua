@@ -1,0 +1,3 @@
+local _, KHQOL = ...
+-- Verification only; the dedicated code is never distributed.
+KHQOL.LabCredentials = {salt="0ff3b6bf24bfad50e9f7c707ae3ee3d8",digest="de1d8483703b287f664dd6a945a3b926b50ca7f2be5759e64552d96baa316a7a"}

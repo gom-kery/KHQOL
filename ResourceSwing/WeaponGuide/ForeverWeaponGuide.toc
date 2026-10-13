@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: ForeverWeaponGuide
+## Notes: Shows verified weapon-master guidance only for weapon skills not yet learned.
+## Author: ForeverWeaponGuide
+## Version: 0.2.2-beta
+## SavedVariables: ForeverWeaponGuideDB
+
+WeaponData.lua
+Core.lua
+Tooltip.lua
+Map.lua

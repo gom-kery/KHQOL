@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: ForeverBuffReminder
+## Notes: Class-specific missing and expiring buff reminders for WoW Forever.
+## Author: ForeverBuffReminder
+## Version: 0.0.20
+## SavedVariables: ForeverBuffReminderDB
+## AllowLoadGameType: standard, camelot
+
+Core.lua
+UI.lua
+Settings.lua

@@ -1,0 +1,17 @@
+## Interface: 16001
+## Title: ForeverClock
+## Notes: A compact clock HUD for WoW Forever.
+## Author: ForeverClock
+## Version: 1.2.7
+## SavedVariables: ForeverClockDB
+
+Locale.lua
+Core.lua
+Clock.lua
+ClockTools.lua
+Modules.lua
+Professions.lua
+Calendar.lua
+Minimap.lua
+Todo.lua
+Settings.lua

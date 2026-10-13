@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: FRange
+## Notes: WoW Forever 대상 사거리 상태 표시
+## Author: Kuhn + Codex
+## Version: 0.1.6
+## SavedVariablesPerCharacter: FRangeDB
+Database.lua
+Range.lua
+Display.lua
+Settings.lua
+Core.lua
