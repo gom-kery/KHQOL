@@ -13,7 +13,7 @@ local function build(content,y)
     local map,name=N:CurrentMap(); region:SetText((name or "지역 확인 불가").." · Map ID: "..(map or "확인 불가"))
   end}
   b:Section("등록된 위험 NPC")
-  local list=CreateFrame("Frame",nil,content); list:SetWidth(T.ContentWidth); list.uiControls={}
+  local list=CreateFrame("Frame",nil,content); list:SetWidth(content:GetWidth());list.settingsNoIndex=true;list.uiControls={}
   local editor=CreateFrame("Frame",nil,content); editor:SetWidth(T.ContentWidth); editor:Hide()
   local lower=CreateFrame("Frame",nil,content); lower:SetWidth(T.ContentWidth)
   local rows,draft,editingID={},nil,nil
@@ -108,13 +108,20 @@ local function build(content,y)
   l:Description("현재 프로필의 경고 옵션만 복원합니다. 등록된 NPC 목록은 유지합니다.")
   lower:SetHeight(-l.y)
   reflow=function()
-    list:ClearAllPoints(); list:SetPoint("TOPLEFT",0,listY)
-    local nextY=listY-list:GetHeight()-T.SectionGap
+    if content.listReflowing then return end;content.listReflowing=true
+    list:SetWidth(content:GetWidth());editor:SetWidth(content:GetWidth());lower:SetWidth(content:GetWidth())
+    if editor.uiBuilder then editor.uiBuilder:Reflow() end
+    if lower.uiBuilder then lower.uiBuilder:Reflow() end
+    local position=listY
+    if b.reflowBottom then position=b.reflowBottom end
+    list:ClearAllPoints(); list:SetPoint("TOPLEFT",0,position)
+    local nextY=position-list:GetHeight()-T.SectionGap
     editor:ClearAllPoints(); editor:SetPoint("TOPLEFT",0,nextY)
     if editor:IsShown() then nextY=nextY-editor:GetHeight() end
     lower:ClearAllPoints(); lower:SetPoint("TOPLEFT",0,nextY)
-    content:SetHeight(-nextY+lower:GetHeight()+T.ContentPadding)
+    content:SetHeight(-nextY+lower:GetHeight()+T.ContentPadding);content.listReflowing=nil
   end
+  content.Reflow=reflow
   refreshList=function()
     local records={}
     for key,r in pairs(N:GetData().entries) do if type(key)=="number" and N:Normalize(r) then records[#records+1]={key=key,r=r} end end
@@ -128,9 +135,11 @@ local function build(content,y)
         row.check.text:SetWordWrap(false); row.check.text:SetHeight(T.LabelFontSize+6)
         row.info=UI:CreateDescription(row,"",34,-34); row.info:SetWidth(T.ContentWidth-150)
         row.color=row:CreateTexture(nil,"ARTWORK"); row.color:SetSize(12,12); row.color:SetPoint("TOPRIGHT",-120,-10)
-        UI:CreateButton(row,"편집",T.ContentWidth-102,-4,48,function() message:SetText(""); open(row.key) end,enabled)
-        UI:CreateButton(row,"삭제",T.ContentWidth-50,-4,48,function() N:GetData().entries[row.key]=nil; close(); N:Changed(); refreshList() end,enabled)
+        row.edit=UI:CreateButton(row,"편집",T.ContentWidth-102,-4,48,function() message:SetText(""); open(row.key) end,enabled)
+        row.delete=UI:CreateButton(row,"삭제",T.ContentWidth-50,-4,48,function() N:GetData().entries[row.key]=nil; close(); N:Changed(); refreshList() end,enabled)
       end
+      row:SetWidth(content:GetWidth());row.check.text:SetWidth(math.max(80,content:GetWidth()-160));row.info:SetWidth(math.max(80,content:GetWidth()-150))
+      row.edit:ClearAllPoints();row.edit:SetPoint("TOPRIGHT",-54,-4);row.delete:ClearAllPoints();row.delete:SetPoint("TOPRIGHT",-2,-4)
       row.record=item.r; row.key=item.key; row:ClearAllPoints(); row:SetPoint("TOPLEFT",0,-(i-1)*102)
       local r=item.r; row.check.text:SetText(r.name)
       local function on(v) return v and "ON" or "OFF" end

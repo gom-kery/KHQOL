@@ -26,10 +26,10 @@ function Group:BuildSettings(content,y,host,tabY)
     if tab.meta.category then
       if x>0 then top=top-T.ButtonHeight-T.RowGap end
       local label=UI:CreateDescription(host,tab.meta.category,0,top)
-      label:SetWidth(T.ContentWidth); top=top-22; x=0
+      label:SetWidth(host:GetWidth()); top=top-22; x=0
     end
     measure:SetText(tab.title); local width=math.ceil(measure:GetStringWidth())+24
-    if x>0 and x+width>T.ContentWidth then x=0;top=top-T.ButtonHeight-T.RowGap end
+    if x>0 and x+width>host:GetWidth() then x=0;top=top-T.ButtonHeight-T.RowGap end
     positions[tab.id]={x=x,y=top,width=width}; x=x+width+T.RowGap
   end
   measure:Hide(); height=tabY-top+T.ButtonHeight+T.SectionGap
@@ -56,12 +56,28 @@ function Group:BuildSettings(content,y,host,tabY)
       UI:SetButtonSelected(buttons[tab.id],tab.id==id)
       if tab.id~=id then panels[tab.id]:Hide() end
     end
+    content.activePanel=panel;panel:Show()
+    if panel:GetWidth()~=content:GetWidth() then panel:SetWidth(content:GetWidth()) end
+    UI:ReflowRegisteredPanels(panel)
     if panel.RefreshTab then panel:RefreshTab() end
-    updateHeight(panel);panel:Show();UI:Refresh(panel)
+    updateHeight(panel);UI:Refresh(panel)
     if KHQOL.settings then
+      KHQOL.settings:SetModuleSubHeader(panel.fixedHeader)
       KHQOL.settings:SetPageScrollLayout(self.id)
       local meta=R.groups[self.id][id]
       KHQOL.settings:SetModuleHeader(meta)
+      if self.id=="quest" then
+        local p={module="questNavigator",tab=id}
+        KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
+      end
+      if self.id=="unitFrames" then
+        local p={module="unitFrames",unit=panel.selectedUnit,part=panel.selectedPart,category=panel.selectedAuraCategory}
+        KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
+      end
+      if self.id=="bars" and meta.key=="castBar" then
+        local p={module="castBar",castUnit=panel.selectedCastUnit}
+        KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
+      end
       if KHQOL.settings.activeContent==content then KHQOL.settings.scroll:SetVerticalScroll(0) end
     end
   end
@@ -71,14 +87,26 @@ function Group:BuildSettings(content,y,host,tabY)
     local id=tab.id
     local pos=positions[id]
     buttons[id]=UI:CreateButton(host,tab.title,pos.x,pos.y,pos.width,function() selectTab(id) end)
-    local panel=CreateFrame("Frame",nil,content);panel:SetPoint("TOPLEFT",0,bodyY);panel:SetWidth(T.ContentWidth);panel:Hide()
-    panel.settingsModuleKey=tab.meta.key; panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
+    buttons[id].navigationOnly=true
+    local panel=CreateFrame("Frame",nil,content);panel:SetPoint("TOPLEFT",0,bodyY);panel:SetWidth(content:GetWidth());panel:Hide()
+    panel.settingsModuleKey=tab.meta.key;panel.settingsRoute={module=tab.meta.key or tab.meta.id=="general" and "generalConvenience" or self.id,tab=self.id=="quest" and id or nil}; panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
     panel:HookScript("OnSizeChanged",function() if self.selected==id then updateHeight(panel) end end)
   end
   -- Allocate every tab before a builder can trigger a refresh or selection.
   for _,tab in ipairs(self.tabs) do
     local panel=panels[tab.id]
     local bottom=tab.build(panel,0);panel:SetHeight(math.max(1,-bottom))
+  end
+  local selfGroup=self
+  function host:ReflowTabs()
+    local left,top=0,tabY
+    for _,tab in ipairs(selfGroup.tabs) do
+      local button=buttons[tab.id];local width=positions[tab.id].width
+      if tab.meta.category then top=top-(left>0 and T.ButtonHeight+T.RowGap or 0)-22;left=0 end
+      if left>0 and left+width>host:GetWidth() then left=0;top=top-T.ButtonHeight-T.RowGap end
+      button:ClearAllPoints();button:SetPoint("TOPLEFT",left,top);left=left+width+T.RowGap
+    end
+    host:SetHeight(-top+T.ButtonHeight+T.SectionGap)
   end
   content.tabsBuilding=nil
   selectTab(self.selected)
@@ -87,7 +115,7 @@ end
 function UI:EmbedModulePanel(content,panel,y,refresh)
   if not panel then return y end
   panel:SetParent(content);panel:ClearAllPoints();panel:SetPoint("TOPLEFT",0,y)
-  panel:SetScale(1);panel:SetWidth(T.ContentWidth);panel:SetFrameStrata("DIALOG")
+  panel:SetScale(1);panel:SetWidth(content:GetWidth());panel:SetFrameStrata("DIALOG")
   -- Legacy panels were created under UIParent before this tab existed.
   -- Put their regions and controls above the current settings body, including
   -- descendants whose old levels did not follow the reparented panel.
@@ -124,6 +152,7 @@ function UI:RefreshSettingsViews()
   if fc.RefreshSettings then fc:RefreshSettings() end
   if fbr.RefreshSettings then fbr:RefreshSettings() end
   if fr.UpdateSettings then fr:UpdateSettings() end
+  if UI.SettingsNavigation then UI.SettingsNavigation:CancelSearch(s) end
   s:ShowPage(s.page or "general")
 end
 function UI:RequestModuleReset(key)

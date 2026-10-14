@@ -37,12 +37,13 @@ function FBR:CreateSettingsUI(parent)
   end)
   b:Section("버프 등록")
   b:Description("Spell ID 또는 기존에 지원하는 주문 이름을 입력합니다. Spell ID를 권장합니다.")
-  panel.input=UI:CreateEditBox(panel,0,b.y,360)
-  local add=UI:CreateButton(panel,"버프 추가",376,b.y,110,function() FBR:AddBuffFromInput() end)
+  local px,py,pw=b:Cell("buffRegistration",1,62)
+  panel.input=UI:CreateEditBox(panel,px,py,pw-126)
+  local add=UI:CreateButton(panel,"버프 추가",pw-110,py,110,function() FBR:AddBuffFromInput() end)
   panel.input:SetScript("OnEnterPressed",function(box) FBR:AddBuffFromInput(); box:ClearFocus() end)
-  panel.addError=UI:CreateLabel(panel,"",0,b.y-34,T.DescriptionFontSize)
+  panel.addError=UI:CreateLabel(panel,"",0,py-34,T.DescriptionFontSize)
   panel.addError:SetTextColor(unpack(T.Warning)); panel.addError:Hide()
-  b.y=b.y-62
+  b:Flush()
   function FBR:SetAddError(message)
     panel.addError:SetText(message or ""); panel.addError:SetShown(message and message~="")
   end
@@ -59,7 +60,7 @@ function FBR:CreateSettingsUI(parent)
   panel.listTop=b.y; panel.rows={}
   for i=1,11 do
     local index=i
-    local row=CreateFrame("Frame",nil,panel); row:SetSize(T.ContentWidth,T.RowHeight)
+    local row=CreateFrame("Frame",nil,panel); row:SetSize(T.ContentWidth,T.RowHeight);row.settingsNoIndex=true
     row:SetPoint("TOPLEFT",0,panel.listTop-(i-1)*(T.RowHeight+T.RowGap))
     row.down=UI:CreateButton(row,"▼",0,0,28,function()
       moveBuff(FBR:GetSelectedClassData().buffs,index,index+1); FBR:RefreshSettings(); FBR:RefreshAlerts()
@@ -110,7 +111,7 @@ function FBR:CreateSettingsUI(parent)
     end
     special.buttons[#special.buttons+1]=control
   end
-  UI:CreateDescription(special,"토템 버튼을 우클릭하면 기존 주문 선택 메뉴를 엽니다.",0,sb.y-40)
+  special.hint=UI:CreateDescription(special,"토템 버튼을 우클릭하면 기존 주문 선택 메뉴를 엽니다.",0,sb.y-40)
   local menu
   menu=UI:CreateDropdown(panel,0,0,300,function()
     local key=menu and menu.totemKey
@@ -138,6 +139,21 @@ function FBR:CreateSettingsUI(parent)
     setting.spellID=id; setting.enabled=true; FBR:RefreshSettings(); FBR:RefreshAlerts()
   end)
   menu:Hide(); panel.totemMenu=menu
+  function panel:Reflow()
+    local width=self:GetWidth()
+    b:Reflow();self.listTop=b.reflowBottom or self.listTop
+    for _,row in ipairs(self.rows) do
+      row:SetWidth(width);row.name:SetWidth(math.max(48,width-292))
+      row.mode.layoutWidth=92;row.mode:ClearAllPoints();row.mode:SetPoint("TOPRIGHT",-66,0);row.mode:SetWidth(92)
+      row.delete:ClearAllPoints();row.delete:SetPoint("TOPRIGHT",-2,0);row.delete:SetWidth(58)
+    end
+    special:SetWidth(width)
+    local cols=math.max(1,math.floor((width+8)/98))
+    for i,button in ipairs(special.buttons) do button:ClearAllPoints();button:SetPoint("TOPLEFT",((i-1)%cols)*98,sb.y-math.floor((i-1)/cols)*34) end
+    local rows=math.ceil(#special.buttons/cols)
+    special.hint:ClearAllPoints();special.hint:SetPoint("TOPLEFT",0,sb.y-rows*34-6);special.hint:SetWidth(width)
+    special:SetHeight(math.max(138,-sb.y+rows*34+38));FBR:RefreshSettings()
+  end
   self:RefreshSettings()
   return panel
 end

@@ -1,5 +1,6 @@
 local _, KHQOL = ...
 local UI, T = KHQOL.UI, KHQOL.UI.Theme
+local N=UI.SettingsNavigation
 -- Compact only navigation and the general module grid; retain control sizes.
 local defaultRowStep = T.RowHeight + T.RowGap
 local menuRowStep = T.ButtonHeight + math.max(0, defaultRowStep - T.ButtonHeight) / 2
@@ -39,44 +40,26 @@ local function profileSettings(content,y)
   local b=UI:CreateBuilder(content,y); b:Section("프로필 관리")
   UI:CreateDescription(content,"현재 캐릭터: "..(KHQOL.profileCharacter or ""),0,b.y)
   b.y=b.y-26
-  local width=(T.ContentWidth-T.ColumnGap)/2
-  local right=width+T.ColumnGap
-  local function strip(x,y)
-    local texture=content:CreateTexture(nil,"BACKGROUND")
-    texture:SetPoint("TOPLEFT",x,y+5); texture:SetSize(width,36); texture:SetColorTexture(1,1,1,.035)
-  end
-  strip(0,b.y); strip(right,b.y)
-  local label=UI:CreateLabel(content,"활성 프로필",8,b.y-6); label:SetWidth(92)
-  local active=UI:CreateDropdown(content,104,b.y,width-112,function() return KHQOL:GetProfileOptions() end,
-    function() return KHQOL:GetCurrentProfileName() end,function(name)
-      local ok,message=KHQOL:SelectProfile(name); if not ok then KHQOL:ProfileMessage(message) end
-    end)
-  label=UI:CreateLabel(content,"프로필 삭제",right+8,b.y-6); label:SetWidth(92)
-  local remove=UI:CreateDropdown(content,right+104,b.y,width-112,function() return KHQOL:GetProfileOptions(true) end,
-    function() return "" end,function(name)
-      if name=="" then return end
-      local ok,message=KHQOL:CanChangeProfile()
-      if not ok then KHQOL:ProfileMessage(message); return end
-      StaticPopup_Show("KHQOL_DELETE_PROFILE",name,nil,UI:Confirmation({name=name}))
-    end)
+  local active=b:Dropdown("활성 프로필",function() return KHQOL:GetProfileOptions() end,function() return KHQOL:GetCurrentProfileName() end,function(name)
+    local ok,message=KHQOL:SelectProfile(name);if not ok then KHQOL:ProfileMessage(message) end
+  end)
+  local remove=b:Dropdown("프로필 삭제",function() return KHQOL:GetProfileOptions(true) end,function() return "" end,function(name)
+    if name=="" then return end
+    local ok,message=KHQOL:CanChangeProfile();if not ok then KHQOL:ProfileMessage(message);return end
+    StaticPopup_Show("KHQOL_DELETE_PROFILE",name,nil,UI:Confirmation({name=name}))
+  end)
   active.profileCommand=true;remove.profileCommand=true
-  b.y=b.y-42; strip(0,b.y); strip(right,b.y)
-  label=UI:CreateLabel(content,"새 프로필 이름",8,b.y-6); label:SetWidth(96)
-  local input=UI:CreateEditBox(content,104,b.y,width-112,nil,nil)
-  input:SetMaxLetters(24)
+  local input=b:Edit("새 프로필 이름",nil,nil);input:SetMaxLetters(24)
   local function create(duplicate)
     local ok,message=KHQOL:CreateProfile(input:GetText(),duplicate)
-    if ok then input:SetText(""); input:ClearFocus() else KHQOL:ProfileMessage(message) end
+    if ok then input:SetText("");input:ClearFocus() else KHQOL:ProfileMessage(message) end
   end
-  local fresh=UI:CreateButton(content,"기본값으로 생성",right+8,b.y,132,function() create(false) end)
-  local duplicate=UI:CreateButton(content,"현재 프로필 복사",right+148,b.y,132,function() create(true) end)
-  b.y=b.y-44
-  local hint=UI:CreateDescription(content,"같은 프로필을 선택한 캐릭터는 설정을 공유합니다. 생성·복사 후 새 프로필로 전환합니다.",0,b.y)
-  hint:SetWidth(T.ContentWidth); b.y=b.y-math.max(18,hint:GetStringHeight())-8
-  hint=UI:CreateDescription(content,"노트·ToDo·등록 버프·직업별 기준 주문은 유지합니다. 전투 중에는 프로필 변경이 제한됩니다.",0,b.y)
-  hint:SetWidth(T.ContentWidth); b.y=b.y-math.max(18,hint:GetStringHeight())-8
-  b:Description("공용 데이터: 노트 본문·체크리스트·NPC/발동/버프 등록 목록. 캐릭터별 기준 주문은 유지됩니다. 커서 색상은 캐릭터 파일에 저장되며 프로필 선택 시 해당 프로필 색상을 적용합니다. 기본창 이동과 KHQOL 설정창 위치는 계정 공용이며 프로필에 포함되지 않습니다.",true)
-  b:Description("추천: 새 이름 입력 → 현재 프로필 복사 → 캐릭터에 맞게 조정. 복사·삭제로 공용 등록 목록은 삭제되지 않습니다.",true)
+  b:Flush()
+  local fresh=b:Button("기본값으로 생성",function() create(false) end)
+  local duplicate=b:Button("현재 프로필 복사",function() create(true) end)
+  b:Description("같은 프로필을 선택한 캐릭터는 설정을 공유합니다. 생성·복사 후 새 프로필로 전환합니다.",true)
+  b:Description("노트·ToDo·등록 버프·직업별 기준 주문은 유지합니다. 전투 중에는 프로필 변경이 제한됩니다.",true)
+  b:Description("공용 데이터: 노트·체크리스트·NPC/발동/버프 등록 목록. 기본창 위치와 설정창 크기·위치·편집기 표시 선호는 계정 공용이며 프로필에 포함되지 않습니다. 기존 배율·불투명도 저장 정책은 유지합니다.",true)
   function KHQOL:RefreshProfileControls() active:Refresh(); remove:Refresh() end
   content.profileControls={active=active,remove=remove,input=input,fresh=fresh,duplicate=duplicate}
   return b.y
@@ -85,7 +68,8 @@ local function generalSettings(content,y)
   local b=UI:CreateBuilder(content,y)
   b:Description("① 사용할 기능 확인 → ② 위치 편집 → ③ 크기·모양 조정 → ④ 프로필 확인",true)
   b:Section("화면 요소 위치")
-  b:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter() end)
+  local edit=b:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter() end)
+  edit.navigationOnly=true
   b:Description("활성화된 화면 요소를 함께 이동합니다. 완료하면 저장·잠금, 취소 또는 ESC는 변경 전 상태를 유지합니다.")
   b:Section("모듈 관리")
   b:Description("변경 즉시 적용 · 파일 저장은 /reload · 로그아웃 시",true)
@@ -93,30 +77,23 @@ local function generalSettings(content,y)
   content.moduleControls={}
   for _,group in ipairs(moduleGroups) do
     b:Section(group.title)
-    local top=b.y
-    local columns=2
-    local width=(content:GetWidth()-(columns-1)*gap)/columns
-    for index,item in ipairs(group.items) do
+    for _,item in ipairs(group.items) do
       local key,name,isGeneral=item[1],item[2],item[3]
-      local column=(index-1)%columns;local row=math.floor((index-1)/columns)
-      local checkbox=UI:CreateCheckbox(content,name,column*(width+gap),top-row*moduleRowStep,
+      local checkbox=b:Checkbox(name,
         function() return isGeneral and KHQOL.modules.general:GetDB()[key] or (not isGeneral and KHQOL:GetEnabled(key)) end,
-        function(on)
-          if isGeneral then KHQOL.modules.general:SetConvenienceEnabled(key,on)
-          else KHQOL:SetEnabled(key,on) end
-        end)
-      checkbox.text:SetWidth(width-T.CheckboxSize-T.CheckboxLabelGap)
+        function(on) if isGeneral then KHQOL.modules.general:SetConvenienceEnabled(key,on) else KHQOL:SetEnabled(key,on) end end)
       checkbox.text:SetWordWrap(false)
-      if checkbox.text.SetNonSpaceWrap then checkbox.text:SetNonSpaceWrap(false) end
       local meta=registry.modules[key] or (isGeneral and registry.groups.convenience.general)
       if meta then
         UI:AttachTooltip(checkbox,name,meta.description)
-        checkbox.text:SetWidth(width-T.CheckboxSize-T.CheckboxLabelGap-T.ButtonHeight-T.RowGap)
-        UI:CreateButton(content,"→",column*(width+gap)+width-T.ButtonHeight,top-row*moduleRowStep,T.ButtonHeight,function() KHQOL:OpenModule(isGeneral and "generalConvenience" or key) end)
+        checkbox.layoutLabelReserve=T.ButtonHeight+T.RowGap
+        local cell=b.activeCell
+        local shortcut=UI:CreateButton(content,"→",cell.x+cell.width-T.ButtonHeight,cell.top,T.ButtonHeight,function() KHQOL:OpenModule(isGeneral and "generalConvenience" or key) end)
+        shortcut.navigationOnly=true
       end
       content.moduleControls[key]=checkbox
     end
-    b.y=top-math.ceil(#group.items/columns)*moduleRowStep
+    b:Flush()
   end
   b.y=KHQOL.modules.general:BuildGlobalSettings(content,b.y)
   b:Section("미니맵")
@@ -134,20 +111,26 @@ end
 function KHQOL:CreateSettings()
   if self.settings then return self.settings end
   local f=CreateFrame("Frame","KHQOLSettingsFrame",UIParent,"BackdropTemplate")
-  f:SetSize(T.WindowWidth,T.WindowHeight); f:SetPoint("CENTER"); f:SetFrameStrata("DIALOG")
-  f:SetClampedToScreen(true); f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
+  local preferences=N:Preferences()
+  f:SetSize(tonumber(preferences.width) or T.WindowWidth,tonumber(preferences.height) or T.WindowHeight); f:SetPoint("CENTER"); f:SetFrameStrata("DIALOG")
+  f:SetClampedToScreen(true); f:SetMovable(true);
+  f:SetResizable(true);if f.SetResizeBounds then f:SetResizeBounds(650,480,1600,1200) elseif f.SetMinResize then f:SetMinResize(650,480) end; f:EnableMouse(true); f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart",f.StartMoving); f:SetScript("OnDragStop",function(self)
     self:StopMovingOrSizing();KHQOL.PositionStore:SaveSettingsWindow(self)
   end)
   f:SetBackdrop({bgFile="Interface\\ChatFrame\\ChatFrameBackground",edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",edgeSize=12,insets={left=4,right=4,top=4,bottom=4}})
   UI:Surface(f,1)
   local texture=f:CreateTexture(nil,"BACKGROUND",nil,1); texture:SetAllPoints(); texture:SetTexture("Interface\\AddOns\\KHQOL\\Media\\SettingsGrain.tga"); texture:SetAlpha(.24)
+  f.backgroundTexture=texture
   f:Hide(); self.settings=f
   function f:FitScreen()
     local db=KHQOL.db.settingsWindow or {scale=100,opacity=100}
     local requested=math.max(80,math.min(120,tonumber(db.scale) or 100))/100
-    local scale=math.min(requested,(UIParent:GetWidth()-24)/T.WindowWidth,(UIParent:GetHeight()-24)/T.WindowHeight)
-    self:SetScale(math.max(.1,scale)); self:SetAlpha(math.max(20,math.min(100,tonumber(db.opacity) or 100))/100)
+    local scale=math.min(requested,(UIParent:GetWidth()-24)/self:GetWidth(),(UIParent:GetHeight()-24)/self:GetHeight())
+    self:SetScale(math.max(.1,scale)); self:SetAlpha(1)
+    local opacity=math.max(20,math.min(100,tonumber(db.opacity) or 100))/100
+    self:SetBackdropColor(T.Background[1],T.Background[2],T.Background[3],opacity)
+    texture:SetAlpha(.24*opacity)
     KHQOL.PositionStore:ApplySettingsWindow(self)
     if self.scaleControl then self.scaleControl:Refresh() end
     if self.opacityControl then self.opacityControl:Refresh() end
@@ -161,6 +144,7 @@ function KHQOL:CreateSettings()
   UI:CreateLabel(f,"KHQOL",T.WindowPadding,-17,T.TitleFontSize):SetWidth(120)
   UI:CreateDescription(f,"v"..self.VERSION,T.WindowPadding,-42):SetWidth(120)
   local profile=UI:CreateButton(f,"프로필",T.SidebarWidth+T.ContentPadding,-46,330,function() f:ShowPage("profiles") end)
+  profile.navigationOnly=true
   profile.Refresh=function()
     profile:SetText("프로필: "..KHQOL:GetCurrentProfileName()); profile:SetWidth(T.SidebarWidth-36)
   end
@@ -168,15 +152,19 @@ function KHQOL:CreateSettings()
   profile:ClearAllPoints();profile:SetPoint("BOTTOMLEFT",18,140);profile:SetWidth(T.SidebarWidth-36)
   profile:GetFontString():SetWidth(T.SidebarWidth-60)
   profile:Refresh(); f.profileShortcut=profile
-  f.pageTitle=UI:CreateLabel(f,"일반",T.SidebarWidth+T.ContentPadding,-22,20); f.pageTitle:SetWidth(330)
+  f.pageTitle=UI:CreateLabel(f,"일반",T.SidebarWidth+T.ContentPadding,-22,20); f.pageTitle:SetWidth(math.max(150,f:GetWidth()-T.SidebarWidth-200))
   f.pageTitle:SetTextColor(unpack(T.FocusAccent))
   local edit=UI:CreateButton(f,"위치 편집",T.WindowWidth-182,-20,112,function() KHQOL.PositionEditor:Enter() end)
+  edit.navigationOnly=true
   local close=UI:CreateButton(f,"X",T.WindowWidth-52,-20,32,function() f:Hide() end); close:SetWidth(32)
+  edit:ClearAllPoints();edit:SetPoint("TOPRIGHT",-70,-20)
+  close:ClearAllPoints();close:SetPoint("TOPRIGHT",-20,-20)
+  N:BuildSearch(f,T.SidebarWidth+T.ContentPadding,-55,math.max(250,f:GetWidth()-T.SidebarWidth-58))
   if UISpecialFrames then table.insert(UISpecialFrames,"KHQOLSettingsFrame") end
   local divider=f:CreateTexture(nil,"ARTWORK"); divider:SetColorTexture(unpack(T.Divider))
   divider:SetPoint("TOPLEFT",T.SidebarWidth,-54); divider:SetPoint("BOTTOMLEFT",T.SidebarWidth,18); divider:SetWidth(1)
   local scroll=CreateFrame("ScrollFrame",nil,f,"UIPanelScrollFrameTemplate")
-  scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66); scroll:SetPoint("BOTTOMRIGHT",-38,58)
+  scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-94); scroll:SetPoint("BOTTOMRIGHT",-38,58)
   local child=CreateFrame("Frame",nil,scroll); child:SetWidth(T.ContentWidth); child:SetHeight(1); scroll:SetScrollChild(child)
   f.scroll=scroll; f.child=child; f.pageCache={}; f.menuButtons={}
   local groupHeaderHeight=34+T.RowGap+T.ButtonHeight+T.SectionGap
@@ -186,13 +174,13 @@ function KHQOL:CreateSettings()
     local key=definition[1]
     if registry.groups[key] then
       local header=CreateFrame("Frame",nil,f)
-      header:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66)
+      header:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-94)
       header:SetWidth(T.ContentWidth);header:SetHeight(groupHeaderHeight);header:Hide()
       f.groupHeaders[key]=header;f[key.."Header"]=header
     end
   end
   local moduleHeader=CreateFrame("Frame",nil,f);f.moduleHeader=moduleHeader
-  moduleHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-groupHeaderHeight)
+  moduleHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-94-groupHeaderHeight)
   moduleHeader:SetSize(T.ContentWidth,moduleHeaderHeight);moduleHeader:Hide()
   moduleHeader.description=UI:CreateDescription(moduleHeader,"",0,-6)
   moduleHeader.description:SetWidth(T.ContentWidth-124)
@@ -203,14 +191,28 @@ function KHQOL:CreateSettings()
     end)
   moduleHeader.toggle.ignoreModuleEnabled=true;moduleHeader.toggle.text:SetWidth(76)
   UI:CreateDivider(moduleHeader,-34)
+  function f:SetModuleSubHeader(header)
+    if self.moduleSubHeader and self.moduleSubHeader~=header then self.moduleSubHeader:Hide() end
+    self.moduleSubHeader=header
+    if header then
+      if header:GetParent()~=self then header:SetParent(self) end
+      header:SetWidth(child:GetWidth());header:Show();UI:Refresh(header)
+    end
+  end
   function f:SetPageScrollLayout(key)
     local grouped=registry.groups[key]~=nil and (key~="labs" or KHQOL.LabLock:IsUnlocked())
     for id,header in pairs(self.groupHeaders) do header:SetShown(id==key and grouped) end
     moduleHeader:SetShown(grouped)
-    local headerHeight=grouped and self.groupHeaders[key]:GetHeight() or 0
-    moduleHeader:ClearAllPoints(); moduleHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-headerHeight)
+    local headerHeight=grouped and key~="unitFrames" and self.groupHeaders[key]:GetHeight() or 0
+    if key=="unitFrames" and self.groupHeaders[key] then self.groupHeaders[key]:Hide() end
+    moduleHeader:ClearAllPoints(); moduleHeader:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-94-headerHeight)
+    local sub=self.moduleSubHeader;local subHeight=grouped and sub and sub:GetHeight() or 0
+    if sub then
+      sub:SetShown(grouped)
+      sub:ClearAllPoints();sub:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-94-headerHeight-moduleHeaderHeight)
+    end
     scroll:ClearAllPoints()
-    scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-66-(grouped and headerHeight+moduleHeaderHeight or 0))
+    scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-94-(grouped and headerHeight+moduleHeaderHeight+subHeight or 0))
     scroll:SetPoint("BOTTOMRIGHT",-38,58)
   end
   function f:UpdateContentHeight()
@@ -240,6 +242,7 @@ function KHQOL:CreateSettings()
   function f:SetModuleHeader(meta)
     if meta and meta.group=="labs" and not KHQOL.LabLock:IsUnlocked() then meta=nil end
     self.currentModuleKey=meta and meta.key
+    self.currentRoute={module=self.currentModuleKey or meta and meta.id=="general" and "generalConvenience" or self.page or "general"}
     moduleHeader.moduleKey=self.currentModuleKey
     self:SetActiveSettingsModule(meta and meta.key,meta and meta.title)
     moduleHeader.description:SetText(meta and meta.description or "")
@@ -257,9 +260,11 @@ function KHQOL:CreateSettings()
   function f:RefreshActivePage()
     local content=self.activeContent; if not content then return end
     if content.RefreshTab then content:RefreshTab() end
+    if content.Reflow then content:Reflow() end
     UI:Refresh(content)
     UI:Refresh(moduleHeader)
     if self.groupHeaders[self.page] then UI:Refresh(self.groupHeaders[self.page]) end
+    if self.moduleSubHeader then UI:Refresh(self.moduleSubHeader) end
     self:UpdateContentHeight()
   end
   local hint=UI:CreateDescription(f,"변경 즉시 적용 · 파일 저장은 /reload · 로그아웃 시",T.SidebarWidth+T.ContentPadding,0)
@@ -267,17 +272,20 @@ function KHQOL:CreateSettings()
   local relock=UI:CreateButton(f,"다시 잠그기",0,0,120,function() KHQOL.LabLock:Relock() end,
     function() return KHQOL.LabLock:IsUnlocked() end)
   relock:ClearAllPoints();relock:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,18);relock:Hide();f.labLockButton=relock
-  local groups={bars=KHQOL.BarsSettings,alerts=KHQOL.AlertSettings,labs=KHQOL.LabSettings,
+  local groups={unitFrames=KHQOL.UnitFrameSettings,bars=KHQOL.BarsSettings,alerts=KHQOL.AlertSettings,labs=KHQOL.LabSettings,
     interface=KHQOL.InterfaceSettings,convenience=KHQOL.ConvenienceSettings,quest=KHQOL.QuestSettings}
   function f:ShowPage(key)
     if self.buildingPage then return end
     local pageKey,requestedTab=registry:Resolve(key);key=pageKey
     local definition
     for _,item in ipairs(pages) do if item[1]==key then definition=item;break end end
-    UI:CloseDropdown()
+    N:CancelSearch(self);UI:CloseDropdown()
     if self.activeContent then UI:CancelInputs(self.activeContent);self.activeContent:Hide() end
     profile:Refresh()
     self.page=key;self.pageName=definition[2];self.pageTitle:SetText(definition[2])
+    local header=self.groupHeaders[key]
+    if header then header:SetWidth(child:GetWidth());if header.ReflowTabs then header:ReflowTabs() end end
+    self:SetModuleSubHeader(nil)
     self:SetPageScrollLayout(key);self:SetModuleHeader(nil);scroll:SetVerticalScroll(0)
     for menuKey,menuButton in pairs(self.menuButtons) do UI:SetButtonSelected(menuButton,menuKey==key) end
     local locked=key=="labs" and not KHQOL.LabLock:IsUnlocked()
@@ -285,7 +293,7 @@ function KHQOL:CreateSettings()
     relock:SetShown(key=="labs" and not locked);hint:SetShown(key~="labs")
     local content=self.pageCache[cacheKey]
     if not content then
-      content=CreateFrame("Frame",nil,child);content:Hide();content:SetPoint("TOPLEFT");content:SetWidth(T.ContentWidth)
+      content=CreateFrame("Frame",nil,child);content.settingsRoute={module=key};content:Hide();content:SetPoint("TOPLEFT");content:SetWidth(child:GetWidth())
       content:SetHeight(math.max(1,scroll:GetHeight()))
       self.buildingPage=true
       local ok,y=pcall(function()
@@ -309,6 +317,7 @@ function KHQOL:CreateSettings()
       self.pageCache[cacheKey]=content
     end
     self.activeContent=content
+    if content:GetWidth()~=child:GetWidth() then content:SetWidth(child:GetWidth()) end
     if groups[key] and not locked then content.SelectSettingsTab(requestedTab or groups[key].selected) end
     -- Resolve geometry before showing the body, then refresh text while visible.
     -- A single next-frame pass covers the initial ScrollFrame/font layout too.
@@ -334,6 +343,7 @@ function KHQOL:CreateSettings()
   for i, definition in ipairs(pages) do
     local key=definition[1]
     local b=UI:CreateButton(menuContent,definition[2],0,menuY,T.SidebarWidth-28,function() f:ShowPage(key) end)
+    b.navigationOnly=true
     b:SetWidth(T.SidebarWidth-28)
     b:GetFontString():SetJustifyH("LEFT"); f.menuButtons[key]=b
     menuY=menuY-menuRowStep
@@ -350,17 +360,74 @@ function KHQOL:CreateSettings()
   local appearance=CreateFrame("Frame",nil,f); appearance:SetPoint("BOTTOMLEFT",18,18); appearance:SetSize(T.SidebarWidth-36,116)
   local function settings() KHQOL.db.settingsWindow=KHQOL.db.settingsWindow or {scale=100,opacity=100}; return KHQOL.db.settingsWindow end
   local function slider(title,top,key,min,max)
-    local c=UI:CreateSlider(appearance,title,"설정창 전체의 글자와 컨트롤에 함께 적용됩니다.",0,top,min,max,10,function() return settings()[key] end,function(v) settings()[key]=v; f:FitScreen() end,function(v) return v.."%" end)
+    local c=UI:CreateSlider(appearance,title,key=="opacity" and "설정창 배경의 불투명도만 변경합니다. 글자와 조작부는 선명하게 유지합니다." or "설정창 전체의 글자와 컨트롤 크기에 함께 적용됩니다.",0,top,min,max,10,function() return settings()[key] end,function(v) settings()[key]=v; f:FitScreen() end,function(v) return v.."%" end)
     c:SetWidth(88); c.numberBox:ClearAllPoints(); c.numberBox:SetPoint("TOPLEFT",102,top-20); c.numberBox:SetWidth(62)
     return c
   end
   f.opacityControl=slider("투명도",0,"opacity",20,100)
   f.scaleControl=slider("배율",-60,"scale",80,120)
   appearance:HookScript("OnShow",function() UI:Refresh(appearance) end)
-  f:SetScript("OnHide",function() UI:CancelInputs(f);UI:CloseColorPicker(); UI:CloseDropdown(); GameTooltip:Hide() end)
+  local grip=CreateFrame("Button",nil,f);grip:SetSize(18,18);grip:SetPoint("BOTTOMRIGHT",-4,4)
+  local art=grip:CreateTexture(nil,"OVERLAY");art:SetAllPoints(grip);art:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+  f.resizeGrip=grip
+  function f:FinishResize()
+    self:StopMovingOrSizing();self.resizing=nil
+    self.resizeSerial=(self.resizeSerial or 0)+1;self.resizeQueued=nil
+    preferences.width=KHQOL.PositionStore:Round(self:GetWidth());preferences.height=KHQOL.PositionStore:Round(self:GetHeight())
+    self:FitScreen();self:Reflow()
+  end
+  grip:SetScript("OnMouseDown",function(_,button) if button=="LeftButton" then UI:CancelInputs(f);UI:CloseDropdown();N:CancelSearch(f);f.resizing=true;f:StartSizing("BOTTOMRIGHT") end end)
+  grip:SetScript("OnMouseUp",function() f:FinishResize() end)
+  UI:AttachTooltip(grip,"설정창 크기","오른쪽 아래 모서리를 드래그합니다. 창 크기·선택 페이지·편집기 표시 선호는 계정 공용입니다.")
+  function f:Reflow()
+    if self.reflowing then return end;self.reflowing=true
+    local width=math.max(320,self:GetWidth()-T.SidebarWidth-T.ContentPadding-40)
+    child:SetWidth(width)
+    self.pageTitle:SetWidth(math.max(150,self:GetWidth()-T.SidebarWidth-210));self.pageTitle:SetFont(UI:Font(),16,"")
+    self.searchBox:SetWidth(width+2)
+    local header=self.groupHeaders[self.page]
+    if header then header:SetWidth(width);if header.ReflowTabs then header:ReflowTabs() end end
+    moduleHeader:SetWidth(width);moduleHeader.description:SetWidth(width-124)
+    moduleHeader.toggle:ClearAllPoints();moduleHeader.toggle:SetPoint("TOPLEFT",width-108,0)
+    if self.moduleSubHeader then self.moduleSubHeader:SetWidth(width) end
+    local content=self.activeContent
+    if content then
+      content:SetWidth(width)
+      local panel=content.activePanel
+      if panel then
+        panel:SetWidth(width);UI:ReflowRegisteredPanels(panel)
+        if panel.Reflow then panel:Reflow() end
+      else UI:ReflowRegisteredPanels(content) end
+      if content.Reflow then content:Reflow() end
+    end
+    self:SetPageScrollLayout(self.page or "general")
+    if self.resizing then
+      UI:RefreshLayoutOnly(content)
+      if self.moduleSubHeader then UI:RefreshLayoutOnly(self.moduleSubHeader) end
+      self:UpdateContentHeight()
+    else self:RefreshActivePage() end
+    self.reflowing=nil
+  end
+  function f:RequestResizeLayout()
+    if not self.resizing or not C_Timer or not C_Timer.After then self:Reflow();return end
+    if self.resizeQueued then return end
+    self.resizeQueued=true;local serial=self.resizeSerial or 0
+    C_Timer.After(.03,function()
+      if serial~=(self.resizeSerial or 0) then return end
+      self.resizeQueued=nil
+      if self.resizing and self:IsShown() then self:Reflow() end
+    end)
+  end
+  f:HookScript("OnSizeChanged",function() f:RequestResizeLayout() end)
+  f:SetScript("OnHide",function()
+    if f.resizing then f:FinishResize() end
+    UI:CancelInputs(f);UI:CloseColorPicker(); UI:CloseDropdown();N:CancelSearch(f);GameTooltip:Hide()
+  end)
+  f:Reflow()
 end
 function KHQOL:ShowSettings(key)
   if not self.settings then return end
   if self.PositionEditor and self.PositionEditor.active then return end
+  if type(key)=="table" then return N:Open(key) end
   self.settings:Show(); self.settings:ShowPage(key or "general")
 end

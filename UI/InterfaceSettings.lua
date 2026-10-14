@@ -21,7 +21,9 @@ Interface:RegisterTab("range",nil,function(content,y)
 end)
 Interface:RegisterTab("tooltip",nil,function(content,y) return KHQOL.modules.tooltip:BuildSettings(content,y) end)
 
-Interface:RegisterTab("units",nil,function(content,y) return KHQOL.modules.unitFrames:BuildSettings(content,y) end)
+local Units=UI:NewSettingsGroup("unitFrames")
+KHQOL.UnitFrameSettings=Units
+Units:RegisterTab("units",nil,function(content,y) return KHQOL.modules.unitFrames:BuildSettings(content,y) end)
 Interface:RegisterTab("clock",nil,function(content,y)
   local fc=KHQOL.modules.clock
   fc:CreateSettings(content)
@@ -31,4 +33,5 @@ Interface:RegisterTab("clock",nil,function(content,y)
 end)
 local Quest=UI:NewSettingsGroup("quest")
 KHQOL.QuestSettings=Quest
-Quest:RegisterTab("navigation",nil,function(content,y) return KHQOL.modules.questNavigator:BuildSettings(content,y) end)
+Quest:RegisterTab("tracker",nil,function(content,y) return KHQOL.modules.questNavigator:BuildSettings(content,y,"tracker") end)
+Quest:RegisterTab("navigation",nil,function(content,y) return KHQOL.modules.questNavigator:BuildSettings(content,y,"navigation") end)

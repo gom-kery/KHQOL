@@ -1,5 +1,6 @@
 local _, KHQOL = ...
 local UI=KHQOL.UI
+local N=UI.SettingsNavigation
 local E={pool={},active=false}
 KHQOL.PositionEditor=E
 local unpack=unpack
@@ -10,8 +11,8 @@ local function safe(frame)
   return KHQOL.PositionStore:Safe(frame)
 end
 local function center(frame)
-  local x,y=frame:GetCenter(); local scale=frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
-  return (x or 0)*scale,(y or 0)*scale
+  local x,y=KHQOL.PositionStore:Center(frame)
+  return x or 0,y or 0
 end
 function E:Message(message)
   if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cff"..UI.Theme.AccentHex.."KHQOL:|r "..message) end
@@ -19,20 +20,60 @@ end
 function E:CreateToolbar()
   if self.toolbar then return end
   local f=CreateFrame("Frame","KHQOLPositionEditorToolbar",UIParent,"BackdropTemplate")
-  f:SetSize(520,192); f:SetPoint("TOP",0,-32); f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetFrameLevel(200)
+  f:SetSize(650,432); f:SetPoint("TOP",0,-32); f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetFrameLevel(200)
   f:SetMovable(true); f:SetClampedToScreen(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart",f.StartMoving); f:SetScript("OnDragStop",f.StopMovingOrSizing)
   UI:Surface(f,1)
   UI:CreateLabel(f,"KHQOL · 위치 편집",14,-12,16)
-  f.info=UI:CreateDescription(f,"테두리를 드래그하세요. ESC는 취소합니다.",14,-38); f.info:SetWidth(492)
+  f.info=UI:CreateDescription(f,"테두리를 드래그하세요. ESC는 취소합니다.",14,-38); f.info:SetWidth(622)
   UI:CreateButton(f,"완료 / 잠금",14,-124,146,function() E:Finish(true) end)
   UI:CreateButton(f,"취소",174,-124,100,function() E:Finish(false) end)
-  f.selection=UI:CreateDescription(f,"",14,-62);f.selection:SetWidth(492);f.selection:SetHeight(52)
+  f.selection=UI:CreateDescription(f,"",14,-62);f.selection:SetWidth(622);f.selection:SetHeight(52)
   self.resetButton=UI:CreateButton(f,"선택 위치 초기화",290,-124,204,function() E:ResetSelection() end,function() return E.selected and not E.selected.target.linked end)
   self.settingsButton=UI:CreateButton(f,"완료 후 크기·모양 설정",14,-158,330,function()
-    local key=E.selected and E.selected.target.key
-    if E:Finish(true) and key then KHQOL:ShowSettings(key) end
-  end,function() return E.selected and E.selected.target.key and (not E.selected.target.key or KHQOL.UI.SettingsRegistry.modules[E.selected.target.key]) end)
+    local route=E.selected and E.selected.target.settingsRoute
+    if E:Finish(true) and route then N:Open(route) end
+  end,function() return E.selected and E.selected.target.settingsRoute~=nil end)
+  local preferences=N:Preferences()
+  self.mode=preferences.editorMode or "representative"
+  self.filter=preferences.editorFilter or "hud";self.groupFilter="all";self.query=""
+  local mode=UI:CreateDropdown(f,14,-192,300,{
+    {value="representative",text="대표 프레임"},{value="group",text="선택 그룹"},
+    {value="part",text="선택 부품 (한 개 보기)"},{value="all",text="전체 부품"}},
+    function() return E.mode end,function(v) E:SetMode(v) end)
+  self.modePicker=mode
+  self.categoryPicker=UI:CreateDropdown(f,330,-192,306,function()
+    local options={{value="hud",text="HUD만"},{value="windows",text="기본창·도구창"},{value="all",text="모든 분류"}}
+    local seen={};for _,h in ipairs(E.handles or {}) do local c=h.target.category;if not seen[c] then seen[c]=true;options[#options+1]={value=c,text=c} end end
+    return options
+  end,function() return E.filter end,function(v) E.filter=v;E.groupFilter="all";preferences.editorFilter=v;E:RefreshList();E:Select(E.selected) end)
+  self.searchBox=UI:CreateEditBox(f,14,-226,300,nil,nil)
+  UI:AttachTooltip(self.searchBox,"편집 대상 찾기","등록된 편집 대상의 분류·유닛·부품 이름을 검색합니다. 설정값은 변경하지 않습니다.")
+  self.searchBox:SetScript("OnTextChanged",function(box) E.query=box:GetText():lower();E:RefreshList() end)
+  self.searchBox:SetScript("OnEscapePressed",function(box) box:SetText("");box:ClearFocus() end)
+  self.groupPicker=UI:CreateDropdown(f,330,-226,306,function()
+    local options={{value="all",text="모든 유닛·그룹"}};local seen={}
+    for _,h in ipairs(E.handles or {}) do local t=h.target
+      if E:MatchesFilter(t) and not seen[t.groupID] then seen[t.groupID]=true;options[#options+1]={value=t.groupID,text=t.category.." > "..t.group} end
+    end
+    return options
+  end,function() return E.groupFilter end,function(v) E.groupFilter=v;E:RefreshList() end)
+  local viewport=CreateFrame("ScrollFrame",nil,f);viewport:SetPoint("TOPLEFT",14,-260);viewport:SetSize(622,94)
+  local list=CreateFrame("Frame",nil,viewport);list:SetWidth(622);viewport:SetScrollChild(list)
+  self.listViewport=viewport;self.listBody=list;self.listRows={}
+  viewport:EnableMouseWheel(true);viewport:SetScript("OnMouseWheel",function(_,delta)
+    viewport:SetVerticalScroll(math.max(0,math.min(math.max(0,list:GetHeight()-viewport:GetHeight()),viewport:GetVerticalScroll()-delta*28)))
+  end)
+  f.coordinateHint=UI:CreateDescription(f,"미세 이동: 편집 시작 위치 기준, 화면 UI px. 연결 부품은 부모 기준입니다.",14,-364);f.coordinateHint:SetWidth(622)
+  self.xInput=UI:CreateEditBox(f,40,-394,84,function() return string.format("%.1f",E:Offset("x")) end,function(v) E:SetOffset("x",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
+  self.yInput=UI:CreateEditBox(f,164,-394,84,function() return string.format("%.1f",E:Offset("y")) end,function(v) E:SetOffset("y",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
+  UI:CreateLabel(f,"X",14,-400);UI:CreateLabel(f,"Y",138,-400)
+  for _,v in ipairs({{"←",-1,0},{"→",1,0},{"↑",0,1},{"↓",0,-1}}) do
+    local value=v
+    UI:CreateButton(f,value[1],278+(#(self.nudgeButtons or {}))*42,-394,36,function() E:Nudge(value[2],value[3]) end,function() return E.selected and not E.selected.target.linked end)
+    self.nudgeButtons=self.nudgeButtons or {};self.nudgeButtons[#self.nudgeButtons+1]=value
+  end
+  UI:CreateDescription(f,"1 UI px · 완료 전에는 임시 위치",458,-400):SetWidth(174)
   f:EnableKeyboard(true); f:SetPropagateKeyboardInput(true)
   f:SetScript("OnKeyDown",function(self,key)
     self:SetPropagateKeyboardInput(key~="ESCAPE")
@@ -78,11 +119,11 @@ function E:GetHandle(id)
   h:SetScript("OnDragStop",function(self) E:StopDrag(self) end)
   h:SetScript("OnEnter",function(self)
     if not E.active or not self.target then return end
-    E:SetHandleHighlight(self,true)
+    E:SetHandleHighlight(self,true);self.caption:Show();if self.mirrorCount==0 then self.sample:Show() end
     GameTooltip:SetOwner(self,"ANCHOR_TOP"); GameTooltip:SetText(self.target.name,unpack(UI.Theme.Accent))
     GameTooltip:AddLine(self.target.linked and "부모 요소와 함께 이동합니다. 연결 관계는 유지됩니다." or "드래그로 이동 · 완료 시 저장 및 잠금",.85,.88,.9,true); GameTooltip:Show()
   end)
-  h:SetScript("OnLeave",function(self) E:SetHandleHighlight(self,E.selected==self); GameTooltip:Hide() end)
+  h:SetScript("OnLeave",function(self) E:SetHandleHighlight(self,E.selected==self);self.caption:SetShown(E.selected==self);self.sample:SetShown(E.selected==self and self.mirrorCount==0);GameTooltip:Hide() end)
   h:SetScript("OnHide",function(self) E:SetHandleHighlight(self,false) end)
   h:Hide(); self.pool[id]=h; return h
 end
@@ -100,15 +141,83 @@ function E:StopDrag(h)
   else h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y) end
   if self.active then self:Select(h) end
 end
+function E:MatchesFilter(t)
+  if self.filter=="hud" then return not t.largeWindow end
+  if self.filter=="windows" then return t.largeWindow end
+  return self.filter=="all" or t.category==self.filter
+end
+function E:SetMode(mode)
+  self.mode=mode;self.onlySelected=mode=="part"
+  N:Preferences().editorMode=mode;self:Select(self.selected)
+end
+function E:RefreshList()
+  if not self.listBody then return end
+  local count=0;local query=self.query or ""
+  for _,h in ipairs(self.handles or {}) do
+    local t=h.target;local path=N:Path(t.settingsRoute).." > "..t.name
+    local match=true;for word in query:gmatch("%S+") do if not (path.." "..t.id):lower():find(word,1,true) then match=false;break end end
+    if self:MatchesFilter(t) and (self.groupFilter=="all" or self.groupFilter==t.groupID) and match then
+      count=count+1;local row=self.listRows[count]
+      if not row then
+        row=UI:CreateButton(self.listBody,"",0,-(count-1)*28,622,function(button)
+          if not E.active or not button.handle or button.generation~=E.generation then return end
+          E:StopDrag(E.dragging);E:Select(button.handle)
+          if E.mode=="representative" and not button.handle.target.representative then E:SetMode("part") end
+        end);self.listRows[count]=row
+      end
+      row.handle=h;row.generation=self.generation;row:SetText(path..(t.linked and " · 연결/읽기 전용" or ""));row:SetWidth(622)
+      row:GetFontString():SetWidth(606);row:GetFontString():SetJustifyH("LEFT");row:Show();UI:SetButtonSelected(row,h==E.selected)
+    end
+  end
+  for i=count+1,#self.listRows do self.listRows[i].handle=nil;self.listRows[i]:Hide() end
+  self.listBody:SetHeight(math.max(1,count*28))
+  self.listViewport:SetVerticalScroll(math.min(self.listViewport:GetVerticalScroll(),math.max(0,self.listBody:GetHeight()-94)))
+  if self.groupPicker then self.groupPicker:Refresh() end
+end
+function E:Offset(axis)
+  local h=self.selected;if not h then return 0 end
+  local x,y=center(h)
+  if h.parentHandle then local px,py=center(h.parentHandle);x=x-px-h.relativeX;y=y-py-h.relativeY
+  else x=x-h.originX;y=y-h.originY end
+  return axis=="x" and x or y
+end
+function E:SetOffset(axis,value)
+  if not self.active or not self.selected or self.selected.target.linked or not KHQOL.PositionStore:Number(value) then return end
+  self:Nudge(axis=="x" and value-self:Offset("x") or 0,axis=="y" and value-self:Offset("y") or 0)
+end
+function E:Nudge(dx,dy)
+  local h=self.selected;if not self.active or not h or h.target.linked or combat() then return end
+  self:StopDrag(self.dragging);local x,y=center(h);h:ClearAllPoints()
+  if h.parentHandle then local px,py=center(h.parentHandle);h:SetPoint("CENTER",h.parentHandle,"CENTER",x-px+dx,y-py+dy)
+  else h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x+dx,y+dy) end
+  self:Select(h)
+end
 function E:Select(handle)
   self.selected=handle
-  for _,h in ipairs(self.handles or {}) do self:SetHandleHighlight(h,h==handle) end
-  if not handle or not handle.target then self.toolbar.selection:SetText("편집 가능한 요소가 없습니다.");return end
-  local x,y=center(handle);local cx,cy=UIParent:GetCenter();local t=handle.target
-  local parent=handle.parentHandle and handle.parentHandle.target.name
-  self.toolbar.selection:SetText(string.format("%s\n%s · 화면 중심 X %.0f / Y %.0f · 표시 %.0f × %.0f px",
-    t.name,parent and ((t.linked and "연결: " or "부모: ")..parent) or "독립 위치",x-cx,y-cy,handle:GetWidth(),handle:GetHeight()))
+  for _,h in ipairs(self.handles or {}) do
+    local related=handle and h.target.groupID==handle.target.groupID
+    local show=self:MatchesFilter(h.target) and (self.mode=="all" or self.mode=="group" and related or self.mode=="part" and h==handle or self.mode=="representative" and h.target.representative)
+    if h==handle and (self.mode=="group" or self.mode=="part") then show=true end
+    self:SetHandleHighlight(h,h==handle);h:SetFrameLevel(h==handle and 180 or 100)
+    h:SetShown(show);h:EnableMouse(show)
+    h.caption:SetShown(show and h==handle);h.sample:SetShown(show and h==handle and h.mirrorCount==0)
+  end
+  self:UpdateSuppression()
+  if not handle or not handle.target then self.toolbar.selection:SetText("이 필터에서 편집할 요소가 없습니다. 모듈과 표시 설정을 확인하세요.");return end
+  local t=handle.target
+  self.toolbar.selection:SetText(N:Path(t.settingsRoute).." > "..t.name.."\n"..(t.linked and "읽기 전용 / 연결 요소" or handle.parentHandle and "부모 기준 이동" or "독립 이동")..string.format(" · 미세 이동 X %.1f / Y %.1f UI px",self:Offset("x"),self:Offset("y")))
   self.resetButton:Refresh();self.settingsButton:Refresh()
+  if self.modePicker then self.modePicker:Refresh() end
+  if self.categoryPicker then self.categoryPicker:Refresh() end
+  if self.xInput then self.xInput:Refresh();self.yInput:Refresh() end
+  self:RefreshList()
+end
+function E:UpdateSuppression()
+  for frame,state in pairs(self.suppressed or {}) do
+    local hide=false
+    for h in pairs(state.handles or {}) do if h:IsShown() then hide=true;break end end
+    if safe(frame) then frame:SetAlpha(hide and 0 or state.alpha);if frame.EnableMouse then frame:EnableMouse(not hide and state.mouse) end end
+  end
 end
 function E:ResetSelection()
   local h=self.selected;if not h or h.target.linked then return end
@@ -191,20 +300,27 @@ function E:Mirror(h,frame)
       local texture=h.art[index] or h:CreateTexture(nil,"ARTWORK"); h.art[index]=texture
       texture:ClearAllPoints(); texture:SetPoint("CENTER",h,"CENTER",spec.x or 0,spec.y or 0)
       texture:SetSize(spec.width,spec.height); texture:SetTexture(spec.texture)
-      texture:SetTexCoord(0,1,0,spec.crop or 1); texture:SetAlpha(1); texture:Show()
+      texture:SetTexCoord(unpack(spec.texCoord or {0,1,0,spec.crop or 1})); texture:SetAlpha(1); texture:Show()
     end
   end
+  h.mirrorCount=used
   h.sample:SetShown(used==0); h.sample:SetText(h.target.sample or "편집용 미리보기")
   h.sample:SetFont(UI:Font(),h.target.sampleSize or 12,"")
+  h.sample:SetJustifyH(h.target.sampleJustify or "CENTER")
   h.sample:ClearAllPoints(); h.sample:SetPoint("CENTER",h,"CENTER",0,h.target.sampleY or 0)
 end
-function E:Enter(focus)
+function E:Enter(focus,entryMode)
   if self.active then return true end
+  if EditModeManagerFrame and KHQOL.PublicCall(EditModeManagerFrame.IsShown,EditModeManagerFrame)==true then self:Message("기본 게임 편집 모드를 닫은 후 KHQOL 위치 편집을 열어 주세요.");return false end
   if combat() then self:Message("전투 중에는 위치를 편집할 수 없습니다."); return false end
   if KHQOL.AlertLayout then KHQOL.AlertLayout:Suspend(true) end
   self:CreateToolbar(); UI:CloseDropdown(); GameTooltip:Hide()
   self.returnSettings=KHQOL.settings and KHQOL.settings:IsShown()
-  self.targets=KHQOL:BuildPositionTargets(); self.sources={}; self.suppressed={}; self.handles={}; self.byID={}
+  self.targets=KHQOL:BuildPositionTargets(focus);
+  for _,t in ipairs(self.targets) do N:EditorMeta(t) end
+  self.mode=entryMode=="group" and "group" or focus and "part" or N:Preferences().editorMode or "representative";self.onlySelected=self.mode=="part"
+  self.returnRoute=KHQOL.settings and KHQOL.settings.currentRoute
+   self.sources={}; self.suppressed={}; self.handles={}; self.byID={}
   self.generation=KHQOL.profileGeneration
   self.labUnlocked=KHQOL.LabLock:IsUnlocked();self.enabled={}
   for key in pairs(KHQOL.db.enabled) do self.enabled[key]=KHQOL:GetEnabled(key) end
@@ -215,10 +331,13 @@ function E:Enter(focus)
       local ratio=target.frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
       local x,y=center(target.frame); local w,ht=target.frame:GetSize()
       if target.bounds then x,y,w,ht=target.bounds(x,y,w*ratio,ht*ratio) else w,ht=w*ratio,ht*ratio end
+      if not target.art or #target.art==0 then
+        w=math.max(w,math.min(360,#(target.sample or "")*4+16));ht=math.max(ht,28)
+      end
       h:SetSize(math.max(16,w),math.max(16,ht)); h:ClearAllPoints(); h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y)
       h.originX,h.originY=x,y; target.scale=ratio
       h.caption:SetText(target.name); self:SetHandleHighlight(h,false)
-      h.sample:SetWidth(math.max(8,w-8)); h:SetFrameLevel(100); h:EnableMouse(true); h:Show()
+      h.sample:SetWidth(math.max(target.art and #target.art>0 and 160 or 8,w-8)); h:SetFrameLevel(100); h:EnableMouse(true); h:Show()
       self.handles[#self.handles+1]=h; self.byID[target.id]=h
     end
   end
@@ -237,27 +356,34 @@ function E:Enter(focus)
     end
   end
   -- Suppress original mouse input too: transparent old HUDs must not catch clicks.
-  local function suppress(frame)
-    if not safe(frame) or self.suppressed[frame] then return end
-    self.suppressed[frame]={alpha=frame:GetAlpha(),mouse=frame.IsMouseEnabled and frame:IsMouseEnabled() or false}
-    frame:SetAlpha(0); if frame.EnableMouse then frame:EnableMouse(false) end
-    if frame.GetChildren then for _,child in ipairs({frame:GetChildren()}) do suppress(child) end end
+  local function suppress(frame,h)
+    if not safe(frame) then return end
+    self.suppressed[frame]=self.suppressed[frame] or {alpha=frame:GetAlpha(),mouse=frame.IsMouseEnabled and frame:IsMouseEnabled() or false,handles={}}
+    self.suppressed[frame].handles[h]=true
+    if frame.GetChildren then for _,child in ipairs({frame:GetChildren()}) do suppress(child,h) end end
   end
   for _,h in ipairs(self.handles) do
-    suppress(h.target.frame)
-    for _,frame in ipairs(h.target.suppress or {}) do suppress(frame) end
+    suppress(h.target.frame,h)
+    for _,frame in ipairs(h.target.suppress or {}) do suppress(frame,h) end
   end
   self.active=true
   if KHQOL.settings then KHQOL.settings:Hide() end
-  self.toolbar.info:SetText("테두리를 드래그하세요. ESC는 취소합니다. ("..#self.handles.."개)")
-  self.toolbar:SetScale(math.min(1,(UIParent:GetWidth()-24)/520)); UI:Refresh(self.toolbar); self.toolbar:Show()
+  self.toolbar.info:SetText("목록에서 대상을 고르고 테두리를 드래그하세요. ESC는 취소합니다. ("..#self.handles.."개)")
+  self.toolbar:SetScale(math.min(1,(UIParent:GetWidth()-24)/650,(UIParent:GetHeight()-24)/432)); UI:Refresh(self.toolbar); self.toolbar:Show()
   local selected
   for _,h in ipairs(self.handles) do if h.target.id==focus or h.target.key==focus then selected=selected or h end end
-  self:Select(selected or self.handles[1])
+  selected=selected or self.handles[1]
+  if focus and selected then
+    self.filter=entryMode=="group" and "all" or selected.target.largeWindow and "windows" or "hud"
+    self.query="";self.groupFilter=entryMode=="group" and selected.target.groupID or "all";self.searchBox:SetText("")
+  elseif not focus then
+    self.groupFilter="all";self.query="";self.searchBox:SetText("")
+  end
+  self:Select(selected)
   -- Exists only during editing; live HUD animations may write their own alpha.
   self.toolbar:SetScript("OnUpdate",function()
     if combat() or not self:IsCurrent() then self:Finish(false,combat()); return end
-    for frame in pairs(self.suppressed) do if safe(frame) then frame:SetAlpha(0); if frame.EnableMouse then frame:EnableMouse(false) end end end
+    self:UpdateSuppression()
   end)
   return true
 end
@@ -290,10 +416,10 @@ function E:Finish(save,combatExit)
   self.toolbar:StopMovingOrSizing(); self.toolbar:Hide(); GameTooltip:Hide()
   if combatExit then self:Message("전투가 시작되어 위치 편집을 취소했습니다.")
   elseif self.returnSettings and KHQOL.settings then
-    KHQOL.settings:Show()
+    if self.returnRoute then N:Open(self.returnRoute) else KHQOL.settings:Show() end
     if KHQOL.settings.activeContent then UI:Refresh(KHQOL.settings.activeContent); KHQOL.settings:UpdateContentHeight() end
   end
-  self.returnSettings=nil
+  self.returnSettings=nil;self.returnRoute=nil
   if KHQOL.AlertLayout then KHQOL.AlertLayout:Suspend(false) end
   return save and true or false
 end

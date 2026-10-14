@@ -18,27 +18,50 @@ function Chat:IsEnabled()
 end
 -- Native EditBox navigation/history handles UTF-8, IME and Alt shortcuts.
 -- No keyboard bindings, cursor arithmetic or separate history database.
+function Chat:ApplyHistoryHandler(box,record,completion,active)
+  if type(box.GetScript)~="function" or type(box.SetScript)~="function" then return end
+  local current=public(box.GetScript,box,"OnArrowPressed")
+  -- The inherited autocomplete script receives Up/Down even with no popup.
+  -- Release only that stock script so the EditBox's built-in history handles
+  -- those keys. Reattach it while autocomplete is visible, or when OFF.
+  if active and not completion and type(AutoCompleteEditBox_OnArrowPressed)=="function"
+    and current==AutoCompleteEditBox_OnArrowPressed then
+    record.arrowScript=current;record.arrowReleased=true;box:SetScript("OnArrowPressed",nil)
+  elseif (completion or not active) and record.arrowReleased then
+    if current==nil then box:SetScript("OnArrowPressed",record.arrowScript) end
+    record.arrowReleased=nil;record.arrowScript=nil
+  end
+end
 function Chat:ApplyNavigation(box)
   local record=self.boxes[box]
-  if not record then return end
+  if not record or record.writing then return end
   if locked(box) then self.pending=true; return end
   local active=self:IsEnabled() and public(box.IsShown,box) and public(box.HasFocus,box)
   local completion,completionMode=public(function()
     if AutoCompleteBox then return AutoCompleteBox.parent==box and AutoCompleteBox:IsShown(),AutoCompleteBox.parentArrows end
   end)
+  self:ApplyHistoryHandler(box,record,completion,active)
   if active then
+    -- Autocomplete owns Up/Down while its choices are visible. Its native
+    -- cached parentArrows field is left untouched; reapply after it closes.
+    if completion then return end
     if not record.applied then
       local original=public(box.GetAltArrowKeyMode,box)
       if completion and type(completionMode)=="boolean" then original=completionMode end
       if type(original)~="boolean" then return end
       record.original=original; record.applied=true
     end
-    if public(box.GetAltArrowKeyMode,box)~=false then box:SetAltArrowKeyMode(false) end
+    if public(box.GetAltArrowKeyMode,box)~=false then
+      record.writing=true;public(box.SetAltArrowKeyMode,box,false);record.writing=false
+    end
   elseif not active and record.applied then
     -- Let the visible native autocomplete keep its arrow selection. Restore
     -- after it closes without rewriting its cached parentArrows field.
     if completion and public(box.IsShown,box) and public(box.HasFocus,box) then return end
-    box:SetAltArrowKeyMode(record.original); record.applied=nil
+    if public(box.GetAltArrowKeyMode,box)==false then
+      record.writing=true;public(box.SetAltArrowKeyMode,box,record.original);record.writing=false
+    end
+    record.applied=nil
   end
 end
 function Chat:RegisterBox(box)
@@ -47,7 +70,12 @@ function Chat:RegisterBox(box)
   self.boxes[box]={}
   box:HookScript("OnEditFocusGained",function() Chat:ApplyNavigation(box) end)
   box:HookScript("OnEditFocusLost",function() Chat:ApplyNavigation(box) end)
+  box:HookScript("OnShow",function() Chat:ApplyNavigation(box) end)
   box:HookScript("OnHide",function() Chat:ApplyNavigation(box) end)
+  -- Activation/autocomplete and other native paths can reset ignoreArrows
+  -- after a focus callback. Follow that setter, without keyboard replacement,
+  -- cursor arithmetic, text reads, or an independent history database.
+  hooksecurefunc(box,"SetAltArrowKeyMode",function() Chat:ApplyNavigation(box) end)
   self:ApplyNavigation(box)
 end
 function Chat:LeaveLink(frame)
@@ -226,7 +254,7 @@ function Chat:RegisterFrame(frame)
   -- enable plain-text clicks only while ON, and restore original click state OFF.
   if type(motion)=="boolean" and type(frame.SetMouseMotionEnabled)=="function" then frame:SetMouseMotionEnabled(motion) end
   self:ApplyFrameInput(frame)
-  self:RegisterBox(frame.editBox)
+  self:RegisterBox(frame.editBox or public(frame.GetEditBox,frame))
 end
 function Chat:DiscoverFrames()
   for _,name in ipairs(CHAT_FRAMES or {}) do self:RegisterFrame(_G[name]) end
@@ -265,11 +293,19 @@ function Chat:Initialize()
     self.hooks.AutoComplete_HideIfAttachedTo=true
     hooksecurefunc("AutoComplete_HideIfAttachedTo",function(box) Chat:ApplyNavigation(box) end)
   end
+  if AutoCompleteBox and not self.hooks[AutoCompleteBox] then
+    self.hooks[AutoCompleteBox]=true
+    local function refresh() for box in pairs(Chat.boxes) do Chat:ApplyNavigation(box) end end
+    AutoCompleteBox:HookScript("OnShow",refresh);AutoCompleteBox:HookScript("OnHide",refresh)
+  end
   if EventRegistry and EventRegistry.RegisterCallback and not self.focusCallback then
     self.focusCallback=true
-    EventRegistry:RegisterCallback("ChatFrame.OnEditBoxShow",function(_,box)
-      Chat:RegisterFrame(box.chatFrame); Chat:RegisterBox(box)
-    end,self)
+    for _,event in ipairs({"ChatFrame.OnEditBoxShow","ChatFrame.OnEditBoxFocusGained"}) do
+      EventRegistry:RegisterCallback(event,function(_,box)
+        if not box then return end
+        Chat:RegisterFrame(box.chatFrame);Chat:RegisterBox(box);Chat:ApplyNavigation(box)
+      end,self)
+    end
   end
   if not self.events then
     self.events=CreateFrame("Frame")

@@ -3,6 +3,40 @@ local FC = KHQOL.modules.clock
 
 local BASIC = { [164]=true, [165]=true, [171]=true, [182]=true, [186]=true, [197]=true, [202]=true, [333]=true, [393]=true }
 local SECONDARY = { [129]=true, [185]=true, [356]=true }
+local call=KHQOL.PublicCall
+local function aidAttributes(info)
+  if not KHQOL.IsPublicValue(info) or type(info)~="table" then return end
+  local name,rank,maxRank,id,header=call(function() return info.name,info.rank,info.maxRank,info.skillID,info.isHeader end)
+  if id~=129 or header~=false or type(name)~="string" or name=="" then return end
+  if not KHQOL.IsPublicValue(rank) or type(rank)~="number" or rank~=rank or rank<0 then return end
+  if not KHQOL.IsPublicValue(maxRank) or type(maxRank)~="number" or maxRank~=maxRank or maxRank<=0 or maxRank==math.huge then return end
+  return {name=name,skill=rank,maxSkill=maxRank}
+end
+function FC:FindFirstAid()
+  -- The namespaced API also reads a skill inside a collapsed header without
+  -- changing the player's skill-list state. Older clients keep their fallback.
+  if C_SkillInfo then
+    local aid=aidAttributes(call(C_SkillInfo.GetSkillLineInfoByID,129))
+    if aid then return aid end
+    local count=call(C_SkillInfo.GetNumSkillLines)
+    if type(count)=="number" and count>=0 and count<=1000 and count==math.floor(count) then
+      for index=1,count do
+        aid=aidAttributes(call(C_SkillInfo.GetSkillLineInfo,index))
+        if aid then return aid end
+      end
+    end
+  end
+  local count=call(GetNumSkillLines)
+  if type(count)=="number" and count>=0 and count<=1000 and count==math.floor(count) then
+    for index=1,count do
+      local name,header,_,rank,_,_,maxRank=call(GetSkillLineInfo,index)
+      if type(name)=="string" and header==false and (name=="응급치료" or name=="응급 치료" or name=="First Aid")
+        and type(rank)=="number" and rank>=0 and type(maxRank)=="number" and maxRank>0 then
+        return {name=name,skill=rank,maxSkill=maxRank}
+      end
+    end
+  end
+end
 local FALLBACK_ICONS = {
   [164]="Interface\\Icons\\Trade_BlackSmithing", [165]="Interface\\Icons\\Trade_LeatherWorking",
   [171]="Interface\\Icons\\Trade_Alchemy", [182]="Interface\\Icons\\Trade_Herbalism",
@@ -49,14 +83,12 @@ function FC:ScanProfessions()
   end
   -- Forever can omit First Aid from GetProfessions().  Its skill line still
   -- appears in the character skill list, so use that list as a safe fallback.
-  if not seen[129] and type(GetNumSkillLines) == "function" and type(GetSkillLineInfo) == "function" then
-    for index = 1, GetNumSkillLines() do
-      local name, isHeader, _, rank, _, _, maxRank = GetSkillLineInfo(index)
-      if name and not isHeader and (name == "응급치료" or name == "응급 치료" or name == "First Aid") then
-        seen[129] = true
-        found[#found + 1] = { name=name, icon=FALLBACK_ICONS[129], skill=rank, maxSkill=maxRank, skillLineID=129, category="secondary", openMode="C_TradeSkillUI.OpenTradeSkill", openID=129 }
-        break
-      end
+  if not seen[129] then
+    local aid=self:FindFirstAid()
+    if aid then
+      seen[129]=true
+      found[#found+1]={name=aid.name,icon=FALLBACK_ICONS[129],skill=aid.skill,maxSkill=aid.maxSkill,
+        skillLineID=129,category="secondary",openMode="C_TradeSkillUI.OpenTradeSkill",openID=129}
     end
   end
   local basic, secondary = {}, {}

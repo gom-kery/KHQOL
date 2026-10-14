@@ -48,6 +48,7 @@ function Settings:Create(parent)
   local reset=UI:CreateButton(panel,"메시지 위치 초기화",rx,ry-24,180,function() FR.db.mouseover.x,FR.db.mouseover.y=0,0;refreshMouseover() end,mouseoverEnabled)
   local x=b:Slider("X 위치 보정",-100,200,1,function() return FR.db.mouseover.x end,function(v) FR.db.mouseover.x=v; refreshMouseover() end,nil,mouseoverEnabled)
   local y=b:Slider("Y 위치 보정",-100,100,1,function() return FR.db.mouseover.y end,function(v) FR.db.mouseover.y=v; refreshMouseover() end,nil,mouseoverEnabled)
+  b:Button("마우스오버 문구 위치 편집",function() KHQOL.PositionEditor:Enter("range.mouseover") end,nil,mouseoverEnabled)
   local messages={}
   for index,entry in ipairs({{"availableText","공격가능 문구"},{"unavailableText","공격불가 문구"}}) do
     local key,title=entry[1],entry[2]

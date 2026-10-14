@@ -1,0 +1,7 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <!-- Reuse the client's target filters, secure aura assignment, cooldowns and
+       click/tooltip scripts. No addon Lua receives aura records or pool data. -->
+  <ScopedModifier useForbiddenObjectTable="true" allowUntaintedCreation="true">
+    <AuraContainer name="KHQOLNativeTargetAuraLayoutTemplate" inherits="TargetFrameAuraContainerTemplate" virtual="true"/>
+  </ScopedModifier>
+</Ui>

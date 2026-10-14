@@ -3,6 +3,7 @@ local R={modules={},groups={},orders={},routes={},commands={},moduleGroups={}}
 KHQOL.UI.SettingsRegistry=R
 R.pages={
   {"general","일반","KHQOL 공통 설정 및 모듈 관리"},
+  {"unitFrames","유닛프레임","유닛과 부품별 모양·표시·위치를 설정합니다."},
   {"convenience","편의 기능","자동 판매·수리·거절, 아이템·대화창 및 노트를 설정합니다."},
   {"interface","인터페이스","기본 UI, 툴팁, 커서, 사거리와 시계·정보 표시를 설정합니다."},
   {"bars","바 설정","바 계열 기능과 환경 타이머를 관리합니다."},
@@ -33,13 +34,15 @@ entry("interface","cursor","cursorTrail","마우스 잔상","마우스 이동 �
 entry("interface","range","range","사거리 측정","선택한 대상의 사거리 상태를 표시합니다.",{"range"})
 entry("alerts","threat","threat","위협 수치","현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다.")
 entry("interface","basic","basicUI","기본 UI","가방·메뉴바 표시와 Blizzard 기본창 이동을 설정합니다.",{"basicui"})
-entry("interface","units","unitFrames","유닛 프레임","플레이어·대상 프레임의 크기, 모양과 수치 표시를 설정합니다.",{ "unitframes" })
+entry("unitFrames","units","unitFrames","유닛 프레임","플레이어·대상·소환수·대상의 대상·주시대상 프레임의 간결한 모양과 표시를 설정합니다.",{ "unitframes" })
 entry("interface","tooltip","tooltip","툴팁 설정","툴팁의 위치, 표시 방식 및 무기 전문가 안내를 조정합니다.",{"tooltip","weapon"})
 entry("convenience","general",nil,"일반 편의","아이템, 자동 거절, 채집 및 상점 기능을 각각 설정합니다.")
 R.routes.generalConvenience=R.groups.convenience.general
 entry("interface","clock","clock","시계·정보 표시","시간, 날짜, 요일 및 HUD 정보를 표시합니다.",{"clock"})
 entry("convenience","note","todo","포에버 노트","화면의 노트 창에서 할 일과 메모를 관리합니다.",{"todo"})
-entry("quest","navigation","questNavigator","목록·길 안내","추적 중인 퀘스트의 목표·반납 위치를 안내합니다.",{"quest","questnavigator"})
+entry("quest","tracker",nil,"퀘스트 목록 (목표 추적기)","목표 추적기의 목록·지역 그룹·글자·폭을 설정합니다.")
+R.groups.quest.tracker.key="questNavigator";R.routes.questTracker=R.groups.quest.tracker
+entry("quest","navigation","questNavigator","길 안내","퀘스트 선택과 길 안내·화살표 HUD를 설정합니다.",{"quest","questnavigator"})
 entry("labs","buff","buffReminder","버프 리마인더","유지할 버프와 만료 전 알림을 설정합니다.",{"buff"})
 entry("labs","proc","procAlert","발동 버프","등록한 버프의 전투 중 발동 알림을 설정합니다.")
 entry("labs","highlight","objectHighlight","오브젝트 강조","전리품이 있는 퀘스트 오브젝트의 반짝임 유지 설정을 적용합니다.",{"objecthighlight","sparkles"})
@@ -48,7 +51,7 @@ entry("labs","performance","performanceMonitor","성능 모니터","KHQOL CPU �
 R.routes.frameMover=R.modules.basicUI
 R.commands.framemover="frameMover"; R.commands.threat="threat"
 -- Order, commands, general shortcuts and presenter all consume this registry.
-R.orders.interface={"basic","units","tooltip","cursor","range","clock"}
+R.orders.interface={"basic","tooltip","cursor","range","clock"}
 R.orders.alerts={"combat","threat","npc","pvp","campfire"}
 R.groups.labs.buff.category="실험 기능"
 R.groups.labs.inspector.category="개발 도구"
@@ -60,7 +63,7 @@ for _,page in ipairs(R.pages) do
     local group={title=page[2],items={}}
     for _,id in ipairs(R.orders[page[1]]) do
       local meta=R.groups[page[1]][id]
-      if meta.key then group.items[#group.items+1]={meta.key,meta.title} end
+      if meta.key and not (page[1]=="quest" and id=="tracker") then group.items[#group.items+1]={meta.key,meta.title} end
     end
     if page[1]=="convenience" then
       for index,item in ipairs({{"autoConfirmDestroy","아이템 파괴 자동 입력",true},
@@ -90,4 +93,4 @@ end
 
 R.positionModules={clock=true,todo=true,buffReminder=true,range=true,resourceSwing=true,campfire=true,
   castBar=true,combatStatus=true,questNavigator=true,threat=true,pvpAlert=true,experienceBar=true,
-  environmentTimer=true,procAlert=true,performanceMonitor=true}
+  environmentTimer=true,procAlert=true,performanceMonitor=true,tooltip=true,basicUI=true,unitFrames=true}

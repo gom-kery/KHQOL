@@ -6,6 +6,10 @@ local anchors={CENTER=true,TOP=true,BOTTOM=true,LEFT=true,RIGHT=true,TOPLEFT=tru
 function S:Number(v)
   return KHQOL.IsPublicValue(v) and type(v)=="number" and v==v and math.abs(v)<math.huge
 end
+function S:Round(v)
+  if not self:Number(v) then return 0 end
+  return v<0 and math.ceil(v-.5) or math.floor(v+.5)
+end
 function S:Safe(frame)
   if not frame or frame==UIParent then return false end
   for _,key in ipairs({"IsForbidden","IsProtected"}) do
@@ -21,7 +25,7 @@ function S:Point(frame,db,includeSize)
   frame:StopMovingOrSizing()
   local status,point,relative,relativePoint,x,y=KHQOL.ReadPublicAPI(frame.GetPoint,frame,1)
   if status~="ok" or (relative and relative~=UIParent) or not anchors[point] or not anchors[relativePoint] or not self:Number(x) or not self:Number(y) then return false end
-  db.point,db.relativePoint,db.x,db.y=point,relativePoint,x,y
+  db.point,db.relativePoint,db.x,db.y=point,relativePoint,self:Round(x),self:Round(y)
   if includeSize then
     local w,h=frame:GetSize()
     if self:Number(w) and self:Number(h) and w>0 and h>0 then db.width,db.height=w,h end
@@ -47,7 +51,7 @@ function S:SaveSettingsWindow(frame)
   local x,y=self:Center(frame); if not x then return end
   local cx,cy=UIParent:GetCenter()
   KHQOL.db.toolWindows=KHQOL.db.toolWindows or {}
-  KHQOL.db.toolWindows.settings={x=x-cx,y=y-cy}
+  KHQOL.db.toolWindows.settings={x=self:Round(x-cx),y=self:Round(y-cy)}
 end
 function S:ApplySettingsWindow(frame)
   local p=KHQOL.db.toolWindows and KHQOL.db.toolWindows.settings

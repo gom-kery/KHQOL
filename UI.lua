@@ -41,7 +41,35 @@ local function refreshSafe(frame)
   return true
 end
 function UI:RegisterRefreshParent(parent)
-  if refreshSafe(parent) then self.refreshParents[parent]=true end
+  if refreshSafe(parent) and not self.refreshParents[parent] then
+    self.refreshParents[parent]=true
+    self.refreshVersion=(self.refreshVersion or 0)+1
+    if type(parent.SetParent)=="function" then
+      local previous=KHQOL.PublicCall(parent.GetParent,parent)
+      hooksecurefunc(parent,"SetParent",function(_,nextParent)
+        if previous~=nextParent then previous=nextParent;UI.refreshVersion=(UI.refreshVersion or 0)+1 end
+      end)
+    end
+  end
+end
+function UI:RefreshParentsFor(parent)
+  self.refreshCache=self.refreshCache or setmetatable({}, {__mode="k"})
+  local cached=self.refreshCache[parent]
+  if cached and cached.version==self.refreshVersion then return cached.parents end
+  local parents={}
+  for candidate in pairs(self.refreshParents) do
+    local current=candidate
+    for depth=1,64 do
+      if not refreshSafe(current) then break end
+      if current==parent then parents[#parents+1]={frame=candidate,depth=depth};break end
+      local status,nextParent=KHQOL.ReadPublicAPI(current.GetParent,current)
+      if status~="ok" or nextParent==current then break end
+      current=nextParent
+    end
+  end
+  table.sort(parents,function(a,b) return a.depth<b.depth end)
+  self.refreshCache[parent]={version=self.refreshVersion,parents=parents}
+  return parents
 end
 function UI:Font() return KHQOL.modules.clock.FONT_PATH or STANDARD_TEXT_FONT end
 function UI:RegisterCaption(parent, region, size)
@@ -200,21 +228,14 @@ end
 function UI:Refresh(parent)
   if (self.settingDepth or 0)>0 then return end
   if not refreshSafe(parent) then return end
-  local pending={}
-  for candidate in pairs(self.refreshParents) do
-    local current=candidate
-    for _=1,64 do
-      if not refreshSafe(current) then break end
-      if current==parent then pending[#pending+1]=candidate;break end
-      local status,nextParent=KHQOL.ReadPublicAPI(current.GetParent,current)
-      if status~="ok" or nextParent==current then break end
-      current=nextParent
+  local pending=self:RefreshParentsFor(parent)
+  for _,item in ipairs(pending) do
+    local owned=item.frame
+    if refreshSafe(owned) and owned:IsVisible() then
+      for _,control in ipairs(owned.uiControls or {}) do if control.layoutRefresh then control:Refresh() end end
     end
   end
-  for _,owned in ipairs(pending) do
-    for _,control in ipairs(owned.uiControls or {}) do if control.layoutRefresh then control:Refresh() end end
-  end
-  for _,owned in ipairs(pending) do self:RefreshOwned(owned) end
+  for _,item in ipairs(pending) do if item.frame:IsVisible() then self:RefreshOwned(item.frame) end end
 end
 function UI:RefreshOwned(parent)
   if not self.refreshParents[parent] or not refreshSafe(parent) then return end
@@ -222,6 +243,8 @@ function UI:RefreshOwned(parent)
   for _, caption in ipairs(parent.uiCaptions or {}) do
     caption.region:SetFont(self:Font(),caption.size,"")
     caption.region:SetText(caption.text)
+    local area=caption.region.khqolTooltipArea
+    if area then area:SetSize(math.max(1,math.min(caption.region:GetWidth(),caption.region:GetStringWidth()+4)),math.max(1,caption.region:GetStringHeight())) end
   end
   -- Checkbox state and button text are not registered captions. Reapply their
   -- font/text after the owning frame is visible, alongside ordinary labels.
@@ -239,10 +262,33 @@ end
 function UI:Changed(parent)
   if (self.settingDepth or 0)>0 then return end
   if KHQOL.profileApplying or KHQOL.profileClosingEditors then return end
-  self:Refresh(parent)
   local active=KHQOL.settings and KHQOL.settings.activeContent
-  if active and active~=parent then self:Refresh(active) end
+  local contained=false;local current=parent
+  for _=1,64 do
+    if current==active then contained=active~=nil;break end
+    if not current or current==UIParent then break end
+    current=current:GetParent()
+  end
+  if not contained then self:Refresh(parent) end
+  if active then self:Refresh(active) end
+  self:QueueDisplayRefresh(active or parent)
   if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
+end
+function UI:QueueDisplayRefresh(parent)
+  if not parent or not C_Timer or not C_Timer.After then return end
+  self.displayRefreshes=self.displayRefreshes or setmetatable({}, {__mode="k"})
+  if self.displayRefreshes[parent] then return end
+  local generation=KHQOL.profileGeneration;local ticket={};self.displayRefreshes[parent]=ticket
+  C_Timer.After(0,function()
+    if UI.displayRefreshes[parent]~=ticket then return end
+    UI.displayRefreshes[parent]=nil
+    if KHQOL.profileGeneration~=generation or not refreshSafe(parent) or not parent:IsVisible() then return end
+    UI:Refresh(parent)
+    local settings=KHQOL.settings
+    if settings and settings.activeContent==parent and settings.scroll and settings.scroll.UpdateScrollChildRect then
+      settings.scroll:UpdateScrollChildRect()
+    end
+  end)
 end
 -- A regular setting may invoke its module's own Changed/Save path. Commit
 -- the profile and refresh once after that setter, rather than twice per click.
@@ -259,6 +305,7 @@ function UI:CommitSetting(parent,setter,...)
 end
 function UI:AttachTooltip(control, title, description)
   if not description or description=="" then return end
+  if control.tooltipRegion then control:EnableMouse(true) end
   control.tooltipTitle=title
   control.tooltipDescription=control.tooltipDescription and (control.tooltipDescription.."\n"..description) or description
   if control.tooltipAttached then return end
@@ -277,8 +324,18 @@ function UI:AttachTooltip(control, title, description)
   for _,region in ipairs(regions) do
     if type(region)=="table" or type(region)=="userdata" then
       if region.GetObjectType and region:GetObjectType()=="FontString" then
-        local area=CreateFrame("Frame",nil,region:GetParent()); area:SetAllPoints(region); area:EnableMouse(true)
+        local area=CreateFrame("Frame",nil,region:GetParent());area:SetPoint("TOPLEFT",region,"TOPLEFT",0,0)
+        area:SetSize(math.max(1,math.min(region:GetWidth(),region:GetStringWidth()+4)),math.max(1,region:GetStringHeight()))
+        area:EnableMouse(true)
+        region.khqolTooltipArea=area
         area:SetScript("OnEnter",enter); area:SetScript("OnLeave",leave)
+        if control.ToggleFromLabel then
+          area:SetScript("OnMouseDown",function(_,button) area.labelPressed=button=="LeftButton" end)
+          area:SetScript("OnMouseUp",function(_,button)
+            local pressed=area.labelPressed;area.labelPressed=nil
+            if pressed and button=="LeftButton" then control:ToggleFromLabel() end
+          end)
+        end
       end
     end
   end
@@ -318,6 +375,9 @@ function UI:CreateCheckbox(parent, text, x, y, getter, setter, enabled)
   b:SetScript("OnClick", function()
     if UI:IsAvailable(b, enabled) then UI:CommitSetting(parent,setter,b:GetChecked() and true or false) end
   end)
+  function b:ToggleFromLabel()
+    if UI:IsAvailable(b,enabled) then UI:CommitSetting(parent,setter,not getter()) end
+  end
   self:RegisterControl(parent, b); b:Refresh(); return b
 end
 function UI:CreateButton(parent, text, x, y, width, click, enabled)
@@ -332,14 +392,17 @@ function UI:CreateButton(parent, text, x, y, width, click, enabled)
     b:SetText(text)
   end
   b:SetScript("OnClick", function(self, mouseButton)
-    if UI:IsAvailable(b, enabled) then click(self, mouseButton); UI:Changed(parent==UIParent and b or parent) end
+    if UI:IsAvailable(b, enabled) then
+      click(self,mouseButton)
+      if not self.navigationOnly then UI:Changed(parent==UIParent and b or parent) end
+    end
   end)
   self:RegisterControl(parent, b); b:Refresh(); return b
 end
 local serial = 0
 function UI:CreateSlider(parent, title, description, x, y, min, max, step, getter, setter, format, enabled, normalize)
   local titleLabel = self:CreateLabel(parent, title, x, y)
-  titleLabel:SetWidth((T.ContentWidth-T.ColumnGap)/2)
+  titleLabel:SetWidth(math.max(40,math.min((T.ContentWidth-T.ColumnGap)/2,parent:GetWidth()-(x or 0))))
   serial = serial + 1
   local name = "KHQOLSettingsSlider" .. serial
   local slider = CreateFrame("Slider", name, parent)
@@ -353,6 +416,13 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
     local fs = _G[name .. suffix]; if fs then fs:SetText("") end
   end
   format = format or tostring
+  local rawFormat=format
+  format=function(value)
+    if step>=1 and type(value)=="number" and value==value and math.abs(value)<math.huge then
+      value=value<0 and math.ceil(value-.5) or math.floor(value+.5)
+    end
+    return rawFormat(value)
+  end
   local box = CreateFrame("EditBox", nil, parent, "InputBoxTemplate,BackdropTemplate")
   box:SetPoint("TOPLEFT", x + T.SliderWidth + 14, y - 20); box:SetSize(86, T.EditBoxHeight)
   for _,region in ipairs({box:GetRegions()}) do if region:GetObjectType()=="Texture" then region:SetAlpha(0) end end
@@ -361,6 +431,21 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   -- Numeric text must not depend on inherited input-template presentation.
   box:SetTextColor(unpack(T.TextPrimary)); box:SetJustifyH("LEFT"); box:SetJustifyV("MIDDLE")
   box:SetText(format(getter()))
+  -- Cached EditBox glyphs can disappear after hidden rows are reparented.
+  -- Idle values are drawn by an owned FontString; the native editor handles
+  -- cursor/selection and typed drafts only while focused.
+  local valueLayer=CreateFrame("Frame",nil,box);valueLayer:SetAllPoints(box);valueLayer:EnableMouse(false)
+  valueLayer:SetFrameLevel(box:GetFrameLevel()+2)
+  local valueText=valueLayer:CreateFontString(nil,"OVERLAY",nil,7)
+  valueText:SetPoint("LEFT",box,"LEFT",6,0);valueText:SetPoint("RIGHT",box,"RIGHT",-6,0)
+  valueText:SetFont(UI:Font(),T.LabelFontSize,"");valueText:SetTextColor(unpack(T.TextPrimary));valueText:SetJustifyH("LEFT");valueText:SetJustifyV("MIDDLE")
+  box.valueText=valueText;box.valueLayer=valueLayer
+  local function paintValue()
+    local focused=box:HasFocus()
+    valueLayer:SetFrameLevel(box:GetFrameLevel()+2)
+    valueText:SetText(box:GetText());valueLayer:SetShown(not focused)
+    box:SetTextColor(T.TextPrimary[1],T.TextPrimary[2],T.TextPrimary[3],focused and 1 or 0)
+  end
   slider.numberBox = box
   local function rounded(value)
     if normalize then return normalize(value) end
@@ -380,9 +465,16 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
     box:SetText(format(getter()))
   end
   UI:BindInput(box,parent,function() box:SetText(format(getter())) end,commit)
+  box:HookScript("OnTextChanged",paintValue)
+  box:HookScript("OnEditFocusGained",paintValue);box:HookScript("OnEditFocusLost",paintValue)
   slider.Refresh = function()
     slider.setting = true; slider:SetValue(getter()); slider.setting = false
+    -- A cached row can be shown at a different ScrollFrame position. Reset the
+    -- EditBox font after that layout so its numeric glyphs are rebuilt too.
+    box:SetFont(UI:Font(),T.LabelFontSize,"");valueText:SetFont(UI:Font(),T.LabelFontSize,"")
+    box:SetJustifyH("LEFT");box:SetJustifyV("MIDDLE")
     if not box:HasFocus() then box:SetText(format(getter())) end
+    paintValue()
     UI:ApplyAvailability(slider, enabled, {titleLabel}); UI:ApplyAvailability(box, enabled)
   end
   slider:SetScript("OnValueChanged", function(_, value)
@@ -396,7 +488,7 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   -- Nested settings panels may first appear after their controls were created.
   -- Refresh on visibility changes too, while retaining a focused user draft.
   box:HookScript("OnShow", function() slider:Refresh() end)
-  self:RegisterControl(parent, slider); slider:Refresh(); return slider
+  self:RegisterControl(parent, slider); slider:Refresh(); return slider,box
 end
 function UI:CloseDropdown()
   if self.openDropdown then self.openDropdown:Hide(); self.openDropdown = nil end
@@ -433,6 +525,7 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
     end
     b:Refresh(); b.menuViewport:SetVerticalScroll(0); b.menu:Show(); UI.openDropdown = b.menu
   end, enabled)
+  b.navigationOnly=true -- Opening a list does not change a profile setting.
   b.Refresh = function()
     if optionSource then options=optionSource() end
     local value = getter(); local selected = "선택"
@@ -521,12 +614,14 @@ end
 function UI:CreateColorPicker(parent, title, x, y, getter, setter, enabled, captureRestore, supportsOpacity)
   local titleLabel = self:CreateLabel(parent, title, x, y)
   local b
-  b = self:CreateButton(parent, "색상 선택", x, y-24, 150, function()
+  b = self:CreateButton(parent, "변경", x, y-24, 150, function()
     UI:OpenColorPicker(getter, setter, function() UI:Changed(parent) end, captureRestore, supportsOpacity)
   end, enabled)
   b.swatch = b:CreateTexture(nil, "OVERLAY"); b.swatch:SetSize(18, 18); b.swatch:SetPoint("LEFT", 8, 0)
   titleLabel:SetWidth((T.ContentWidth-T.ColumnGap)/2)
   b:SetWidth(math.ceil(b:GetFontString():GetStringWidth())+48)
+  b.layoutPreferredWidth=b:GetWidth();b:GetFontString():SetWordWrap(false)
+  b.navigationOnly=true -- Only picker callbacks commit a selected color.
   b:GetFontString():ClearAllPoints(); b:GetFontString():SetPoint("LEFT", 32, 0); b:GetFontString():SetPoint("RIGHT", -8, 0)
   b.Refresh = function()
     local r,g,bl = getter(); b.swatch:SetColorTexture(r,g,bl,1); UI:ApplyAvailability(b, enabled, {titleLabel})
@@ -628,14 +723,15 @@ function UI:CreateBuilder(parent, y)
   end
   function builder:Section(title)
     self:Flush(); self.y=UI:CreateSection(parent,title,self.y)
-    local hint=CreateFrame("Frame",nil,parent); hint:SetPoint("TOPLEFT",0,self.y+36); hint:SetSize(parent:GetWidth(),24); hint:EnableMouse(true)
+    local hint=CreateFrame("Frame",nil,parent); hint:SetPoint("TOPLEFT",0,self.y+36); hint:SetSize(parent:GetWidth(),24); hint:EnableMouse(false);hint.tooltipRegion=true
     self.lastControl,self.lastTitle=hint,title
     local root=parent
     while root and root~=UIParent and not root.settingsModuleKey do root=root:GetParent() end
     local key=root and root.settingsModuleKey
     if key and title:find("위치",1,true) and not root.positionShortcut and UI.SettingsRegistry.positionModules[key] then
       root.positionShortcut=true
-      self:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter(key) end)
+      local button=self:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter(key,"group") end)
+      button.navigationOnly=true
       self:Flush()
     end
   end

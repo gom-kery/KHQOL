@@ -19,6 +19,7 @@ CastBar.defaults = {
   castTime = { enabled=true, position="inside_right", fontSize=12, format="remaining" },
   behavior = { direction="left_to_right", hideBlizzard=true },
   position = { mode="free", locked=true, free={point="CENTER",relativePoint="CENTER",x=0,y=-120}, resource={gap=4,matchWidth=true} },
+  targetPosition = {enabled=false,x=0,y=0},
 }
 local function oneOf(value, choices, default)
   for _, choice in ipairs(choices) do if value == choice then return value end end
@@ -66,6 +67,7 @@ function CastBar:GetDB()
   p.free.point=oneOf(p.free.point,points,"CENTER"); p.free.relativePoint=oneOf(p.free.relativePoint,points,"CENTER")
   p.free.x=clamp(p.free.x,-3000,3000,0); p.free.y=clamp(p.free.y,-3000,3000,-120)
   p.resource.gap=clamp(p.resource.gap,0,20,4)
+  db.targetPosition.x=clamp(db.targetPosition.x,-1000,1000,0);db.targetPosition.y=clamp(db.targetPosition.y,-1000,1000,0)
   self:ResolveTextPositionConflict(nil,db); self.db=db
   return db
 end
@@ -332,8 +334,9 @@ function CastBar:QueueSync()
   C_Timer.After(0,function() if self.generation == generation and not self.failed then self:Sync() end end)
 end
 function CastBar:OnEvent(event,unit,castID,spellID,arg4,arg5)
-  if event == "PLAYER_REGEN_ENABLED" then self:ApplyBlizzard(); return end
-  if event == "PLAYER_ENTERING_WORLD" then self:AttachResource(); self:Sync(); self:ApplyBlizzard(); return end
+  if event == "PLAYER_REGEN_ENABLED" then self:ApplyBlizzard();self:ApplyTargetPosition(); return end
+  if event == "PLAYER_ENTERING_WORLD" then self:AttachResource(); self:Sync(); self:ApplyBlizzard();self:ApplyTargetPosition(); return end
+  if event == "PLAYER_TARGET_CHANGED" or event == "ADDON_LOADED" or event == "UNIT_CLASSIFICATION_CHANGED" then self:ApplyTargetPosition();return end
   if not self:IsEnabled() or secret(unit) or unit ~= "player" then return end
   local channelStop=event == "UNIT_SPELLCAST_CHANNEL_STOP"
   local interrupted=event == "UNIT_SPELLCAST_INTERRUPTED"
@@ -388,12 +391,12 @@ function CastBar:RefreshControls()
 end
 function CastBar:Changed(kind)
   self:ResolveTextPositionConflict(kind)
-  self:ApplyLayout(); self:ApplyBlizzard(); self:RefreshControls()
+  self:ApplyLayout(); self:ApplyBlizzard();self:ApplyTargetPosition(); self:RefreshControls()
   if self.active then self:Tick(0) end
 end
 function CastBar:ResetSettings()
   if KHQOL.settings then KHQOL.settings.castBarContent=nil end
-  self:GetDB(); self:ApplyLayout(); self:ApplyBlizzard(); self:Sync()
+  self:GetDB(); self:ApplyLayout(); self:ApplyBlizzard();self:ApplyTargetPosition(); self:Sync()
 end
 function CastBar:Initialize()
   if self.initialized then return end
@@ -404,10 +407,15 @@ function CastBar:Initialize()
     if not pcall(events.RegisterUnitEvent,events,event,"player") then self.unsupportedEvents[#self.unsupportedEvents+1]=event end
   end
   events:RegisterEvent("PLAYER_ENTERING_WORLD"); events:RegisterEvent("PLAYER_REGEN_ENABLED")
+  for _,event in ipairs({"PLAYER_TARGET_CHANGED","ADDON_LOADED","UNIT_CLASSIFICATION_CHANGED"}) do pcall(events.RegisterEvent,events,event) end
+  if EditModeManagerFrame then
+    EditModeManagerFrame:HookScript("OnShow",function() self:ApplyTargetPosition() end)
+    EditModeManagerFrame:HookScript("OnHide",function() self:ApplyTargetPosition() end)
+  end
   events:SetScript("OnEvent",function(_,...) self:OnEvent(...) end)
 end
 function CastBar:SetEnabled(enabled)
   self:Initialize()
   if enabled then self:Sync() else self.preview=false; self:Stop() end
-  self:ApplyBlizzard()
+  self:ApplyBlizzard();self:ApplyTargetPosition()
 end

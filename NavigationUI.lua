@@ -3,7 +3,7 @@ local N=KHQOL.Navigation
 local UI={presentation={},jobs={},clients={},sourcePresentations={}}
 KHQOL.NavigationUI=UI
 UI.defaults={showArrow=true,arrowSize=64,arrowAlpha=1,arrowTilt=55,smoothRotation=true,
-  showDistance=true,showTitle=true,showProgress=true,distanceUnit="yards",locked=true,
+  showDistance=true,showTitle=true,showProgress=true,titleFontSize=14,progressFontSize=12,distanceUnit="yards",locked=true,
   positionX=0,positionY=180,arrowUpdateInterval=.10,distanceUpdateInterval=.25,smoothingFactor=.25}
 local MEDIA="Interface\\AddOns\\KHQOL\\Media\\QuestNavigator\\"
 local function setText(region,text)
@@ -84,7 +84,12 @@ function UI:ApplyLayout()
   local depth=depthAvailable and self.db.arrowSize*.14*math.sin(math.rad(self.db.arrowTilt)) or 0
   self.sideDepth=depth; self.sideCount=math.min(18,math.ceil(depth))
   local gap=depth>0 and self.db.arrowSize/64*2.5 or 0
-  self.root:SetHeight(math.max(height+depth+gap+86,126)) -- Also contain the completion title.
+  local titleSize=math.max(8,math.min(30,self.db.titleFontSize or 14))
+  local progressSize=math.max(8,math.min(30,self.db.progressFontSize or 12))
+  self.titleText:SetFont(KHQOL.UI:Font(),titleSize,"OUTLINE");self.titleText:SetHeight(titleSize+6)
+  self.objectiveText:SetFont(KHQOL.UI:Font(),progressSize,"OUTLINE");self.objectiveText:SetHeight(progressSize+6)
+  self.completionTitle:SetFont(KHQOL.UI:Font(),math.max(8,titleSize-1),"OUTLINE");self.completionTitle:SetHeight(math.max(8,titleSize-1)+6)
+  self.root:SetHeight(math.max(height+depth+gap+86+(titleSize-14)+(progressSize-12),126))
   self.arrowContainer:SetSize(self.db.arrowSize,height); self.arrowContainer:SetAlpha(self.db.arrowAlpha)
   self.arrow:SetAlpha(1)
   for i,side in ipairs(self.arrowSides) do

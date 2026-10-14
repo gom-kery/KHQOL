@@ -1,6 +1,9 @@
 local _, KHQOL = ...
 local M=KHQOL.modules.generalConvenience
 local call,public=KHQOL.PublicCall,KHQOL.IsPublicValue
+local function sameWidth(a,b)
+  return M.IsNumber(a) and M.IsNumber(b) and math.abs(a-b)<=.01
+end
 local function points(frame)
   local result={}; for i=1,frame:GetNumPoints() do result[i]={frame:GetPoint(i)} end; return result
 end
@@ -14,15 +17,44 @@ local function setpoints(frame,list)
 end
 local function merchantOpen() return MerchantFrame and call(MerchantFrame.IsShown,MerchantFrame)==true end
 local conflicts={"Leatrix_Plus","Leatrix_Plus_Forever","WideMerchant","ExtendedVendorUI","BuyEmAll","ElvUI"}
+function M:MerchantBorderSource()
+  local border=MerchantFrameBottomLeftBorder;if not border then return end
+  local width,height=call(border.GetWidth,border),call(border.GetHeight,border)
+  local alpha=call(border.GetAlpha,border)
+  if not self.IsNumber(width) or width<60 or not self.IsNumber(height) or height<=0 or not self.IsNumber(alpha) or alpha>1 then return end
+  local status,atlas=KHQOL.ReadPublicAPI(border.GetAtlas,border)
+  if status=="unreadable" or status=="error" then return end
+  local texture,coords
+  if atlas~=nil then
+    if type(atlas)~="string" or atlas=="" then return end
+    -- GetTexCoord() may be local to an atlas. SetTexture() needs the packed
+    -- file's coordinates, otherwise other atlas elements become visible.
+    local info=call(C_Texture and C_Texture.GetAtlasInfo or GetAtlasInfo,atlas)
+    if type(info)~="table" then return end
+    local file,filename,left,right,top,bottom=call(function()
+      return info.file,info.filename,info.leftTexCoord,info.rightTexCoord,info.topTexCoord,info.bottomTexCoord
+    end)
+    texture=file or filename
+    coords={left,top,left,bottom,right,top,right,bottom}
+  else
+    texture=call(border.GetTexture,border);coords={call(border.GetTexCoord,border)}
+  end
+  if type(texture)~="string" and not (self.IsNumber(texture) and texture>0) then return end
+  if texture=="" or #coords~=8 then return end
+  for i=1,8 do local v=coords[i];if not self.IsNumber(v) or v>1 then return end end
+  return {texture=texture,coords=coords,width=width,height=height,alpha=alpha}
+end
 function M:MerchantSupported()
   if not MerchantFrame or not MerchantItem12 or type(MerchantFrame_Update)~="function" then return false,"상점 UI가 아직 로드되지 않았습니다." end
   for _,name in ipairs(conflicts) do
     if C_AddOns and call(C_AddOns.IsAddOnLoaded,name)==true then return false,name.."와 상점 영역이 겹칩니다." end
   end
-  if self.merchantOwner and self.merchantOwner.lastWidth and MerchantFrame:GetWidth()~=self.merchantOwner.lastWidth then
+  local width=call(MerchantFrame.GetWidth,MerchantFrame)
+  if not M.IsNumber(width) then return false,"상점 폭 정보를 확인할 수 없습니다." end
+  if self.merchantOwner and self.merchantOwner.lastWidth and not sameWidth(width,self.merchantOwner.lastWidth) then
     return false,"상점 폭 "..tostring(MerchantFrame:GetWidth()).." (KHQOL 적용값 "..tostring(self.merchantOwner.lastWidth).."). 변경 주체를 확인할 수 없습니다."
   end
-  if not self.merchantOwner and MerchantFrame:GetWidth()~=336 then return false,"상점 폭 "..tostring(MerchantFrame:GetWidth()).." (기본 336). 변경 주체를 확인할 수 없습니다." end
+  if not self.merchantOwner and not sameWidth(width,336) then return false,"상점 폭 "..tostring(width).." (기본 336). 변경 주체를 확인할 수 없습니다." end
   if self.merchantOwner and MerchantFrame.selectedTab==1 then
     for i,p in pairs(self.merchantOwner.lastSlots or {}) do
       if not same(points(_G["MerchantItem"..i]),p) then return false,"상점 슬롯 MerchantItem"..i.."의 위치가 변경되었습니다. 변경 주체를 확인할 수 없습니다." end
@@ -34,11 +66,7 @@ function M:MerchantSupported()
     local frame=_G["MerchantItem"..i]
     if frame and frame~= (self.extraMerchantItems and self.extraMerchantItems[i]) then return false,"다른 애드온의 확장 상점 슬롯을 감지했습니다." end
   end
-  if MerchantFrameBottomLeftBorder then
-    local coords={call(MerchantFrameBottomLeftBorder.GetTexCoord,MerchantFrameBottomLeftBorder)}
-    if #coords~=8 then return false,"상점 테두리 정보를 읽을 수 없습니다." end
-    for _,v in ipairs(coords) do if not self.IsNumber(v) then return false,"상점 테두리 정보를 읽을 수 없습니다." end end
-  end
+  if MerchantFrameBottomLeftBorder and not self:MerchantBorderSource() then return false,"상점 하단 장식의 원본 이미지 정보를 확인할 수 없습니다." end
   return true
 end
 function M:CreateMerchantExtras()
@@ -53,11 +81,13 @@ end
 function M:MerchantLayout(expanded)
   if not MerchantFrame then return end
   if expanded then
+    local source=MerchantFrameBottomLeftBorder and self:MerchantBorderSource()
+    if MerchantFrameBottomLeftBorder and not source then return end
     local owner=self.merchantOwner
     if not owner then
       owner={width=MerchantFrame:GetWidth(),slots={}}; self.merchantOwner=owner
       for i=11,12 do owner.slots[i]=points(_G["MerchantItem"..i]) end
-      if MerchantFrameBottomLeftBorder then owner.borderAlpha=MerchantFrameBottomLeftBorder:GetAlpha() end
+      if source then owner.borderAlpha=source.alpha end
     end
     self:CreateMerchantExtras()
     -- ButtonFrameTemplate's NineSlice adjusts edges without scaling corners.
@@ -68,35 +98,34 @@ function M:MerchantLayout(expanded)
       if i<=12 then owner.lastSlots=owner.lastSlots or {}; owner.lastSlots[i]=points(frame) end
       frame:Show()
     end
-    if MerchantFrameBottomLeftBorder then
+    if source then
       MerchantFrameBottomLeftBorder:SetAlpha(0)
-      if not self.merchantBottomSlices then
-        self.merchantBottomSlices={}
-        local ulx,uly,llx,lly,urx,ury,lrx,lry=MerchantFrameBottomLeftBorder:GetTexCoord()
-        -- The live source uses an atlas; its UVs belong to the backing texture.
-        local texture=MerchantFrameBottomLeftBorder:GetTexture()
-        local fractions={{0,30/334},{30/334,304/334},{304/334,1}}
-        for i,range in ipairs(fractions) do
-          local t=MerchantFrame:CreateTexture(nil,"OVERLAY")
-          local a,b=range[1],range[2]
-          t:SetTexture(texture)
-          t:SetTexCoord(ulx+(urx-ulx)*a,uly+(ury-uly)*a,
-            llx+(lrx-llx)*a,lly+(lry-lly)*a,
-            ulx+(urx-ulx)*b,uly+(ury-uly)*b,
-            llx+(lrx-llx)*b,lly+(lry-lly)*b)
-          t:SetHeight(MerchantFrameBottomLeftBorder:GetHeight()); self.merchantBottomSlices[i]=t
-        end
-        local a,b,c=unpack(self.merchantBottomSlices)
-        a:SetWidth(30); a:SetPoint("BOTTOMLEFT",MerchantFrame,1,26)
-        c:SetWidth(30); c:SetPoint("BOTTOMRIGHT",MerchantFrame,-1,26)
-        b:SetPoint("TOPLEFT",a,"TOPRIGHT"); b:SetPoint("BOTTOMRIGHT",c,"BOTTOMLEFT")
+      self.merchantBottomSlices=self.merchantBottomSlices or {}
+      local ulx,uly,llx,lly,urx,ury,lrx,lry=unpack(source.coords)
+      local body=source.width-30
+      -- Preserve the complete button area. Only a one-pixel empty strip near
+      -- its right edge is extended; the original right cap keeps its size.
+      local ranges={{0,body/source.width},{(body-1)/source.width,body/source.width},{body/source.width,1}}
+      local widths={body,330,30}
+      for i,range in ipairs(ranges) do
+        local t=self.merchantBottomSlices[i] or MerchantFrame:CreateTexture(nil,"OVERLAY")
+        self.merchantBottomSlices[i]=t
+        local a,b=range[1],range[2]
+        t:SetTexture(source.texture)
+        t:SetTexCoord(ulx+(urx-ulx)*a,uly+(ury-uly)*a,
+          llx+(lrx-llx)*a,lly+(lry-lly)*a,
+          ulx+(urx-ulx)*b,uly+(ury-uly)*b,
+          llx+(lrx-llx)*b,lly+(lry-lly)*b)
+        t:ClearAllPoints();t:SetSize(widths[i],source.height)
+        if i==1 then t:SetPoint("TOPLEFT",MerchantFrameBottomLeftBorder,"TOPLEFT",0,0)
+        else t:SetPoint("TOPLEFT",self.merchantBottomSlices[i-1],"TOPRIGHT",0,0) end
+        t:Show()
       end
-      for _,t in ipairs(self.merchantBottomSlices) do t:Show() end
     end
   else
     local owner=self.merchantOwner
     if owner then
-      if MerchantFrame:GetWidth()==owner.lastWidth then MerchantFrame:SetWidth(owner.width) end
+      if sameWidth(call(MerchantFrame.GetWidth,MerchantFrame),owner.lastWidth) then MerchantFrame:SetWidth(owner.width) end
       for i=11,12 do
         local frame=_G["MerchantItem"..i]
         if owner.lastSlots and same(points(frame),owner.lastSlots[i]) then setpoints(frame,owner.slots[i]) end

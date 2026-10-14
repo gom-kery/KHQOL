@@ -2,7 +2,8 @@
 ## Title: KHQOL
 ## Notes: Unified quality-of-life settings for WoW Forever.
 ## Author: KHQOL
-## Version: 1.10.7.1
+## OptionalDeps: Blizzard_UnitFrame, Blizzard_AuraContainer
+## Version: 1.10.8.11
 ## SavedVariables: KHQOLDB, ForeverClockDB, ForeverBuffReminderDB, ForeverWeaponGuideDB, KHQOLResourceSwingDB, CampfireAlertDB, KHQOLLabDB
 ## SavedVariablesPerCharacter: FRangeDB, KHQOLCursorTrailCharDB
 
@@ -13,7 +14,10 @@ Modules/LabLock.lua
 Modules/ObjectHighlight.lua
 Profiles.lua
 UI.lua
+UI/SettingsLayout.lua
 UI/SettingsRegistry.lua
+UI/SettingsNavigation.lua
+UI/SettingsIndex.lua
 UI/SettingsPresenter.lua
 UI/PositionStore.lua
 Modules/ChatEnhancement.lua
@@ -22,6 +26,11 @@ Modules/GeneralConvenience.lua
 Modules/ConvenienceItems.lua
 Modules/BasicUI.lua
 Modules/UnitFrames.lua
+Modules/UnitFrameDecor.lua
+Modules/UnitFrameDisplay.lua
+UI/NativeAuraLayouts.xml
+Modules/UnitFrameAuras.lua
+Modules/UnitFramePositions.lua
 Clock/Locale.lua
 Clock/Core.lua
 Clock/Clock.lua
@@ -55,6 +64,7 @@ Campfire/Debug.lua
 CursorTrail/Core.lua
 CursorTrail/Settings.lua
 CastBar/Core.lua
+CastBar/Target.lua
 CastBar/Settings.lua
 Modules/EnvironmentTimer.lua
 Modules/ExperienceBar.lua
@@ -86,6 +96,7 @@ QuestNavigator/Settings.lua
 Clock/Navigation.lua
 Core.lua
 PositionEditor.lua
+PositionExtras.lua
 PositionTargets.lua
 UI/AlertLayout.lua
 UI/AlertModuleSettings.lua

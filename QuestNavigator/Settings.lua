@@ -1,11 +1,12 @@
 local _, KHQOL = ...
 local QN=KHQOL.modules.questNavigator
-function QN:BuildSettings(content,y)
+function QN:BuildSettings(content,y,part)
   local UI,T=KHQOL.UI,KHQOL.UI.Theme
   local db=self:GetDB(); local b=UI:CreateBuilder(content,y)
   local function check(title,key,available)
     return b:Checkbox(title,function() return db[key] end,function(v) db[key]=v; self:Changed(key) end,available)
   end
+  if part~="navigation" then
   b:Section("퀘스트 목록 표시")
   local tracker=self:GetTrackerDB()
   local function trackerCheck(title,key,available)
@@ -28,8 +29,10 @@ function QN:BuildSettings(content,y)
   b:Slider("퀘스트 글씨 크기",10,20,1,function() return tracker.fontSize end,function(v) tracker.fontSize=v; self:RequestTrackerLayout() end,function(v) return v.." px" end)
   b:Slider("퀘스트 내용 표시 폭",200,500,1,function() return self:GetTrackerWidth() end,function(v) tracker.contentWidth=v; self:RequestTrackerLayout() end,function(v) return v.." px" end)
   b:Description("전투 중 목록 배치 변경은 전투가 끝난 뒤 적용합니다.",true)
+  end
+  if part=="tracker" then b:Flush();return b.y end
   b:Section("자동 선택·길 안내")
-  b:Description("목록 그룹화는 위의 옵션, 자동 길 안내는 아래 옵션으로 각각 조정합니다. 아래 위치·크기는 화살표 HUD에만 적용합니다.",true)
+  b:Description("목록 그룹화는 퀘스트 목록 탭에서, 자동 길 안내는 이 탭에서 조정합니다. 아래 위치·크기는 화살표 HUD에만 적용합니다.",true)
   check("자동 퀘스트 선택","autoTrack")
   b:Description("자동 선택 대상은 게임의 목표 추적창에 등록된 퀘스트만 사용합니다.")
   b:Description("지역 자동 펼치기와 자동 퀘스트 선택을 함께 켜면, 지역 대기 후 해당 지역의 낮은 레벨 퀘스트부터 안내합니다. 같은 레벨이면 가까운 목표를 선택합니다. 이동 후 직접 선택한 퀘스트·사용자 핀·노트 수동 안내·반납 안내는 우선 유지합니다.",true)
@@ -52,6 +55,8 @@ function QN:BuildSettings(content,y)
   check("거리 표시","showDistance")
   b:Dropdown("거리 단위",{{value="yards",text="야드 (yd)"},{value="meters",text="미터 (m)"}},function() return db.distanceUnit end,function(v) db.distanceUnit=v; self:Changed("distanceUnit") end,function() return db.showDistance end)
   check("퀘스트 이름 표시","showTitle"); check("진행도 표시","showProgress")
+  b:Slider("퀘스트 이름 글자 크기",8,30,1,function() return db.titleFontSize end,function(v) db.titleFontSize=v;self:Changed("titleFontSize") end,function(v) return v.." px" end,function() return db.showTitle end)
+  b:Slider("진행도 글자 크기",8,30,1,function() return db.progressFontSize end,function(v) db.progressFontSize=v;self:Changed("progressFontSize") end,function(v) return v.." px" end,function() return db.showProgress end)
   b:Dropdown("진행도 표시 방식",{{value="numeric",text="숫자만"},{value="text",text="목표 텍스트 + 숫자"}},function() return db.progressMode end,function(v) db.progressMode=v; self:Changed("progressMode") end,function() return db.showProgress end)
   b:Section("고급")
   local advanced=CreateFrame("Frame",nil,content); advanced:SetWidth(T.ContentWidth)

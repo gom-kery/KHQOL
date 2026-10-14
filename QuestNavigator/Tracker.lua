@@ -551,10 +551,47 @@ function QN:InstallObjectiveTracker()
   hooksecurefunc(root,"UpdateHeaderPosition",function() self:RequestTrackerLayout() end)
   native:HookScript("OnShow",function() self:RequestTrackerLayout() end)
   native:HookScript("OnHide",function() self:RequestTrackerLayout() end)
+  root:HookScript("OnSizeChanged",function() self:RequestTrackerLayout() end)
+  native:HookScript("OnSizeChanged",function() self:RequestTrackerLayout() end)
+  native.ContentsFrame:HookScript("OnSizeChanged",function() self:RequestTrackerLayout() end)
+  if type(root.Update)=="function" then hooksecurefunc(root,"Update",function() self:RequestTrackerLayout() end) end
   if EventRegistry then
     EventRegistry:RegisterCallback("EditMode.Enter",function() self.trackerNativeEditing=true; self:RequestTrackerLayout() end,self)
     EventRegistry:RegisterCallback("EditMode.Exit",function() self.trackerNativeEditing=false; self:TryApplyAutoRegion(); self:RequestTrackerLayout() end,self)
   end
+end
+-- Container allocation and native quest contents are different measurements.
+-- Read all geometry in a common scale, expand into unused container space,
+-- and stop before the next visible native objective section. Never move or
+-- update those sections to make room for our list.
+function QN:TrackerViewportHeight(root,native)
+  local function coordinate(f,method)
+    local value=QN.Call(f and f[method],f)
+    local scale=QN.Call(f and f.GetEffectiveScale,f)
+    if not QN.IsNumber(value) or not QN.IsNumber(scale) or scale<=0 then return end
+    return value*scale
+  end
+  local scale=QN.Call(root.GetEffectiveScale,root)
+  local top=coordinate(native.ContentsFrame,"GetTop")
+  local bottom=coordinate(root,"GetBottom")
+  if not QN.IsNumber(scale) or scale<=0 or not top or not bottom then return end
+  bottom=math.max(0,bottom)
+  self.trackerSectionHooks=self.trackerSectionHooks or {}
+  for _,section in ipairs(root.modules or {}) do
+    if section~=native then
+      if not self.trackerSectionHooks[section] then
+        self.trackerSectionHooks[section]=true
+        for _,script in ipairs({"OnShow","OnHide","OnSizeChanged"}) do section:HookScript(script,function() self:RequestTrackerLayout() end) end
+      end
+      if QN.IsTrue(QN.Call(section.IsShown,section)) then
+        local nextTop=coordinate(section,"GetTop")
+        local height=QN.Call(section.GetHeight,section)
+        if not nextTop or not QN.IsNumber(height) then return end
+        if height>0 and nextTop<top then bottom=math.max(bottom,nextTop) end
+      end
+    end
+  end
+  return math.max(0,(top-bottom)/scale)
 end
 function QN:RefreshObjectiveQuestCount()
   local text=ObjectiveTrackerFrame and ObjectiveTrackerFrame.Header and ObjectiveTrackerFrame.Header.Text
@@ -599,10 +636,14 @@ function QN:RenderObjectiveTracker()
   scroll:ClearAllPoints(); scroll:SetPoint("TOPRIGHT",native.ContentsFrame,"TOPRIGHT",0,0)
   -- Respect the native allocation: scenario and every other section keep their
   -- existing parents, anchors, heights, update methods and shared dirty driver.
-  local viewport=math.max(1,native:GetHeight()-(native.Header and native.Header:GetHeight() or 26))
+  local viewport=self:TrackerViewportHeight(root,native)
+  if not QN.IsNumber(viewport) or viewport<=0 then
+    self:RestoreNativeTrackerPresentation();self.trackerCountLabel:Hide();self.trackerPending=true;return
+  end
   -- A native POI extends 33px left of the title. Keep that space inside the
   -- clipping viewport while preserving the title's right edge and text width.
-  local viewportWidth=math.max(width+36,native:GetWidth())
+  local nativeWidth=QN.Call(native.GetWidth,native)
+  local viewportWidth=math.max(width+36,QN.IsNumber(nativeWidth) and nativeWidth or 0)
   scroll:SetSize(viewportWidth,viewport); self.trackerScrollChild:SetWidth(viewportWidth)
   local y,count=0,0
   local function row()
@@ -685,7 +726,8 @@ function QN:SetObjectiveTrackerEnabled(enabled)
     if self.trackerEnabled then
       for _,event in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD","QUEST_LOG_UPDATE","QUEST_WATCH_LIST_CHANGED",
         "QUEST_WATCH_UPDATE","QUEST_ACCEPTED","QUEST_REMOVED","QUEST_TURNED_IN","QUEST_AUTOCOMPLETE",
-        "QUEST_POI_UPDATE","SUPER_TRACKING_CHANGED","PLAYER_MONEY","BAG_UPDATE_COOLDOWN","PLAYER_REGEN_ENABLED"}) do f:RegisterEvent(event) end
+        "QUEST_POI_UPDATE","SUPER_TRACKING_CHANGED","PLAYER_MONEY","BAG_UPDATE_COOLDOWN","PLAYER_REGEN_ENABLED",
+        "UI_SCALE_CHANGED","DISPLAY_SIZE_CHANGED"}) do f:RegisterEvent(event) end
     elseif inCombat() and self.trackerScroll then
       -- Only restoration remains; no stale quest/profile work survives OFF.
       f:RegisterEvent("PLAYER_REGEN_ENABLED")

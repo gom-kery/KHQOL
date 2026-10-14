@@ -27,7 +27,7 @@ local function proc(content,y)
     end
   end
   if #options==0 then options={{value=class,text=class}} end
-  local list=CreateFrame("Frame",nil,content); list:SetWidth(T.ContentWidth); list.uiControls={}
+  local list=CreateFrame("Frame",nil,content); list:SetWidth(content:GetWidth());list.settingsNoIndex=true;list.uiControls={}
   local editor=CreateFrame("Frame",nil,content); editor:SetWidth(T.ContentWidth); editor:Hide()
   local lower=CreateFrame("Frame",nil,content); lower:SetWidth(T.ContentWidth)
   local rows,draft,original,editingClass={},nil,nil,nil
@@ -134,13 +134,20 @@ local function proc(content,y)
   l:Description("현재 프로필의 HUD 설정과 애니메이션을 복원합니다. 클래스별 등록 버프는 유지합니다.")
   lower:SetHeight(-l.y)
   reflow=function()
-    list:ClearAllPoints(); list:SetPoint("TOPLEFT",0,listY)
-    local nextY=listY-list:GetHeight()-T.SectionGap
+    if content.listReflowing then return end;content.listReflowing=true
+    list:SetWidth(content:GetWidth());editor:SetWidth(content:GetWidth());lower:SetWidth(content:GetWidth())
+    if editor.uiBuilder then editor.uiBuilder:Reflow() end
+    if lower.uiBuilder then lower.uiBuilder:Reflow() end
+    local position=listY
+    if b.reflowBottom then position=b.reflowBottom end
+    list:ClearAllPoints(); list:SetPoint("TOPLEFT",0,position)
+    local nextY=position-list:GetHeight()-T.SectionGap
     editor:ClearAllPoints(); editor:SetPoint("TOPLEFT",0,nextY)
     if editor:IsShown() then nextY=nextY-editor:GetHeight() end
     lower:ClearAllPoints(); lower:SetPoint("TOPLEFT",0,nextY)
-    content:SetHeight(-nextY+lower:GetHeight()+T.ContentPadding)
+    content:SetHeight(-nextY+lower:GetHeight()+T.ContentPadding);content.listReflowing=nil
   end
+  content.Reflow=reflow
   refreshList=function()
     local records={}
     for id,record in pairs(P:GetBuffs(class)) do if P:Normalize(record,id) then records[#records+1]=record end end
@@ -154,11 +161,13 @@ local function proc(content,y)
         row.check.text:SetWidth(270)
         row.info=UI:CreateDescription(row,"",40,-36); row.info:SetWidth(T.ContentWidth-150)
         row.swatch=row:CreateTexture(nil,"ARTWORK"); row.swatch:SetSize(14,14); row.swatch:SetPoint("TOPRIGHT",-120,-12)
-        UI:CreateButton(row,"편집",T.ContentWidth-102,-6,48,function() openEditor(row.record.spellID) end,enabled)
-        UI:CreateButton(row,"삭제",T.ContentWidth-50,-6,48,function()
+        row.edit=UI:CreateButton(row,"편집",T.ContentWidth-102,-6,48,function() openEditor(row.record.spellID) end,enabled)
+        row.delete=UI:CreateButton(row,"삭제",T.ContentWidth-50,-6,48,function()
           P:GetBuffs(class)[row.record.spellID]=nil; closeEditor(); P:Changed(); refreshList()
         end,enabled)
       end
+      row:SetWidth(content:GetWidth());row.check.text:SetWidth(math.max(80,content:GetWidth()-160));row.info:SetWidth(math.max(80,content:GetWidth()-150))
+      row.edit:ClearAllPoints();row.edit:SetPoint("TOPRIGHT",-54,-4);row.delete:ClearAllPoints();row.delete:SetPoint("TOPRIGHT",-2,-4)
       row.record=record; row:ClearAllPoints(); row:SetPoint("TOPLEFT",0,-(i-1)*82)
       row.icon:SetTexture(record.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
       row.check.text:SetText(record.name)

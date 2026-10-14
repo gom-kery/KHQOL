@@ -16,7 +16,7 @@ function E:Virtual(id,p,width,height)
   if not frame then frame=CreateFrame("Frame",nil,UIParent); frame:Hide(); self.virtuals[id]=frame end
   frame:SetSize(width,height); applyPoint(frame,p); return frame
 end
-function KHQOL:BuildPositionTargets()
+function KHQOL:BuildPositionTargets(focus)
   local list={}; local m=self.modules; local fc=m.clock
   local function add(id,key,name,frame,write,lock,apply,extra)
     if key and not self:CanRunModule(key) then return end
@@ -28,7 +28,7 @@ function KHQOL:BuildPositionTargets()
   end
   local function pointWriter(p,xKey,yKey)
     xKey=xKey or "x"; yKey=yKey or "y"
-    return function(dx,dy) p[xKey]=(p[xKey] or 0)+dx; p[yKey]=(p[yKey] or 0)+dy end
+    return function(dx,dy) p[xKey]=self.PositionStore:Round((p[xKey] or 0)+dx); p[yKey]=self.PositionStore:Round((p[yKey] or 0)+dy) end
   end
   local function lock(db,key) return function() db[key or "locked"]=true end end
   local function clockApply() fc:ApplyClock(); fc:ApplyLayout() end
@@ -117,6 +117,8 @@ function KHQOL:BuildPositionTargets()
   end
   local cb=m.castBar
   if cb.db then
+    local t=cb:TargetPositionPreview()
+    if t then add(t.id,"castBar",t.name,t.frame,t.write,nil,t.apply,t) end
     local linked=cb.linked and true or false
     add("cast","castBar","Cast Bar"..(linked and " · 자원바 연결" or " · 자유 위치"),cb.frame,not linked and pointWriter(cb.db.position.free) or nil,lock(cb.db.position),function() cb:ApplyLayout() end,{parentID=linked and "resource" or nil,linked=linked,sample="주문 시전 · 2.0초"})
   end
@@ -141,19 +143,20 @@ function KHQOL:BuildPositionTargets()
   local xp=m.experienceBar
   if xp.db and xp.db.mode=="horizontal" then
     add("experience","experienceBar","경험치 바",xp.frame,function(dx,dy)
-      xp.db.x=xp.db.x+dx*xp.db.scale;xp.db.y=xp.db.y+dy*xp.db.scale
+      xp.db.x=self.PositionStore:Round(xp.db.x+dx*xp.db.scale);xp.db.y=self.PositionStore:Round(xp.db.y+dy*xp.db.scale)
     end,function() xp.unlocked=false end,function() xp:ApplyLayout();xp:Update() end,{sample="경험치 / 평판"})
   end
   local env=m.environmentTimer
   if env.db and self:CanRunModule("environmentTimer") then
     local db=env.db;local hud=db.style=="hud";local scale=hud and 1 or db.scale
     local timers={};for _,id in ipairs({"BREATH","EXHAUSTION","FEIGNDEATH"}) do if db.timers[id] then timers[#timers+1]=id end end
+    if #timers==0 then timers[1]="BREATH" end
     if #timers>0 then
       local width=hud and math.max(480,db.hudGap+2*(db.hudSize*128/420*(db.hudThickness/8))*104/128+32) or db.width
       local height=hud and (db.hudSize*464/420+100) or (db.height*#timers+32*(#timers-1))
       local frame=E:Virtual("environment",{x=db.x/scale,y=db.y/scale},width,height);frame:SetScale(scale)
       add("environment","environmentTimer","환경 타이머 · 그룹",frame,function(dx,dy)
-        db.x=db.x+dx*scale;db.y=db.y+dy*scale
+        db.x=self.PositionStore:Round(db.x+dx*scale);db.y=self.PositionStore:Round(db.y+dy*scale)
       end,function() env.unlocked=false end,function() env.layoutCount=nil;env:Render(0) end,
         {sample="호흡 · 피로도 · 죽은척",suppress={env.frame},mirror=env.frame})
       if hud then
@@ -174,7 +177,7 @@ function KHQOL:BuildPositionTargets()
   end
   local proc=m.procAlert
   if proc.db then add("proc","procAlert","발동 버프 · HUD",proc.frame,function(dx,dy)
-    proc.db.hud.x=proc.db.hud.x+dx*proc.db.hud.scale;proc.db.hud.y=proc.db.hud.y+dy*proc.db.hud.scale
+    proc.db.hud.x=self.PositionStore:Round(proc.db.hud.x+dx*proc.db.hud.scale);proc.db.hud.y=self.PositionStore:Round(proc.db.hud.y+dy*proc.db.hud.scale)
   end,function() proc.unlocked=false;proc.testUntil=nil end,function() proc:Layout();proc:Render() end,{sample="발동 버프 미리보기"}) end
   local monitor=m.performanceMonitor
   if monitor.db then add("monitor","performanceMonitor","성능 모니터",monitor.frame,pointWriter(monitor.db),lock(monitor.db,"positionLocked"),function() monitor:ApplyLayout() end) end
@@ -190,6 +193,23 @@ function KHQOL:BuildPositionTargets()
   end
   minimap("minimap",nil,"KHQOL · 미니맵",self.minimapButton,self.db.minimap,function() self:UpdateMinimapButton() end)
   if fc.db then minimap("note.minimap","todo","Note · 미니맵",fc.todoMinimapButton,fc.db.todo.minimap,function() fc:UpdateTodoMinimapButton() end) end
+  local uf=m.unitFrames
+  if uf and self:CanRunModule("unitFrames") then
+    for _,t in ipairs(uf:PositionPreviews(focus)) do
+      add(t.id,"unitFrames",t.name,t.frame,t.write,nil,t.apply,t)
+    end
+    local proxy,ratio=uf:PositionProxy()
+    if proxy then
+      local d=uf:GetDB().targettarget;local x,y=proxy:GetCenter()
+      add("unitFrames.targettarget","unitFrames","대상의 대상",proxy,function(dx,dy)
+        d.frameX=math.max(-1000,math.min(1000,self.PositionStore:Round((d.frameX or 0)+dx/ratio)))
+        d.frameY=math.max(-1000,math.min(1000,self.PositionStore:Round((d.frameY or 0)+dy/ratio)))
+      end,nil,function() uf:ApplySettings() end,{sample="대상의 대상 · 위치 미리보기",
+        resetPoint={point="CENTER",relativePoint="BOTTOMLEFT",x=x-(d.frameX or 0)*ratio,y=y-(d.frameY or 0)*ratio},
+        resetPhysical=true,resetWrite=function() d.frameX=0;d.frameY=0 end})
+    end
+  end
+  for _,t in ipairs(self:ExtraPositionTargets()) do add(t.id,t.key,t.name,t.frame,t.write,t.lock,t.apply,t) end
   self:ConfigurePositionResets(list)
   return list
 end
@@ -230,7 +250,7 @@ function KHQOL:ConfigurePositionResets(list)
       point(t,function() local db=m.environmentTimer.db.hudTextPositions;db[t.textTimer]=db[t.textTimer] or {};return db[t.textTimer] end,t.textDefault,{x="x",y="y"})
       t.write=function(dx,dy)
         local p=t.handle.resetting and t.textDefault or t.textOriginal
-        m.environmentTimer.db.hudTextPositions[t.textTimer]={x=p.x+dx,y=p.y+dy}
+        m.environmentTimer.db.hudTextPositions[t.textTimer]={x=self.PositionStore:Round(p.x+dx),y=self.PositionStore:Round(p.y+dy)}
       end
     elseif id:match("^clock%.") then
       local key=id:match("^clock%.(.+)$")

@@ -11,7 +11,7 @@ local defaults = {
     comboActiveColor = {1,.78,.16,1}, comboInactiveColor = {.18,.18,.18,.85},
     comboLocked = true, comboPoint = "CENTER", comboRelativePoint = "CENTER", comboX = 0, comboY = -100,
     showSoulShards = true, showDruidMana = false,
-    resourceTextPosition = "CENTER", ammoTextPosition = "RIGHT",
+    resourceTextPosition = "CENTER", resourceTextMode = "percent", ammoTextPosition = "RIGHT",
     swingPosition = "INSIDE", swingHeight = 5, barTexture = "DEFAULT",
     swingVisibility = "COMBAT",
     resourceTextSize = 12, ammoTextSize = 12,
@@ -89,8 +89,10 @@ local function getPowerPercent(powerType, current, maximum)
     if ok then return percent end
     -- Some Forever builds do not expose a usable curve result outside restrictions.
     -- In ordinary player contexts raw current/max values remain readable.
-    local safe, fallback = pcall(function() return (current / maximum) * 100 end)
-    return safe and fallback or nil
+    if NS.IsPublicValue(current) and NS.IsPublicValue(maximum) and type(current)=="number" and type(maximum)=="number"
+        and current==current and maximum==maximum and math.abs(current)<math.huge and maximum>0 and maximum<math.huge then
+        return current/maximum*100
+    end
 end
 
 local function updateResource()
@@ -103,7 +105,10 @@ local function updateResource()
     resourceFill:SetStatusBarColor(resourceColor())
     if db.showResourceText then
         local percent = getPowerPercent(powerType, current, maximum)
-        local readable, rounded = pcall(function() return math.max(0, math.min(100, math.floor(percent + 0.5))) end)
+        local readable, rounded = false,nil
+        if NS.IsPublicValue(percent) and type(percent)=="number" and percent==percent and math.abs(percent)<math.huge then
+            readable,rounded=true,math.max(0,math.min(100,math.floor(percent+0.5)))
+        end
         if readable then
             percent = rounded
             lastSafePercent = percent
@@ -111,12 +116,15 @@ local function updateResource()
             if percent >= 40 then resourceText:SetTextColor(1, 1, 1)
             elseif percent >= 20 then resourceText:SetTextColor(1, 0.5 + 0.5 * ((percent - 20) / 20), 0)
             else resourceText:SetTextColor(1, 0.5 * (percent / 20), 0) end
-            resourceText:SetText(percent .. "%")
         else
             resourceText:SetTextColor(1, 1, 1)
-            -- Native formatting can render a Secret percentage without exposing it to Lua math.
-            resourceText:SetFormattedText("%.0f%%", percent)
         end
+        -- Both displays use the native renderer for restricted numeric values.
+        -- Formatting never performs comparisons or arithmetic on current power.
+        if db.resourceTextMode=="current" then resourceText:SetFormattedText("%.0f",current)
+        elseif readable then resourceText:SetText(percent.."%")
+        elseif type(percent)=="number" then resourceText:SetFormattedText("%.0f%%",percent)
+        else resourceText:SetText("") end
     else
         resourceText:SetText("")
     end
@@ -632,6 +640,7 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
     b:Section("자원 텍스트")
     check("자원 수치 표시", "showResourceText")
     local function resourceTextEnabled() return db.showResourceText end
+    dropdown("수치 표시 방법", "resourceTextMode", {"percent","current"}, {percent="백분율",current="현재값"}, resourceTextEnabled)
     adjust("글자 크기", "resourceTextSize", 8, 24, 1, resourceTextEnabled)
     dropdown("표시 위치", "resourceTextPosition", {"LEFT","CENTER","RIGHT"}, {LEFT="왼쪽",CENTER="가운데",RIGHT="오른쪽"}, resourceTextEnabled)
     b:Section("스윙")
