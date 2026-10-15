@@ -3,6 +3,7 @@ local DEFAULT = "기본"
 local legacy = KHQOL.legacyProfileVariables
 local managed = KHQOL.profileModuleKeys
 local common = {"minimap","locked","debug","enabled","general","settingsWindow"}
+local commonKeys={};for _,key in ipairs(common) do commonKeys[key]=true end
 local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID","hunterMeleeSpellName","meleeSpellID","meleeSpellName","rangedSpellID","rangedSpellName"}
@@ -59,6 +60,17 @@ local function replace(target, source)
   return target
 end
 KHQOL.CopyProfileValue = copy
+KHQOL.ReplaceProfileValue = replace
+-- Fields unknown to this module version must survive older profile snapshots.
+function KHQOL.PreserveUnknownProfileValue(target, source, defaults)
+  for key,value in pairs(target) do
+    if source[key]==nil and defaults[key]==nil then source[key]=copy(value)
+    elseif type(value)=="table" and type(source[key])=="table" then
+      KHQOL.PreserveUnknownProfileValue(value,source[key],type(defaults[key])=="table" and defaults[key] or {})
+    end
+  end
+  return source
+end
 function KHQOL:GetProfileCharacterKey()
   local name,realm
   if UnitFullName then name,realm=UnitFullName("player") end
@@ -121,7 +133,20 @@ function KHQOL:CaptureProfile()
   self:MigrateUnitFrameSettings(self.db)
   local result={settings={modules={}},legacy={}}
   for _,key in ipairs(common) do result.settings[key]=copy(self.db[key]) end
-  for _,key in ipairs(managed) do result.settings.modules[key]=copy(self.db.modules and self.db.modules[key]) end
+  -- Carry forward extension data without profiling legacy content mirrors.
+  local previous=self.db.profiles and self.db.profiles[self.currentProfileName]
+  if type(previous)=="table" then
+    for key,value in pairs(previous) do if result[key]==nil and key~="resourceColor" and key~="cursorColor" then result[key]=copy(value) end end
+    for key,value in pairs(previous.settings or {}) do if key~="modules" and not commonKeys[key] then result.settings[key]=copy(value) end end
+    for key,value in pairs(previous.legacy or {}) do if not legacy[key] then result.legacy[key]=copy(value) end end
+    for key,value in pairs(previous.settings and previous.settings.modules or {}) do
+      if not self.ModuleRegistry.entries[key] then result.settings.modules[key]=copy(value) end
+    end
+  end
+  for key,value in pairs(self.db.modules or {}) do
+    if not self.ModuleRegistry.entries[key] then result.settings.modules[key]=copy(value) end
+  end
+  for _,key in ipairs(managed) do result.settings.modules[key]=self.ModuleRegistry:CaptureSettings(key) end
   if result.settings.enabled then result.settings.enabled.generalConvenience=nil end
   if result.settings.general then result.settings.general.autoSellJunkReport=nil end
   result.legacy.clock=filteredClock(ForeverClockDB)
@@ -139,7 +164,7 @@ function KHQOL:MakeDefaultProfile(legacyDefaults)
   local m=self.modules
   local result={settings={modules={}},legacy={},cursorColor={}}
   for _,key in ipairs(common) do result.settings[key]=copy(self.defaults[key]) end
-  for _,key in ipairs(managed) do result.settings.modules[key]=copy(m[key].defaults or {}) end
+  for _,key in ipairs(managed) do result.settings.modules[key]=self.ModuleRegistry:DefaultSettings(key) end
   result.settings.modules.questNavigator.questTracker=copy(m.questNavigator.trackerDefaults or {})
   result.legacy.clock=filteredClock(m.clock.DEFAULTS)
   result.legacy.buffReminder=filteredBuff(ForeverBuffReminder and ForeverBuffReminder.profileDefaults)
@@ -192,7 +217,14 @@ function KHQOL:LoadProfileSettings(profile)
   end
   self.db.modules=self.db.modules or {}
   for _,key in ipairs(managed) do
-    self.db.modules[key]=replace(type(self.db.modules[key])=="table" and self.db.modules[key] or {},settings.modules[key])
+    self.ModuleRegistry:RestoreSettings(key,settings.modules[key])
+  end
+  -- Uninstalled module snapshots are kept; absent snapshots do not erase live data.
+  for key,value in pairs(settings.modules or {}) do
+    if not self.ModuleRegistry.entries[key] then
+      if type(value)=="table" and type(self.db.modules[key])=="table" then KHQOL.MergeDefaults(self.db.modules[key],value)
+      elseif self.db.modules[key]==nil then self.db.modules[key]=copy(value) end
+    end
   end
   -- Leave content in its original SavedVariables and account/character scope.
   local clock=type(ForeverClockDB)=="table" and ForeverClockDB or {}
@@ -353,8 +385,11 @@ function KHQOL:ApplyProfileModules()
   m.threat:StopTest(); m.threat:ResetAggroAlert()
   m.pvpAlert:SetMoving(false); m.pvpAlert:StopTest()
   self.db.enabled.generalConvenience=nil
-  m.generalConvenience:SetEnabled(true)
-  for key in pairs(self.defaults.enabled) do self:SetEnabled(key,self:GetEnabled(key),true) end
+  self.ModuleRegistry:ApplyProfileConnections()
+  self:SetEnabled("generalConvenience",true,true)
+  for _,key in ipairs(self.ModuleRegistry.order) do
+    if self.defaults.enabled[key]~=nil then self:SetEnabled(key,self:GetEnabled(key),true) end
+  end
   if not self:GetEnabled("buffReminder") then
     for _,frame in ipairs(fbr.alertFrames or {}) do frame:Hide() end
     fbr.anchor:Hide(); fbr:StopCountdown()
@@ -376,6 +411,7 @@ function KHQOL:SelectProfile(name)
   self.profileApplying=true
   self.profileGeneration=(self.profileGeneration or 0)+1
   local ok,errorMessage=pcall(function()
+    self.ModuleRegistry:ProfileChanged()
     self.currentProfileName=name; self.db.characterProfiles[self.profileCharacter]=name
     self:LoadProfileSettings(self.db.profiles[name]); self:ApplyProfileModules()
   end)
@@ -422,7 +458,15 @@ function KHQOL:ResetProfileModule(key)
     local note=profile.legacy.clock.todo; profile.legacy.clock=copy(defaults.legacy.clock); profile.legacy.clock.todo=note
   elseif key=="todo" then profile.legacy.clock.todo=copy(defaults.legacy.clock.todo)
   elseif legacy[key] then profile.legacy[key]=copy(defaults.legacy[key])
-  else profile.settings.modules[key]=copy(defaults.settings.modules[key]) end
+  else
+    local spec=self.ModuleRegistry.entries[key]
+    if spec and spec.resetProfile then spec.resetProfile(self.modules[key],profile,defaults,self)
+    else
+      -- Reset known settings while retaining forward-compatible unknown keys.
+      local value=copy(profile.settings.modules[key] or {})
+      profile.settings.modules[key]=overlay(value,defaults.settings.modules[key] or {})
+    end
+  end
   -- This new module only has an ON/OFF preference: reset means OFF + restore.
   if key=="objectHighlight" then
     self.modules.objectHighlight:CancelPending()
@@ -436,7 +480,7 @@ function KHQOL:ResetProfileModule(key)
     profile.settings.general.declinePartyInvites=false
     profile.settings.general.declineGuildInvites=false
   end
-  local ok,errorMessage=pcall(function() self:LoadProfileSettings(profile); self:ApplyProfileModules() end)
+  local ok,errorMessage=pcall(function() self.ModuleRegistry:ProfileChanged();self:LoadProfileSettings(profile); self:ApplyProfileModules() end)
   if not ok then self:LoadProfileSettings(temporary); pcall(self.ApplyProfileModules,self) end
   self.profileApplying=false; self:SaveCurrentProfile()
   if not ok then return false,"초기화 중 오류가 발생해 이전 설정으로 복원했습니다: "..tostring(errorMessage) end

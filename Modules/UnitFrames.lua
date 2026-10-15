@@ -1,6 +1,6 @@
 local _, KHQOL = ...
 local B=KHQOL.modules.basicUI
-local M={experimental=true,Write=B.Write,Release=B.Release}; KHQOL.modules.unitFrames=M
+local M={Write=B.Write,Release=B.Release}; KHQOL.modules.unitFrames=M
 local call,public=KHQOL.PublicCall,KHQOL.IsPublicValue
 M.defaults={player={compact=false,health="default",power="default",width=200,height=58,gap=2,borderAlpha=.85,textSize=12,healthColorMode="default",healthColor={r=0,g=1,b=0},
  namePosition="above",nameX=0,nameY=0,levelPosition="above",levelX=0,levelY=0,bottomX=0,bottomY=0},
@@ -328,17 +328,26 @@ function M:ApplySettings()
   self:ApplyUnits(); self:ApplyBottom(); if not combat() and not self.propertyDeferred then self.pending=nil end
 end
 function M:SetEnabled(on)
-  self:Initialize(); self:ApplySettings()
+  self:Initialize(); self:ApplySettings();self:ConfigureEvents()
+end
+function M:ConfigureEvents()
+  if not self.events then return end
+  self.events:UnregisterAllEvents()
+  if self:IsEnabled() then
+    for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_REGEN_DISABLED","PLAYER_ENTERING_WORLD","PLAYER_TARGET_CHANGED","PLAYER_FOCUS_CHANGED","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE","UNIT_MAXPOWER","UNIT_DISPLAYPOWER","UNIT_FLAGS","UNIT_FACTION","UNIT_CONNECTION","UNIT_NAME_UPDATE","UNIT_PET","UNIT_TARGET","UNIT_THREAT_LIST_UPDATE","UNIT_THREAT_SITUATION_UPDATE","RAID_TARGET_UPDATE","PLAYER_UPDATE_RESTING","PLAYER_TOTEM_UPDATE","PLAYER_ALIVE","PLAYER_UNGHOST","ADDON_LOADED"}) do pcall(self.events.RegisterEvent,self.events,event) end
+  elseif self.pending then
+    for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_ENTERING_WORLD","ADDON_LOADED"}) do self.events:RegisterEvent(event) end
+  end
 end
 function M:Initialize()
   if self.events then self:InitializeDecorHooks(); return end
   self.events=CreateFrame("Frame")
   self:InitializePlayerLayoutHooks()
-  for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_REGEN_DISABLED","PLAYER_ENTERING_WORLD","PLAYER_TARGET_CHANGED","PLAYER_FOCUS_CHANGED","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE","UNIT_MAXPOWER","UNIT_DISPLAYPOWER","UNIT_FLAGS","UNIT_FACTION","UNIT_CONNECTION","UNIT_NAME_UPDATE","UNIT_PET","UNIT_TARGET","UNIT_THREAT_LIST_UPDATE","UNIT_THREAT_SITUATION_UPDATE","RAID_TARGET_UPDATE","PLAYER_UPDATE_RESTING","PLAYER_TOTEM_UPDATE","PLAYER_ALIVE","PLAYER_UNGHOST","ADDON_LOADED"}) do pcall(self.events.RegisterEvent,self.events,event) end
+  self:ConfigureEvents()
   self.events:SetScript("OnEvent",function(_,event,unit)
-    if event=="PLAYER_REGEN_ENABLED" then if M.pending or M:IsEnabled() then M:ApplySettings() end; return end
+    if event=="PLAYER_REGEN_ENABLED" then if M.pending or M:IsEnabled() then M:ApplySettings() end;M:ConfigureEvents(); return end
     if not M:IsEnabled() then
-      if M.pending and (event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED") then M:ApplySettings() end
+      if M.pending and (event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED") then M:ApplySettings();M:ConfigureEvents() end
       return
     end
     if event=="UNIT_HEALTH" or event=="UNIT_MAXHEALTH" or event=="UNIT_POWER_UPDATE" or event=="UNIT_MAXPOWER" or event=="UNIT_FLAGS" or event=="UNIT_FACTION" or event=="UNIT_CONNECTION" then

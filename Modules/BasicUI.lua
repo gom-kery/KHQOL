@@ -161,24 +161,34 @@ function M:ApplySettings()
   self:ApplyBars()
   if not combat() and not self.propertyDeferred then self.pending=nil end
   self.applying=false
+  local registry=KHQOL.ModuleRegistry
+  if registry then
+    if self.pending then
+      registry:Defer("basicUI",function() M:ApplySettings();M:ConfigureEvents() end,not self:IsEnabled())
+    else registry:CancelDeferred("basicUI") end
+  end
 end
 function M:SetEnabled(on)
   self:Initialize()
-  self.events:UnregisterAllEvents()
-  for _,event in ipairs({"PLAYER_REGEN_ENABLED","ADDON_LOADED"}) do self.events:RegisterEvent(event) end
-  if on then
-    for _,event in ipairs({"PLAYER_ENTERING_WORLD"}) do pcall(self.events.RegisterEvent,self.events,event) end
-  end
   for _,owner in pairs(self.bars or {}) do cancel(owner) end
   self:ApplySettings()
+  self:ConfigureEvents()
+end
+function M:ConfigureEvents()
+  if not self.events then return end
+  self.events:UnregisterAllEvents()
+  if self:IsEnabled() then
+    for _,event in ipairs({"PLAYER_ENTERING_WORLD","ADDON_LOADED"}) do self.events:RegisterEvent(event) end
+  elseif self.pending then self.events:RegisterEvent("ADDON_LOADED") end
+  if not KHQOL.ModuleRegistry and (self:IsEnabled() or self.pending) then self.events:RegisterEvent("PLAYER_REGEN_ENABLED") end
 end
 function M:Initialize()
   if self.events then return end
   self.events=CreateFrame("Frame")
-  for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_ENTERING_WORLD","ADDON_LOADED"}) do pcall(self.events.RegisterEvent,self.events,event) end
+  self:ConfigureEvents()
   self.events:SetScript("OnEvent",function(_,event,unit)
     if event=="PLAYER_REGEN_ENABLED" then M:ApplySettings()
-    elseif M:IsEnabled() and (not unit or unit=="player" or unit=="target" or event=="ADDON_LOADED") then M:ApplySettings() end
+    elseif (M:IsEnabled() or M.pending) and (not unit or unit=="player" or unit=="target" or event=="ADDON_LOADED") then M:ApplySettings();M:ConfigureEvents() end
   end)
   if EditModeManagerFrame then
     EditModeManagerFrame:HookScript("OnShow",function() M:ApplySettings() end)

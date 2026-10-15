@@ -184,13 +184,7 @@ local function fillValues(texture)
   return {atlas=atlas,asset=asset,coords=coords}
 end
 local palette={green={0,161/255,24/255},yellow={245/255,190/255,0},red={217/255,79/255,56/255},hostile={134/255,0,0},gray={99/255,99/255,99/255}}
--- User-specified classic class colors; independent of client palette changes.
-local classPalette={
-  WARRIOR={199/255,156/255,110/255},PALADIN={245/255,140/255,186/255},
-  HUNTER={171/255,212/255,115/255},ROGUE={1,245/255,105/255},PRIEST={1,1,1},
-  SHAMAN={0,112/255,222/255},MAGE={105/255,204/255,240/255},
-  WARLOCK={148/255,130/255,201/255},DRUID={1,125/255,10/255},
-}
+local classPalette=KHQOL.ClassColors
 function M:FightingPlayer(unit)
   if call(UnitAffectingCombat,unit)~=true then return false end
   -- A creature fighting somebody else is not necessarily fighting this player.
@@ -592,7 +586,7 @@ function M:ApplyOutline(owner,p,width,hh,ph,gap,showPower)
   end
 end
 function M:HideNativeDecoration(owner,f)
-  if not f then return end
+  if not f or owner.artWriting then return end
   owner.artHooks=owner.artHooks or {};owner.artAlpha=owner.artAlpha or {}
   if not owner.artAlpha[f] then
     local original=packet(f.GetAlpha,f)

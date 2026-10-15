@@ -4,6 +4,7 @@ KHQOL.UI.SettingsRegistry=R
 R.pages={
   {"general","일반","KHQOL 공통 설정 및 모듈 관리"},
   {"unitFrames","유닛프레임","유닛과 부품별 모양·표시·위치를 설정합니다."},
+  {"partyFrames","파티·공격대","1인 플레이어부터 최대 40인 공격대까지 지원합니다"},
   {"convenience","편의 기능","자동 판매·수리·거절, 아이템·대화창 및 노트를 설정합니다."},
   {"interface","인터페이스","기본 UI, 툴팁, 커서, 사거리와 시계·정보 표시를 설정합니다."},
   {"bars","바 설정","바 계열 기능과 환경 타이머를 관리합니다."},
@@ -12,6 +13,7 @@ R.pages={
   {"profiles","프로필","계정 공용 프로필 및 캐릭터별 사용 프로필 관리"},
   {"labs","실험실","실험 기능과 개발 도구입니다. 접근 잠금은 보안 기능이 아닙니다."},
 }
+R.groups.partyFrames={};R.orders.partyFrames={}
 local function entry(group,id,key,title,description,commands)
   local meta={group=group,id=id,key=key,title=title,description=description}
   R.groups[group]=R.groups[group] or {}; R.groups[group][id]=meta
@@ -21,6 +23,47 @@ local function entry(group,id,key,title,description,commands)
     for _,command in ipairs(commands or {}) do R.commands[command]=key end
   end
   return meta
+end
+-- Extensions register at file-load time, before the settings window exists.
+-- Existing groups and their presenter provide toggle, reset and route behavior.
+function R:RegisterModule(key, spec)
+  assert(not KHQOL.settings,"Register KHQOL settings before creating the window")
+  assert(self.groups[spec.group] and spec.id and spec.title and type(spec.build)=="function","Invalid KHQOL settings connection")
+  assert(not self.modules[key] and not self.groups[spec.group][spec.id],"Duplicate KHQOL settings connection")
+  local meta=entry(spec.group,spec.id,key,spec.title,spec.description or "",spec.commands)
+  meta.tabTitle=spec.tabTitle
+  self.positionModules[key]=spec.positions and true or nil
+  for _,group in ipairs(self.moduleGroups) do
+    for _,page in ipairs(self.pages) do
+      if page[1]==spec.group and group.title==page[2] then group.items[#group.items+1]={key,spec.title} end
+    end
+  end
+  KHQOL.UI.SettingsGroups[spec.group]:RegisterTab(spec.id,nil,spec.build)
+  if spec.subtabs then
+    meta.sharedTabs=true
+    for _,tab in ipairs(spec.subtabs) do
+      assert(tab.id and tab.title and type(tab.build)=="function" and not self.groups[spec.group][tab.id],"Invalid KHQOL subtab")
+      local child=entry(spec.group,tab.id,nil,tab.title,tab.description or spec.description or "")
+      child.key=key;child.sharedTabs=true
+      KHQOL.UI.SettingsGroups[spec.group]:RegisterTab(tab.id,nil,tab.build)
+    end
+  end
+  local N=KHQOL.UI.SettingsNavigation
+  for _,item in ipairs(spec.search or {}) do
+    local route={module=key}
+    for field,value in pairs(item.route or {}) do route[field]=value end
+    N:Register(route,item.title,item.description,item.aliases)
+  end
+  self.revision=(self.revision or 0)+1
+  return meta
+end
+function R:ConnectModules()
+  for _,id in ipairs(KHQOL.ModuleRegistry.order) do
+    local spec=KHQOL.ModuleRegistry.entries[id]
+    if spec.settings and not spec.settingsConnected then
+      self:RegisterModule(id,spec.settings);spec.settingsConnected=true
+    end
+  end
 end
 entry("bars","experience","experienceBar","경험치","경험치와 휴식 경험치 바의 표시·위치·모양을 설정합니다.")
 entry("bars","cast","castBar","시전","시전 바의 배치·진행 방향·표시 정보를 설정합니다.",{"cast","castbar"})
@@ -76,6 +119,8 @@ for _,page in ipairs(R.pages) do
   end
 end
 function R:ResetScope(key)
+  local spec=KHQOL.ModuleRegistry.entries[key]
+  if spec and spec.resetScope then return spec.resetScope(KHQOL.modules[key],KHQOL) end
   if key=="objectHighlight" then return "현재 프로필의 오브젝트 강조를 OFF로 초기화하고 KHQOL이 변경한 그래픽 설정을 안전하게 복원합니다.\n복원 실패 시 필요한 기록은 유지합니다. 효과 해제에는 게임 재시작이 필요할 수 있습니다." end
   local scope="현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다."
   if key=="clock" or key=="todo" then return scope.."\n노트 내용·체크리스트·완료 상태·알람 문구는 유지합니다." end

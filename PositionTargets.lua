@@ -52,7 +52,9 @@ function KHQOL:BuildPositionTargets(focus)
         local positions=fc.db.clockTools.positions
         if not positions then positions={}; fc.db.clockTools.positions=positions end
         if not positions[key] then
-          local point,_,relativePoint,x,y=frame:GetPoint(1)
+          local status,point,relative,relativePoint,x,y=self.ReadPublicAPI(frame.GetPoint,frame,1)
+          if status~="ok" or (relative and relative~=UIParent) or type(point)~="string" or type(relativePoint)~="string"
+            or not self.PositionStore:Number(x) or not self.PositionStore:Number(y) then return end
           positions[key]={point=point,relativePoint=relativePoint,x=x,y=y}
         end
         pointWriter(positions[key])(dx,dy)
@@ -186,30 +188,20 @@ function KHQOL:BuildPositionTargets(focus)
     if not db or db.show==false then return end
     local t=add(id,key,name,frame,nil,lock(db,"positionLocked"),apply)
     if t then t.write=function()
-      local h=t.handle; local x,y=h:GetCenter(); local mx,my=Minimap:GetCenter()
-      local ratio=Minimap:GetEffectiveScale()/UIParent:GetEffectiveScale()
+      local h=t.handle; local x,y=self.PositionStore:Center(h)
+      local status,mx,my=self.ReadPublicAPI(Minimap.GetCenter,Minimap)
+      local ss,scale=self.ReadPublicAPI(Minimap.GetEffectiveScale,Minimap)
+      local ps,parentScale=self.ReadPublicAPI(UIParent.GetEffectiveScale,UIParent)
+      if not x or status~="ok" or ss~="ok" or ps~="ok" or not self.PositionStore:Number(mx) or not self.PositionStore:Number(my)
+        or not self.PositionStore:Number(scale) or not self.PositionStore:Number(parentScale) or parentScale<=0 then return end
+      local ratio=scale/parentScale
       db.angle=math.deg(math.atan2(y-my*ratio,x-mx*ratio))
     end; t.minimap=true end
   end
   minimap("minimap",nil,"KHQOL · 미니맵",self.minimapButton,self.db.minimap,function() self:UpdateMinimapButton() end)
   if fc.db then minimap("note.minimap","todo","Note · 미니맵",fc.todoMinimapButton,fc.db.todo.minimap,function() fc:UpdateTodoMinimapButton() end) end
-  local uf=m.unitFrames
-  if uf and self:CanRunModule("unitFrames") then
-    for _,t in ipairs(uf:PositionPreviews(focus)) do
-      add(t.id,"unitFrames",t.name,t.frame,t.write,nil,t.apply,t)
-    end
-    local proxy,ratio=uf:PositionProxy()
-    if proxy then
-      local d=uf:GetDB().targettarget;local x,y=proxy:GetCenter()
-      add("unitFrames.targettarget","unitFrames","대상의 대상",proxy,function(dx,dy)
-        d.frameX=math.max(-1000,math.min(1000,self.PositionStore:Round((d.frameX or 0)+dx/ratio)))
-        d.frameY=math.max(-1000,math.min(1000,self.PositionStore:Round((d.frameY or 0)+dy/ratio)))
-      end,nil,function() uf:ApplySettings() end,{sample="대상의 대상 · 위치 미리보기",
-        resetPoint={point="CENTER",relativePoint="BOTTOMLEFT",x=x-(d.frameX or 0)*ratio,y=y-(d.frameY or 0)*ratio},
-        resetPhysical=true,resetWrite=function() d.frameX=0;d.frameY=0 end})
-    end
-  end
   for _,t in ipairs(self:ExtraPositionTargets()) do add(t.id,t.key,t.name,t.frame,t.write,t.lock,t.apply,t) end
+  self.ModuleRegistry:PositionTargets(focus,add)
   self:ConfigurePositionResets(list)
   return list
 end

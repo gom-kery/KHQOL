@@ -4,7 +4,7 @@ local S={}
 KHQOL.PositionStore=S
 local anchors={CENTER=true,TOP=true,BOTTOM=true,LEFT=true,RIGHT=true,TOPLEFT=true,TOPRIGHT=true,BOTTOMLEFT=true,BOTTOMRIGHT=true}
 function S:Number(v)
-  return KHQOL.IsPublicValue(v) and type(v)=="number" and v==v and math.abs(v)<math.huge
+  return KHQOL.IsPublicNumber(v)
 end
 function S:Round(v)
   if not self:Number(v) then return 0 end

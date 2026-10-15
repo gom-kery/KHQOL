@@ -1,0 +1,30 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <Button name="KHQOLPartyWheelActionTemplate" inherits="SecureActionButtonTemplate" hidden="true" virtual="true">
+    <Scripts>
+      <OnLoad>
+        self:RegisterForClicks("AnyDown", "AnyUp");
+        self:SetAttribute("type", "spell");
+        self:SetAttribute("useparent-unit", true);
+        self:SetAttribute("useOnKeyDown", true);
+        self:SetAttribute("checkselfcast", false);
+        self:SetAttribute("checkfocuscast", false);
+        self:SetAttribute("checkmouseovercast", false);
+        self:EnableMouse(false);
+      </OnLoad>
+    </Scripts>
+  </Button>
+  <Button name="KHQOLPartyUnitButtonTemplate" inherits="SecureUnitButtonTemplate,SecureHandlerEnterLeaveTemplate,SecureHandlerShowHideTemplate" virtual="true">
+    <Frames>
+      <Button name="$parentWheelUp" parentKey="WheelUp" inherits="KHQOLPartyWheelActionTemplate"/>
+      <Button name="$parentWheelDown" parentKey="WheelDown" inherits="KHQOLPartyWheelActionTemplate"/>
+    </Frames>
+    <Scripts>
+      <OnLoad>
+        SecureHandler_OnLoad(self);
+        KHQOL.modules.partyFrames:OnButtonLoad(self);
+      </OnLoad>
+      <OnAttributeChanged>KHQOL.modules.partyFrames:OnUnitChanged(self, name);</OnAttributeChanged>
+      <OnEvent>KHQOL.modules.partyFrames:RefreshButton(self);</OnEvent>
+    </Scripts>
+  </Button>
+</Ui>

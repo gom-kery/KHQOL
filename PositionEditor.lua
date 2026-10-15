@@ -12,7 +12,7 @@ local function safe(frame)
 end
 local function center(frame)
   local x,y=KHQOL.PositionStore:Center(frame)
-  return x or 0,y or 0
+  return x,y
 end
 function E:Message(message)
   if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cff"..UI.Theme.AccentHex.."KHQOL:|r "..message) end
@@ -20,60 +20,57 @@ end
 function E:CreateToolbar()
   if self.toolbar then return end
   local f=CreateFrame("Frame","KHQOLPositionEditorToolbar",UIParent,"BackdropTemplate")
-  f:SetSize(650,432); f:SetPoint("TOP",0,-32); f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetFrameLevel(200)
+  f:SetSize(650,390); f:SetPoint("TOP",0,-32); f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetFrameLevel(200)
   f:SetMovable(true); f:SetClampedToScreen(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart",f.StartMoving); f:SetScript("OnDragStop",f.StopMovingOrSizing)
   UI:Surface(f,1)
-  UI:CreateLabel(f,"KHQOL · 위치 편집",14,-12,16)
-  f.info=UI:CreateDescription(f,"테두리를 드래그하세요. ESC는 취소합니다.",14,-38); f.info:SetWidth(622)
-  UI:CreateButton(f,"완료 / 잠금",14,-124,146,function() E:Finish(true) end)
-  UI:CreateButton(f,"취소",174,-124,100,function() E:Finish(false) end)
-  f.selection=UI:CreateDescription(f,"",14,-62);f.selection:SetWidth(622);f.selection:SetHeight(52)
-  self.resetButton=UI:CreateButton(f,"선택 위치 초기화",290,-124,204,function() E:ResetSelection() end,function() return E.selected and not E.selected.target.linked end)
-  self.settingsButton=UI:CreateButton(f,"완료 후 크기·모양 설정",14,-158,330,function()
-    local route=E.selected and E.selected.target.settingsRoute
-    if E:Finish(true) and route then N:Open(route) end
-  end,function() return E.selected and E.selected.target.settingsRoute~=nil end)
+  f.title=UI:CreateLabel(f,"KHQOL · 위치 편집",14,-12,16);f.title:SetWidth(622);f.title:SetJustifyH("CENTER")
+  f.info=UI:CreateDescription(f,"테두리를 드래그하세요. ESC는 취소합니다.",14,-38); f.info:SetWidth(622);f.info:SetHeight(28);f.info:SetJustifyH("CENTER")
+  self.doneButton=UI:CreateButton(f,"완료 / 잠금",84,-78,146,function() E:Finish(true) end)
+  self.cancelButton=UI:CreateButton(f,"취소",246,-78,100,function() E:Finish(false) end)
+  self.resetButton=UI:CreateButton(f,"선택 위치 초기화",362,-78,204,function() E:ResetSelection() end,function() return E.selected and not E.selected.target.linked end)
+  self.doneButton:SetWidth(146);self.cancelButton:SetWidth(100);self.resetButton:SetWidth(204)
+  for _,button in ipairs({self.doneButton,self.cancelButton,self.resetButton}) do button:GetFontString():SetJustifyH("CENTER") end
   local preferences=N:Preferences()
   self.mode=preferences.editorMode or "representative"
   self.filter=preferences.editorFilter or "hud";self.groupFilter="all";self.query=""
-  local mode=UI:CreateDropdown(f,14,-192,300,{
+  local mode=UI:CreateDropdown(f,14,-118,300,{
     {value="representative",text="대표 프레임"},{value="group",text="선택 그룹"},
     {value="part",text="선택 부품 (한 개 보기)"},{value="all",text="전체 부품"}},
     function() return E.mode end,function(v) E:SetMode(v) end)
   self.modePicker=mode
-  self.categoryPicker=UI:CreateDropdown(f,330,-192,306,function()
+  self.categoryPicker=UI:CreateDropdown(f,330,-118,306,function()
     local options={{value="hud",text="HUD만"},{value="windows",text="기본창·도구창"},{value="all",text="모든 분류"}}
     local seen={};for _,h in ipairs(E.handles or {}) do local c=h.target.category;if not seen[c] then seen[c]=true;options[#options+1]={value=c,text=c} end end
     return options
   end,function() return E.filter end,function(v) E.filter=v;E.groupFilter="all";preferences.editorFilter=v;E:RefreshList();E:Select(E.selected) end)
-  self.searchBox=UI:CreateEditBox(f,14,-226,300,nil,nil)
+  self.searchBox=UI:CreateEditBox(f,14,-152,300,nil,nil)
   UI:AttachTooltip(self.searchBox,"편집 대상 찾기","등록된 편집 대상의 분류·유닛·부품 이름을 검색합니다. 설정값은 변경하지 않습니다.")
   self.searchBox:SetScript("OnTextChanged",function(box) E.query=box:GetText():lower();E:RefreshList() end)
   self.searchBox:SetScript("OnEscapePressed",function(box) box:SetText("");box:ClearFocus() end)
-  self.groupPicker=UI:CreateDropdown(f,330,-226,306,function()
+  self.groupPicker=UI:CreateDropdown(f,330,-152,306,function()
     local options={{value="all",text="모든 유닛·그룹"}};local seen={}
     for _,h in ipairs(E.handles or {}) do local t=h.target
       if E:MatchesFilter(t) and not seen[t.groupID] then seen[t.groupID]=true;options[#options+1]={value=t.groupID,text=t.category.." > "..t.group} end
     end
     return options
   end,function() return E.groupFilter end,function(v) E.groupFilter=v;E:RefreshList() end)
-  local viewport=CreateFrame("ScrollFrame",nil,f);viewport:SetPoint("TOPLEFT",14,-260);viewport:SetSize(622,94)
+  local viewport=CreateFrame("ScrollFrame",nil,f);viewport:SetPoint("TOPLEFT",14,-188);viewport:SetSize(622,112)
   local list=CreateFrame("Frame",nil,viewport);list:SetWidth(622);viewport:SetScrollChild(list)
   self.listViewport=viewport;self.listBody=list;self.listRows={}
   viewport:EnableMouseWheel(true);viewport:SetScript("OnMouseWheel",function(_,delta)
     viewport:SetVerticalScroll(math.max(0,math.min(math.max(0,list:GetHeight()-viewport:GetHeight()),viewport:GetVerticalScroll()-delta*28)))
   end)
-  f.coordinateHint=UI:CreateDescription(f,"미세 이동: 편집 시작 위치 기준, 화면 UI px. 연결 부품은 부모 기준입니다.",14,-364);f.coordinateHint:SetWidth(622)
-  self.xInput=UI:CreateEditBox(f,40,-394,84,function() return string.format("%.1f",E:Offset("x")) end,function(v) E:SetOffset("x",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
-  self.yInput=UI:CreateEditBox(f,164,-394,84,function() return string.format("%.1f",E:Offset("y")) end,function(v) E:SetOffset("y",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
-  UI:CreateLabel(f,"X",14,-400);UI:CreateLabel(f,"Y",138,-400)
+  f.coordinateHint=UI:CreateDescription(f,"미세 이동: 편집 시작 위치 기준, 화면 UI px. 연결 부품은 부모 기준입니다.",14,-310);f.coordinateHint:SetWidth(622);f.coordinateHint:SetHeight(28);f.coordinateHint:SetJustifyH("CENTER")
+  self.xInput=UI:CreateEditBox(f,139,-344,84,function() return string.format("%.1f",E:Offset("x")) end,function(v) E:SetOffset("x",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
+  self.yInput=UI:CreateEditBox(f,265,-344,84,function() return string.format("%.1f",E:Offset("y")) end,function(v) E:SetOffset("y",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
+  f.xLabel=UI:CreateLabel(f,"X",115,-350);f.xLabel:SetWidth(16);f.xLabel:SetJustifyH("CENTER")
+  f.yLabel=UI:CreateLabel(f,"Y",241,-350);f.yLabel:SetWidth(16);f.yLabel:SetJustifyH("CENTER")
   for _,v in ipairs({{"←",-1,0},{"→",1,0},{"↑",0,1},{"↓",0,-1}}) do
     local value=v
-    UI:CreateButton(f,value[1],278+(#(self.nudgeButtons or {}))*42,-394,36,function() E:Nudge(value[2],value[3]) end,function() return E.selected and not E.selected.target.linked end)
+    UI:CreateButton(f,value[1],373+(#(self.nudgeButtons or {}))*42,-344,36,function() E:Nudge(value[2],value[3]) end,function() return E.selected and not E.selected.target.linked end)
     self.nudgeButtons=self.nudgeButtons or {};self.nudgeButtons[#self.nudgeButtons+1]=value
   end
-  UI:CreateDescription(f,"1 UI px · 완료 전에는 임시 위치",458,-400):SetWidth(174)
   f:EnableKeyboard(true); f:SetPropagateKeyboardInput(true)
   f:SetScript("OnKeyDown",function(self,key)
     self:SetPropagateKeyboardInput(key~="ESCAPE")
@@ -130,14 +127,15 @@ end
 function E:StopDrag(h)
   if not h or not h.target then return end
   h:StopMovingOrSizing(); if self.dragging==h then self.dragging=nil end
-  local x,y=center(h); local parent=h.parentHandle
+  local x,y=center(h); if not x then return end; local parent=h.parentHandle
   if h.target.minimap then
-    local mx,my=center(Minimap); local angle=math.atan2(y-my,x-mx)
+    local mx,my=center(Minimap); if not mx then return end; local angle=math.atan2(y-my,x-mx)
     local radius=108*Minimap:GetEffectiveScale()/UIParent:GetEffectiveScale()
     x,y=mx+math.cos(angle)*radius,my+math.sin(angle)*radius
   end
+  local px,py;if parent then px,py=center(parent);if not px then return end end
   h:ClearAllPoints()
-  if parent then local px,py=center(parent); h:SetPoint("CENTER",parent,"CENTER",x-px,y-py)
+  if parent then h:SetPoint("CENTER",parent,"CENTER",x-px,y-py)
   else h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y) end
   if self.active then self:Select(h) end
 end
@@ -149,6 +147,14 @@ end
 function E:SetMode(mode)
   self.mode=mode;self.onlySelected=mode=="part"
   N:Preferences().editorMode=mode;self:Select(self.selected)
+end
+function E:ListLabel(target,path)
+  if self.groupFilter==target.groupID then
+    local prefix=target.category.." > "..target.group.." > "
+    if path:sub(1,#prefix)==prefix then return path:sub(#prefix+1) end
+    if not UI.SettingsRegistry.modules[target.settingsRoute.module] then return target.name end
+  end
+  return path
 end
 function E:RefreshList()
   if not self.listBody then return end
@@ -165,30 +171,36 @@ function E:RefreshList()
           if E.mode=="representative" and not button.handle.target.representative then E:SetMode("part") end
         end);self.listRows[count]=row
       end
-      row.handle=h;row.generation=self.generation;row:SetText(path..(t.linked and " · 연결/읽기 전용" or ""));row:SetWidth(622)
-      row:GetFontString():SetWidth(606);row:GetFontString():SetJustifyH("LEFT");row:Show();UI:SetButtonSelected(row,h==E.selected)
+      row.handle=h;row.generation=self.generation;row.fullPath=path
+      row:SetText(self:ListLabel(t,path)..(t.linked and " · 연결/읽기 전용" or ""));row:SetWidth(622)
+      row.tooltipDescription=nil
+      UI:AttachTooltip(row,"편집 대상",path)
+      row:GetFontString():SetWidth(606);row:GetFontString():SetJustifyH("CENTER");row:Show();UI:SetButtonSelected(row,h==E.selected)
     end
   end
   for i=count+1,#self.listRows do self.listRows[i].handle=nil;self.listRows[i]:Hide() end
   self.listBody:SetHeight(math.max(1,count*28))
-  self.listViewport:SetVerticalScroll(math.min(self.listViewport:GetVerticalScroll(),math.max(0,self.listBody:GetHeight()-94)))
+  self.listViewport:SetVerticalScroll(math.min(self.listViewport:GetVerticalScroll(),math.max(0,self.listBody:GetHeight()-self.listViewport:GetHeight())))
   if self.groupPicker then self.groupPicker:Refresh() end
 end
 function E:Offset(axis)
   local h=self.selected;if not h then return 0 end
-  local x,y=center(h)
-  if h.parentHandle then local px,py=center(h.parentHandle);x=x-px-h.relativeX;y=y-py-h.relativeY
+  local x,y=center(h);if not x then return end
+  if h.parentHandle then local px,py=center(h.parentHandle);if not px then return end;x=x-px-h.relativeX;y=y-py-h.relativeY
   else x=x-h.originX;y=y-h.originY end
   return axis=="x" and x or y
 end
 function E:SetOffset(axis,value)
   if not self.active or not self.selected or self.selected.target.linked or not KHQOL.PositionStore:Number(value) then return end
-  self:Nudge(axis=="x" and value-self:Offset("x") or 0,axis=="y" and value-self:Offset("y") or 0)
+  local current=self:Offset(axis);if current==nil then return end
+  self:Nudge(axis=="x" and value-current or 0,axis=="y" and value-current or 0)
 end
 function E:Nudge(dx,dy)
   local h=self.selected;if not self.active or not h or h.target.linked or combat() then return end
-  self:StopDrag(self.dragging);local x,y=center(h);h:ClearAllPoints()
-  if h.parentHandle then local px,py=center(h.parentHandle);h:SetPoint("CENTER",h.parentHandle,"CENTER",x-px+dx,y-py+dy)
+  self:StopDrag(self.dragging);local x,y=center(h);if not x then return end
+  local px,py;if h.parentHandle then px,py=center(h.parentHandle);if not px then return end end
+  h:ClearAllPoints()
+  if h.parentHandle then h:SetPoint("CENTER",h.parentHandle,"CENTER",x-px+dx,y-py+dy)
   else h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x+dx,y+dy) end
   self:Select(h)
 end
@@ -203,10 +215,7 @@ function E:Select(handle)
     h.caption:SetShown(show and h==handle);h.sample:SetShown(show and h==handle and h.mirrorCount==0)
   end
   self:UpdateSuppression()
-  if not handle or not handle.target then self.toolbar.selection:SetText("이 필터에서 편집할 요소가 없습니다. 모듈과 표시 설정을 확인하세요.");return end
-  local t=handle.target
-  self.toolbar.selection:SetText(N:Path(t.settingsRoute).." > "..t.name.."\n"..(t.linked and "읽기 전용 / 연결 요소" or handle.parentHandle and "부모 기준 이동" or "독립 이동")..string.format(" · 미세 이동 X %.1f / Y %.1f UI px",self:Offset("x"),self:Offset("y")))
-  self.resetButton:Refresh();self.settingsButton:Refresh()
+  self.resetButton:Refresh()
   if self.modePicker then self.modePicker:Refresh() end
   if self.categoryPicker then self.categoryPicker:Refresh() end
   if self.xInput then self.xInput:Refresh();self.yInput:Refresh() end
@@ -224,7 +233,7 @@ function E:ResetSelection()
   self:StopDrag(self.dragging)
   local t=h.target;local x,y
   if t.minimap then
-    local mx,my=center(Minimap);local radius=108*Minimap:GetEffectiveScale()/UIParent:GetEffectiveScale()
+    local mx,my=center(Minimap);if not mx then return end;local radius=108*Minimap:GetEffectiveScale()/UIParent:GetEffectiveScale()
     x,y=mx+math.cos(math.rad(t.resetAngle))*radius,my+math.sin(math.rad(t.resetAngle))*radius
   elseif t.resetPoint then
     local p=t.resetPoint;local preview=self:Virtual("reset",p,t.frame:GetWidth(),t.frame:GetHeight())
@@ -236,11 +245,12 @@ function E:ResetSelection()
     end
     x,y=center(preview)
     -- Handles may enclose a text/art union offset from the actual source center.
-    local fx,fy=center(t.frame);x=x+h.originX-fx;y=y+h.originY-fy
+    local fx,fy=center(t.frame);if not x or not fx then return end;x=x+h.originX-fx;y=y+h.originY-fy
   else self:Message("이 연결 요소의 위치는 부모 설정에서 초기화하세요.");return end
+  local px,py;if h.parentHandle then px,py=center(h.parentHandle);if not px then return end end
   h:ClearAllPoints()
   if h.parentHandle then
-    local px,py=center(h.parentHandle);h:SetPoint("CENTER",h.parentHandle,"CENTER",x-px,y-py)
+    h:SetPoint("CENTER",h.parentHandle,"CENTER",x-px,y-py)
     h.resetRelativeX,h.resetRelativeY=x-px,y-py
   else h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y) end
   h.resetting=true;h.resetX,h.resetY=x,y;self:Select(h)
@@ -262,9 +272,8 @@ function E:Mirror(h,frame)
         local kind=region:GetObjectType()
         if (kind=="Texture" or kind=="FontString") and region:IsShown() and not self.sources[region]
           and (kind~="FontString" or (region:GetText() and region:GetText()~="")) then
-          local x,y=center(region); local w,ht=region:GetSize()
-          local ratio=region:GetEffectiveScale()/UIParent:GetEffectiveScale()
-          if w and ht and w>0 and ht>0 and math.abs(x-hx)<h:GetWidth() and math.abs(y-hy)<h:GetHeight() then
+          local x,y,ratio=KHQOL.PositionStore:Center(region); local _,w,ht=KHQOL.ReadPublicAPI(region.GetSize,region)
+          if x and KHQOL.PositionStore:Number(w) and KHQOL.PositionStore:Number(ht) and w>0 and ht>0 and math.abs(x-hx)<h:GetWidth() and math.abs(y-hy)<h:GetHeight() then
             used=used+1; local copy=h.mirrors[used]
             if not copy or copy:GetObjectType()~=kind then
               if copy then copy:Hide() end
@@ -314,7 +323,7 @@ function E:Enter(focus,entryMode)
   if EditModeManagerFrame and KHQOL.PublicCall(EditModeManagerFrame.IsShown,EditModeManagerFrame)==true then self:Message("기본 게임 편집 모드를 닫은 후 KHQOL 위치 편집을 열어 주세요.");return false end
   if combat() then self:Message("전투 중에는 위치를 편집할 수 없습니다."); return false end
   if KHQOL.AlertLayout then KHQOL.AlertLayout:Suspend(true) end
-  self:CreateToolbar(); UI:CloseDropdown(); GameTooltip:Hide()
+  self:CreateToolbar(); UI:CancelDrafts(); UI:CloseDropdown(); GameTooltip:Hide()
   self.returnSettings=KHQOL.settings and KHQOL.settings:IsShown()
   self.targets=KHQOL:BuildPositionTargets(focus);
   for _,t in ipairs(self.targets) do N:EditorMeta(t) end
@@ -328,17 +337,21 @@ function E:Enter(focus,entryMode)
   for _,target in ipairs(self.targets) do
     if safe(target.frame) then
       local h=self:GetHandle(target.id); h.resetting=nil; h.target=target; target.handle=h
-      local ratio=target.frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
-      local x,y=center(target.frame); local w,ht=target.frame:GetSize()
-      if target.bounds then x,y,w,ht=target.bounds(x,y,w*ratio,ht*ratio) else w,ht=w*ratio,ht*ratio end
-      if not target.art or #target.art==0 then
-        w=math.max(w,math.min(360,#(target.sample or "")*4+16));ht=math.max(ht,28)
+      local x,y,ratio=KHQOL.PositionStore:Center(target.frame)
+      local status,w,ht=KHQOL.ReadPublicAPI(target.frame.GetSize,target.frame)
+      if x and ratio>0 and status=="ok" and KHQOL.PositionStore:Number(w) and KHQOL.PositionStore:Number(ht) then
+        if target.bounds then x,y,w,ht=target.bounds(x,y,w*ratio,ht*ratio) else w,ht=w*ratio,ht*ratio end
+        if KHQOL.PositionStore:Number(x) and KHQOL.PositionStore:Number(y) and KHQOL.PositionStore:Number(w) and KHQOL.PositionStore:Number(ht) then
+          if not target.art or #target.art==0 then
+            w=math.max(w,math.min(360,#(target.sample or "")*4+16));ht=math.max(ht,28)
+          end
+          h:SetSize(math.max(16,w),math.max(16,ht)); h:ClearAllPoints(); h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y)
+          h.originX,h.originY=x,y; target.scale=ratio
+          h.caption:SetText(target.name); self:SetHandleHighlight(h,false)
+          h.sample:SetWidth(math.max(target.art and #target.art>0 and 160 or 8,w-8)); h:SetFrameLevel(100); h:EnableMouse(true); h:Show()
+          self.handles[#self.handles+1]=h; self.byID[target.id]=h
       end
-      h:SetSize(math.max(16,w),math.max(16,ht)); h:ClearAllPoints(); h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y)
-      h.originX,h.originY=x,y; target.scale=ratio
-      h.caption:SetText(target.name); self:SetHandleHighlight(h,false)
-      h.sample:SetWidth(math.max(target.art and #target.art>0 and 160 or 8,w-8)); h:SetFrameLevel(100); h:EnableMouse(true); h:Show()
-      self.handles[#self.handles+1]=h; self.byID[target.id]=h
+      end
     end
   end
   for _,h in ipairs(self.handles) do
@@ -369,7 +382,7 @@ function E:Enter(focus,entryMode)
   self.active=true
   if KHQOL.settings then KHQOL.settings:Hide() end
   self.toolbar.info:SetText("목록에서 대상을 고르고 테두리를 드래그하세요. ESC는 취소합니다. ("..#self.handles.."개)")
-  self.toolbar:SetScale(math.min(1,(UIParent:GetWidth()-24)/650,(UIParent:GetHeight()-24)/432)); UI:Refresh(self.toolbar); self.toolbar:Show()
+  self.toolbar:SetScale(math.min(1,(UIParent:GetWidth()-24)/650,(UIParent:GetHeight()-24)/390)); UI:Refresh(self.toolbar); self.toolbar:Show()
   local selected
   for _,h in ipairs(self.handles) do if h.target.id==focus or h.target.key==focus then selected=selected or h end end
   selected=selected or self.handles[1]
@@ -391,6 +404,12 @@ function E:Finish(save,combatExit)
   if not self.active then return end
   if save and (combat() or not self:IsCurrent()) then save=false end
   self:StopDrag(self.dragging)
+  -- Validate the entire draft before any writer or reset callback runs.
+  if save then
+    for _,h in ipairs(self.handles) do
+      if not center(h) or (h.parentHandle and not center(h.parentHandle)) then save=false;break end
+    end
+  end
   UI:CloseDropdown()
   self.active=false; self.toolbar:SetScript("OnUpdate",nil)
   -- Restore input/alpha first; applying module locks below decides final input.

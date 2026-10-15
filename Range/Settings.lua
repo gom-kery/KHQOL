@@ -189,12 +189,14 @@ function FR:RegisterBookSelection(slot)
 end
 function FR:RefreshSpellBookPanel(rebuild)
   local p=self.bookPanel;if not p or not p:IsShown() then return end
+  if p.wheelBody and KHQOL.modules.partyFrames.RefreshBookWheel then KHQOL.modules.partyFrames:RefreshBookWheel() end
   if rebuild or not self.bookOptions then self.bookOptions=self:GetBookCandidates() end
   p.selection:Refresh()
   local selected,message=self:ValidateReferenceSpell(self.bookSelected)
   p.selectedName:SetText(selected and selected.name or "스킬명 또는 SpellID 입력")
   p.icon:SetTexture(selected and selected.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
   p.message:SetText(self.registrationMessage or (self.bookSelected and message) or (#self.bookOptions==0 and "학습한 주문 목록 조회 불가. 스킬명 또는 SpellID를 입력하세요." or "스킬을 아래 등록 버튼으로 끌어 놓으세요. 목록 선택·스킬명 입력도 가능합니다."))
+  if not KHQOL:GetEnabled("range") then p.message:SetText("사거리 모듈을 켠 후 기준 주문을 등록하세요. 휠 클릭 시전 탭은 별도로 설정할 수 있습니다.") end
   for _,slot in ipairs({"melee","ranged"}) do
     local id=self.db and self.db[slot.."SpellID"]
     local name=id and (self.Range:GetSpellInfo(id) or self.db[slot.."SpellName"])
@@ -209,49 +211,54 @@ function FR:CloseSpellBookPanel()
 end
 function FR:SyncSpellBook(enabled)
   if not self.bookButton then return end
-  if enabled==nil then enabled=KHQOL.db and KHQOL:GetEnabled("range") end
-  local show=enabled and visible(self.bookHost)
+  local show=KHQOL.db and visible(self.bookHost)
   self.bookButton:SetShown(show and true or false)
   if not show then self:CloseSpellBookPanel() end
 end
 function FR:TryAttachSpellBook()
-  if not self.db or not KHQOL.db or not KHQOL:GetEnabled("range") or not outsideCombat() then return end
+  if not self.db or not KHQOL.db or not outsideCombat() then return end
   local host=bookHost();if not host then return end
   if host.IsForbidden and read(host.IsForbidden,host)~=false then return end
   local UI=KHQOL.UI
   if not self.bookButton then
-    local button=UI:CreateButton(UIParent,"KHQOL\n사거리 설정",0,0,100,function()
+    local button=UI:CreateButton(UIParent,"KHQOL\n설정",0,0,100,function()
       if FR.bookPanel:IsShown() then FR:CloseSpellBookPanel()
       else FR:OpenSpellBookPanel() end
     end)
     self.bookButton=button;button:SetSize(100,44);button:SetFrameStrata("DIALOG");button:SetClampedToScreen(true)
     local p=CreateFrame("Frame","KHQOLRangeBookRegistration",UIParent,"BackdropTemplate")
-    self.bookPanel=p;p.uiControls={};p:SetSize(310,366);p:SetFrameStrata("DIALOG");p:SetClampedToScreen(true)
+    self.bookPanel=p;p.uiControls={};p:SetSize(310,412);p:SetFrameStrata("DIALOG");p:SetClampedToScreen(true)
     p:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
     p:SetBackdropColor(unpack(UI.Theme.Background));p:SetBackdropBorderColor(unpack(UI.Theme.Border))
-    UI:CreateLabel(p,"KHQOL 사거리 주문 등록",12,-12):SetWidth(245)
+    UI:CreateLabel(p,"KHQOL 설정",12,-12):SetWidth(245)
     UI:CreateButton(p,"X",272,-8,26,function() FR:CloseSpellBookPanel() end)
-    p.selection=UI:CreateDropdown(p,12,-42,286,function() return FR.bookOptions or {} end,
+    p.rangeBody=CreateFrame("Frame",nil,p);p.rangeBody:SetPoint("TOPLEFT",0,-40);p.rangeBody:SetSize(310,366)
+    p.wheelBody=CreateFrame("Frame",nil,p);p.wheelBody:SetPoint("TOPLEFT",0,-80);p.wheelBody:SetSize(310,326);p.wheelBody:Hide()
+    p.rangeTab=UI:CreateButton(p,"사거리 설정",12,-42,137,function() FR:SelectBookTab("range") end)
+    p.wheelTab=UI:CreateButton(p,"휠 클릭 시전",161,-42,137,function() FR:SelectBookTab("wheel") end)
+    local body=p.rangeBody
+    p.selection=UI:CreateDropdown(body,12,-42,286,function() return FR.bookOptions or {} end,
       function() return FR.bookSelected end,function(id) FR.bookSelected=id;FR.registrationMessage=nil;FR:RefreshSpellBookPanel() end)
-    p.icon=p:CreateTexture(nil,"ARTWORK");p.icon:SetSize(30,30);p.icon:SetPoint("TOPLEFT",12,-84)
-    p.selectedName=UI:CreateDescription(p,"",50,-84);p.selectedName:SetWidth(248)
-    p.input=UI:CreateEditBox(p,12,-128,190)
-    UI:CreateButton(p,"조회",214,-128,84,function()
+    p.icon=body:CreateTexture(nil,"ARTWORK");p.icon:SetSize(30,30);p.icon:SetPoint("TOPLEFT",12,-84)
+    p.selectedName=UI:CreateDescription(body,"",50,-84);p.selectedName:SetWidth(248)
+    p.input=UI:CreateEditBox(body,12,-128,190)
+    UI:CreateButton(body,"조회",214,-128,84,function()
       local item,message=FR:ValidateReferenceSpell(p.input:GetText())
       FR.bookSelected=item and item.id or nil;FR.registrationMessage=message;FR:RefreshSpellBookPanel()
     end)
     for _,entry in ipairs({{"melee","근거리로 등록",12},{"ranged","원거리로 등록",161}}) do
       local slot=entry[1]
-      local button=UI:CreateButton(p,entry[2],entry[3],-171,137,function()
+      local button=UI:CreateButton(body,entry[2],entry[3],-171,137,function()
         if read(GetCursorInfo)~=nil then FR:ReceiveBookSpell(slot) else FR:RegisterBookSelection(slot) end
-      end)
+      end,function() return KHQOL:GetEnabled("range") and outsideCombat() end)
       p[slot.."Button"]=button
       button:SetScript("OnReceiveDrag",function() FR:ReceiveBookSpell(slot) end)
       UI:AttachTooltip(button,entry[2],"마법책의 스킬을 이 버튼으로 끌어 놓으면 등록됩니다.")
     end
-    p.meleeInfo=UI:CreateDescription(p,"",12,-216);p.meleeInfo:SetWidth(286)
-    p.rangedInfo=UI:CreateDescription(p,"",12,-253);p.rangedInfo:SetWidth(286)
-    p.message=UI:CreateDescription(p,"",12,-296);p.message:SetWidth(286)
+    p.meleeInfo=UI:CreateDescription(body,"",12,-216);p.meleeInfo:SetWidth(286)
+    p.rangedInfo=UI:CreateDescription(body,"",12,-253);p.rangedInfo:SetWidth(286)
+    p.message=UI:CreateDescription(body,"",12,-296);p.message:SetWidth(286)
+    KHQOL.modules.partyFrames:BuildBookWheel(p.wheelBody)
     p:SetScript("OnHide",function() p.input:ClearFocus();if UI.openDropdown==p.selection.menu then UI:CloseDropdown() end end)
     p:Hide();button:Hide()
   end
@@ -282,8 +289,16 @@ function FR:TryAttachSpellBook()
   end
   self:SyncSpellBook()
 end
-function FR:OpenSpellBookPanel()
-  if not KHQOL.db or not KHQOL:GetEnabled("range") then return false end
+function FR:SelectBookTab(tab)
+  local p=self.bookPanel;if not p then return end
+  self.bookTab=tab=="wheel" and "wheel" or "range"
+  KHQOL.UI:CloseDropdown();p.input:ClearFocus()
+  p.rangeBody:SetShown(self.bookTab=="range");p.wheelBody:SetShown(self.bookTab=="wheel")
+  KHQOL.UI:SetButtonSelected(p.rangeTab,self.bookTab=="range");KHQOL.UI:SetButtonSelected(p.wheelTab,self.bookTab=="wheel")
+  KHQOL.UI:Refresh(p);self:RefreshSpellBookPanel()
+end
+function FR:OpenSpellBookPanel(tab)
+  if not KHQOL.db or not self.db then return false end
   if not outsideCombat() then self:Print("전투 종료 후 스킬북 등록창을 여세요.");return false end
   local host=bookHost()
   if not visible(host) then
@@ -294,6 +309,6 @@ function FR:OpenSpellBookPanel()
   end
   self:TryAttachSpellBook()
   if not self.bookPanel or not visible(self.bookHost) then self:Print("게임 스킬북을 연 뒤 옆의 KHQOL 버튼을 누르세요.");return false end
-  self.registrationMessage=nil;self.bookPanel:Show();KHQOL.UI:Refresh(self.bookPanel);self:RefreshSpellBookPanel(true)
+  self.registrationMessage=nil;self.bookPanel:Show();self:SelectBookTab(tab or "range");KHQOL.UI:Refresh(self.bookPanel);self:RefreshSpellBookPanel(true)
   return true
 end

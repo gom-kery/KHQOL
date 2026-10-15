@@ -50,9 +50,9 @@ function M:PrepareHealthDisplay(owner,p,unit,width,height,left,top)
   self:SyncHealthDisplay(owner,p)
   self:SyncDisplayText(owner,p)
 end
-function M:SyncDisplayText(owner,p)
+function M:SyncDisplayText(owner,p,fromNativeHook)
   local display=owner.healthDisplay
-  if not display or not owner.compactActive or owner.displayTextWriting then return end
+  if not display or not owner.compactActive or owner.displayTextWriting or owner.artWriting then return end
   owner.displayTextWriting=true
   local mode=self:GetDB()[p.unit].health
   local objects={{p.health.TextString,"CENTER"},{p.health.LeftText,"LEFT"},{p.health.RightText,"RIGHT"},
@@ -64,7 +64,7 @@ function M:SyncDisplayText(owner,p)
       if not record then
         record={copy=display:CreateFontString(nil,"OVERLAY",nil,7)};owner.nativeTextCopies[source]=record
         for _,method in ipairs({"SetText","SetFormattedText","Show","Hide","SetAlpha","SetTextColor"}) do
-          if type(source[method])=="function" then hooksecurefunc(source,method,function() M:SyncDisplayText(owner,owner.parts) end) end
+          if type(source[method])=="function" then hooksecurefunc(source,method,function() M:SyncDisplayText(owner,owner.parts,true) end) end
         end
       end
       local copy=record.copy
@@ -87,7 +87,9 @@ function M:SyncDisplayText(owner,p)
           pcall(copy.SetAlphaFromBoolean,copy,shown,1,0);copy:Show()
         elseif call(source.IsShown,source)==true then copy:Show() else copy:Hide() end
       else copy:Hide() end
-      self:HideNativeDecoration(owner,source)
+      -- Native alpha hooks capture the external value before suppressing it.
+      -- A text mirror hook must not overwrite it or restart suppression.
+      if not fromNativeHook then self:HideNativeDecoration(owner,source) end
     end
   end
   owner.displayTextWriting=false

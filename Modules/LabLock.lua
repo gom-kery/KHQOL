@@ -21,13 +21,11 @@ end
 function L:RefreshRuntime()
   if not KHQOL.db then return end
   local p,i,h=KHQOL.modules.procAlert,KHQOL.modules.frameInspector,KHQOL.modules.objectHighlight
-  if p and p.SetEnabled then p:SetEnabled(KHQOL:CanRunModule("procAlert")) end
+  if p and p.SetEnabled then KHQOL:SetEnabled("procAlert",KHQOL:GetEnabled("procAlert"),true) end
   if i and not self:IsUnlocked() then i:SetEnabled(false); if i.copyOverlay then i.copyOverlay:Hide(); i.copyBox:ClearFocus() end end
   if h then h:Sync() end
-  local units=KHQOL.modules.unitFrames
-  if units and units.SetEnabled then units:SetEnabled(KHQOL:CanRunModule("unitFrames")) end
   local monitor=KHQOL.modules.performanceMonitor
-  if monitor and monitor.SetEnabled then monitor:SetEnabled(KHQOL:CanRunModule("performanceMonitor")) end
+  if monitor and monitor.SetEnabled then KHQOL:SetEnabled("performanceMonitor",KHQOL:GetEnabled("performanceMonitor"),true) end
 end
 function L:RefreshUI()
   local s=KHQOL.settings

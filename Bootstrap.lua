@@ -7,15 +7,15 @@ KHQOL.modules.experienceBar = {}
 KHQOL.modules.procAlert = {experimental=true}
 KHQOL.modules.npcAlert = {}
 KHQOL.modules.performanceMonitor = {experimental=true}
-KHQOL.VERSION = "1.10.8.11"
+KHQOL.VERSION = "1.10.9.6"
 
--- Profile-owned modern modules share enable dispatch, not UI or position lists.
--- General/Todo, legacy stores, labs without settings and attached HUDs differ.
-KHQOL.profileModuleKeys = {"tooltip","cursorTrail","castBar","combatStatus",
-  "questNavigator","threat","pvpAlert","environmentTimer","experienceBar",
-  "procAlert","objectHighlight","npcAlert","performanceMonitor","generalConvenience","basicUI","unitFrames"}
-KHQOL.legacyProfileVariables = {clock="ForeverClockDB",buffReminder="ForeverBuffReminderDB",
-  range="FRangeDB",resourceSwing="KHQOLResourceSwingDB",campfire="CampfireAlertDB"}
+-- Shared KHQOL health colors; native resource colors remain game-owned.
+KHQOL.ClassColors={
+  WARRIOR={179/255,154/255,123/255},PALADIN={209/255,138/255,170/255},
+  HUNTER={152/255,181/255,117/255},ROGUE={196/255,199/255,122/255},PRIEST={222/255,223/255,218/255},
+  SHAMAN={93/255,143/255,199/255},MAGE={132/255,191/255,209/255},
+  WARLOCK={161/255,138/255,186/255},DRUID={214/255,154/255,101/255},
+}
 
 -- Explicit count preserves intermediate/trailing nil, false and zero.
 -- The status is separate from API results. Table fields still need a protected
@@ -25,6 +25,10 @@ function KHQOL.IsPublicValue(value)
   if type(issecretvalue)~="function" then return true end
   local ok,secret=pcall(issecretvalue,value)
   return ok and not secret
+end
+-- Settings and public geometry only. Secret status-bar values use native widgets.
+function KHQOL.IsPublicNumber(value)
+  return KHQOL.IsPublicValue(value) and type(value)=="number" and value==value and math.abs(value)<math.huge
 end
 function KHQOL.ReadPublicAPI(fn,...)
   if type(fn)~="function" then return "missing" end

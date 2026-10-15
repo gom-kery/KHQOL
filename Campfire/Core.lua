@@ -407,6 +407,7 @@ function CFA:Initialize()
 end
 
 local events = CreateFrame("Frame")
+CFA.events=events
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")

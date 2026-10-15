@@ -25,6 +25,10 @@ defaults.enabled.performanceMonitor = false
 -- General convenience features have individual switches, no master switch.
 defaults.enabled.basicUI = true
 defaults.enabled.unitFrames = true
+for _,id in ipairs(KHQOL.ModuleRegistry.order) do
+  local spec=KHQOL.ModuleRegistry.entries[id]
+  if spec.defaultEnabled~=nil then defaults.enabled[id]=spec.defaultEnabled end
+end
 
 function KHQOL:Migrate()
   for key, variable in pairs(legacy) do
@@ -51,44 +55,19 @@ end
 
 function KHQOL:GetEnabled(key) return self.db.enabled[key] ~= false end
 
-local managedModules = {}
-for _,key in ipairs(KHQOL.profileModuleKeys) do managedModules[key]=true end
 function KHQOL:SetEnabled(key, enabled, reapply)
   if not reapply and not enabled and self.PositionEditor and self.PositionEditor.active then self.PositionEditor:Finish(false) end
-  if key=="generalConvenience" then self.db.enabled[key]=nil; self.modules[key]:SetEnabled(true); return true end
-  -- Internal reapplication preserves preferences while the lock gates execution.
+  local spec=self.ModuleRegistry.entries[key]
+  if not spec then return false end
+  if spec.always then
+    if key=="generalConvenience" then self.db.enabled[key]=nil end
+    return self.ModuleRegistry:Dispatch(key,true)
+  end
+  -- Lock gates execution without rewriting the saved preference.
   if not reapply and self.LabLock:IsExperimental(key) and not self.LabLock:IsUnlocked() then return false end
   if not reapply and not enabled then self.PositionStore:FinishDrags(key) end
-  if not reapply then self.db.enabled[key] = enabled and true or false end
-  if self.LabLock:IsExperimental(key) then enabled=enabled and self.LabLock:IsUnlocked() end
-  local fc, fr, cfa = self.modules.clock, self.modules.range, self.modules.campfire
-  if key == "clock" and fc and fc.SetHUDShown then fc:SetHUDShown(enabled) end
-  if key == "todo" and fc then
-    if fc.todoFrame and not enabled then fc.todoFrame:Hide() end
-    if fc.UpdateTodoMinimapButton then fc:UpdateTodoMinimapButton() end
-    if fc.RefreshTodoNavigation then fc:RefreshTodoNavigation() end
-  end
-  if key == "range" and fr and fr.SetEnabled then fr:SetEnabled(enabled) end
-  if key == "buffReminder" and ForeverBuffReminder then
-    if enabled then
-      ForeverBuffReminder:RefreshAlerts()
-    else
-      ForeverBuffReminder:StopCountdown()
-      if ForeverBuffReminder.HideAlerts then ForeverBuffReminder:HideAlerts()
-      elseif ForeverBuffReminder.container then ForeverBuffReminder.container:Hide() end
-    end
-  end
-  if key == "resourceSwing" then
-    if self.modules.resourceSwing.SetEnabled then self.modules.resourceSwing:SetEnabled(enabled)
-    else
-      if KHQOLResourceSwingDB then KHQOLResourceSwingDB.enabled = enabled and true or false end
-      if KHQOLResourceSwingFrame then KHQOLResourceSwingFrame:SetShown(enabled) end
-    end
-  end
-  if key == "campfire" and cfa then if not enabled then cfa:HideDiscovery() elseif cfa.ProcessAuras then cfa:ProcessAuras("khqol-enable") end end
-  local module = managedModules[key] and self.modules[key]
-  if module and module.SetEnabled then module:SetEnabled(enabled) end
-  if key == "resourceSwing" and self.modules.castBar and self.modules.castBar.frame then self.modules.castBar:ApplyLayout(); self.modules.castBar:RefreshControls() end
+  if not reapply then self.db.enabled[key]=enabled and true or false end
+  self.ModuleRegistry:Dispatch(key,enabled)
   if not self.profileApplying and self.settings and self.settings.RefreshModuleState then self.settings:RefreshModuleState(key) end
   return true
 end
@@ -138,17 +117,16 @@ events:SetScript("OnEvent", function()
   KHQOLDB = KHQOL.MergeDefaults(KHQOLDB or {}, defaults, "tables"); KHQOL.db = KHQOLDB
   KHQOL:Migrate()
   KHQOL.LabLock:GetStorage()
-  if KHQOL.modules.general and KHQOL.modules.general.Initialize then KHQOL.modules.general:Initialize() end
-  KHQOL.modules.frameMover:Initialize()
-  KHQOL.modules.chatEnhancement:Initialize()
+  KHQOL.ModuleRegistry:Validate()
+  for _,id in ipairs({"general","frameMover","chatEnhancement"}) do KHQOL.ModuleRegistry:Initialize(id) end
   if KHQOL.CreateSettings then KHQOL:CreateSettings() elseif DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffff4040KHQOL: 설정 UI를 불러오지 못했습니다.|r") end
   KHQOL:CreateMinimapButton()
   C_Timer.After(0, function()
     KHQOL:HideLegacyButtons()
-    KHQOL.modules.generalConvenience:SetEnabled(true)
-    for key in pairs(KHQOL.db.enabled) do KHQOL:SetEnabled(key, KHQOL:GetEnabled(key), true) end
-    if KHQOL.modules.tooltip and KHQOL.modules.tooltip.Initialize then KHQOL.modules.tooltip:Initialize() end
-    if KHQOL.modules.cursorTrail and KHQOL.modules.cursorTrail.Initialize then KHQOL.modules.cursorTrail:Initialize() end
+    KHQOL:SetEnabled("generalConvenience",true,true)
+    for _,key in ipairs(KHQOL.ModuleRegistry.order) do
+      if KHQOL.db.enabled[key]~=nil then KHQOL:SetEnabled(key, KHQOL:GetEnabled(key), true) end
+    end
     KHQOL:FinishProfileLogin()
     KHQOL:ApplyEditorPositions()
   end)

@@ -4,12 +4,16 @@ local R=UI.SettingsRegistry
 
 -- One presenter owns tab state, cached bodies and dynamic body heights.
 local Group={}
+UI.SettingsGroups={}
 function UI:NewSettingsGroup(id)
-  return setmetatable({id=id,tabs={},selected=assert(R.orders[id])[1]}, {__index=Group})
+  local group=setmetatable({id=id,tabs={},selected=assert(R.orders[id])[1]}, {__index=Group})
+  self.SettingsGroups[id]=group
+  return group
 end
 function Group:RegisterTab(id,title,build)
   local meta=assert(R.groups[self.id][id],"Unknown KHQOL settings tab: "..id)
-  self.tabs[#self.tabs+1]={id=id,title=meta.title,build=build,meta=meta}
+  self.selected=self.selected or id
+  self.tabs[#self.tabs+1]={id=id,title=meta.tabTitle or meta.title,build=build,meta=meta}
 end
 function Group:BuildSettings(content,y,host,tabY)
   if self.id=="labs" and not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,y) end
@@ -66,11 +70,15 @@ function Group:BuildSettings(content,y,host,tabY)
       KHQOL.settings:SetPageScrollLayout(self.id)
       local meta=R.groups[self.id][id]
       KHQOL.settings:SetModuleHeader(meta)
+      if meta.sharedTabs then
+        local p={module=meta.key,tab=id}
+        KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
+      end
       if self.id=="quest" then
         local p={module="questNavigator",tab=id}
         KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
       end
-      if self.id=="unitFrames" then
+      if meta.key=="unitFrames" then
         local p={module="unitFrames",unit=panel.selectedUnit,part=panel.selectedPart,category=panel.selectedAuraCategory}
         KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
       end
@@ -89,7 +97,7 @@ function Group:BuildSettings(content,y,host,tabY)
     buttons[id]=UI:CreateButton(host,tab.title,pos.x,pos.y,pos.width,function() selectTab(id) end)
     buttons[id].navigationOnly=true
     local panel=CreateFrame("Frame",nil,content);panel:SetPoint("TOPLEFT",0,bodyY);panel:SetWidth(content:GetWidth());panel:Hide()
-    panel.settingsModuleKey=tab.meta.key;panel.settingsRoute={module=tab.meta.key or tab.meta.id=="general" and "generalConvenience" or self.id,tab=self.id=="quest" and id or nil}; panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
+    panel.settingsModuleKey=tab.meta.key;panel.settingsRoute={module=tab.meta.key or tab.meta.id=="general" and "generalConvenience" or self.id,tab=(self.id=="quest" or tab.meta.sharedTabs) and id or nil}; panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
     panel:HookScript("OnSizeChanged",function() if self.selected==id then updateHeight(panel) end end)
   end
   -- Allocate every tab before a builder can trigger a refresh or selection.
@@ -147,13 +155,20 @@ end
 function UI:RefreshSettingsViews()
   if KHQOL.settings and KHQOL.settings.FitScreen then KHQOL.settings:FitScreen() end
   local s=KHQOL.settings;if not s then return end
-  for _,content in pairs(s.pageCache) do self:Refresh(content) end
+  -- Stable storage tables let cached controls read current values on next show.
+  -- Reflow/refresh only the page which is actually visible.
+  if s.activeContent then self:Refresh(s.activeContent) end
   local fc=KHQOL.modules.clock;local fbr=ForeverBuffReminder;local fr=KHQOL.modules.range
-  if fc.RefreshSettings then fc:RefreshSettings() end
-  if fbr.RefreshSettings then fbr:RefreshSettings() end
-  if fr.UpdateSettings then fr:UpdateSettings() end
+  if s.page=="interface" then
+    local panel=s.activeContent and s.activeContent.activePanel
+    if panel and panel.moduleKey=="clock" and fc.RefreshSettings then fc:RefreshSettings() end
+    if panel and panel.moduleKey=="range" and fr.UpdateSettings then fr:UpdateSettings() end
+  elseif s.page=="labs" and fbr and s.activeContent and s.activeContent.activePanel
+    and s.activeContent.activePanel.moduleKey=="buffReminder" and fbr.RefreshSettings then fbr:RefreshSettings() end
   if UI.SettingsNavigation then UI.SettingsNavigation:CancelSearch(s) end
+  local route=s.currentRoute
   s:ShowPage(s.page or "general")
+  if route and route.tab and s.activeContent and s.activeContent.tabPanels and s.activeContent.tabPanels[route.tab] then s.activeContent.SelectSettingsTab(route.tab) end
 end
 function UI:RequestModuleReset(key)
   if KHQOL.LabLock:IsExperimental(key) and not KHQOL.LabLock:IsUnlocked() then return end

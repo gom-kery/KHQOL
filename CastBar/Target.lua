@@ -2,7 +2,7 @@ local _,KHQOL=...
 local C=KHQOL.modules.castBar
 local U=KHQOL.modules.unitFrames
 local call=KHQOL.PublicCall
-local function finite(v) return KHQOL.IsPublicValue(v) and type(v)=="number" and v==v and math.abs(v)<math.huge end
+local function finite(v) return KHQOL.IsPublicNumber(v) end
 local function editing() return call(EditModeManagerFrame and EditModeManagerFrame.IsShown,EditModeManagerFrame)==true end
 function C:TargetFrame()
   local root=_G.TargetFrame;local frame=root and (root.spellbar or _G.TargetFrameSpellBar)

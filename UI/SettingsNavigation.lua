@@ -14,10 +14,12 @@ local function token(text) return (text or ""):gsub("|c%x%x%x%x%x%x%x%x",""):gsu
 function N:ID(p,title) return table.concat({p.module or "general",p.tab or "",p.castUnit or "",p.unit or "",p.part or "",p.category or "",p.section or "",title or ""},"/") end
 function N:Path(p,title)
   local meta=p.tab and R.groups.quest[p.tab] and p.module=="questNavigator" and R.groups.quest[p.tab] or R.modules[p.module] or R.routes[p.module]
+  if p.tab and meta and meta.group and R.groups[meta.group] and R.groups[meta.group][p.tab] and R.groups[meta.group][p.tab].key==meta.key then meta=R.groups[meta.group][p.tab] end
   local page=p.page or meta and meta.group or "general";local name=page
   for _,v in ipairs(R.pages) do if v[1]==page then name=v[2];break end end
   local path={name}
-  if meta and page~="unitFrames" then path[#path+1]=meta.title end
+  local titleText=meta and (meta.tabTitle or meta.title)
+  if meta and page~="unitFrames" and (titleText~=name or p.tab and meta.sharedTabs) then path[#path+1]=titleText end
   if p.castUnit then path[#path+1]=self.units[p.castUnit] or p.castUnit end
   if p.unit then path[#path+1]=self.units[p.unit] or p.unit end
   if p.part then path[#path+1]=self.parts[p.part] or p.part end

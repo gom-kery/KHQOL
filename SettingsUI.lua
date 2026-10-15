@@ -6,6 +6,7 @@ local defaultRowStep = T.RowHeight + T.RowGap
 local menuRowStep = T.ButtonHeight + math.max(0, defaultRowStep - T.ButtonHeight) / 2
 local moduleRowStep = T.RowHeight + T.RowGap
 local registry=UI.SettingsRegistry
+registry:ConnectModules()
 local pages=registry.pages
 local moduleGroups=registry.moduleGroups
 UI.Pages=pages
@@ -23,7 +24,7 @@ StaticPopupDialogs.KHQOL_RESET_ALL = {
     KHQOL.profileResetting=true
     KHQOLDB=nil; ForeverClockDB=nil; ForeverBuffReminderDB=nil; ForeverWeaponGuideDB=nil
     KHQOLResourceSwingDB=nil; CampfireAlertDB=nil; FRangeDB=nil; KHQOLCursorTrailCharDB=nil
-    KHQOLLabDB=nil
+    KHQOLLabDB=nil; KHQOLPartyCharDB=nil
     ReloadUI()
     end)
   end,timeout=0,whileDead=1,hideOnEscape=1,
@@ -60,8 +61,14 @@ local function profileSettings(content,y)
   b:Description("같은 프로필을 선택한 캐릭터는 설정을 공유합니다. 생성·복사 후 새 프로필로 전환합니다.",true)
   b:Description("노트·ToDo·등록 버프·직업별 기준 주문은 유지합니다. 전투 중에는 프로필 변경이 제한됩니다.",true)
   b:Description("공용 데이터: 노트·체크리스트·NPC/발동/버프 등록 목록. 기본창 위치와 설정창 크기·위치·편집기 표시 선호는 계정 공용이며 프로필에 포함되지 않습니다. 기존 배율·불투명도 저장 정책은 유지합니다.",true)
+  b:Section("프로필 백업 및 복원")
+  local export=b:Button("프로필 내보내기",function() KHQOL.ProfileTransfer:OpenWindow("export") end)
+  local import=b:Button("프로필 가져오기",function() KHQOL.ProfileTransfer:OpenWindow("import") end)
+  export.navigationOnly=true;import.navigationOnly=true
+  b:Description("설정만 문자열로 백업합니다. 검사 후 새 프로필로 추가하며 기존 프로필과 현재 선택은 유지합니다.",true)
+  b:Description(KHQOL.ProfileTransfer.scopeNotice,true)
   function KHQOL:RefreshProfileControls() active:Refresh(); remove:Refresh() end
-  content.profileControls={active=active,remove=remove,input=input,fresh=fresh,duplicate=duplicate}
+  content.profileControls={active=active,remove=remove,input=input,fresh=fresh,duplicate=duplicate,export=export,import=import}
   return b.y
 end
 local function generalSettings(content,y)
@@ -272,7 +279,7 @@ function KHQOL:CreateSettings()
   local relock=UI:CreateButton(f,"다시 잠그기",0,0,120,function() KHQOL.LabLock:Relock() end,
     function() return KHQOL.LabLock:IsUnlocked() end)
   relock:ClearAllPoints();relock:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,18);relock:Hide();f.labLockButton=relock
-  local groups={unitFrames=KHQOL.UnitFrameSettings,bars=KHQOL.BarsSettings,alerts=KHQOL.AlertSettings,labs=KHQOL.LabSettings,
+  local groups={unitFrames=KHQOL.UnitFrameSettings,partyFrames=KHQOL.PartyFrameSettings,bars=KHQOL.BarsSettings,alerts=KHQOL.AlertSettings,labs=KHQOL.LabSettings,
     interface=KHQOL.InterfaceSettings,convenience=KHQOL.ConvenienceSettings,quest=KHQOL.QuestSettings}
   function f:ShowPage(key)
     if self.buildingPage then return end

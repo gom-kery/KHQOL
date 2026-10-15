@@ -1,7 +1,7 @@
 local _,KHQOL=...
 local M=KHQOL.modules.unitFrames
 local call=KHQOL.PublicCall
-local function finite(v) return KHQOL.IsPublicValue(v) and type(v)=="number" and v==v and math.abs(v)<math.huge end
+local function finite(v) return KHQOL.IsPublicNumber(v) end
 local function offset(v,limit) return finite(v) and math.max(-limit,math.min(limit,v)) or 0 end
 local function rect(frame)
   if not frame then return end
@@ -203,6 +203,28 @@ function M:PositionPreviews(focus)
       if rx then x,y,w,h,r=rx+rw/2-18.5+(d.bottomX or 0),ry-rh/2+20-22.5+(d.bottomY or 0),37,45,rr end
     end
     if x then add("unitFrames.player.totems","플레이어 · 토템·임시 소환",x,y,math.max(37,w),math.max(45,h),r,d,"bottomX","bottomY",100,{{texture="Interface\\Icons\\Spell_Nature_StoneClawTotem",width=28*r,height=28*r}}) end
+  end
+  return list
+end
+
+-- This module supplies safe proxies; native unit roots stay in Blizzard edit mode.
+function M:EditorTargets(focus)
+  local list=self:PositionPreviews(focus)
+  local proxy,ratio=self:PositionProxy()
+  if proxy then
+    local d=self:GetDB().targettarget
+    local status,x,y=KHQOL.ReadPublicAPI(proxy.GetCenter,proxy)
+    if status=="ok" and KHQOL.PositionStore:Number(x) and KHQOL.PositionStore:Number(y)
+      and KHQOL.PositionStore:Number(ratio) and ratio>0 then
+      list[#list+1]={id="unitFrames.targettarget",name="대상의 대상",frame=proxy,
+        write=function(dx,dy)
+          d.frameX=math.max(-1000,math.min(1000,KHQOL.PositionStore:Round((d.frameX or 0)+dx/ratio)))
+          d.frameY=math.max(-1000,math.min(1000,KHQOL.PositionStore:Round((d.frameY or 0)+dy/ratio)))
+        end,
+        apply=function() self:ApplySettings() end,sample="대상의 대상 · 위치 미리보기",
+        resetPoint={point="CENTER",relativePoint="BOTTOMLEFT",x=x-(d.frameX or 0)*ratio,y=y-(d.frameY or 0)*ratio},
+        resetPhysical=true,resetWrite=function() d.frameX=0;d.frameY=0 end}
+    end
   end
   return list
 end

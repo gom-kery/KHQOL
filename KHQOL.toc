@@ -2,17 +2,20 @@
 ## Title: KHQOL
 ## Notes: Unified quality-of-life settings for WoW Forever.
 ## Author: KHQOL
-## OptionalDeps: Blizzard_UnitFrame, Blizzard_AuraContainer
-## Version: 1.10.8.11
+## OptionalDeps: Blizzard_UnitFrame, Blizzard_AuraContainer, Blizzard_CompactRaidFrames
+## Version: 1.10.9.6
 ## SavedVariables: KHQOLDB, ForeverClockDB, ForeverBuffReminderDB, ForeverWeaponGuideDB, KHQOLResourceSwingDB, CampfireAlertDB, KHQOLLabDB
-## SavedVariablesPerCharacter: FRangeDB, KHQOLCursorTrailCharDB
+## SavedVariablesPerCharacter: FRangeDB, KHQOLCursorTrailCharDB, KHQOLPartyCharDB
 
 Bootstrap.lua
+ModuleRegistry.lua
+ModuleAdapters.lua
 Modules/LabHash.lua
 Modules/LabCredentials.lua
 Modules/LabLock.lua
 Modules/ObjectHighlight.lua
 Profiles.lua
+ProfileTransfer.lua
 UI.lua
 UI/SettingsLayout.lua
 UI/SettingsRegistry.lua
@@ -31,6 +34,16 @@ Modules/UnitFrameDisplay.lua
 UI/NativeAuraLayouts.xml
 Modules/UnitFrameAuras.lua
 Modules/UnitFramePositions.lua
+Modules/PartyFrames.lua
+Modules/PartyFrameProfiles.lua
+Modules/PartyFrameLayout.lua
+Modules/PartyFrameDisplay.lua
+Modules/PartyFrameAuras.lua
+Modules/PartyFrameWheel.lua
+UI/PartyFramePreview.lua
+UI/PartyFrameSpellBook.lua
+UI/PartyFrameTemplates.xml
+UI/PartyFrameSettings.lua
 Clock/Locale.lua
 Clock/Core.lua
 Clock/Clock.lua
@@ -103,4 +116,5 @@ UI/AlertModuleSettings.lua
 UI/QualitySettings.lua
 UI/InterfaceSettings.lua
 UI/ConvenienceSettings.lua
+UI/ProfileTransfer.lua
 SettingsUI.lua

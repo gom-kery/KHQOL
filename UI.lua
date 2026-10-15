@@ -418,7 +418,7 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   format = format or tostring
   local rawFormat=format
   format=function(value)
-    if step>=1 and type(value)=="number" and value==value and math.abs(value)<math.huge then
+    if step>=1 and KHQOL.IsPublicNumber(value) then
       value=value<0 and math.ceil(value-.5) or math.floor(value+.5)
     end
     return rawFormat(value)
@@ -457,7 +457,7 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
     local numeric = raw:gsub("%%", ""):gsub("px", ""):gsub("초", "")
     local value = tonumber(numeric)
     if raw == "기본" and min <= 0 and max >= 0 and format(0) == "기본" then value = 0 end
-    if value and value == value and value ~= math.huge and value ~= -math.huge then
+    if KHQOL.IsPublicNumber(value) then
       -- Fractional opacity controls display percentages; other ranges retain their units.
       if tostring(format(getter())):find("%",1,true) and tostring(format(1)):match("^100%%$") then value=value/100 end
       UI:CommitSetting(parent,setter,rounded(value)); slider:Refresh()
