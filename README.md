@@ -21,13 +21,6 @@
 4. 게임 애드온 목록에서 **KHQOL**과 선택한 기능 애드온을 켭니다. 전체 설치는 18개 모두를 켭니다.
 5. `/kh`에서 설치 상태와 기존 프로필·내용·위치를 확인합니다. 기존 WTF 저장 파일을 삭제하거나 이름을 바꾸지 않습니다.
 
-정상 배치 예: `Interface/AddOns/KHQOL/KHQOL.toc`, `Interface/AddOns/KHQOL_PartyFrames/KHQOL_PartyFrames.toc`.
-<<<<<<< HEAD
-`Interface/AddOns/KHQOL-1.11.1.0-Full/KHQOL/...`처럼 한 겹 더 넣으면 안 됩니다.
-=======
-`Interface/AddOns/KHQOL-1.11.1.1-Full/KHQOL/...`처럼 한 겹 더 넣으면 안 됩니다.
->>>>>>> 81e45cf (1.11.1.1_dropdown UI fix)
-
 ## 기능별 폴더
 
 | 폴더 | 포함 기능 | 필수 항목 |
