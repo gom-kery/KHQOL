@@ -80,7 +80,7 @@ function UI:CreateDetailLayout(parent,y,key)
         local x=wide and (180+(index-1)*(width-180+T.ColumnGap-T.ContentPadding)/2) or T.ContentPadding
         local top=wide and -24 or (-28-(index-1)*T.DropdownRowHeight)
         c:ClearAllPoints(); c:SetPoint("TOPLEFT",x,top)
-        if kind~="compact" and kind~="showPower" then c.layoutWidth=wide and (width-180-T.ColumnGap-T.ContentPadding)/2 or math.min(T.DropdownWidth,width-T.ContentPadding); c:SetWidth(c.layoutWidth) end
+        if kind~="compact" and kind~="showPower" then c:FitDropdownWidth(wide and (width-180-T.ColumnGap-T.ContentPadding)/2 or math.min(T.DropdownWidth,width-T.ContentPadding)) end
         captions[index]:ClearAllPoints(); captions[index]:SetPoint("TOPLEFT",x,top+20)
         captions[index]:SetWidth(wide and (width-180-T.ColumnGap)/2 or width-T.ContentPadding)
       end
@@ -106,7 +106,7 @@ function UI:CreateDetailLayout(parent,y,key)
           height=math.max(height,r.check.text:GetStringHeight()+12)
         end
         if r.dropdown then
-          r.fieldLabel:SetWidth(width-r.indent);r.dropdown.layoutWidth=width-r.indent;r.dropdown:SetWidth(width-r.indent)
+          r.fieldLabel:SetWidth(width-r.indent);r.dropdown:FitDropdownWidth(width-r.indent)
           local labelHeight=math.max(18,r.fieldLabel:GetStringHeight())
           r.dropdown:ClearAllPoints();r.dropdown:SetPoint("TOPLEFT",0,-labelHeight-6)
           r.dropdown:Refresh();height=math.max(height,labelHeight+6+r.dropdown:GetHeight()+T.RowGap)

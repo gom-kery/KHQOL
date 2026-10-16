@@ -74,8 +74,10 @@ function UI:CreateCheckbox(parent,title,x,y,get,set,enabled)
 end
 function UI:CreateButton(parent,title,x,y,width,click,enabled)
   local c=originals.CreateButton(self,parent,title,x,y,width,click,enabled)
-  local wanted=c:GetWidth()
-  remember(parent,c,x,y,function(control,w,ox) control:SetWidth(math.max(26,math.min(w-ox,control.layoutPreferredWidth or wanted))) end)
+  remember(parent,c,x,y,function(control,w,ox)
+    local wanted=control.layoutPreferredWidth or UI:MeasureButtonText(control,control:GetText())+24
+    control:SetWidth(math.max(26,math.min(w-ox,wanted)))
+  end)
   if UI.SettingsNavigation then UI.SettingsNavigation:Attach(parent,c,title,nil,click,enabled) end
   return c
 end
@@ -88,7 +90,7 @@ function UI:CreateSlider(parent,title,description,x,y,min,max,step,get,set,forma
 end
 function UI:CreateDropdown(parent,x,y,width,options,get,set,enabled)
   local c=originals.CreateDropdown(self,parent,x,y,width,options,get,set,enabled)
-  remember(parent,c,x,y,function(control,w,ox) control.layoutWidth=math.max(60,w-ox);control:SetWidth(control.layoutWidth) end)
+  remember(parent,c,x,y,function(control,w,ox) control:FitDropdownWidth(math.max(1,w-ox)) end)
   local cell=parent.uiBuilder and parent.uiBuilder.activeCell
   if cell and cell.caption and UI.SettingsNavigation then UI.SettingsNavigation:Attach(parent,c,cell.caption,get,set,enabled) end
   return c
@@ -180,7 +182,7 @@ function UI:CreateBuilder(parent,y)
       self:Reflow()
       if K.settings then K.settings:UpdateContentHeight() end
     end)
-    toggle.navigationOnly=true;toggle.ignoreModuleEnabled=true;toggle.layoutPreferredWidth=T.FormMaxWidth
+    toggle.navigationOnly=true;toggle.ignoreModuleEnabled=true
     self.activeCell.full=true
     group.toggle=toggle;group.title=title;group.count=count
     if UI.SettingsNavigation then UI.SettingsNavigation:Attach(parent,toggle,"고급 옵션 펼치기") end
@@ -210,7 +212,7 @@ function UI:CreateBuilder(parent,y)
     end end
     if #cells==0 then parent.buildersReflowing=nil;return end
     local width=parent.settingsFullWidth and parent:GetWidth() or math.min(T.FormMaxWidth,parent:GetWidth())
-    local top=baseline(cells[1]);local count,kind,rowHeight,lastColumns=0,nil,0,0
+    local top=baseline(cells[1]);local count,kind,rowHeight,lastColumns=0,nil,0,0;local buttonRight=0
     local previous,originalBottom
     for _,item in ipairs(cells) do
       local shown=true;local disclosure=item.disclosure
@@ -234,10 +236,23 @@ function UI:CreateBuilder(parent,y)
             end
           end
         end
+        -- Action pairs use their text width and a small gap, keeping order/groups.
+        local buttonWidth
+        if item.kind=="button" and not item.full then
+          columns=item.columns;buttonWidth=26
+          for _,r in ipairs(item.regions) do
+            local c=r.region
+            if c.khqolSkinned then buttonWidth=math.max(buttonWidth,r.x+(c.layoutPreferredWidth or UI:MeasureButtonText(c,c:GetText())+24)) end
+          end
+          buttonWidth=math.min(width,buttonWidth)
+        end
         local gap=previous and baseline(previous)~=baseline(item) and math.max(0,originalBottom-baseline(item)) or 0
         local newRow=kind~=item.kind or columns~=lastColumns or count>=columns or gap>0 or item.full or previous and (previous.builder~=item.builder or previous.group~=item.group)
-        if newRow then top=top-rowHeight-gap;count=0;rowHeight=0;kind=item.kind end
-        local w=(width-(columns-1)*T.ColumnGap)/columns;local x=count*(w+T.ColumnGap)
+        if buttonWidth and count>0 and buttonRight+T.RowGap+buttonWidth>width then newRow=true end
+        if newRow then top=top-rowHeight-gap;count=0;rowHeight=0;kind=item.kind;buttonRight=0 end
+        local w=buttonWidth or (width-(columns-1)*T.ColumnGap)/columns
+        local x=buttonWidth and (count>0 and buttonRight+T.RowGap or 0) or count*(w+T.ColumnGap)
+        if buttonWidth then buttonRight=x+w end
         local anchorTop=top-(item.kind=="section" and T.SectionGap or 0)
         local labelHeight=18
         for _,r in ipairs(item.regions) do

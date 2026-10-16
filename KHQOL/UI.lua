@@ -8,7 +8,7 @@ UI.Theme = {
   SidebarWidth = 200, ContentPadding = 20, ContentWidth = 640,
   HeaderGap = 20, SectionGap = 14, RowGap = 8, RowHeight = 28,
   ControlHeight = 26, ButtonHeight = 26, DropdownHeight = 26, EditBoxHeight = 26,
-  CheckboxSize = 26, CheckboxLabelGap = 8, SliderWidth = 110, DropdownWidth = 280,
+  CheckboxSize = 26, CheckboxLabelGap = 8, SliderWidth = 110, DropdownWidth = 280, DropdownMinWidth = 140,
   SliderRowHeight = 60, DropdownRowHeight = 60, ColorRowHeight = 60,
   ColumnGap = 20,
   TitleFontSize = 22, PageTitleSize = 18, StatusFontSize = 12, StateFontSize = 10,
@@ -522,6 +522,16 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   box:HookScript("OnShow", function() slider:Refresh() end)
   self:RegisterControl(parent, slider); slider:Refresh(); return slider,box
 end
+-- Measure without a previous field width or wrapping affecting the next fit.
+function UI:MeasureButtonText(button,text)
+  local measure=button.khqolWidthMeasure
+  if not measure then
+    measure=button:CreateFontString(nil,"OVERLAY");measure:SetWordWrap(false);measure:Hide()
+    button.khqolWidthMeasure=measure
+  end
+  measure:SetFont(button:GetFontString():GetFont());measure:SetText(text or "")
+  return math.ceil(measure:GetStringWidth())
+end
 function UI:CloseDropdown()
   if self.openDropdown then self.openDropdown:Hide(); self.openDropdown = nil end
 end
@@ -559,15 +569,24 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
   end, enabled)
   b.navigationOnly=true -- Opening a list does not change a profile setting.
   b.khqolDropdown=true
+  -- layoutWidth remains the available slot; only the visible button is compact.
+  function b:FitDropdownWidth(available)
+    if available then self.layoutWidth=available end
+    local limit=math.max(1,math.min(T.DropdownWidth,self.layoutWidth or width))
+    local fitted=math.min(limit,math.max(T.DropdownMinWidth,self.dropdownContentWidth or T.DropdownMinWidth))
+    self:SetWidth(fitted)
+    local text=self:GetFontString();text:SetWordWrap(true);text:SetWidth(math.max(1,fitted-20))
+    self:SetHeight(math.max(T.DropdownHeight,text:GetStringHeight()+10))
+  end
   b.Refresh = function()
     if optionSource then options=optionSource() end
     local value = getter(); local selected = "선택"
-    local menuWidth=100
+    local menuWidth=100;local buttonWidth=T.DropdownMinWidth
     local maximumMenuWidth=math.max(120,math.min(680,(KHQOL.settings or UIParent):GetWidth()-40))
     for i, option in ipairs(options) do
       if option.value == value then selected = option.text end
-      b:GetFontString():SetText(option.text)
-      menuWidth=math.max(menuWidth,math.ceil(b:GetFontString():GetStringWidth())+(option.icon and 70 or 48))
+      menuWidth=math.max(menuWidth,UI:MeasureButtonText(b,option.text)+(option.icon and 70 or 48))
+      buttonWidth=math.max(buttonWidth,UI:MeasureButtonText(b,option.text.."  ▼")+20)
       if b.rows then
         local row=b.rows[i]
         if not row then
@@ -612,9 +631,7 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
       b.menuViewport:SetVerticalScroll(math.min(b.menuViewport:GetVerticalScroll(),math.max(0,contentHeight-visibleHeight)))
     end
     b:SetText(selected .. "  ▼")
-    local text=b:GetFontString();text:SetWordWrap(true);text:SetWidth(math.max(30,(b.layoutWidth or width)-20))
-    b:SetHeight(math.max(T.DropdownHeight,text:GetStringHeight()+10))
-    b:SetWidth(b.layoutWidth or width)
+    b.dropdownContentWidth=buttonWidth;b:FitDropdownWidth()
     UI:ApplyAvailability(b, enabled)
   end
   b:Refresh(); return b
