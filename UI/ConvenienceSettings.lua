@@ -15,7 +15,7 @@ local function noteSettings(content,y)
   b:Slider("배경 불투명도",10,95,5,function() return math.floor((KHQOL.modules.clock.db.todo.backgroundAlpha or .85)*100+.5) end,function(v) KHQOL.modules.clock:SetTodoOpacity(v) end,function(v) return v.."%" end)
   b:Section("열기·닫기")
   b:Checkbox("노트 미니맵 버튼 표시",function() return KHQOL.modules.clock.db.todo.minimap.show~=false end,function(v) KHQOL.modules.clock.db.todo.minimap.show=v;KHQOL.modules.clock:UpdateTodoMinimapButton() end)
-  b:Button("미니맵 위치 편집",function() KHQOL.PositionEditor:Enter("note.minimap") end)
+  b:Description("노트 미니맵 버튼은 위치 편집 없이 왼쪽 버튼으로 끌어 이동합니다.",true)
   b:Checkbox("ESC로 노트 닫기",function() return KHQOL.modules.clock.db.todo.closeOnEscape ~= false end,function(on)
     KHQOL.modules.clock.db.todo.closeOnEscape=on and true or false
     KHQOL.modules.clock:UpdateTodoEscapeBinding()

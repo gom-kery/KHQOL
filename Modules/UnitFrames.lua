@@ -273,6 +273,7 @@ function M:ApplyUnitsNow(onlyUnit)
       self:ApplyCompact(owner,p,unit,compact)
       if unit=="targettarget" then self:ApplyFramePosition(owner,p) end
       self:ApplyPowerVisibility(owner,p,unit); self:ApplyHealthColor(owner,p,unit)
+      if unit=="target" then self:ApplyMonsterMarks(owner,p,true) end
       self:ApplyLabelColors(owner,p,unit)
       if unit=="target" then self:ApplyTargetAuras(owner,p) end
       if unit=="player" then self:ApplyPlayerAuras(owner,p) end
@@ -292,6 +293,7 @@ function M:ApplyUnitsNow(onlyUnit)
           if M:IsEnabled() then M:UpdateUnitValues(hookUnit); M:ApplyStateDecorations(owner,p,hookUnit) end
         end)
         p.root:HookScript("OnShow",function() if M:IsEnabled() then M:ApplyUnits(hookUnit) end end)
+        if unit=="target" then p.root:HookScript("OnHide",function() if M.monsterMarkFrame then M.monsterMarkFrame:Hide() end end) end
       end
     end
   end
@@ -325,7 +327,7 @@ end
 function M:ApplySettings()
   self:InitializePlayerLayoutHooks()
   self:InitializeDecorHooks()
-  self:ApplyUnits(); self:ApplyBottom(); if not combat() and not self.propertyDeferred then self.pending=nil end
+  self:ApplyUnits(); self:RefreshMonsterMarks();self:ApplyBottom(); if not combat() and not self.propertyDeferred then self.pending=nil end
 end
 function M:SetEnabled(on)
   self:Initialize(); self:ApplySettings();self:ConfigureEvents()
@@ -334,7 +336,7 @@ function M:ConfigureEvents()
   if not self.events then return end
   self.events:UnregisterAllEvents()
   if self:IsEnabled() then
-    for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_REGEN_DISABLED","PLAYER_ENTERING_WORLD","PLAYER_TARGET_CHANGED","PLAYER_FOCUS_CHANGED","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE","UNIT_MAXPOWER","UNIT_DISPLAYPOWER","UNIT_FLAGS","UNIT_FACTION","UNIT_CONNECTION","UNIT_NAME_UPDATE","UNIT_PET","UNIT_TARGET","UNIT_THREAT_LIST_UPDATE","UNIT_THREAT_SITUATION_UPDATE","RAID_TARGET_UPDATE","PLAYER_UPDATE_RESTING","PLAYER_TOTEM_UPDATE","PLAYER_ALIVE","PLAYER_UNGHOST","ADDON_LOADED"}) do pcall(self.events.RegisterEvent,self.events,event) end
+    for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_REGEN_DISABLED","PLAYER_ENTERING_WORLD","PLAYER_TARGET_CHANGED","PLAYER_FOCUS_CHANGED","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE","UNIT_MAXPOWER","UNIT_DISPLAYPOWER","UNIT_FLAGS","UNIT_FACTION","UNIT_CONNECTION","UNIT_NAME_UPDATE","UNIT_PET","UNIT_TARGET","UNIT_THREAT_LIST_UPDATE","UNIT_THREAT_SITUATION_UPDATE","RAID_TARGET_UPDATE","PLAYER_UPDATE_RESTING","PLAYER_TOTEM_UPDATE","PLAYER_ALIVE","PLAYER_UNGHOST","ADDON_LOADED","UNIT_CLASSIFICATION_CHANGED","QUEST_LOG_UPDATE","QUEST_WATCH_UPDATE","QUEST_TURNED_IN"}) do pcall(self.events.RegisterEvent,self.events,event) end
   elseif self.pending then
     for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_ENTERING_WORLD","ADDON_LOADED"}) do self.events:RegisterEvent(event) end
   end
@@ -350,7 +352,10 @@ function M:Initialize()
       if M.pending and (event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED") then M:ApplySettings();M:ConfigureEvents() end
       return
     end
-    if event=="UNIT_HEALTH" or event=="UNIT_MAXHEALTH" or event=="UNIT_POWER_UPDATE" or event=="UNIT_MAXPOWER" or event=="UNIT_FLAGS" or event=="UNIT_FACTION" or event=="UNIT_CONNECTION" then
+    if event=="UNIT_CLASSIFICATION_CHANGED" then
+      if public(unit) and unit=="target" then M:RefreshMonsterMarks() end
+    elseif event=="QUEST_LOG_UPDATE" or event=="QUEST_WATCH_UPDATE" or event=="QUEST_TURNED_IN" then M:RefreshMonsterMarks()
+    elseif event=="UNIT_HEALTH" or event=="UNIT_MAXHEALTH" or event=="UNIT_POWER_UPDATE" or event=="UNIT_MAXPOWER" or event=="UNIT_FLAGS" or event=="UNIT_FACTION" or event=="UNIT_CONNECTION" then
       if public(unit) and (unit=="player" or unit=="target" or unit=="pet" or unit=="targettarget" or unit=="focus") then M:UpdateUnitValues(unit) end
     elseif event=="UNIT_DISPLAYPOWER" then
       if public(unit) and (unit=="player" or unit=="target" or unit=="pet" or unit=="targettarget" or unit=="focus") then M:ApplyUnits(unit) end

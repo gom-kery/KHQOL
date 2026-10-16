@@ -204,6 +204,17 @@ function M:PositionPreviews(focus)
     end
     if x then add("unitFrames.player.totems","플레이어 · 토템·임시 소환",x,y,math.max(37,w),math.max(45,h),r,d,"bottomX","bottomY",100,{{texture="Interface\\Icons\\Spell_Nature_StoneClawTotem",width=28*r,height=28*r}}) end
   end
+  local p=self:UnitParts("target");local owner=self.units and self.units.target
+  if p and owner and owner.compactActive then
+    local x,y,w,_,ratio=rect(owner.healthDisplay or p.health)
+    local cfg=self:MonsterMarkSettings()
+    if x and (cfg.quest or cfg.classification) then
+      local size=cfg.size
+      add("unitFrames.target.monster","대상 · 몬스터 마크",x-w/2-8-size+cfg.x,y+cfg.y,2*size+4,size,ratio,cfg,"x","y",400,
+        {{atlas="UI-HUD-UnitFrame-Target-PortraitOn-Boss-Quest",width=size*ratio,height=size*ratio,x=-(size+4)*ratio/2},
+         {atlas="nameplates-icon-elite-gold",width=size*ratio,height=size*ratio,x=(size+4)*ratio/2}})
+    end
+  end
   return list
 end
 

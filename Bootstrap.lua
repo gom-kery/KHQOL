@@ -7,7 +7,7 @@ KHQOL.modules.experienceBar = {}
 KHQOL.modules.procAlert = {experimental=true}
 KHQOL.modules.npcAlert = {}
 KHQOL.modules.performanceMonitor = {experimental=true}
-KHQOL.VERSION = "1.10.9.6"
+KHQOL.VERSION = "1.10.9.9"
 
 -- Shared KHQOL health colors; native resource colors remain game-owned.
 KHQOL.ClassColors={

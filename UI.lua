@@ -312,7 +312,7 @@ function UI:AttachTooltip(control, title, description)
   control.tooltipAttached=true
   local function enter(self)
     GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:SetText(control.tooltipTitle or "설명",unpack(T.Accent))
-    GameTooltip:AddLine(control.tooltipDescription,.94,.94,.94,true); GameTooltip:Show()
+    if control.tooltipDescription and control.tooltipDescription~="" then GameTooltip:AddLine(control.tooltipDescription,.94,.94,.94,true) end; GameTooltip:Show()
   end
   local function leave() GameTooltip:Hide() end
   control:HookScript("OnEnter",enter); control:HookScript("OnLeave",leave)

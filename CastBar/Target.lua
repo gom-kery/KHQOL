@@ -17,9 +17,11 @@ function C:TargetBase()
   local above=U:IsEnabled() and not editing() and a and a.enabled and a.position=="above"
   if not controlled and not above then return end
   local parts=U:UnitParts("target");local owner=U.units and U.units.target
-  if controlled and parts and owner and owner.compactActive then
-    local bar=U:GetDB().target.showPower~=false and parts.power or owner.healthDisplay or parts.health
-    return f,bar,0,-10,cfg.x,cfg.y,true
+  if controlled then
+    -- The selected position must not depend on native smallSize/haveToT or
+    -- aura geometry, which may be restricted after the cast starts.
+    local bar=parts and (U:GetDB().target.showPower~=false and parts.power or owner and owner.healthDisplay or parts.health)
+    return f,bar or root,0,-10,cfg.x,cfg.y,true
   end
   -- Native default when auras are above. Never taint buffsOnTop or call the
   -- native AdjustPosition/update function from addon execution.
@@ -34,9 +36,13 @@ function C:TargetBase()
 end
 function C:ApplyTargetPosition()
   if self.targetApplying then return end
-  if call(InCombatLockdown)==true then self.targetPending=true;return end
+  local current=self:TargetFrame()
+  -- An explicitly unprotected native bar may keep its saved anchor in combat.
+  -- Protected/unknown bars defer; never force a protected geometry operation.
+  if call(InCombatLockdown)==true and (not current or call(current.IsProtected,current)~=false) then self.targetPending=true;return end
   self.targetApplying=true
   local ok,err=pcall(function()
+    self:ApplyTargetStyle()
     local f=self:TargetFrame();local state=self.targetOwner
     if state and state.frame~=f then U:ReleaseAuraPosition(state);self.targetOwner=nil;state=nil end
     local frame,relative,x,y,dx,dy=self:TargetBase()
@@ -44,13 +50,16 @@ function C:ApplyTargetPosition()
     if not state then
       state={frame=frame,canApply=function() return C:IsEnabled() or U:IsEnabled() end};self.targetOwner=state
       U:HookAuraPosition(state,function() C:ApplyTargetPosition() end)
+      frame:HookScript("OnShow",function() C:ApplyTargetPosition() end)
+      if type(frame.AdjustPosition)=="function" then hooksecurefunc(frame,"AdjustPosition",function() C:ApplyTargetPosition() end) end
     end
     local fs=call(frame.GetEffectiveScale,frame);local rs=call(relative.GetEffectiveScale,relative)
     if not finite(fs) or fs<=0 or not finite(rs) or rs<=0 then self.targetPending=true;return end
     self.targetPending=not U:WriteAuraPosition(state,{{"TOPLEFT",relative,"BOTTOMLEFT",(x+dx)*rs/fs,(y+dy)*rs/fs}})
   end)
   self.targetApplying=false
-  if not ok then error(err,0) end
+  if not ok then self.targetPending=true;self.targetPositionReason="게임이 대상 시전바 위치 변경을 제한했습니다. 전투 종료 후 다시 적용합니다."
+  elseif not self.targetPending then self.targetPositionReason=nil end
 end
 function C:TargetPositionPreview()
   if call(InCombatLockdown)==true or editing() then return end

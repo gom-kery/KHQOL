@@ -16,8 +16,74 @@ end
 function Chat:IsEnabled()
   return KHQOL.db and KHQOL.db.general and KHQOL.db.general.chatEnhancement==true
 end
--- Native EditBox navigation/history handles UTF-8, IME and Alt shortcuts.
--- No keyboard bindings, cursor arithmetic or separate history database.
+-- Keep native cursor/IME/Alt behavior. A bounded, per-editbox session mirror
+-- of native AddHistoryLine calls supplies Up/Down on clients where native
+-- recall does not run after releasing the autocomplete arrow script.
+-- No chat-log scan, keyboard bindings, cursor arithmetic or saved history.
+function Chat:ResetHistoryNavigation(record)
+  record.historyIndex=nil;record.historyDraft=nil;record.historyPending=nil
+end
+function Chat:RememberHistory(box,text)
+  local record=self.boxes[box]
+  if not record or not self:IsEnabled() then return end
+  if type(issecretvalue)=="function" and issecretvalue(text) then return end
+  if type(text)~="string" or #text>8192 or not text:find("%S") then return end
+  local limit=public(box.GetHistoryLines,box)
+  if limit==0 then return end
+  if type(limit)~="number" or limit~=limit or limit<1 or limit>128 then limit=32 end
+  limit=math.floor(limit)
+  record.history=record.history or {}
+  local history=record.history
+  if history[#history]~=text then history[#history+1]=text end
+  while #history>limit do table.remove(history,1) end
+  self:ResetHistoryNavigation(record)
+end
+local function completing(box)
+  return public(function() return AutoCompleteBox and AutoCompleteBox.parent==box and AutoCompleteBox:IsShown() end)==true
+end
+local function historyArrowAvailable(box)
+  local status,arrow=KHQOL.ReadPublicAPI(box.GetScript,box,"OnArrowPressed")
+  return status=="ok" and (arrow==nil or arrow==AutoCompleteEditBox_OnArrowPressed)
+end
+function Chat:HistoryKey(box,key)
+  if key~="UP" and key~="DOWN" then
+    local record=self.boxes[box]
+    if record and record.historyPending~=nil and key~="LEFT" and key~="RIGHT" then self:ResetHistoryNavigation(record) end
+    return
+  end
+  local record=self.boxes[box];local history=record and record.history
+  if not history or #history==0 or not self:IsEnabled() or locked(box) or completing(box)
+    or public(box.IsShown,box)~=true or public(box.HasFocus,box)~=true then return end
+  if public(IsAltKeyDown)==true or public(IsControlKeyDown)==true or public(IsShiftKeyDown)==true then return end
+  -- Leave a different addon's arrow handler in control. Do not install our
+  -- own OnArrowPressed: its presence can also change Left/Right behavior.
+  if not historyArrowAvailable(box) then return end
+  if not C_Timer or type(C_Timer.After)~="function" or type(box.SetText)~="function" then return end
+  local index=record.historyIndex
+  if not index then
+    if key=="DOWN" then return end
+    local draft=public(box.GetText,box)
+    if type(draft)~="string" then return end
+    record.historyDraft=draft;index=#history+1
+  end
+  index=math.max(1,math.min(#history+1,index+(key=="UP" and -1 or 1)))
+  record.historyIndex=index
+  record.historyPending=index<=#history and history[index] or record.historyDraft or ""
+  if record.historyQueued then return end
+  record.historyQueued=true
+  -- Let native input/autocomplete finish first. A single queued callback per
+  -- box coalesces key repeats and prevents a native recall from advancing twice.
+  C_Timer.After(0,function()
+    record.historyQueued=nil
+    local text=record.historyPending;record.historyPending=nil
+    if text==nil then return end
+    if not Chat:IsEnabled() or locked(box) or completing(box)
+      or public(box.IsShown,box)~=true or public(box.HasFocus,box)~=true or not historyArrowAvailable(box) then
+      Chat:ResetHistoryNavigation(record);return
+    end
+    public(box.SetText,box,text)
+  end)
+end
 function Chat:ApplyHistoryHandler(box,record,completion,active)
   if type(box.GetScript)~="function" or type(box.SetScript)~="function" then return end
   local current=public(box.GetScript,box,"OnArrowPressed")
@@ -37,6 +103,8 @@ function Chat:ApplyNavigation(box)
   if not record or record.writing then return end
   if locked(box) then self.pending=true; return end
   local active=self:IsEnabled() and public(box.IsShown,box) and public(box.HasFocus,box)
+  if not active then self:ResetHistoryNavigation(record) end
+  if not self:IsEnabled() then record.history=nil end
   local completion,completionMode=public(function()
     if AutoCompleteBox then return AutoCompleteBox.parent==box and AutoCompleteBox:IsShown(),AutoCompleteBox.parentArrows end
   end)
@@ -68,6 +136,22 @@ function Chat:RegisterBox(box)
   if not box or self.boxes[box] or type(box.SetAltArrowKeyMode)~="function" then return end
   if locked(box) then self.pending=true; return end
   self.boxes[box]={}
+  if type(box.AddHistoryLine)=="function" then
+    hooksecurefunc(box,"AddHistoryLine",function(_,text) Chat:RememberHistory(box,text) end)
+    if type(box.ClearHistory)=="function" then
+      hooksecurefunc(box,"ClearHistory",function()
+        local record=Chat.boxes[box];record.history=nil;Chat:ResetHistoryNavigation(record)
+      end)
+    end
+    box:HookScript("OnKeyDown",function(_,key) Chat:HistoryKey(box,key) end)
+    box:HookScript("OnTextChanged",function(_,userInput)
+      local record=Chat.boxes[box]
+      -- Native history may report its own arrow change as user input. It must
+      -- not cancel the pending selection; actual typing/paste cancels below.
+      if userInput==true and record.historyPending==nil then Chat:ResetHistoryNavigation(record) end
+    end)
+    box:HookScript("OnChar",function() Chat:ResetHistoryNavigation(Chat.boxes[box]) end)
+  end
   box:HookScript("OnEditFocusGained",function() Chat:ApplyNavigation(box) end)
   box:HookScript("OnEditFocusLost",function() Chat:ApplyNavigation(box) end)
   box:HookScript("OnShow",function() Chat:ApplyNavigation(box) end)

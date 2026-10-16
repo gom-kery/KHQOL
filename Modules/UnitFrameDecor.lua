@@ -633,6 +633,10 @@ function M:ApplyStateDecorations(owner,p,unit)
   if unit=="player" and p.context then
     self:HideNativeDecoration(owner,p.context.PlayerPortraitCornerIcon)
   end
+  if unit=="target" and p.context then
+    self:HideNativeDecoration(owner,p.context.QuestIcon)
+    self:HideNativeDecoration(owner,p.context.RareIcon)
+  end
   if owner.raidMarker then self:UpdatePlayerMarker(owner,p) end
 end
 function M:ApplyCombo(owner,p,unit)

@@ -73,11 +73,6 @@ local function profileSettings(content,y)
 end
 local function generalSettings(content,y)
   local b=UI:CreateBuilder(content,y)
-  b:Description("① 사용할 기능 확인 → ② 위치 편집 → ③ 크기·모양 조정 → ④ 프로필 확인",true)
-  b:Section("화면 요소 위치")
-  local edit=b:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter() end)
-  edit.navigationOnly=true
-  b:Description("활성화된 화면 요소를 함께 이동합니다. 완료하면 저장·잠금, 취소 또는 ESC는 변경 전 상태를 유지합니다.")
   b:Section("모듈 관리")
   b:Description("변경 즉시 적용 · 파일 저장은 /reload · 로그아웃 시",true)
   local gap=T.ColumnGap
@@ -97,6 +92,7 @@ local function generalSettings(content,y)
         local cell=b.activeCell
         local shortcut=UI:CreateButton(content,"→",cell.x+cell.width-T.ButtonHeight,cell.top,T.ButtonHeight,function() KHQOL:OpenModule(isGeneral and "generalConvenience" or key) end)
         shortcut.navigationOnly=true
+        shortcut.tooltipTitle="설정 바로가기";shortcut.tooltipDescription=""
       end
       content.moduleControls[key]=checkbox
     end
@@ -105,7 +101,7 @@ local function generalSettings(content,y)
   b.y=KHQOL.modules.general:BuildGlobalSettings(content,b.y)
   b:Section("미니맵")
   b:Checkbox("KHQOL 미니맵 버튼 표시",function() return KHQOL.db.minimap.show end,function(on) KHQOL.db.minimap.show=on; KHQOL:UpdateMinimapButton() end)
-  b:Button("미니맵 위치 편집",function() KHQOL.PositionEditor:Enter("minimap") end)
+  b:Description("KHQOL·Note 미니맵 버튼은 위치 편집 없이 왼쪽 버튼으로 끌어 이동합니다.",true)
   b:Button("미니맵 버튼 위치 초기화",function() KHQOL.db.minimap.angle=225; KHQOL:UpdateMinimapButton() end,210)
   b:Section("기타")
   b:Checkbox("설정 잠금",function() return KHQOL.db.locked end,function(on) KHQOL.db.locked=on end)

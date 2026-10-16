@@ -29,6 +29,7 @@ function M:BuildBookWheel(p)
   UI:CreateDescription(p,(type(class)=="string" and class or "현재 직업").." · 현재 캐릭터의 휠 주문",12,-4):SetWidth(286)
   local function editable() return call(InCombatLockdown)~=true end
   p.enabled=UI:CreateCheckbox(p,"프레임 안 휠 시전 사용",12,-34,function() return M:GetCharacterDB().wheelEnabled end,function(v) M:GetCharacterDB().wheelEnabled=v;M:RequestApply() end,editable)
+  UI:AttachTooltip(p.enabled,"파티·공격대 프레임 전용","이 모듈이 만든 파티·공격대 프레임에만 적용합니다. 별도의 기본 플레이어·대상 프레임과 일반 휠 단축키에는 적용하지 않습니다. 게임의 마우스를 올려 시전 옵션과 별개입니다.")
   for i,direction in ipairs({"up","down"}) do
     local which=direction;local top=-78-(i-1)*96
     local title=i==1 and "휠 업 · 스킬 끌어 놓기" or "휠 다운 · 스킬 끌어 놓기"

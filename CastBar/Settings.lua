@@ -78,16 +78,16 @@ end
 function CastBar:BuildTargetSettings(content,y)
   local UI=KHQOL.UI;local b=UI:CreateBuilder(content,y)
   local function enabled() return self:IsEnabled() end
-  b:Section("대상 시전바 위치")
+  b:Section("대상 시전바")
   local function targetAvailable() return enabled() and self:TargetFrame()~=nil end
   local function targetEnabled() return targetAvailable() and self:GetDB().targetPosition.enabled end
-  b:Checkbox("대상 시전바 위치 설정 사용",function() return self:GetDB().targetPosition.enabled end,function(v) self:GetDB().targetPosition.enabled=v;self:ApplyTargetPosition() end,targetAvailable)
+  b:Checkbox("KHQOL 대상 시전바 사용",function() return self:GetDB().targetPosition.enabled end,function(v) self:GetDB().targetPosition.enabled=v;self:ApplyTargetPosition() end,targetAvailable)
   for _,axis in ipairs({"x","y"}) do local a=axis
     b:Slider("대상 시전바 "..a:upper().." 위치 보정",-1000,1000,1,function() return self:GetDB().targetPosition[a] end,function(v) self:GetDB().targetPosition[a]=v;self:ApplyTargetPosition() end,function(v) return v.." px" end,targetEnabled)
   end
   b:Button("대상 시전바 드래그 이동",function() KHQOL.PositionEditor:Enter("cast.target") end,nil,targetEnabled)
   b:Button("대상 시전바 위치 초기화",function() local p=self:GetDB().targetPosition;p.x=0;p.y=0;self:ApplyTargetPosition() end,nil,targetAvailable)
-  b:Description("기본 대상 시전바를 대상 프레임 하단을 기준으로 이동합니다. 버프 위치와 독립적이며 시전이 없어도 전체 위치 편집에서 예시를 표시합니다. 전투 중 변경은 종료 후 적용합니다.")
+  b:Description("플레이어 탭의 폭·높이·텍스처·바/배경/중단 색상·아이콘·스킬명 모양을 함께 사용합니다. 대상 체력·자원 바 아래를 기준으로 이동합니다. 시전 진행·채널 방향·시간 문구는 게임의 기본 처리를 유지하며, 기본 시간 영역이 없는 클라이언트에는 시간 문구를 추가하지 않습니다. 전투 중 모양 변경은 종료 후 적용합니다.",true)
   b:Flush();return b.y
 end
 function CastBar:BuildSettings(content,y)

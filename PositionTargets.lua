@@ -183,23 +183,7 @@ function KHQOL:BuildPositionTargets(focus)
   end,function() proc.unlocked=false;proc.testUntil=nil end,function() proc:Layout();proc:Render() end,{sample="발동 버프 미리보기"}) end
   local monitor=m.performanceMonitor
   if monitor.db then add("monitor","performanceMonitor","성능 모니터",monitor.frame,pointWriter(monitor.db),lock(monitor.db,"positionLocked"),function() monitor:ApplyLayout() end) end
-  -- Minimap buttons keep their circular relationship, rather than becoming free HUDs.
-  local function minimap(id,key,name,frame,db,apply)
-    if not db or db.show==false then return end
-    local t=add(id,key,name,frame,nil,lock(db,"positionLocked"),apply)
-    if t then t.write=function()
-      local h=t.handle; local x,y=self.PositionStore:Center(h)
-      local status,mx,my=self.ReadPublicAPI(Minimap.GetCenter,Minimap)
-      local ss,scale=self.ReadPublicAPI(Minimap.GetEffectiveScale,Minimap)
-      local ps,parentScale=self.ReadPublicAPI(UIParent.GetEffectiveScale,UIParent)
-      if not x or status~="ok" or ss~="ok" or ps~="ok" or not self.PositionStore:Number(mx) or not self.PositionStore:Number(my)
-        or not self.PositionStore:Number(scale) or not self.PositionStore:Number(parentScale) or parentScale<=0 then return end
-      local ratio=scale/parentScale
-      db.angle=math.deg(math.atan2(y-my*ratio,x-mx*ratio))
-    end; t.minimap=true end
-  end
-  minimap("minimap",nil,"KHQOL · 미니맵",self.minimapButton,self.db.minimap,function() self:UpdateMinimapButton() end)
-  if fc.db then minimap("note.minimap","todo","Note · 미니맵",fc.todoMinimapButton,fc.db.todo.minimap,function() fc:UpdateTodoMinimapButton() end) end
+  -- Minimap buttons use their own circular drag; never lock them in the HUD editor.
   for _,t in ipairs(self:ExtraPositionTargets()) do add(t.id,t.key,t.name,t.frame,t.write,t.lock,t.apply,t) end
   self.ModuleRegistry:PositionTargets(focus,add)
   self:ConfigurePositionResets(list)

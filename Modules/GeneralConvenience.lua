@@ -5,6 +5,7 @@ M.defaults = {
   declineDuel=false, declineReport=true,
   allowFriends=true, allowGuild=true, keepTracking=false, trackingReport=false,
   merchantExpanded=false, knownItems=false, recipes=true, mounts=true, bags=true, merchant=true,
+  equipmentLevels=true,
 }
 function M:GetDB()
   local old=KHQOL.db.modules.generalConvenience

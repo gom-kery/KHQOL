@@ -1,5 +1,31 @@
 # KHQOL 1.10.9.0 유지보수 규칙
 
+## 1.10.9.9 채팅 입력 내역 탐색
+
+- 범위는 기존 기본 대화창 편의의 일반 ↑/↓ 입력 내역이다. ←/→ mode·아이템/퀘스트 tooltip·URL·시전/아이템 레벨 런타임은 변경하지 않는다.
+- 1.10.8.4의 native-only 히스토리 위임을 보완한다. native AddHistoryLine/ClearHistory는 교체하지 않고 후속 훅에서 공개 전송 문구만 기존 Chat.boxes runtime record에 임시 보관한다. 입력창별 기본 32개/공개 한도 최대 128개, 문구 8192 bytes 이내, 연속 중복·공백·secret은 제외한다. 받은 채팅/전체 로그/다른 창 기록 스캔·새 SavedVariables·프로필 포함은 금지한다.
+- OnArrowPressed를 새로 설치하지 않는다. 기존 자동완성 해제/복원·SetAltArrowKeyMode 처리는 유지한다. OnKeyDown 후속 훅은 일반 UP/DOWN만 처리하고 native 입력이 끝난 다음 한 번만 공개 SetText를 호출한다. 사용자 정의 방향키 스크립트, 자동완성, modifier 키는 우선한다. UTF-8·링크 문자열을 자르거나 cursor 위치를 계산하지 않고 전송 API는 호출하지 않는다.
+- 처음 UP 전 초안과 입력창별 index만 보관한다. UP/DOWN 범위는 clamp하고 마지막 다음에서 초안을 복원한다. 입력 변경/OnChar/붙여넣기/창 닫기/초점 상실/OFF/기록 초기화는 pending write를 폐기한다. 연속 키는 box당 0초 단발 요청 하나로 병합하고 callback 때 최신 활성/포커스/자동완성/보호/외부 스크립트를 다시 확인한다. OnUpdate/Ticker는 추가하지 않는다.
+- 재접속/reload/기능 OFF에서 임시 내역은 사라진다. 설치 전 native history 내용을 추출하지 않는다. 모의 키 이벤트/게임 기본 코드 확인은 실제 클라이언트 키보드·IME 검증과 구분한다.
+
+## 1.10.9.8 대상 시전바 외형·착용 아이템 레벨
+
+- CastBar/TargetStyle.lua는 기존 TargetFrame.spellbar의 공개 외형만 꾸민다. targetPosition.enabled 및 X/Y를 유지하고 플레이어 appearance/icon/spellName 설정을 공유한다. native 값·duration·castID·barType을 읽거나 계산하지 않는다. 기본 SetUnit/이벤트/OnUpdate를 호출·교체·해제하지 않는다.
+- 공개 크기·폰트·위치·장식 alpha의 소유권은 기존 BasicUI/UnitFrameDecor의 원본/마지막 적용값 정책을 재사용한다. fill texture/atlas/UV/color는 공개 확인된 원본과 실제 엔진의 마지막 적용값을 보관한다. 엔진의 fileID 변환·색 반올림을 반영하고 외부 변경은 OFF에서 덮어쓰지 않는다.
+- 형상·폰트 변경은 전투 밖에서만 한다. native UpdateBarFillTexture/PlayInterruptAnims 후속 훅은 공개 설정 artwork만 쓴다. 비공개 native 색·이미지는 해석하지 않고 마지막 공개 복원값을 유지한다. 채널 방향·기본 시간 문구를 유지하고 없는 시간 영역을 복제하지 않는다. OFF는 소유한 변경만 복원한다.
+- EquipmentLevels.lua는 기존 generalConvenience에 equipmentLevels=true 하나만 추가한다. 표준 Character*Slot 19개와 player inventory ID/link를 사용한다. 아이템 레벨은 상세 아이템 API의 actualItemLevel, 구 API에서는 GetItemInfo의 4번째 값이다. 최소 요구 레벨을 표시하지 않는다.
+- 자체 FontString만 아이콘 TOP 안쪽 2px/중앙/12px 흰 외곽선으로 붙인다. 빈 슬롯·탄약·미확인 숫자는 표시하지 않는다. slot 클릭·드래그·수량·툴팁·다른 애드온 영역은 변경하지 않는다. 장비 교체·캐릭터창 OnShow·아이템 데이터 완료 이벤트만 사용하며 Ticker/OnUpdate는 추가하지 않는다.
+- 미캐시 slot→itemID와 중복 로딩 요청만 런타임에 보관한다. 완료 이벤트에서 현재 장비를 다시 읽고 실패 이벤트는 반복 요청하지 않는다. 전투 중 첫 FontString 생성은 종료 후 재시도한다. 별도 SavedVariables/검사창/가방 변경은 없다.
+- 모의 구문/동작/프로필/회귀 검사와 실제 Forever 전투·보호 엔진·렌더링 확인은 구분한다.
+
+## 1.10.9.7 표시·위치 보완
+
+- 미니맵 두 버튼은 HUD 편집 대상이 아니다. 기존 각도·표시 저장을 유지하고 자체 원형 드래그만 사용한다. 과거 positionLocked를 삭제하거나 전체 프로필을 마이그레이션하지 않는다.
+- 대상 시전의 controlled 경로는 공개 바/루트 앵커와 사용자 X/Y만 사용한다. native smallSize/haveToT·오라 높이·시전 값을 해석하지 않는다. native SetPoint/AdjustPosition/OnShow 뒤 공개 위치를 다시 적용한다. 전투 중 명시적으로 비보호인 프레임만 허용하고 보호·상태 확인 불가·좌표 제한은 보류한다. native 스크립트·값·unit·updater를 교체하지 않는다.
+- UnitFrameStatus는 기존 unitFrames의 target.monsterMarks만 소유한다. UIParent 아래 비보호 장식과 이벤트로만 갱신하며 공개 퀘스트/분류 판정만 표시한다. 별도 스캔·OnUpdate·Ticker·GUID 목록을 만들지 않는다. 생성·앵커·크기는 전투 밖에서 처리하며 전투에는 공개 표시 상태만 바꾼다. 기본 모양·OFF·대상 해제에서는 숨기고 native 장식은 기존 owner 복원 경로를 따른다.
+- 상태 프록시는 실제 마크가 없어도 예시 두 개를 제공하고 기존 완료/취소 writer에만 저장한다. 신규 target.monsterMarks 기본값은 기존 MergeDefaults에 보충되고 전체 프로필/전송 schema에서 자동 포함한다.
+- 휠 질문은 적용 범위 조사다. 기존 파티 보안 버튼과 캐릭터 주문·역할 프로필을 변경하지 않는다. 기본 플레이어 프레임으로 확장하거나 프로필 입력 메뉴를 삭제하지 않고 안내만 보충한다. 실제 서버 오류 원인을 모의 보안 함수 결과만으로 확정하지 않는다.
+
 ## 1.10.9.5 프로필 전송
 
 - `ProfileTransfer.lua`는 기존 Capture/Default/ProfileName/MigrateUnitFrameSettings 계약 위에서 설정만 전송한다. `UI/ProfileTransfer.lua`는 공통 스킨의 명시적 검사·확인 창이다. 새 SavedVariables·프레임워크·외부 라이브러리를 추가하지 않는다.
@@ -101,7 +127,7 @@ XP/환경/발동/PvP의 기존 런타임 잠금과 저장형 잠금을 구분한
 - 1.10.8.4: 간결한 바는 단색 사각 fill을 사용한다. 기본 체력은 녹색, 자원은 공개 자원 종류의 색이며 선택한 체력색·선점 회색을 우선한다. OFF에서 원래 atlas/UV/RGB를 복원한다.
 - font 초기화는 compact ON 상태에서도 원본 크기로 복원한다. 모양 복사는 전용 기능/실제 위치/활성을 복사하지 않는다.
 - 퀘스트 viewport는 native 섹션 콘텐츠 사용 높이가 아닌 컨테이너/다음 섹션 경계로 계산한다. 요청 병합과 generation/전투 정책을 유지하고 native Update/MarkDirty는 호출하지 않는다.
-- 대화창 방향키는 native EditBox mode와 기본 자동완성 방향키 스크립트의 적용 범위만 조정한다. 자동완성 중에는 원래 스크립트를 사용하고 사용자/다른 애드온의 스크립트를 덮어쓰지 않는다. UTF-8/history 엔진과 기존 입력 처리를 유지한다.
+- 대화창 방향키의 native EditBox mode와 기본 자동완성 방향키 스크립트 조정은 유지한다. 1.10.9.9부터 UP/DOWN은 위의 bounded session mirror로 보완한다. 자동완성·사용자/다른 애드온 스크립트를 덮어쓰지 않고 UTF-8·기존 입력 처리를 유지한다.
 - 기력 회복 phase가 검증되지 않으면 표시하지 않는다. 전투 로그 추론, 20 증가 학습, 임의 2초 반복은 금지한다.
 
 ## 1.10.8.4 표시·입력 회귀

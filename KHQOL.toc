@@ -3,7 +3,7 @@
 ## Notes: Unified quality-of-life settings for WoW Forever.
 ## Author: KHQOL
 ## OptionalDeps: Blizzard_UnitFrame, Blizzard_AuraContainer, Blizzard_CompactRaidFrames
-## Version: 1.10.9.6
+## Version: 1.10.9.9
 ## SavedVariables: KHQOLDB, ForeverClockDB, ForeverBuffReminderDB, ForeverWeaponGuideDB, KHQOLResourceSwingDB, CampfireAlertDB, KHQOLLabDB
 ## SavedVariablesPerCharacter: FRangeDB, KHQOLCursorTrailCharDB, KHQOLPartyCharDB
 
@@ -27,9 +27,11 @@ Modules/ChatEnhancement.lua
 GeneralOptions.lua
 Modules/GeneralConvenience.lua
 Modules/ConvenienceItems.lua
+Modules/EquipmentLevels.lua
 Modules/BasicUI.lua
 Modules/UnitFrames.lua
 Modules/UnitFrameDecor.lua
+Modules/UnitFrameStatus.lua
 Modules/UnitFrameDisplay.lua
 UI/NativeAuraLayouts.xml
 Modules/UnitFrameAuras.lua
@@ -78,6 +80,7 @@ CursorTrail/Core.lua
 CursorTrail/Settings.lua
 CastBar/Core.lua
 CastBar/Target.lua
+CastBar/TargetStyle.lua
 CastBar/Settings.lua
 Modules/EnvironmentTimer.lua
 Modules/ExperienceBar.lua

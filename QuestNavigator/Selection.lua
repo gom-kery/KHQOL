@@ -362,7 +362,7 @@ function QN:RefreshQuestData()
   if QN.IsTrue(self.readyForTurnIn) then
     self.navigationMode="TURN_IN_LOCATION"
     map,x,y,self.waypointSource=self:GetTurnInWaypoint(id)
-    self.progressText="반납 가능"
+    self.progressText="완료 가능"
   elseif QN.IsFalse(self.readyForTurnIn) then
     self.navigationMode="OBJECTIVE_LOCATION"
     map,x,y,self.waypointSource=self:GetWaypoint(id)

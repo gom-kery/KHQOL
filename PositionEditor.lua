@@ -308,7 +308,8 @@ function E:Mirror(h,frame)
     for index,spec in ipairs(h.target.art or {}) do
       local texture=h.art[index] or h:CreateTexture(nil,"ARTWORK"); h.art[index]=texture
       texture:ClearAllPoints(); texture:SetPoint("CENTER",h,"CENTER",spec.x or 0,spec.y or 0)
-      texture:SetSize(spec.width,spec.height); texture:SetTexture(spec.texture)
+      texture:SetSize(spec.width,spec.height)
+      if spec.atlas then texture:SetTexture(nil);pcall(texture.SetAtlas,texture,spec.atlas,false) else texture:SetTexture(spec.texture) end
       texture:SetTexCoord(unpack(spec.texCoord or {0,1,0,spec.crop or 1})); texture:SetAlpha(1); texture:Show()
     end
   end

@@ -267,7 +267,7 @@ function RS:GetAuxData()
     local icon=read(GetInventoryItemTexture,"player",ammoSlot)
     local n=self:GetCarriedItemCount(id)
     if n==nil or not icon then return nil,nil,nil,"ITEM_COUNT_UNREADABLE" end
-    return "Ammo",n,icon
+    return "",n,icon
 end
 function RS:CanShowAux()
     local _,class=read(UnitClass,"player")
@@ -278,7 +278,7 @@ local function updateAuxText()
     if not ammoFrame then return end
     local label,count,icon,reason=RS:GetAuxData()
     RS.auxStatus=reason;RS.auxCount=count
-    auxText:SetText(label and (label.." "..count) or "")
+    auxText:SetText(label and (label=="" and tostring(count) or label.." "..count) or "")
     if label then
         local width=auxText:GetStringWidth()
         if NS.IsPublicValue(width) and type(width)=="number" then ammoFrame:SetWidth(math.max(180,width+26)) end

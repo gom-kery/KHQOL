@@ -158,7 +158,7 @@ function N:EditorRoute(t)
   local id=t.id or "";local u,part=id:match("^unitFrames%.([^%.]+)%.([^%.]+)")
   if id=="unitFrames.targettarget" then u="targettarget";part="basic" end
   if u then
-    local parts={name="labels",level="labels",status="status",rest="status",combat="status",marker="status",buffs="auras",debuffs="auras",auras="auras",totems="class",basic="basic"}
+    local parts={name="labels",level="labels",status="status",rest="status",combat="status",marker="status",monster="status",buffs="auras",debuffs="auras",auras="auras",totems="class",basic="basic"}
     return {module="unitFrames",unit=u,part=parts[part] or "basic",category=id:match("%.auras%.([^%.]+)")}
   end
   if id=="settings.window" then return {module="general"} end

@@ -88,7 +88,7 @@ function KHQOL:CreateMinimapButton()
   function self:UpdateMinimapButton()
     local a = math.rad(self.db.minimap.angle or 225); b:ClearAllPoints(); b:SetPoint("CENTER", Minimap, "CENTER", math.cos(a) * 108, math.sin(a) * 108); b:SetShown(self.db.minimap.show)
   end
-  b:SetScript("OnDragStart", function(button) if not KHQOL.db.minimap.positionLocked then button.positionMoving=true; button:StartMoving() end end)
+  b:SetScript("OnDragStart", function(button) button.positionMoving=true; button:StartMoving() end)
   b:SetScript("OnDragStop", function(self)
     if not self.positionMoving then return end
     self.positionMoving=nil

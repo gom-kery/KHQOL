@@ -31,6 +31,7 @@ function M:BuildRoleSettings(content,y)
     content[direction.."SpellLabel"]=b:Description(self:SpellLabel(direction),true)
   end
   b:Description("마법책의 KHQOL 설정 → 휠 클릭 시전에서 스킬을 위·아래 등록칸으로 끌어 놓으세요. 주문은 캐릭터별로 저장하며 역할 프로필을 변경해도 유지합니다. 입력란을 비우면 해당 방향 등록을 해제합니다.",true)
+  b:Description("휠 시전은 이 모듈의 파티·공격대 프레임 전용입니다. 별도의 기본 플레이어 프레임에는 연결되지 않으며 게임의 마우스를 올려 시전 옵션과 별개입니다.",true)
   function content:RefreshTab()
     self.upSpellLabel:SetText(M:SpellLabel("up"));self.downSpellLabel:SetText(M:SpellLabel("down"));M:RefreshStatus()
   end

@@ -286,7 +286,7 @@ function FC:CreateTodoMinimapButton()
   icon:SetAllPoints(button)
   button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
   button:SetScript("OnClick", function() FC:ToggleTodo() end)
-  button:SetScript("OnDragStart", function(self) if not FC.db.todo.minimap.positionLocked then self.positionMoving=true; self:StartMoving() end end)
+  button:SetScript("OnDragStart", function(self) self.positionMoving=true; self:StartMoving() end)
   button:SetScript("OnDragStop", function(self)
     if not self.positionMoving then return end
     self.positionMoving=nil

@@ -128,6 +128,7 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
   local sections={
     {title="대화창",items={check("기본 대화창 편의",legacy("chatEnhancement"),legacySet("chatEnhancement"),"대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사를 개선합니다.")}},
     {title="아이템",items={
+      check("착용 아이템 레벨 표시",get("equipmentLevels"),set("equipmentLevels"),"캐릭터창의 착용 아이템 아이콘 안쪽 위 중앙에 아이템 레벨 숫자만 표시합니다. 빈 칸·탄약은 제외합니다.",function() return M:EquipmentLevelsSupported() end),
       check("아이템 파괴 자동 입력",legacy("autoConfirmDestroy"),legacySet("autoConfirmDestroy"),"파괴 확인 문구를 자동 입력합니다. 최종 확인은 직접 선택합니다."),
       check("잡템 자동 판매",legacy("autoSellJunk"),legacySet("autoSellJunk"),"상점에서 판매 가능한 회색 아이템을 판매합니다. 퀘스트 아이템과 불확실한 아이템은 제외합니다."),
       check("자동 수리",legacy("autoRepair"),legacySet("autoRepair"),"상점에서 수리 비용을 지불할 수 있을 때 수리합니다.",nil,{
@@ -417,6 +418,22 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
         for _,key in ipairs({"status","rest","combat","marker"}) do if db()[u][key.."X"]~=nil then db()[u][key.."X"]=0;db()[u][key.."Y"]=0 end end
         M:ApplySettings()
       end,nil,compact)
+      finish(row,builder)
+    end
+    if u=="target" then
+      local row,builder=field()
+      local function marks() return M:MonsterMarkSettings() end
+      builder:Description("몬스터 마크",true)
+      builder:Checkbox("퀘스트 몬스터 마크",function() return marks().quest end,function(v) marks().quest=v;M:ApplySettings() end,compact)
+      builder:Checkbox("정예·희귀 몬스터 마크",function() return marks().classification end,function(v) marks().classification=v;M:ApplySettings() end,compact)
+      builder:Slider("몬스터 마크 크기",8,40,1,function() return marks().size end,function(v) marks().size=v;M:ApplySettings() end,function(v) return v.." px" end,compact)
+      builder:Flush()
+      for _,axis in ipairs({"x","y"}) do local a=axis
+        builder:Slider("몬스터 마크 "..a:upper().." 위치 보정",-400,400,1,function() return marks()[a] end,function(v) marks()[a]=v;M:ApplySettings() end,function(v) return v.." px" end,compact)
+      end
+      builder:Button("몬스터 마크 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.target.monster") end,nil,compact)
+      builder:Button("몬스터 마크 위치 초기화",function() marks().x=0;marks().y=0;M:ApplySettings() end,nil,compact)
+      builder:Description("간결한 대상 프레임 왼쪽에 표시합니다. 퀘스트 대상은 게임의 공개 판정을 따르며 정예는 금색, 희귀·희귀 정예는 은색 용 마크입니다. 판정·아이콘 API 미지원/접근 제한 시 해당 마크를 생략합니다.",true)
       finish(row,builder)
     end
     part="labels"
