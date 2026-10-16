@@ -1,0 +1,13 @@
+local K=_G.KHQOL
+local N=K.UI.SettingsNavigation
+N:Register({module="tooltip",scope="현재 프로필"},"마우스 오른쪽에 표시")
+N:Register({module="tooltip",scope="현재 프로필",section="표시 정보"},"플레이어 전문화 정보 표시")
+N:Register({module="tooltip",scope="현재 프로필",section="표시 정보"},"전투 중 대상 툴팁 숨기기")
+N:Register({module="tooltip",scope="현재 프로필",section="표시 정보"},"무기 전문가 정보")
+N:Register({module="tooltip",scope="현재 프로필",section="배치 방식"},"X 위치")
+N:Register({module="tooltip",scope="현재 프로필",section="배치 방식"},"Y 위치")
+N:Register({module="tooltip",scope="현재 프로필",section="배치 방식"},"위치 초기화")
+N:Register({module="tooltip",scope="현재 프로필",section="배치 방식"},"툴팁 위치 드래그 편집")
+N:Register({module="tooltip",scope="현재 프로필",section="동작"},"표시 유지 시간")
+N:Register({module="tooltip",scope="현재 프로필",section="글자·모양"},"텍스트 크기")
+N:Register({module="tooltip",scope="현재 프로필",section="글자·모양"},"체력바 표시")

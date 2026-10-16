@@ -1,0 +1,17 @@
+local K=_G.KHQOL
+local N=K.UI.SettingsNavigation
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="표시"},"퀘스트 이름 글자 크기")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="표시"},"진행도 글자 크기")
+N:Register({module="questNavigator",tab="tracker",scope="현재 프로필",section="퀘스트 목록 표시"},"자동 전환 대기 시간")
+N:Register({module="questNavigator",tab="tracker",scope="현재 프로필",section="퀘스트 목록 표시"},"퀘스트 글씨 크기")
+N:Register({module="questNavigator",tab="tracker",scope="현재 프로필",section="퀘스트 목록 표시"},"퀘스트 내용 표시 폭")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="자동 선택·길 안내"},"퀘스트 완료 후")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="안내 화살표 HUD 위치"},"위치 초기화")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="안내 화살표 크기·모양"},"화살표 크기")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="안내 화살표 크기·모양"},"화살표 눕힘 각도")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="안내 화살표 크기·모양"},"화살표 투명도")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="표시"},"거리 단위")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="표시"},"진행도 표시 방식")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="고급"},"고급 옵션 펼치기")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="고급"},"화살표 갱신 주기")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="고급"},"거리 갱신 주기")

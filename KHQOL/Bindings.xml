@@ -1,0 +1,4 @@
+<Bindings>
+  <!-- Legacy KHQOL bindings-path compatibility. ForeverNote is registered
+       only by KHQOL_Clock/Bindings.xml when that feature is installed. -->
+</Bindings>

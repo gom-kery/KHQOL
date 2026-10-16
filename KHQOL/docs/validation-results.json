@@ -1,0 +1,1212 @@
+[
+  {
+    "test": "Lua 5.1 syntax",
+    "passed": true,
+    "details": "186 files"
+  },
+  {
+    "test": "TOC files, XML, version, unique SavedVariables ownership",
+    "passed": true,
+    "details": "10 variables / 18 addons"
+  },
+  {
+    "test": "Legacy automatic bindings path and single optional action owner",
+    "passed": true,
+    "details": "core compatibility XML; Clock action exactly once; no TOC binding loads"
+  },
+  {
+    "test": "Addon-list icons reuse the unchanged minimap asset",
+    "passed": true,
+    "details": "18 TOCs; one shared original texture"
+  },
+  {
+    "test": "Required dependency policy for all optional install subsets",
+    "passed": true,
+    "details": "131,072 subsets; no feature requires another feature"
+  },
+  {
+    "test": "Native unit/party health, combat, wheel engine preservation",
+    "passed": true,
+    "details": "12 files byte-equivalent after namespace normalization"
+  },
+  {
+    "test": "Embedded resource paths",
+    "passed": true,
+    "details": "17 exact resource references"
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: core only",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Clock",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: full original order",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: full reverse order",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: core only",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Clock",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: KHQOL_UnitFrames+KHQOL_PartyFrames+KHQOL_Clock+KHQOL_Convenience+KHQOL_Tooltip+KHQOL_Range+KHQOL_CursorTrail+KHQOL_ResourceSwing+KHQOL_ExperienceBar+KHQOL_EnvironmentTimer+KHQOL_CombatStatus+KHQOL_Threat+KHQOL_NPCAlert+KHQOL_PvPAlert+KHQOL_Campfire+KHQOL_QuestNavigator+KHQOL_Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Representative saved data from actual 1.10.10 source",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Partial/core-only profile create/copy/switch/delete + absent data equality",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Reinstall restores selected dormant profile, note content, lists, spells, colors, party policy",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Repeated split install/reload is idempotent for content + character data",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Rollback to actual 1.10.10 source reads same SavedVariables and content",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_Clock",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: KHQOL_Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Original data upgrade + profile cycle: full upgrade",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Second character uses own spells/wheel and own role-profile migration",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Installed-only reset, rejected absent reset, failed profile apply restores source",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Party alone, missing native API, wheel registration UI, combat close, duplicate/late registration",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Latest-only combat queue, OFF/profile cancellation, public/secret boundary",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Missing/disabled/not-loaded states and unavailable menu/search",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Labs absent graphics journal: restore",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Labs absent graphics journal: combat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Labs absent graphics journal: conflict",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Labs absent graphics journal: external-user-change",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Labs absent graphics journal: unknown-record",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Performance monitor aggregates core + installed addons; memory denominator avoids double count",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Failed initialization retries once successfully; missing dependency/cycle detected",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "All feature bootstraps reject absent core and unrelated addon namespace",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + Clock",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair UnitFrames + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Clock",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Range + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Threat + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Threat + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Threat + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Threat + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Threat + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PvPAlert + Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PvPAlert + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair PvPAlert + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 1",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 2",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 3",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 4",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 5",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 6",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 7",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 8",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 9",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 10",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 11",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 12",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 13",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 14",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 15",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 16",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 17",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 18",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 19",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 20",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 21",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 22",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 23",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "test": "Mock login/UI/editor/profile/export: mixed subset 24",
+    "passed": true,
+    "details": ""
+  }
+]

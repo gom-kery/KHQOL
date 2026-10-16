@@ -1,0 +1,20 @@
+## Interface: 16001
+## Title: KHQOL | PvP 알림
+## Notes: Requires KHQOL. Install and enable the KHQOL core addon.
+## Notes-koKR: KHQOL 공통 기반을 반드시 함께 설치하고 활성화하세요.
+## Author: KHQOL
+## Version: 1.11.1.0
+## Dependencies: KHQOL
+## IconTexture: Interface\AddOns\KHQOL\Media\kh-qol-minimap-button.tga
+
+Bootstrap.lua
+Modules/PvPAlert/Core.lua
+Modules/PvPAlert/Range.lua
+Modules/PvPAlert/Scanner.lua
+Modules/PvPAlert/ThreatEngine.lua
+Modules/PvPAlert/Alerts.lua
+Modules/PvPAlert/Settings.lua
+UI/SettingsTab.lua
+Adapters.lua
+Positions.lua
+UI/SearchIndex.lua

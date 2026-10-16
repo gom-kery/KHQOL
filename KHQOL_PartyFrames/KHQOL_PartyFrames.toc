@@ -1,0 +1,23 @@
+## Interface: 16001
+## Title: KHQOL | 파티 · 공격대
+## Notes: Requires KHQOL. Install and enable the KHQOL core addon.
+## Notes-koKR: KHQOL 공통 기반을 반드시 함께 설치하고 활성화하세요.
+## Author: KHQOL
+## Version: 1.11.1.0
+## Dependencies: KHQOL
+## OptionalDeps: KHQOL_Range, Blizzard_CompactRaidFrames, Blizzard_UnitFrame, Blizzard_AuraContainer
+## IconTexture: Interface\AddOns\KHQOL\Media\kh-qol-minimap-button.tga
+
+Bootstrap.lua
+Modules/PartyFrames.lua
+Modules/PartyFrameProfiles.lua
+Modules/PartyFrameLayout.lua
+Modules/PartyFrameDisplay.lua
+Modules/PartyFrameAuras.lua
+Modules/PartyFrameWheel.lua
+UI/PartyFramePreview.lua
+UI/PartyFrameSpellBook.lua
+UI/PartyFrameTemplates.xml
+UI/PartyFrameSettings.lua
+Adapters.lua
+WheelBook.lua

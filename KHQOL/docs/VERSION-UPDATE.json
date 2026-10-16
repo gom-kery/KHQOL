@@ -1,0 +1,10 @@
+{
+  "version": "1.11.0.1",
+  "previous_version": "1.11.0",
+  "source_archive": "KHQOL-1.11.0-Full-Bindings-Icon-Fix.zip",
+  "source_sha256": "bc84b6afe72d897cc9949848da51c8d95ec7ce70b4dd25eed2aa70da694f926a",
+  "date": "2026-10-16",
+  "changes": "TOC, runtime version, current docs, distribution names; previous icon/bindings fixes retained",
+  "tests_passed": 242,
+  "game_tests": "not performed"
+}

@@ -1,5 +1,0 @@
-<Bindings>
-  <Binding name="KHQOL_TOGGLE_FOREVER_NOTE" header="KHQOL">
-    KHQOL_ToggleForeverNote()
-  </Binding>
-</Bindings>

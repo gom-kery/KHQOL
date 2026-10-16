@@ -1,0 +1,26 @@
+## Interface: 16001
+## Title: KHQOL | 시계 · 노트
+## Notes: Requires KHQOL. Install and enable the KHQOL core addon.
+## Notes-koKR: KHQOL 공통 기반을 반드시 함께 설치하고 활성화하세요.
+## Author: KHQOL
+## Version: 1.11.1.0
+## Dependencies: KHQOL
+## IconTexture: Interface\AddOns\KHQOL\Media\kh-qol-minimap-button.tga
+
+Bootstrap.lua
+Clock/Locale.lua
+Clock/Core.lua
+Clock/Clock.lua
+Clock/ClockTools.lua
+Clock/Modules.lua
+Clock/Professions.lua
+Clock/Calendar.lua
+Clock/Minimap.lua
+Clock/Todo.lua
+Clock/Settings.lua
+Clock/Navigation.lua
+UI/InterfaceTabs.lua
+UI/NoteSettings.lua
+Adapters.lua
+Positions.lua
+UI/SearchIndex.lua
