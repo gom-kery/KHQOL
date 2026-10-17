@@ -36,7 +36,7 @@ function N:Scope(p,title)
   if p.module=="npcAlert" and (p.section=="등록된 위험 NPC" or p.section=="NPC 정보") then return "계정 공용 등록 목록" end
   if p.module=="procAlert" and (p.section=="등록된 버프" or p.section=="버프 정보") then return "계정 공용 등록 목록" end
   if p.module=="buffReminder" and (p.section=="버프 등록" or p.section=="등록한 버프") then return "계정 공용 직업별 등록 목록" end
-  if p.module=="partyFrames" then return "캐릭터별 프레임 프로필" end
+  if p.module=="partyFrames" then return "계정 공용 프레임 프로필" end
   if p.module=="cursorTrail" and title=="색상" or p.module=="resourceSwing" and title=="자원 색상" then return "캐릭터 색 · 전체 프로필에도 캡처/적용" end
   return "현재 전체 프로필"
 end

@@ -25,6 +25,7 @@ StaticPopupDialogs.KHQOL_RESET_ALL = {
     KHQOLDB=nil; ForeverClockDB=nil; ForeverBuffReminderDB=nil; ForeverWeaponGuideDB=nil
     KHQOLResourceSwingDB=nil; CampfireAlertDB=nil; FRangeDB=nil; KHQOLCursorTrailCharDB=nil
     KHQOLLabDB=nil; KHQOLPartyCharDB=nil
+    if KHQOL.modules.minimap then KHminimapDB=nil end
     ReloadUI()
     end)
   end,timeout=0,whileDead=1,hideOnEscape=1,
@@ -346,7 +347,7 @@ function KHQOL:CreateSettings()
     function() return KHQOL.LabLock:IsUnlocked() end)
   relock:ClearAllPoints();relock:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,18);relock:Hide();f.labLockButton=relock
   local groups={unitFrames=KHQOL.UnitFrameSettings,partyFrames=KHQOL.PartyFrameSettings,bars=KHQOL.BarsSettings,alerts=KHQOL.AlertSettings,labs=KHQOL.LabSettings,
-    interface=KHQOL.InterfaceSettings,convenience=KHQOL.ConvenienceSettings,quest=KHQOL.QuestSettings}
+    interface=KHQOL.InterfaceSettings,minimap=KHQOL.MinimapSettings,convenience=KHQOL.ConvenienceSettings,quest=KHQOL.QuestSettings}
   function f:ShowPage(key)
     if self.buildingPage then return end
     local pageKey,requestedTab=registry:Resolve(key);key=pageKey

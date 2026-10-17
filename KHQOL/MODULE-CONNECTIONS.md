@@ -1,4 +1,4 @@
-# KHQOL 1.11.1.0 공통 연결 계약
+# KHQOL 1.11.2 공통 연결 계약
 
 1.11.0.1에서 유지한 계약과 파일·데이터 소유권은 [FINAL-HANDOFF.md](FINAL-HANDOFF.md)에 있습니다. 이전 1.10.9.6 계약 원문은 `docs/history/MODULE-CONNECTIONS-1.10.10.md`에 보존합니다.
 
@@ -10,4 +10,10 @@
 - 설정: 기반의 페이지/메타데이터와 기능의 빌더를 로그인 전 확정합니다. 코드/빌더가 없는 항목은 실제 페이지·탭·검색·명령·편집에서 제외합니다. 페이지/컨트롤의 기존 Design System v2.0 계약은 유지합니다.
 - 편집: `spec.positions`는 KHQOL 소유 프레임 또는 안전한 미리보기만 제공합니다. 실제 보호 유닛의 수치/좌표를 Lua에서 계산하지 않습니다. 완료 저장/취소/프로필 세대 가드는 유지합니다.
 - 작업: `Own/Release/CancelWork`, `Defer/FlushCombat`은 자기 자원과 마지막 요청만 처리합니다. 체력·자원 갱신을 보호 배치 보류 때문에 중단하지 않습니다. 실제 게임 검증과 모의 검증을 구분합니다.
-- 저장 로더: KHQOL.toc 단독 소유. 기능 TOC에 같은 변수 선언을 추가하지 않습니다. 라이브러리/리소스/전역 이름을 임의로 복사하지 않습니다.
+- 저장 로더: 기존 KHQOL 10개 변수는 KHQOL.toc 단독 소유입니다. KH_map.toc은 원래의 KHminimapDB 계정 변수 하나를 단독 소유합니다. 다른 TOC에 중복 선언하지 않습니다. 라이브러리/리소스/전역 이름을 임의로 복사하지 않습니다.
+
+## 1.11.2 데이터 범위
+
+- `KH_map` / 모듈 `minimap`: `K.modules.minimap`에 원래 네임스페이스를 연결합니다. 두 탭은 선택 모듈이 소유한 `minimap` 페이지에 등록합니다. `KHminimapDB`는 계정 공용이며 전체 프로필 캡처·내보내기 대상이 아닙니다. `enabled.minimap`만 전체 프로필에 포함됩니다.
+- 파티 프레임 프로필: `K.db.globalData.partyFrameProfiles.frameProfiles`가 계정 라이브러리입니다. 현재 캐릭터 `sharedFrameProfile` / `sharedFrameProfileRoles`가 선택과 역할 연결입니다. 옛 `frameProfiles` / `frameProfile`은 라이브 데이터와 별개로 유지합니다. 계정과 캐릭터의 이전 표시를 함께 사용해 재이전·삭제 복원을 방지합니다.
+- 파티 초기화와 삭제의 확인 문구는 공용 영향 범위를 알립니다. 전체 프로필 변경은 라이브러리를 교체하지 않습니다. 휠 바인딩·보호 프레임 실행 파일은 입력 1.11.1.2와 동일합니다.

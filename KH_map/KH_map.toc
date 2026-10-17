@@ -1,0 +1,15 @@
+## Interface: 16001
+## Title: KHQOL | 미니맵 · 버튼 정리
+## Notes: KHQOL minimap and addon button drawer module. Requires KHQOL.
+## Notes-koKR: KHQOL 미니맵·버튼 정리 모듈. 기존 KH_map 계정 설정을 유지합니다.
+## Author: KH
+## Version: 1.11.2
+## Dependencies: KHQOL
+## SavedVariables: KHminimapDB
+## IconTexture: Interface\AddOns\KHQOL\Media\kh-qol-minimap-button.tga
+
+Core.lua
+Theme.lua
+Minimap.lua
+Buttons.lua
+Settings.lua

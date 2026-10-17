@@ -9,7 +9,7 @@ end
 local function scopeNotice(content,b)
   local label=b:Description("",true)
   content.uiControls[#content.uiControls+1]={Refresh=function()
-    label:SetText("프레임 프로필: "..M:ActiveFrameProfile().." · 캐릭터별 표시·배치")
+    label:SetText("프레임 프로필: "..M:ActiveFrameProfile().." · 계정 공용 표시·배치")
   end}
 end
 local function refreshProfiles()
@@ -18,14 +18,14 @@ local function refreshProfiles()
   if M.commonContent then UI:Refresh(M.commonContent) end
 end
 K.PartyFrameSettings=UI:NewSettingsGroup("partyFrames")
-StaticPopupDialogs.KHQOL_DELETE_PARTY_PROFILE={text="파티·공격대 프로필 '%s'를 삭제하시겠습니까?",button1="삭제",button2=CANCEL,
+StaticPopupDialogs.KHQOL_DELETE_PARTY_PROFILE={text="계정 공용 파티·공격대 프로필 '%s'를 삭제하시겠습니까?\n이 프로필을 사용하는 다른 캐릭터에도 반영됩니다.",button1="삭제",button2=CANCEL,
   OnAccept=function(_,data)
-    if not data or data.generation~=K.profileGeneration or data.store~=M:GetCharacterDB().frameProfiles then return end
+    if not data or data.generation~=K.profileGeneration or data.store~=M:FrameProfileStore().frameProfiles then return end
     message(M:DeleteFrameProfile(data.name));refreshProfiles()
   end,timeout=0,whileDead=1,hideOnEscape=1}
 function M:BuildRoleSettings(content,y)
   local b=UI:CreateBuilder(content,y)
-  content.settingsRoute={module="partyFrames",tab="roles",scope="캐릭터별 프레임 프로필"}
+  content.settingsRoute={module="partyFrames",tab="roles",scope="계정 공용 프레임 프로필"}
   scopeNotice(content,b)
   self.profileNotice=b:Description("",true)
   b:Section("클릭 시전")
@@ -43,9 +43,10 @@ function M:BuildRoleSettings(content,y)
   function content:RefreshTab()
     self.upSpellLabel:SetText(M:SpellLabel("up"));self.downSpellLabel:SetText(M:SpellLabel("down"));M:RefreshStatus()
   end
-  content.settingsRoute={module="partyFrames",tab="roles",scope="캐릭터별 프레임 프로필"}
+  content.settingsRoute={module="partyFrames",tab="roles",scope="계정 공용 프레임 프로필"}
   b:Section("역할 프로필")
   b:Description("탱커·딜러·힐러별로 표시와 배치를 저장합니다. 각 프로필에는 파티와 10·20·40인 공격대 설정이 함께 들어 있습니다.",true)
+  content.settingsRoute={module="partyFrames",tab="roles",scope="캐릭터별 프로필 선택"}
   local profiles=b:Dropdown("사용할 프레임 프로필",function() return M:FrameProfileOptions() end,function() return M:ActiveFrameProfile() end,function(name)
     message(M:SelectFrameProfile(name));refreshProfiles()
   end)
@@ -53,6 +54,7 @@ function M:BuildRoleSettings(content,y)
   b:Checkbox("역할에 따라 탱커·딜러·힐러 프로필 자동 선택",function() return M:GetCharacterDB().autoRoleProfile==true end,function(v)
     M:CloseLivePreview();M:GetCharacterDB().autoRoleProfile=v;M:RequestApply();refreshProfiles()
   end)
+  content.settingsRoute={module="partyFrames",tab="roles",scope="계정 공용 프레임 프로필"}
   local input=b:Edit("새 프레임 프로필 이름",nil,nil);input:SetMaxLetters(24)
   local function create(duplicate)
     local ok,why=M:CreateFrameProfile(input:GetText(),duplicate);message(ok,why)
@@ -62,20 +64,20 @@ function M:BuildRoleSettings(content,y)
   local remove=b:Dropdown("프레임 프로필 삭제",function() return M:FrameProfileOptions(true) end,function() return "" end,function(name)
     if name=="" then return end
     local ok,why=M:CanChangeFrameProfile();if not ok then message(ok,why);return end
-    StaticPopup_Show("KHQOL_DELETE_PARTY_PROFILE",name,nil,{name=name,generation=K.profileGeneration,store=M:GetCharacterDB().frameProfiles})
+    StaticPopup_Show("KHQOL_DELETE_PARTY_PROFILE",name,nil,{name=name,generation=K.profileGeneration,store=M:FrameProfileStore().frameProfiles})
   end)
   remove.profileCommand=true
-  b:Description("프레임 프로필은 캐릭터별로 저장하며 KHQOL 전체 프로필과 별도로 유지합니다. 자동 선택은 게임의 지정 역할을 사용하고, 역할이 없으면 직접 선택한 프로필을 사용합니다. 프로필 생성·선택·삭제는 전투 종료 후 가능합니다.",true)
+  b:Description("프레임 프로필 목록과 표시·배치는 계정 공용이며 KHQOL 전체 프로필과 별도로 유지합니다. 선택한 프로필과 역할 자동 선택은 캐릭터별로 유지합니다. 자동 선택은 게임의 지정 역할을 사용하고, 역할이 없으면 직접 선택한 프로필을 사용합니다. 프로필 생성·선택·삭제는 전투 종료 후 가능합니다.",true)
   b:Description("모듈 사용 여부는 KHQOL 전체 프로필에 저장합니다. 휠 주문은 캐릭터별로 저장하며 역할 프로필을 바꾸어도 유지합니다.",true)
   self.profileContent=content;content.profileControls={active=profiles,input=input,remove=remove}
   return b.y
 end
 function M:BuildSettings(content,y)
   local b=UI:CreateBuilder(content,y)
-  content.settingsRoute={module="partyFrames",tab="frames",scope="캐릭터별 프레임 프로필"}
+  content.settingsRoute={module="partyFrames",tab="frames",scope="계정 공용 프레임 프로필"}
   scopeNotice(content,b)
   b:Section("크기·위치·배치")
-  b:Description("캐릭터별 프레임 프로필의 선택한 배치를 편집합니다. 미리보기 변경·드래그는 즉시 저장되며 종료해도 되돌리지 않습니다. 통합 위치 편집의 완료·취소와 구분하세요.",true)
+  b:Description("계정 공용 프레임 프로필의 선택한 배치를 편집합니다. 미리보기 변경·드래그는 즉시 저장되며 종료해도 되돌리지 않습니다. 통합 위치 편집의 완료·취소와 구분하세요.",true)
   self.statusLabel=b:Description("",true)
   b:Dropdown("편집할 프레임",self.layoutOptions,function() return M.editedLayout or "party" end,function(v) M:SetEditedLayout(v) end)
   local preview=b:Button("미리보기",function() if M.livePreview then M:CloseLivePreview() else message(M:OpenLivePreview()) end end)
@@ -104,7 +106,7 @@ function M:BuildSettings(content,y)
 end
 function M:BuildCommonSettings(content,y)
   local b=UI:CreateBuilder(content,y)
-  content.settingsRoute={module="partyFrames",tab="common",scope="캐릭터별 프레임 프로필"}
+  content.settingsRoute={module="partyFrames",tab="common",scope="계정 공용 프레임 프로필"}
   scopeNotice(content,b)
   local function set(key,value) M:GetDB()[key]=value;M:RequestApply() end
   self.commonStatusLabel=b:Description("",true)
@@ -156,7 +158,7 @@ K.ModuleRegistry:Register("partyFrames",{
   initialize=function(m) m:Initialize() end,setEnabled=function(m,on) m:SetEnabled(on) end,
   profileChanged=function(m) m:CancelPreview() end,applyProfile=function(m) m:GetDB() end,
   resetProfile=function(m) m:ResetFrameProfile() end,
-  resetScope=function() return "현재 파티·공격대 역할 프로필의 표시·배치를 초기화합니다. 다른 역할 프로필과 캐릭터 휠 주문은 유지합니다." end,
+  resetScope=function() return "현재 계정 공용 파티·공격대 역할 프로필의 표시·배치를 초기화합니다. 이 프로필을 사용하는 다른 캐릭터에도 반영됩니다. 다른 프로필과 캐릭터 휠 주문은 유지합니다." end,
   positions=function(m) return m:PositionTargets() end,
   settings={group="partyFrames",id="common",title="파티·공격대",tabTitle="공통",description="1인 플레이어부터 최대 40인 공격대까지 지원합니다",
     commands={"party","raid"},positions=false,build=function(content,y) return M:BuildCommonSettings(content,y) end,
