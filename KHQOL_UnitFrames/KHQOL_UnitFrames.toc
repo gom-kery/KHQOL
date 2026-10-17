@@ -3,7 +3,7 @@
 ## Notes: Requires KHQOL. Install and enable the KHQOL core addon.
 ## Notes-koKR: KHQOL 공통 기반을 반드시 함께 설치하고 활성화하세요.
 ## Author: KHQOL
-## Version: 1.11.1.1
+## Version: 1.11.1.2
 ## Dependencies: KHQOL
 ## OptionalDeps: Blizzard_UnitFrame, Blizzard_AuraContainer
 ## IconTexture: Interface\AddOns\KHQOL\Media\kh-qol-minimap-button.tga

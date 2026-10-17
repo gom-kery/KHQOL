@@ -2,7 +2,7 @@ local _, KHQOL = ...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local Tooltip = KHQOL.modules.tooltip
 Tooltip.providers = {}; Tooltip.weaponGuide = {}
-Tooltip.defaults = { textSize = 0, weaponGuide = true, showHealthBar = true, showTarget = false, mouseRight = false, x = 0, y = 0, holdTimeOffset = 0, showPlayerInfo = true, hideUnitTooltipInCombat = false }
+Tooltip.defaults = { textSize = 0, weaponGuide = true, showHealthBar = true, showTarget = false, mouseRight = false, x = 0, y = 0, holdTimeOffset = 0, showPlayerInfo = true, hideUnitTooltipInCombat = false, showSpellID = false, showItemID = false, showNPCID = false }
 -- Retail tooltips can contain secret values even when their Lua type is string.
 -- Never inspect, compare, concatenate, or forward those values to unit APIs.
 local function isSecret(value) return type(issecretvalue)=="function" and issecretvalue(value) end
@@ -387,7 +387,7 @@ function Tooltip:UpdateUnitTarget(tooltip)
     -- a stable footer shortcut conceal that data or leave the target above it.
     for i=cached+1,count do
       local l,r=_G[prefix.."TextLeft"..i],_G[prefix.."TextRight"..i]
-      if (l and (l:GetText() or "")~="") or (r and (r:GetText() or "")~="") then stable=false; break end
+      if not (self.IsIDInfoRow and self:IsIDInfoRow(tooltip,i)) and ((l and (l:GetText() or "")~="") or (r and (r:GetText() or "")~="")) then stable=false; break end
     end
     if stable then return end
   end
@@ -400,7 +400,9 @@ function Tooltip:UpdateUnitTarget(tooltip)
     local right=_G[prefix.."TextRight"..i]
     local label=left and left:GetText() or ""
     local plain=label:gsub("|c%x%x%x%x%x%x%x%x",""):gsub("|r","")
-    if plain=="대상" then targetRows[#targetRows+1]=i
+    if self.IsIDInfoRow and self:IsIDInfoRow(tooltip,i) then
+      -- ID details have their own footer, after the normal target row.
+    elseif plain=="대상" then targetRows[#targetRows+1]=i
     elseif label~="" or (right and (right:GetText() or "")~="") then
       rows[#rows+1]={left=label,right=right and right:GetText() or "",lc={left:GetTextColor()},rc=right and {right:GetTextColor()} or {1,1,1}}
     end
@@ -425,6 +427,7 @@ function Tooltip:UpdateUnitTarget(tooltip)
   if left then if left:GetText()~="대상" then left:SetText("대상") end; left:SetTextColor(1,.82,0); left:SetJustifyH("LEFT") end
   if right then if right:GetText()~=text then right:SetText(text) end; right:SetTextColor(1,1,1); right:SetJustifyH("RIGHT"); right:Show() end
   tooltip.__KHQOLTargetLine=index; tooltip.__KHQOLTargetText=text
+  if self.UpdateIDInfo then self:UpdateIDInfo(tooltip) end
   tooltip.__KHQOLTargetCount=tooltip:NumLines()
 end
 function Tooltip:OnUnit(tooltip, fallback)
@@ -470,6 +473,7 @@ function Tooltip:FinalizeUnitLines(tooltip)
   if player then self:WatchSpecializationLines(tooltip); self:NormalizeSpecializationLines(tooltip,unit) end
   tooltip.__KHQOLTargetUnit=self:GetDB().showTarget==true and unit or nil
   self:UpdateUnitTarget(tooltip)
+  if self.UpdateIDInfo then self:UpdateIDInfo(tooltip) end
   -- TipTac's layout helper uses native padding invalidation, which recalculates
   -- geometry without restarting Show/Hide or altering cursor anchors.
   -- Show/SetPadding may be called repeatedly while a world tooltip moves.
@@ -561,8 +565,12 @@ function Tooltip:SetEnabled(enabled)
     if self.originalFadeOutTime ~= nil then GameTooltip.fadeOutTime=self.originalFadeOutTime end
   end
   self:RefreshUnitTooltip()
+  if self.RefreshIDInfo then self:RefreshIDInfo() end
 end
-function Tooltip:RefreshVisibleTooltip() if GameTooltip:IsShown() then self:ApplyTextSize(GameTooltip) end end
+function Tooltip:RefreshVisibleTooltip()
+  if self.RefreshIDInfo then self:RefreshIDInfo() end
+  if GameTooltip:IsShown() then self:ApplyTextSize(GameTooltip) end
+end
 function Tooltip:Initialize()
   if self.initialized then return end; self.initialized=true; self:GetDB(); self:ApplyHoldTime()
   Tooltip:ConfigureHealthBar()
@@ -575,4 +583,5 @@ function Tooltip:Initialize()
   end
   if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Item then TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item,function(tooltip,data) tooltip.__KHQOLTooltipItemID=nil; if data and not isSecret(data.id) and data.id then Tooltip:OnItem(tooltip,data.id) end end)
   else GameTooltip:HookScript("OnTooltipSetItem",function(tooltip) tooltip.__KHQOLTooltipItemID=nil; local _,link=publicCall(tooltip.GetItem,tooltip); local itemID=link and C_Item and publicCall(C_Item.GetItemInfoInstant,link); if itemID then Tooltip:OnItem(tooltip,itemID) end end) end
+  if self.InitializeIDInfo then self:InitializeIDInfo() end
 end

@@ -13,6 +13,16 @@ function Tooltip:BuildSettings(content,y)
   b:Description("아군 플레이어 Tooltip에 전문화와 현재 착용 장비 평균 아이템 레벨을 표시합니다.")
   b:Checkbox("전투 중 대상 툴팁 숨기기",function() return db.hideUnitTooltipInCombat==true end,function(v) db.hideUnitTooltipInCombat=v end)
   b:Checkbox("무기 전문가 정보",function() return db.weaponGuide~=false end,function(v) db.weaponGuide=v end)
+  b:Section("ID 정보")
+  for _,option in ipairs({{"주문 ID","showSpellID"},{"아이템 ID","showItemID"},{"NPC ID","showNPCID"}}) do
+    local title,key=option[1],option[2]
+    local x,top,width=b:Cell("check",3,KHQOL.UI.Theme.RowHeight+KHQOL.UI.Theme.RowGap)
+    local control=KHQOL.UI:CreateCheckbox(content,title,x,top,function() return db[key]==true end,function(v)
+      db[key]=v; self:RefreshVisibleTooltip()
+    end)
+    control.text:SetWidth(width-KHQOL.UI.Theme.CheckboxSize-KHQOL.UI.Theme.CheckboxLabelGap)
+    b.lastControl,b.lastTitle=control,title
+  end
   b:Section("배치 방식")
   b:Slider("X 위치",-150,150,1,function() return db.x or 0 end,function(v) db.x=v end,function(v) return (v>0 and "+" or "")..v end,function() return db.mouseRight==true end)
   b:Slider("Y 위치",-150,150,1,function() return db.y or 0 end,function(v) db.y=v end,function(v) return (v>0 and "+" or "")..v end,function() return db.mouseRight==true end)
