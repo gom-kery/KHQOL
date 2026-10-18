@@ -39,12 +39,16 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
   }
   local page=CreateFrame("Frame",nil,parent); page:SetPoint("TOPLEFT",0,y); page:SetWidth(parent:GetWidth())
   local step=T.RowHeight+T.RowGap
+  local refresh
   for _,section in ipairs(sections) do
     section.frame=CreateFrame("Frame",nil,page); section.frame:SetWidth(page:GetWidth())
-    UI:CreateSection(section.frame,section.title,0)
+    section.group=UI:CreateSettingsAccordion(section.frame,section.title,UI:SettingsAccordionID(parent,section.title),function() refresh();UI:RefreshAccordionLayout(parent) end,nil,true)
+    section.group.row:SetPoint("TOPLEFT",0,-T.SectionGap)
+    section.body=CreateFrame("Frame",nil,section.frame);section.body.settingsDisclosure=section.group
+    section.body:SetWidth(page:GetWidth())
     section.measure={}
     for _,item in ipairs(section.items) do
-      local cell=CreateFrame("Frame",nil,section.frame); cell:SetWidth(page:GetWidth()); item.cell=cell; item.controls={}
+      local cell=CreateFrame("Frame",nil,section.body); cell:SetWidth(page:GetWidth()); item.cell=cell; item.controls={}
       section.measure[#section.measure+1]=item
       local c=UI:CreateCheckbox(cell,item.title,0,0,item.get,item.set,item.enabled)
       UI:AttachTooltip(c,item.title,item.tip); item.controls[1]=c
@@ -63,10 +67,14 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
     end
   end
   local status=UI:CreateDescription(page,"",0,0)
-  local function refresh()
+  refresh=function()
     local top=0; local width=math.min(T.FormMaxWidth,parent:GetWidth());page:SetWidth(width)
     for _,section in ipairs(sections) do
       local f=section.frame;f:ClearAllPoints();f:SetPoint("TOPLEFT",0,top);f:SetWidth(width)
+      section.group.row:SetWidth(width);section.group:Refresh()
+      local headerHeight=T.SectionGap+section.group.row:GetHeight()+T.RowGap
+      section.body:SetPoint("TOPLEFT",0,-headerHeight);section.body:SetWidth(width)
+      local expanded=UI.disclosureStates[section.group.id];section.body:SetShown(expanded)
       local columns=width<T.CheckTwoColumnWidth and 1 or 2
       for _,item in ipairs(section.items) do for _,control in ipairs(item.controls) do
         control.text:SetWidth(width)
@@ -74,7 +82,7 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
       end end
       section.columns=columns
       local cellWidth=(width-(columns-1)*T.ColumnGap)/columns
-      local rowTop=-(T.SectionGap+36);local rowHeight=0
+      local rowTop=0;local rowHeight=0
       for index,item in ipairs(section.items) do
         local column=(index-1)%columns
         if column==0 and index>1 then rowTop=rowTop-rowHeight;rowHeight=0 end
@@ -88,7 +96,8 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
         end
         item.cell:SetHeight(-childTop);rowHeight=math.max(rowHeight,-childTop)
       end
-      f:SetHeight(-rowTop+rowHeight);top=top-f:GetHeight()
+      section.body:SetHeight(-rowTop+rowHeight)
+      f:SetHeight(headerHeight+(expanded and section.body:GetHeight() or 0));top=top-f:GetHeight()
     end
     local text=M.merchantPending and "상점 확장: 전투가 끝나면 적용합니다." or (M:GetDB().merchantExpanded and M.merchantUnavailable and "상점 확장 미적용: "..M.merchantUnavailable or "")
     status:ClearAllPoints();status:SetPoint("TOPLEFT",0,top-6); status:SetWidth(width); status:SetText(text)

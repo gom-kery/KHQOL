@@ -168,7 +168,6 @@ local function buildButtons(content,y)
     b:Button("목록 새로고침",function() A.Buttons:Refresh() end)
     b:Flush()
     slider(b,"아이콘 크기","iconSize",20,30," px")
-    b:Flush()
     dropdown(b,"방향","drawerDirection",{{value="UP",text="위"},{value="DOWN",text="아래"},{value="LEFT",text="왼쪽"},{value="RIGHT",text="오른쪽"}})
     b:Section("정렬")
     for _,item in ipairs({{"HORIZONTAL","가로형"},{"VERTICAL","세로형"}}) do

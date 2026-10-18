@@ -77,19 +77,15 @@ function X:BuildSettings(content,y)
   check(c,"기본 UI 평판 표시 연동","followReputation")
   c:Description("기본 UI 평판의 ‘경험치바에 표시’를 켜면 KHQOL 바 모양으로 평판만 표시하고 기본 경험치·평판 바를 숨깁니다. 해제하면 경험치로 돌아오며, 평판은 최대 레벨에서도 표시합니다.")
   common:SetHeight(-c.y)
+  b:EndSection()
+  b:Block(horizontal,nil,function() return db.mode=="horizontal" end)
+  b:Block(wrap,nil,function() return db.mode~="horizontal" end)
+  b:Block(common)
   local function refresh()
-    local isHorizontal=db.mode=="horizontal"
-    if not isHorizontal then self.unlocked=false end
-    b:Reflow();groupY=b.reflowBottom or groupY
-    local selected=isHorizontal and horizontal or wrap
-    horizontal:SetShown(isHorizontal); wrap:SetShown(not isHorizontal)
-    selected:SetWidth(content:GetWidth());common:SetWidth(content:GetWidth())
-    selected.uiBuilders[1]:Reflow();common.uiBuilders[1]:Reflow()
-    selected:ClearAllPoints(); selected:SetPoint("TOPLEFT",0,groupY)
-    common:ClearAllPoints(); common:SetPoint("TOPLEFT",0,groupY-selected:GetHeight())
-    local height=-groupY+selected:GetHeight()+common:GetHeight()
-    content.contentHeight=height; content:SetHeight(height)
-    UI:Refresh(content)
+    if content.experienceReflowing then return end;content.experienceReflowing=true
+    if db.mode~="horizontal" then self.unlocked=false end
+    b:Reflow();content.contentHeight=-(b.reflowBottom or b.y);content:SetHeight(content.contentHeight)
+    UI:Refresh(content);content.experienceReflowing=nil
   end
   content.Reflow=refresh
   self.RefreshSettings=refresh

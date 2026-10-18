@@ -1,7 +1,7 @@
-# KHQOL_Map 1.11.3 — 2026-10-18
+# KHQOL_Map 1.11.4.1 — 2026-10-18
 
-- KHQOL 1.11.3에 버전을 맞췄습니다. 미니맵 동작과 자산은 1.11.2.5와 같습니다.
-- KHQOLMapDB, 자유 드래그·36px 트레이·HIGH 표시·보관함 복원을 유지합니다.
-- 전체 ZIP에서 KH_map·미사용 Theme.lua/Switch.tga 제외를 유지합니다.
+공통 버전을 맞췄습니다. 공용 설정 아코디언의 여백·겹침 및 스크롤 높이 갱신을 수정합니다. 미니맵 실행·자산·KHQOLMapDB·자유 드래그·36px 트레이·HIGH 표시는 1.11.4와 같습니다. KH_map과 이전 불필요 파일은 포함하지 않습니다.
 
-설치는 [설치 안내](../KHQOL/INSTALL-GUIDE.md)를 따릅니다. 이번 파티 기능 변경은 [변경·검증 보고서](../KHQOL/CHANGE-VALIDATION-REPORT.md)에 있습니다.
+전체 설치 파일: `KHQOL-1.11.4.1-아코디언여백-겹침수정.zip`.
+
+[설치 안내](../KHQOL/INSTALL-GUIDE.md), [변경·검증 보고서](../KHQOL/CHANGE-VALIDATION-REPORT.md).

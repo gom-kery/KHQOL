@@ -2,7 +2,7 @@
 ## Title: KHQOL
 ## Notes: Common core and legacy data loader. Install feature addons alongside KHQOL.
 ## Author: KHQOL
-## Version: 1.11.3
+## Version: 1.11.4.1
 ## SavedVariables: KHQOLDB, ForeverClockDB, ForeverBuffReminderDB, ForeverWeaponGuideDB, KHQOLResourceSwingDB, CampfireAlertDB, KHQOLLabDB
 ## SavedVariablesPerCharacter: FRangeDB, KHQOLCursorTrailCharDB, KHQOLPartyCharDB
 ## IconTexture: Interface\AddOns\KHQOL\Media\kh-qol-minimap-button.tga

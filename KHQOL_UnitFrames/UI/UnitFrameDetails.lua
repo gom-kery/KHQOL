@@ -20,6 +20,7 @@ function KHQOL.modules.basicUI:BuildSettings(parent,y)
   l:Slider("공통 숨김 지연",0,2,.1,function() return db().hideDelay end,function(v) db().hideDelay=v; M:ApplySettings() end,function(v) return string.format("%.1f초",v) end,function() return db().bags=="hover" or db().micro=="hover" end)
   l:Description("상단 모듈 사용과 하단 모듈 초기화는 가방·메뉴바에 적용됩니다. 기본창 이동은 아래 별도 스위치와 위치 초기화를 사용합니다.")
   local mover=CreateFrame("Frame",nil,l.page); mover:SetWidth(parent:GetWidth())
+  l:EndSection()
   l:Fields(mover,-KHQOL.modules.frameMover:BuildSettings(mover,0))
   return l:Finish()
 end
@@ -133,6 +134,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     l:Description(u=="targettarget" and "프레임 위치는 아래 좌표 또는 드래그 이동으로 조절합니다. 0 px는 기본 대상 프레임에 연결된 원래 위치입니다." or "프레임 전체 위치는 게임의 기본 편집 모드를 사용합니다. 아래 좌표는 글자·상태 표시의 미세 보정입니다.",shown("basic"))
     if u=="targettarget" then
       local row,builder=field()
+      builder:Section("프레임 위치")
       for _,axis in ipairs({"X","Y"}) do
         local a=axis
         builder:Slider("프레임 "..a.." 위치 보정",-1000,1000,1,function() return db()[u]["frame"..a] end,function(v) db()[u]["frame"..a]=v;M:ApplySettings() end,function(v) return v.." px" end,available)
@@ -143,6 +145,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     end
     if u~="targettarget" then
       local row,builder=field()
+      builder:Section("프레임 위치")
       builder:Button("전체 프레임 위치 이동",function() M:OpenNativePositionEditor() end,nil,available)
       builder:Description("전체 프레임 이동은 기본 게임 편집 모드를 사용합니다. 아래 부품 이동은 KHQOL 위치 편집기로 연결됩니다.",true)
       finish(row,builder)
@@ -153,6 +156,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     end,shown("basic"))
     part="bars"
     local f,b=field()
+    b:Section("프레임 크기·모양")
     b:Description("전체 높이 = 정보 영역 16 + 체력 높이 + (자원 표시 시 간격 + 자원 높이). 전체 높이 변경은 두 바 높이를 함께 조절합니다.",true)
     b:Slider("프레임 폭",60,400,1,function() return db()[u].width end,function(v) db()[u].width=v;M:ApplySettings() end,function(v) return v.." px" end,compact)
     b:Slider("전체 높이",24,236,1,function() return select(2,M:CompactLayout(db()[u])) end,function(v) M:SetTotalHeight(u,v) end,function(v) return v.." px" end,compact)
@@ -181,7 +185,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
         local icons=u=="player" and {{"rest","휴식 상태"},{"combat","전투 상태"},{"marker","대상 징표"}} or {{"marker","대상 징표"}}
         for _,entry in ipairs(icons) do
           local kind,title=entry[1],entry[2]
-          builder:Description(title)
+          builder:Section(title)
           for _,axis in ipairs({"X","Y"}) do
             local a=axis
             builder:Slider(title.." "..a.." 위치 보정",-400,400,1,function() return M:StatusOffset(u,kind,a) end,function(v) M:SetStatusOffset(u,kind,a,v) end,function(v) return v.." px" end,compact)
@@ -192,7 +196,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
         end
         builder:Description(u=="player" and "휴식·전투·징표를 각각 이동합니다. 표시 조건은 기본 게임이 유지합니다." or "대상 징표를 개별 이동합니다. 이 기본 대상 프레임에는 플레이어의 휴식·전투 아이콘이 없습니다.",true)
       else
-        builder:Description("상태·징표 · 대상 표시기")
+        builder:Section("상태·징표 · 대상 표시기")
         for _,axis in ipairs({"X","Y"}) do
           local a=axis
           builder:Slider("상태·징표 "..a.." 위치 보정",-200,200,1,function() return db()[u]["status"..a] end,function(v) db()[u]["status"..a]=v;M:ApplySettings() end,function(v) return v.." px" end,compact)
@@ -208,7 +212,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     if u=="target" then
       local row,builder=field()
       local function marks() return M:MonsterMarkSettings() end
-      builder:Description("몬스터 마크",true)
+      builder:Section("몬스터 마크")
       builder:Checkbox("퀘스트 몬스터 마크",function() return marks().quest end,function(v) marks().quest=v;M:ApplySettings() end,compact)
       builder:Checkbox("정예·희귀 몬스터 마크",function() return marks().classification end,function(v) marks().classification=v;M:ApplySettings() end,compact)
       builder:Slider("몬스터 마크 크기",8,40,1,function() return marks().size end,function(v) marks().size=v;M:ApplySettings() end,function(v) return v.." px" end,compact)
@@ -225,6 +229,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     for _,kind in ipairs({"name","level"}) do
       local k=kind;local title=k=="name" and "이름" or "레벨";local row,builder=field()
       local function enabled() return has(k) end
+      builder:Section(title)
       builder:Dropdown(title.." 위치",positions,function() return db()[u][k.."Position"] end,function(v) UI:CancelInputs(row);M:SetLabelAnchor(u,k,"Position",v) end,enabled)
       builder:Dropdown(title.." 구석 정렬",sides,function() return db()[u][k.."Side"] end,function(v) UI:CancelInputs(row);M:SetLabelAnchor(u,k,"Side",v) end,function()
         if not enabled() then return false end
@@ -246,6 +251,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     l:Description("이 기본 프레임에는 별도 레벨 글자가 없습니다. 레벨 옵션은 적용하지 않으며 이름·수치 등 기존 정보는 유지합니다.",function() local p=parts();return visible() and selectedPart=="labels" and p and not p.level end)
     part="bars"
     f,b=field()
+    b:Section("체력·자원 수치")
     b:Description("자원 바 OFF: 자원 높이와 간격은 사용하지 않습니다. 수치 설정은 기존 저장값을 유지합니다.",true)
     b:Dropdown("체력 수치 표시 방식",textModes,function() return db()[u].health end,function(v) db()[u].health=v;M:ApplySettings() end,available)
     b:Dropdown("자원 수치 표시 방식",textModes,function() return db()[u].power end,function(v) db()[u].power=v;M:ApplySettings() end,available)
@@ -258,7 +264,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
         local function cfg() return db().player.auras[k] end
         local function supported() return M:PlayerAuraFrame(k)~=nil end
         local function on() return supported() and cfg().enabled end
-        builder:Description(title.." · 내 캐릭터의 기본 아이콘")
+        builder:Section(title)
         builder:Checkbox(title.." 위치 설정 사용",function() return cfg().enabled end,function(v) cfg().enabled=v;M:ApplySettings() end,supported)
         builder:Slider(title.." 아이콘 크기",8,64,1,function() return cfg().size end,function(v) cfg().size=v;M:ApplySettings() end,function(v) return v.." px" end,on)
         builder:Dropdown(title.." 위치",{{value="above",text="위"},{value="below",text="아래"}},function() return cfg().position end,function(v) cfg().position=v;M:ApplySettings() end,on)
@@ -278,6 +284,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
       l:Description("내 캐릭터의 버프·디버프를 각각 이동합니다. 기본 게임의 목록·타이머·숨김 조건은 유지합니다. 드래그 화면의 예시 아이콘에는 실제 효과가 없습니다.",shown("auras"))
       part="class"
       f,b=field()
+      b:Section("토템·임시 소환")
       for _,axis in ipairs({"X","Y"}) do
         local a=axis
         b:Slider("토템·임시 소환 "..a.." 보정",-100,100,1,function() return db().player["bottom"..a] end,function(v) db().player["bottom"..a]=v;M:ApplySettings() end,function(v) return v.." px" end,function() return compact() and M:BottomFrame()~=nil end,"플레이어 하위 배치 컨테이너에 있는 기본 토템·임시 소환 표시를 이동합니다. 0 px는 기존 위치입니다.")
@@ -312,7 +319,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
         local function cfg() return db().target.auras[category] end
         local function supported() return M:TargetAuraContainer()~=nil end
         local function on() return supported() and cfg().enabled end
-        builder:Description(title.." · 선택한 대상에 적용")
+        builder:Section(title)
         builder:Checkbox("대상 버프·디버프 설정 사용",function() return cfg().enabled end,function(v) cfg().enabled=v;M:ApplySettings() end,supported)
         builder:Checkbox("버프 표시",function() return cfg().showBuffs end,function(v) cfg().showBuffs=v;M:ApplySettings() end,on)
         builder:Checkbox("디버프 표시",function() return cfg().showDebuffs end,function(v) cfg().showDebuffs=v;M:ApplySettings() end,on)
@@ -336,7 +343,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
         local function separate() return on() and cfg().separatePositions end
         for _,kind in ipairs({"buffs","debuffs"}) do
           local k=kind;local title=k=="buffs" and "대상 버프" or "대상 디버프"
-          builder:Flush();builder:Description(title.." 개별 위치")
+          builder:Section(title.." 개별 위치")
           builder:Dropdown(title.." 위치",{{value="above",text="위"},{value="below",text="아래"}},function() return M:TargetAuraPosition(cfg(),k) end,function(v) M:SetTargetAuraPosition(category,k,"position",v) end,separate)
           for index,axis in ipairs({"x","y"}) do local a,i=axis,index
             builder:Slider(title.." "..a:upper().." 위치 보정",-300,300,1,function() return select(i+1,M:TargetAuraPosition(cfg(),k)) end,function(v) M:SetTargetAuraPosition(category,k,a,v) end,function(v) return v.." px" end,separate)
@@ -344,6 +351,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
           builder:Button(title.." 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.target.auras."..category.."."..k) end,nil,separate)
           builder:Button(title.." 위치 초기화",function() local item=cfg()[k];item.position="below";item.x=0;item.y=k=="debuffs" and -23 or 0;M:ApplySettings() end,nil,separate)
         end
+        builder:EndSection()
         builder:Button("버프/디버프 설정 초기화",function() db().target.auras[category]=KHQOL.MergeDefaults({},M.defaults.target.auras[category],"tables");M:ApplySettings() end,nil,supported)
         finish(row,builder,function() return auraCategory==category end)
       end
@@ -353,6 +361,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     end
     category=nil;part="basic"
     f,b=field()
+    b:Section("모양 복사·초기화")
     if u~="player" then b:Button("플레이어 모양 설정 복사",function() M:CopyPlayerShape(u) end,nil,available) end
     b:Description("복사: 크기·바 간격·글자·앵커·상태 보정. 제외: 색상 정책, 전체 프레임 위치와 토템·오라 등 전용 기능. 현재 프로필에 저장합니다.",true)
     b:Button("선택한 유닛의 모양 초기화",function() M:ResetShape(u) end,nil,available)

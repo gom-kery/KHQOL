@@ -135,11 +135,18 @@ function M:UpdateAbsorb(b,unit)
  if amountOK then valueOK=raw(bar.SetValue,bar,amount) end
  bar:SetAlpha(rangeOK and valueOK and 1 or 0)
 end
-function M:PreviewEffects(b,db,kind,shieldFraction)
+function M:PreviewEffects(b,db,kind,shieldFraction,healthPercent)
  local cfg=db.debuffTint;local c=cfg.colors[kind]
  if c and cfg.enabled then
-  if not b.sampleTint then b.sampleTint=b.health:CreateTexture(nil,"ARTWORK") end
-  b.sampleTint:SetAllPoints(b.health:GetStatusBarTexture());b.sampleTint:SetColorTexture(c.r,c.g,c.b,c.a);b.sampleTint:Show()
+  -- Public sample values use their own bar above the base fill. Avoid sharing
+  -- its texture draw layer or anchoring to a fill whose width is not ready.
+  if not b.sampleTint then
+   b.sampleTint=CreateFrame("StatusBar",nil,b.health)
+   b.sampleTint:SetStatusBarTexture(WHITE);b.sampleTint:EnableMouse(false)
+  end
+  b.sampleTint:SetFrameLevel(b:GetFrameLevel()+2);b.sampleTint:SetAllPoints(b.health)
+  b.sampleTint:SetMinMaxValues(0,100);b.sampleTint:SetValue(healthPercent or 70)
+  b.sampleTint:SetStatusBarColor(c.r,c.g,c.b,c.a);b.sampleTint:Show()
  elseif b.sampleTint then b.sampleTint:Hide() end
  self:StyleAbsorb(b,db);b.absorb:SetMinMaxValues(0,100);b.absorb:SetValue(shieldFraction or 25)
  b.absorb:SetAlpha(db.absorb.enabled and 1 or 0)

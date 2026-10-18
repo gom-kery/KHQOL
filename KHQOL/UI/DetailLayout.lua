@@ -1,21 +1,27 @@
 local _, KHQOL = ...
 local UI,T=KHQOL.UI,KHQOL.UI.Theme
--- One-column detail rows. Only short child checks share a row. Height changes
+-- Responsive detail rows. Height changes
 -- use the presenter's existing OnSizeChanged path, including cached tabs.
 function UI:CreateDetailLayout(parent,y,key)
   local rows={}; local page=CreateFrame("Frame",nil,parent)
+  local currentGroup,refresh
   page:SetPoint("TOPLEFT",0,y); page:SetWidth(parent:GetWidth()); page.moduleKey=key
   local function row(height,visible,indent)
     local f=CreateFrame("Frame",nil,page); f:SetWidth(page:GetWidth()-(indent or 0)); f:SetHeight(height)
-    rows[#rows+1]={frame=f,height=height,visible=visible,indent=indent or 0}; return f
+    rows[#rows+1]={frame=f,height=height,visible=visible,indent=indent or 0,disclosure=currentGroup};f.settingsDisclosure=currentGroup;return f
   end
-  local L={page=page}
+  local L={page=page,rows=rows,disclosures={}}
   function L:Fields(frame,height,visible)
     local f=row(height,visible); frame:SetParent(f); frame:SetPoint("TOPLEFT",0,0); frame:SetHeight(height);rows[#rows].child=frame
   end
   function L:Section(title)
-    local f=row(T.SectionGap+36); UI:CreateSection(f,title,0)
+    currentGroup=nil
+    local f=row(T.SectionGap+T.ButtonHeight+T.RowGap)
+    local group=UI:CreateSettingsAccordion(f,title,UI:SettingsAccordionID(parent,title),function() refresh();UI:RefreshAccordionLayout(parent) end,nil,true)
+    group.row:SetPoint("TOPLEFT",0,-T.SectionGap);rows[#rows].heading=group
+    self.disclosures[#self.disclosures+1]=group;currentGroup=group
   end
+  function L:EndSection() currentGroup=nil end
   function L:Description(text,visible)
     local f=row(T.RowHeight+T.RowGap,visible)
     local label=UI:CreateDescription(f,type(text)=="function" and text() or text,0,-6); label:SetWidth(f:GetWidth())
@@ -26,6 +32,7 @@ function UI:CreateDetailLayout(parent,y,key)
     local f=row(T.RowHeight+T.RowGap,visible)
     f.settingsRoute=self.controlRoute
     local c=UI:CreateCheckbox(f,title,0,0,get,set,enabled)
+    rows[#rows].columns=2;rows[#rows].kind="check"
     c.ignoreModuleEnabled=ignore;rows[#rows].check=c; c:Refresh(); UI:AttachTooltip(c,title,tooltip); return c
   end
   function L:Children(items,visible,label)
@@ -53,11 +60,12 @@ function UI:CreateDetailLayout(parent,y,key)
   function L:Dropdown(title,options,get,set,visible,tooltip,enabled)
     local f=row(T.DropdownRowHeight,visible);local label=UI:CreateLabel(f,title,0,0)
     local c=UI:CreateDropdown(f,0,-24,math.min(T.DropdownWidth,f:GetWidth()),options,get,set,enabled)
-    rows[#rows].dropdown=c;rows[#rows].fieldLabel=label;UI:AttachTooltip(c,title,tooltip); return c
+    rows[#rows].dropdown=c;rows[#rows].fieldLabel=label;rows[#rows].columns=2;rows[#rows].kind="field";UI:AttachTooltip(c,title,tooltip); return c
   end
   function L:Slider(title,min,max,step,get,set,format,visible)
     local f=row(T.SliderRowHeight)
     local c=UI:CreateSlider(f,title,"",0,0,min,max,step,get,set,format,visible);rows[#rows].slider=c
+    rows[#rows].columns=2;rows[#rows].kind="field"
   end
   function L:Compare(title,kind,options,db,module)
     local f=row(T.DropdownRowHeight)
@@ -87,41 +95,55 @@ function UI:CreateDetailLayout(parent,y,key)
       return wide and T.DropdownRowHeight or (28+2*T.DropdownRowHeight)
     end
   end
-  local function refresh()
-    local top=0; local width=parent:GetWidth()
+  refresh=function()
+    local top,rowHeight,count,kind,lastColumns,previousGroup=0,0,0,nil,0,nil
+    local width=math.min(T.FormMaxWidth,parent:GetWidth())
     page:SetWidth(width)
     for _,r in ipairs(rows) do
       local show=not r.visible or r.visible()
+      if r.disclosure and not UI.disclosureStates[r.disclosure.id] then show=false end
       r.frame:SetShown(show)
       if show then
-        r.frame:ClearAllPoints(); r.frame:SetPoint("TOPLEFT",r.indent,top); r.frame:SetWidth(width-r.indent)
-        local height=r.flow and r.flow(width-r.indent) or r.height
-        if r.child then r.child:SetWidth(width-r.indent);if r.child.uiBuilder then r.child.uiBuilder:Reflow() end;height=r.child:GetHeight() end
+        local columns=r.columns and width>=480 and r.columns or 1
+        if r.check then
+          r.check.text:SetWidth(width)
+          if r.check.text:GetStringWidth()+T.CheckboxSize+T.CheckboxLabelGap>(width-T.ColumnGap)/2 then columns=1 end
+        end
+        if columns==1 or count>=columns or kind~=r.kind or lastColumns~=columns or previousGroup~=r.disclosure then
+          top=top-rowHeight;rowHeight=0;count=0
+        end
+        local cellWidth=(width-(columns-1)*T.ColumnGap)/columns
+        local available=cellWidth-r.indent
+        r.frame:ClearAllPoints(); r.frame:SetPoint("TOPLEFT",count*(cellWidth+T.ColumnGap)+r.indent,top); r.frame:SetWidth(available)
+        local height=r.flow and r.flow(available) or r.height
+        if r.heading then r.heading.row:SetWidth(available);height=T.SectionGap+r.heading.row:GetHeight()+T.RowGap end
+        if r.child then r.child:SetWidth(available);if r.child.uiBuilder then r.child.uiBuilder:Reflow() end;height=r.child:GetHeight() end
         if r.label then
           if r.text then r.label:SetText(r.text()) end
-          r.label:SetWidth(width-r.indent); height=math.max(height,r.label:GetStringHeight()+T.RowGap)
+          r.label:SetWidth(available); height=math.max(height,r.label:GetStringHeight()+T.RowGap)
         end
         if r.check then
-          r.check.text:SetWidth(math.max(40,width-r.indent-T.CheckboxSize-T.CheckboxLabelGap))
+          r.check.text:SetWidth(math.max(40,available-T.CheckboxSize-T.CheckboxLabelGap))
           height=math.max(height,r.check.text:GetStringHeight()+12)
         end
         if r.dropdown then
-          r.fieldLabel:SetWidth(width-r.indent);r.dropdown:FitDropdownWidth(width-r.indent)
+          r.fieldLabel:SetWidth(available);r.dropdown:FitDropdownWidth(available)
           local labelHeight=math.max(18,r.fieldLabel:GetStringHeight())
           r.dropdown:ClearAllPoints();r.dropdown:SetPoint("TOPLEFT",0,-labelHeight-6)
           r.dropdown:Refresh();height=math.max(height,labelHeight+6+r.dropdown:GetHeight()+T.RowGap)
         end
         if r.slider then
-          local c=r.slider;c.tooltipLabel:SetWidth(width-r.indent)
+          local c=r.slider;c.tooltipLabel:SetWidth(available)
           local labelHeight=math.max(18,c.tooltipLabel:GetStringHeight())
           c:ClearAllPoints();c:SetPoint("TOPLEFT",0,-labelHeight-6)
           c.numberBox:ClearAllPoints();c.numberBox:SetPoint("TOPLEFT",T.SliderWidth+14,-labelHeight-2)
-          c.inputFeedback:ClearAllPoints();c.inputFeedback:SetPoint("TOPLEFT",0,-labelHeight-34);c.inputFeedback:SetWidth(width-r.indent)
+          c.inputFeedback:ClearAllPoints();c.inputFeedback:SetPoint("TOPLEFT",0,-labelHeight-34);c.inputFeedback:SetWidth(available)
           height=math.max(height,labelHeight+34+(c.inputFeedback:IsShown() and c.inputFeedback:GetStringHeight()+T.RowGap or 0))
         end
-        r.frame:SetHeight(height); top=top-height
+        r.frame:SetHeight(height);rowHeight=math.max(rowHeight,height);count=count+1;kind=r.kind;lastColumns=columns;previousGroup=r.disclosure
       end
     end
+    top=top-rowHeight
     page:SetHeight(math.max(1,-top)); parent:SetHeight(math.max(1,-y+page:GetHeight()))
   end
   local sentinel=CreateFrame("Frame",nil,page); sentinel.Refresh=refresh; sentinel.layoutRefresh=true; sentinel.ignoreModuleEnabled=true

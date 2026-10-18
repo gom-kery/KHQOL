@@ -50,6 +50,9 @@ local function proc(content,y)
   end
   b:Button("+ 버프 추가",function() openEditor() end,nil,enabled); b:Flush()
   local listY=b.y
+  local listBody=CreateFrame("Frame",nil,content);list:SetParent(listBody);editor:SetParent(listBody)
+  content.recordListBody=listBody
+
   local e=UI:CreateBuilder(editor,0)
   local function editing() return draft~=nil and draftGeneration==KHQOL.profileGeneration and enabled() end
   local function field(key) return draft and draft[key] end
@@ -137,20 +140,18 @@ local function proc(content,y)
   l:Section("기본값 복원")
   l:Description("현재 프로필의 HUD 설정과 애니메이션을 복원합니다. 클래스별 등록 버프는 유지합니다.")
   lower:SetHeight(-l.y)
+  b:Block(listBody,function()
+    list:SetWidth(content:GetWidth());editor:SetWidth(content:GetWidth())
+    list:ClearAllPoints();list:SetPoint("TOPLEFT",0,0)
+    editor:ClearAllPoints();editor:SetPoint("TOPLEFT",0,-list:GetHeight()-T.SectionGap)
+    return list:GetHeight()+T.SectionGap+(editor:IsShown() and editor:GetHeight() or 0)
+  end)
+  b:EndSection();b:Block(lower)
   reflow=function()
     if content.listReflowing then return end;content.listReflowing=true
-    list:SetWidth(content:GetWidth());editor:SetWidth(content:GetWidth());lower:SetWidth(content:GetWidth())
     if editor.uiBuilder then editor.uiBuilder:Reflow() end
-    if lower.uiBuilder then lower.uiBuilder:Reflow() end
-    b:Reflow()
-    local position=listY
-    if b.reflowBottom then position=b.reflowBottom end
-    list:ClearAllPoints(); list:SetPoint("TOPLEFT",0,position)
-    local nextY=position-list:GetHeight()-T.SectionGap
-    editor:ClearAllPoints(); editor:SetPoint("TOPLEFT",0,nextY)
-    if editor:IsShown() then nextY=nextY-editor:GetHeight() end
-    lower:ClearAllPoints(); lower:SetPoint("TOPLEFT",0,nextY)
-    content:SetHeight(-nextY+lower:GetHeight()+T.ContentPadding);content.listReflowing=nil
+    b:Reflow();content:SetHeight(-(b.reflowBottom or b.y)+T.ContentPadding)
+    content.listReflowing=nil
   end
   content.Reflow=function() refreshList() end
   refreshList=function()
@@ -218,11 +219,10 @@ Lab:RegisterTab("highlight",nil,function(content,y)
   local statusY=b.y
   H.statusText=UI:CreateDescription(content,H:GetStatus(),0,statusY)
   H.statusText:SetWidth(UI.Theme.ContentWidth)
+  b:Block(H.statusText,function() return math.max(54,H.statusText:GetStringHeight()) end)
   function H:RefreshStatus()
-    b:Reflow();statusY=b.reflowBottom or statusY
-    H.statusText:ClearAllPoints();H.statusText:SetPoint("TOPLEFT",0,statusY);H.statusText:SetWidth(content:GetWidth())
     H.statusText:SetHeight(0);H.statusText:SetText(H:GetStatus())
-    content:SetHeight(-statusY+math.max(54,H.statusText:GetStringHeight())+UI.Theme.ContentPadding)
+    b:Reflow();content:SetHeight(-(b.reflowBottom or b.y)+UI.Theme.ContentPadding)
   end
   content.Reflow=function() H:RefreshStatus() end
   content.uiControls[#content.uiControls+1]={Refresh=function() H:RefreshStatus() end}

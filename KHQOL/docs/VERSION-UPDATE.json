@@ -1,8 +1,9 @@
 {
-  "version": "1.11.3",
-  "source": "1.11.2.5",
+  "version": "1.11.4.1",
+  "source": "1.11.4",
+  "archive_filename": "KHQOL-1.11.4.1-아코디언여백-겹침수정.zip",
   "date": "2026-10-18",
-  "tests_passed": 456,
+  "tests_passed": 504,
   "test_groups": {
     "regression": 256,
     "targeted": 18,
@@ -15,8 +16,13 @@
     "relogin": 19,
     "health-layout": 14,
     "header": 6,
-    "effects": 37
+    "effects": 37,
+    "layout": 7,
+    "preview-paint": 1,
+    "settings": 20,
+    "reflow": 20
   },
+  "baseline_reproduction_expected_failures": 4,
   "folders": 19,
   "files": 271,
   "lua": 193,

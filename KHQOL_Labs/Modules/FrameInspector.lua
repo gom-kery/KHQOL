@@ -113,7 +113,9 @@ function I:UpdateInformation(value)
   self.info:SetText(value)
   local height=math.max(18,self.info:GetStringHeight())
   self.info:SetHeight(height)
-  if self.content and self.infoY then
+  if self.infoBuilder then
+    self.infoBuilder:Reflow()
+  elseif self.content and self.infoY then
     self.content:SetHeight(-self.infoY+height+KHQOL.UI.Theme.ContentPadding)
   end
   if self.actions then KHQOL.UI:Refresh(self.actions) end
@@ -188,9 +190,9 @@ function I:BuildSettings(content,y)
   self.infoY=b.y
   self.info=UI:CreateDescription(content,self.snapshot or "마우스를 확인할 Blizzard 창 위에 올리세요.",0,b.y)
   self.info:SetWidth(content:GetWidth()); self.info:SetJustifyV("TOP")
+  b:Block(self.info,function() return math.max(18,I.info:GetStringHeight()) end)
+  self.infoBuilder=b
   function content:Reflow()
-    b:Reflow();I.infoY=b.reflowBottom or I.infoY
-    I.info:ClearAllPoints();I.info:SetPoint("TOPLEFT",0,I.infoY);I.info:SetWidth(self:GetWidth())
     I:UpdateInformation(I.snapshot or "마우스를 확인할 Blizzard 창 위에 올리세요.")
   end
   self:UpdateInformation(self.snapshot or "마우스를 확인할 Blizzard 창 위에 올리세요.")

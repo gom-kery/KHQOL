@@ -59,9 +59,11 @@ function FBR:CreateSettingsUI(parent)
   end
   b:Section("등록한 버프")
   b:Description("계정 공용 · 직업별 등록 목록입니다. 순서·사용·모드를 편집할 수 있으며 삭제는 확인 후 적용합니다.",true)
-  panel.listTop=b.y; panel.rows={}
+  panel.listTop=0; panel.rows={}
+  panel.buffListBody=CreateFrame("Frame",nil,panel);panel.buffListBody:SetSize(T.ContentWidth,1)
+  b:Block(panel.buffListBody);b:EndSection()
   function panel:CreateBuffRow(index)
-    local row=CreateFrame("Frame",nil,panel); row:SetSize(T.ContentWidth,T.RowHeight);row.settingsNoIndex=true
+    local row=CreateFrame("Frame",nil,panel.buffListBody); row:SetSize(T.ContentWidth,T.RowHeight);row.settingsNoIndex=true
     row:SetPoint("TOPLEFT",0,panel.listTop-(index-1)*(T.RowHeight+T.RowGap))
     row.down=UI:CreateButton(row,"▼",0,0,28,function()
       moveBuff(FBR:GetSelectedClassData().buffs,index,index+1); FBR:RefreshSettings(); FBR:RefreshAlerts()
@@ -100,16 +102,17 @@ function FBR:CreateSettingsUI(parent)
     row.delete.navigationOnly=true
     row:Hide(); panel.rows[index]=row;return row
   end
-  panel.empty=UI:CreateDescription(panel,"등록된 버프가 없습니다. 위의 입력란에 Spell ID를 입력하고 [버프 추가]를 누르세요.",0,panel.listTop)
+  panel.empty=UI:CreateDescription(panel.buffListBody,"등록된 버프가 없습니다. 위의 입력란에 Spell ID를 입력하고 [버프 추가]를 누르세요.",0,panel.listTop)
   local special=CreateFrame("Frame",nil,panel); special:SetSize(T.ContentWidth,138); panel.shamanSpecial=special
   local sb=UI:CreateBuilder(special); sb:Section("주술사 무기 / 토템"); special.buttons={}
+  local specialBody=CreateFrame("Frame",nil,special);specialBody:SetWidth(T.ContentWidth)
   for i,definition in ipairs({
     {group="weapon",key="mainHand",label="주무기"},{group="weapon",key="offHand",label="보조무기"},
     {group="totems",key="EARTH",label="대지"},{group="totems",key="FIRE",label="불"},
     {group="totems",key="WATER",label="물"},{group="totems",key="AIR",label="바람"},
   }) do
     local entry=definition
-    local control=UI:CreateButton(special,entry.label,(i-1)*98,sb.y,90,function(self,mouseButton)
+    local control=UI:CreateButton(specialBody,entry.label,(i-1)*98,sb.y,90,function(self,mouseButton)
       if entry.group=="totems" and mouseButton=="RightButton" then FBR:OpenTotemSelectionMenu(entry.key,self); return end
       local setting=FBR:GetShamanSpecialSettings()[entry.group][entry.key]
       setting.enabled=not setting.enabled; FBR:RefreshSettings(); FBR:RefreshAlerts()
@@ -122,7 +125,7 @@ function FBR:CreateSettingsUI(parent)
     end
     special.buttons[#special.buttons+1]=control
   end
-  special.hint=UI:CreateDescription(special,"토템 버튼을 우클릭하면 기존 주문 선택 메뉴를 엽니다.",0,sb.y-40)
+  special.hint=UI:CreateDescription(specialBody,"토템 버튼을 우클릭하면 기존 주문 선택 메뉴를 엽니다.",0,sb.y-40)
   local menu
   menu=UI:CreateDropdown(panel,0,0,300,function()
     local key=menu and menu.totemKey
@@ -150,15 +153,19 @@ function FBR:CreateSettingsUI(parent)
     setting.spellID=id; setting.enabled=true; FBR:RefreshSettings(); FBR:RefreshAlerts()
   end)
   menu:Hide(); panel.totemMenu=menu
-  function panel:Reflow()
-    local width=self:GetWidth()
-    b:Reflow();self.listTop=b.reflowBottom or self.listTop
-    special:SetWidth(width)
-    local cols=math.max(1,math.floor((width+8)/98))
-    for i,button in ipairs(special.buttons) do button:ClearAllPoints();button:SetPoint("TOPLEFT",((i-1)%cols)*98,sb.y-math.floor((i-1)/cols)*34) end
+  sb:Block(specialBody,function()
+    local width=specialBody:GetWidth();local cols=width>=480 and 2 or 1
+    local step=(width-(cols-1)*T.ColumnGap)/cols+T.ColumnGap
+    for i,button in ipairs(special.buttons) do button:ClearAllPoints();button:SetPoint("TOPLEFT",((i-1)%cols)*step,-math.floor((i-1)/cols)*34) end
     local rows=math.ceil(#special.buttons/cols)
-    special.hint:ClearAllPoints();special.hint:SetPoint("TOPLEFT",0,sb.y-rows*34-6);special.hint:SetWidth(width)
-    special:SetHeight(math.max(138,-sb.y+rows*34+math.max(24,special.hint:GetStringHeight())+14));FBR:RefreshSettings()
+    special.hint:ClearAllPoints();special.hint:SetPoint("TOPLEFT",0,-rows*34-6);special.hint:SetWidth(width)
+    return rows*34+math.max(24,special.hint:GetStringHeight())+14
+  end)
+  b:Block(special,nil,function() return ForeverBuffReminderDB.selectedClass=="SHAMAN" or FBR:GetCurrentClass()=="SHAMAN" end)
+  panel.settingsBuilder=b
+  function panel:Reflow()
+    if self.buffReflowing then return end;self.buffReflowing=true
+    FBR:RefreshSettings();b:Reflow();self.buffReflowing=nil
   end
   self:RefreshSettings()
   return panel
@@ -169,7 +176,8 @@ function FBR:OpenTotemSelectionMenu(key,anchor)
   menu:GetScript("OnClick")(menu)
 end
 function FBR:RefreshSettings()
-  if not self.settings then return end
+  if not self.settings or self.refreshingSettings then return end
+  self.refreshingSettings=true
   local panel=self.settings
   local token=ForeverBuffReminderDB.selectedClass or self:GetCurrentClass() or self.CLASS_TOKENS[1]
   ForeverBuffReminderDB.selectedClass=token
@@ -197,11 +205,9 @@ function FBR:RefreshSettings()
   panel.empty:ClearAllPoints();panel.empty:SetPoint("TOPLEFT",0,panel.listTop);panel.empty:SetWidth(width)
   panel.empty:SetShown(#buffs==0)
   if #buffs==0 then listBottom=listBottom-math.max(40,panel.empty:GetStringHeight()+T.RowGap) end
-  local showSpecial=token=="SHAMAN" or self:GetCurrentClass()=="SHAMAN"
-  panel.shamanSpecial:ClearAllPoints(); panel.shamanSpecial:SetPoint("TOPLEFT",0,listBottom)
-  panel.shamanSpecial:SetShown(showSpecial)
-  panel:SetHeight(-listBottom+(showSpecial and panel.shamanSpecial:GetHeight() or T.ContentPadding))
-  UI:Refresh(panel)
+  panel.buffListBody:SetHeight(math.max(1,-listBottom))
+  if panel.settingsBuilder then panel.settingsBuilder:Reflow() end
+  UI:Refresh(panel);self.refreshingSettings=nil
 end
 function FBR:ToggleSettings()
   ForeverBuffReminderDB.selectedClass=self:GetCurrentClass() or self.CLASS_TOKENS[1]

@@ -2534,5 +2534,245 @@
     "group": "effects",
     "test": "Party addon owns its native aura template and does not depend on UnitFrames or inspect private aura data",
     "passed": true
+  },
+  {
+    "group": "layout",
+    "test": "Folding each section changes only page visibility and height, while preview and headers remain accessible",
+    "passed": true
+  },
+  {
+    "group": "layout",
+    "test": "Opening a hidden color from search expands its section and focuses the original input",
+    "passed": true
+  },
+  {
+    "group": "layout",
+    "test": "Folded sections keep their state across page visits and cancel only uncommitted hidden number input",
+    "passed": true
+  },
+  {
+    "group": "layout",
+    "test": "Requested row pairs stay aligned at normal and smaller two-column widths, including reset and shield color",
+    "passed": true
+  },
+  {
+    "group": "layout",
+    "test": "Tint instructions appear on hover while removed long descriptions consume no visible rows",
+    "passed": true
+  },
+  {
+    "group": "layout",
+    "test": "Other settings builders now use the same compact columns and arrow disclosure controls",
+    "passed": true
+  },
+  {
+    "group": "layout",
+    "test": "Inline color controls refresh their swatches after a shared frame-profile change and retain zero alpha",
+    "passed": true
+  },
+  {
+    "group": "preview-paint",
+    "test": "Cold preview, resize and reopen use independent color bars without reading a base fill texture; prior dependency reproduced",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "general: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "unitFrames: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "partyFrames: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "convenience: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "interface: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "minimap: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "bars: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "alerts: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "quest: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "profiles: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "labs: every tab builds, arrow sections fold independently and reopening preserves values",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "Unit detail routes expose independent sections and paired sliders for every supported part",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "Same-name unit sections and legacy advanced groups retain independent fold state",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "NPC record editor folds with its list and a draft survives reopening and can be cancelled",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "Unlocked proc editor, inspector and graphics status use folding blocks without runtime recursion",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "Buff reminder list and Shaman controls respond to class, folding, resizing and existing actions",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "Conditional experience layout and common sections resize when switching modes",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "Long inline color names, dropdown labels and number editors fit both narrow and wide layouts",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "Shared inline colors preserve opacity cancellation and reject stale callbacks after folding",
+    "passed": true
+  },
+  {
+    "group": "settings",
+    "test": "Search expands compound convenience sections and both ancestor sections of an open proc draft",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "Focus health sections collapse without reserving their expanded row height",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "Focus labels reenter while folded then expand both sections without overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "Independent name and level folds immediately move the next section in either direction",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "General and profile scroll extents follow folding instead of the initial page height",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "player: all supported part transitions keep nested row bounds current",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "target: all supported part transitions keep nested row bounds current",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "pet: all supported part transitions keep nested row bounds current",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "targettarget: all supported part transitions keep nested row bounds current",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "focus: all supported part transitions keep nested row bounds current",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "general: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "unitFrames: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "partyFrames: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "convenience: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "interface: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "minimap: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "bars: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "alerts: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "quest: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "profiles: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
+  },
+  {
+    "group": "reflow",
+    "test": "labs: fold, leave, return and unfold all tab sections without cell overlap",
+    "passed": true
   }
 ]

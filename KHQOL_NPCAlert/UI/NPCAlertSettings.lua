@@ -35,6 +35,9 @@ local function build(content,y)
     if not draft then open() end; draft.mapID=map; UI:Refresh(editor)
   end,nil,enabled)
   b:Flush(); local listY=b.y
+  local listBody=CreateFrame("Frame",nil,content);list:SetParent(listBody);editor:SetParent(listBody)
+  content.recordListBody=listBody
+
   local e=UI:CreateBuilder(editor,0)
   local function editing() return draft~=nil and draftGeneration==KHQOL.profileGeneration and enabled() end
   local function field(title,key)
@@ -109,20 +112,18 @@ local function build(content,y)
   l:Section("기본값 복원")
   l:Description("현재 프로필의 경고 옵션만 복원합니다. 등록된 NPC 목록은 유지합니다.")
   lower:SetHeight(-l.y)
+  b:Block(listBody,function()
+    list:SetWidth(content:GetWidth());editor:SetWidth(content:GetWidth())
+    list:ClearAllPoints();list:SetPoint("TOPLEFT",0,0)
+    editor:ClearAllPoints();editor:SetPoint("TOPLEFT",0,-list:GetHeight()-T.SectionGap)
+    return list:GetHeight()+T.SectionGap+(editor:IsShown() and editor:GetHeight() or 0)
+  end)
+  b:EndSection();b:Block(lower)
   reflow=function()
     if content.listReflowing then return end;content.listReflowing=true
-    list:SetWidth(content:GetWidth());editor:SetWidth(content:GetWidth());lower:SetWidth(content:GetWidth())
     if editor.uiBuilder then editor.uiBuilder:Reflow() end
-    if lower.uiBuilder then lower.uiBuilder:Reflow() end
-    b:Reflow()
-    local position=listY
-    if b.reflowBottom then position=b.reflowBottom end
-    list:ClearAllPoints(); list:SetPoint("TOPLEFT",0,position)
-    local nextY=position-list:GetHeight()-T.SectionGap
-    editor:ClearAllPoints(); editor:SetPoint("TOPLEFT",0,nextY)
-    if editor:IsShown() then nextY=nextY-editor:GetHeight() end
-    lower:ClearAllPoints(); lower:SetPoint("TOPLEFT",0,nextY)
-    content:SetHeight(-nextY+lower:GetHeight()+T.ContentPadding);content.listReflowing=nil
+    b:Reflow();content:SetHeight(-(b.reflowBottom or b.y)+T.ContentPadding)
+    content.listReflowing=nil
   end
   content.Reflow=function() refreshList() end
   refreshList=function()

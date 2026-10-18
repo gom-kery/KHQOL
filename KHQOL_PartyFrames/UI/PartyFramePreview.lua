@@ -92,7 +92,7 @@ function M:RefreshLivePreview()
       local role=member==0 and "TANK" or member==1 and "HEALER" or "DAMAGER"
       c.roleIcon:SetAtlas(self.roleAtlases[role]);c.roleIcon:SetAlpha(db.showRole and not dead and 1 or 0)
       c.marker:SetTexCoord(0,.25,0,.5);c.marker:SetAlpha(db.showMarker and member==0 and 1 or 0)
-      self:PreviewEffects(c,db,self.debuffTypes[(i-1)%#self.debuffTypes+1].key,self.effectPreviewShield or 25)
+      self:PreviewEffects(c,db,self.debuffTypes[(i-1)%#self.debuffTypes+1].key,self.effectPreviewShield or 25,fraction*100)
       self:PreviewDebuffs(c,db.debuffs);c:Show()
     elseif c then c:Hide() end
   end
