@@ -1,1282 +1,2538 @@
 [
   {
+    "group": "regression",
     "test": "Clean full-install structure, exact versions, unique saved ownership and Lua 5.1 syntax",
     "passed": true,
-    "details": "19 folders / 191 Lua / 11 variables"
+    "details": "19 folders / 193 Lua / 11 variables"
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: core only",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_Campfire",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_Clock",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_CombatStatus",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_Convenience",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_CursorTrail",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_EnvironmentTimer",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_ExperienceBar",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: KHQOL_UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: full original order",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: full reverse order",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: core only",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_Campfire",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_Clock",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_CombatStatus",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_Convenience",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_CursorTrail",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_EnvironmentTimer",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_ExperienceBar",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: KHQOL_Campfire+KHQOL_Clock+KHQOL_CombatStatus+KHQOL_Convenience+KHQOL_CursorTrail+KHQOL_EnvironmentTimer+KHQOL_ExperienceBar+KHQOL_Labs+KHQOL_Map+KHQOL_NPCAlert+KHQOL_PartyFrames+KHQOL_PvPAlert+KHQOL_QuestNavigator+KHQOL_Range+KHQOL_ResourceSwing+KHQOL_Threat+KHQOL_Tooltip+KHQOL_UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Representative saved data from actual 1.10.10 source",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Partial/core-only profile create/copy/switch/delete + absent data equality",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Reinstall restores selected dormant profile, note content, lists, spells, colors, party policy",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Repeated split install/reload is idempotent for content + character data",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Rollback to actual 1.10.10 source reads same SavedVariables and content",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_Campfire",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_Clock",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_CombatStatus",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_Convenience",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_CursorTrail",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_EnvironmentTimer",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_ExperienceBar",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: KHQOL_UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Original data upgrade + profile cycle: full upgrade",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Second character uses own spells/wheel and own role-profile migration",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Installed-only reset, rejected absent reset, failed profile apply restores source",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Party alone, missing native API, wheel registration UI, combat close, duplicate/late registration",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Latest-only combat queue, OFF/profile cancellation, public/secret boundary",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Missing/disabled/not-loaded states and unavailable menu/search",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Labs absent graphics journal: restore",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Labs absent graphics journal: combat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Labs absent graphics journal: conflict",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Labs absent graphics journal: external-user-change",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Labs absent graphics journal: unknown-record",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Performance monitor aggregates core + installed addons; memory denominator avoids double count",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Failed initialization retries once successfully; missing dependency/cycle detected",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "All feature bootstraps reject absent core and unrelated addon namespace",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + Clock",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + CombatStatus",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + Convenience",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + CursorTrail",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + EnvironmentTimer",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + ExperienceBar",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Campfire + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + CombatStatus",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + Convenience",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + CursorTrail",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + EnvironmentTimer",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + ExperienceBar",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Clock + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Convenience",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + CursorTrail",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + EnvironmentTimer",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + ExperienceBar",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CombatStatus + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + CursorTrail",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + EnvironmentTimer",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + ExperienceBar",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Convenience + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + EnvironmentTimer",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + ExperienceBar",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair CursorTrail + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + ExperienceBar",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Labs",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + Map",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Labs + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Map + NPCAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Map + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Map + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Map + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Map + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Map + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Map + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Map + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Map + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair NPCAlert + PartyFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair NPCAlert + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair NPCAlert + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair NPCAlert + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair NPCAlert + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair NPCAlert + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair NPCAlert + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair NPCAlert + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PartyFrames + PvPAlert",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PartyFrames + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PartyFrames + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PartyFrames + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PvPAlert + QuestNavigator",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PvPAlert + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PvPAlert + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PvPAlert + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PvPAlert + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair PvPAlert + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + Range",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Range + ResourceSwing",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Range + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Range + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Range + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + Threat",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Threat + Tooltip",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Threat + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Load/default/profile/schema/menu/search: pair Tooltip + UnitFrames",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 1",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 2",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 3",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 4",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 5",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 6",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 7",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 8",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 9",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 10",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 11",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 12",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 13",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 14",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 15",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 16",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 17",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 18",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 19",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 20",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 21",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 22",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 23",
     "passed": true,
     "details": ""
   },
   {
+    "group": "regression",
     "test": "Mock login/UI/editor/profile/export: mixed subset 24",
     "passed": true,
     "details": ""
+  },
+  {
+    "group": "targeted",
+    "test": "Legacy account settings, unknown keys and saved choices survive first merge",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Native minimap starts once and OFF restores mask, geometry, input and drawer",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Disabled module creates no native overlays until explicitly enabled",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Combat login defers native descendants and starts after combat",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Combat changes apply latest master OFF and preserve configured appearance",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Both original tabs and all map sections are registered with shared controls",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Original slash aliases and drawer right click open the KHQOL settings host",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "KHQOL profiles change only module enable preference, account map settings stay shared",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Shared color picker cancellation restores original color and stale callbacks are inert",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Appearance, shape, region, elements, direction, layout and ranges preserve original schema",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Blizzard edit mode restores controls then resumes only enabled module",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Known external shape addon yields appearance without disabling the drawer",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Unsupported native layout keeps settings and drawer available",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Module reset uses explicit account scope and preserves unknown extension keys",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Dynamic exclusion rows rebind correctly and restore buttons when excluded",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "OFF does not discover new buttons or revive bounded startup work",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Explicit KHQOL full reset clears the loaded minimap account DB too",
+    "passed": true
+  },
+  {
+    "group": "targeted",
+    "test": "Registered list viewport remains below actions and above status after narrow reflow",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Actual 1.11.1.2 character data migrates detached party/10/20/40 profiles and retains backups",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "A saves, B sees/selects/edits all four layouts, A reload sees edits with own wheel spells",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Differing same-name profiles keep A and B values, B selection follows its imported alias",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Existing auto-role choices follow conflict aliases and explicit canonical selection can replace them",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Identical same-name profiles deduplicate rather than add character aliases",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Fresh characters use existing shared presets without duplicate defaults",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Repeated login and migration are idempotent including selection/role aliases",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Restoring an old character backup reuses account migration and restores the original role mapping",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Deleted shared profiles do not resurrect from current or restored legacy character backups",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Other characters fall back to Basic after their selected shared profile is deleted",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "An explicit account-library reset does not silently re-import an already migrated backup",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Account profiles stay outside whole-KHQOL profile switching and exports",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Create default/duplicate, select and reset operate on shared values and preserve unknown fields",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Resetting a shared profile is visible to another character using it",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Core-only installation preserves the shared library and reinstall restores it",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Combat and active position editing reject profile commands without changing shared data",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Korean conflict aliases preserve UTF-8 and the 24-character name limit",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Already-used character suffixes receive a numbered alias without overwrites",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Role auto-selection does not claim another character role absent from an old custom library",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Unavailable character identity uses a valid legacy selection and delays account attribution",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Invalid owned selection/migration metadata is safely replaced without losing shared values",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Rollback to actual 1.11.1.2 reads untouched character profile backups",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Settings communicate account edits, character selection, wheel scope and shared deletion",
+    "passed": true
+  },
+  {
+    "group": "party-shared",
+    "test": "Full install sidebar puts Minimap immediately below Interface, hides optional page when absent",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Ready player applies immediately with no retry left behind",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Missing player appears after login without another world/addon event",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Existing visible root gains its contents without OnShow",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Transient unreadable geometry retries once public values become available",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Partial hierarchy gains its missing power bar and applies",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Late player labels receive configured anchors and finish recovery",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "A late native root resize is corrected after its entire update returns",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Forever health visual update leaves native geometry native and keeps the owned square display",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Forever mana visual update restores compact dimensions",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Nested player and vehicle art updates coalesce to one final layout",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Both login/world event orders converge without reload",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Initial combat skips layout mutation and recovers after combat",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Combat beginning during a pending retry defers to regen",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "OFF cancels pending recovery and does not restyle a late native frame",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Profile changes invalidate old callbacks and read the latest desired width",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "A profile with compact OFF leaves native geometry and clears recovery",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Native edit mode pauses recovery and leaving edit mode resumes it",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Repeated settings applications do not duplicate native hooks or frames",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Unavailable native hierarchy uses bounded retries with no idle update loop",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Module initially OFF creates no recovery tasks",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Native-style player setting creates no readiness recovery tasks",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Changes made while waiting use the current configuration, never captured defaults",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "A manually delivered canceled callback cannot clear a newer recovery",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Failed deferred layout releases its task and permits a clean retry",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Secret public-geometry results are deferred without arithmetic on them",
+    "passed": true
+  },
+  {
+    "group": "login",
+    "test": "Two characters cold-login into their own selected whole profiles without defaults overwriting either",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Installed tray fills the 256x256 RGBA TGA and keeps transparent outer pixels",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Launcher is 36px while collected addon icons retain their saved size",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Square map keeps at least 8px gap for all 24 tested angles",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Round map keeps at least 8px gap for all 24 tested angles",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Visible native mail/clock/tracking icons have 8px separation without rewriting saved angle",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Transparent/hidden native icons do not displace the launcher",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Blocked preferred placement returns when the native icon moves away",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "At screen corners the visible launcher stays inside screen without changing its preference",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Insufficient screen space uses a bounded visible fallback",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Different minimap and UI scales retain an independent UIParent launcher position and size",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "All four drawer directions leave an 8px gap from the 36px launcher",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Normal click, settings click, drag suppression and combat drag guard remain intact",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Tooltip identifies the button collection purpose directly",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Inaccessible and secret native geometry is skipped before arithmetic",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Repeated positioning preserves legacy saved values and unknown extensions",
+    "passed": true
+  },
+  {
+    "group": "visibility",
+    "test": "Master OFF hides the new launcher and restores original native minimap state",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Full install has 19 folders and 11 unique saved-variable owners with no KH_map helper",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Existing KHQOLMapDB settings load without KH_map",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Logout and a new login retain current account settings and free launcher coordinates",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Second character reads the same account minimap data without a helper",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Existing new store wins over a separately loaded old store",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "New table is not repopulated from legacy values after an intentional empty reset",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "If legacy data is separately present, the retained importer deep-copies it without aliasing",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Clean installation creates defaults and a working renamed feature with no legacy global",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Module OFF retains new data and creates no launcher until enabled",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Explicit full reset clears both stores and new boot starts from defaults",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Both minimap tabs, aliases and shared catalog work with no Theme.lua",
+    "passed": true
+  },
+  {
+    "group": "migration",
+    "test": "Map runtime and core profile/input/ownership engines stay unchanged",
+    "passed": true
+  },
+  {
+    "group": "stacking",
+    "test": "Overlapping launcher receives open/close clicks ahead of a level-500 chat frame",
+    "passed": true
+  },
+  {
+    "group": "stacking",
+    "test": "Empty drawer background stays above chat without changing the chat frame",
+    "passed": true
+  },
+  {
+    "group": "stacking",
+    "test": "Collected real addon icon stays above chat and calls its original handler once",
+    "passed": true
+  },
+  {
+    "group": "stacking",
+    "test": "Drawer pager controls inherit the raised drawer layer",
+    "passed": true
+  },
+  {
+    "group": "stacking",
+    "test": "Shared settings dialog remains above the launcher and drawer",
+    "passed": true
+  },
+  {
+    "group": "stacking",
+    "test": "Master OFF restores original foreign parent, strata, level, flags, scale, anchors and scripts",
+    "passed": true
+  },
+  {
+    "group": "stacking",
+    "test": "Exclusion restores an icon while the launcher and remaining drawer retain their raised layer",
+    "passed": true
+  },
+  {
+    "group": "stacking",
+    "test": "Edit mode restores icon layer and leaving edit mode recollects it above chat",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Launcher and drawer belong to UIParent, keep 36px size and chat-front layer",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Drag preserves the mouse grab offset and travels freely without changing the old map angle",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Distant placement stays unchanged when the map moves, changes shape, size or scale",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Every screen edge clamps the whole button and retains an 8px inset",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Tiny screens use bounded centers rather than negative coordinate limits",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Saved free position is restored by a new login runtime",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Resolution changes preserve normalized preference and adapt the position",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "UI scale is accounted for during dragging while minimap scale is irrelevant",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "An existing free position does not read unavailable minimap geometry",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Old angle converts once, then later angle/map changes cannot move the launcher",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Settings expose a position reset that returns the button near the map",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Module reset stops active dragging and clears the old free position",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Combat blocks drag startup and stops an active drag without a later write",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Master OFF stops dragging, hides UI and preserves the chosen position",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "The post-drag click is suppressed once, and the next click opens the drawer",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Invalid or secret cursor coordinates cannot corrupt the saved position",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Invalid persisted positions are repaired to a usable initial map-adjacent position",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Out-of-range persisted fractions are clamped without losing extension fields",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "Profile changes stop dragging but keep the account-owned free position",
+    "passed": true
+  },
+  {
+    "group": "free-drag",
+    "test": "All four drawer directions follow a free button with the intended separation",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Previously captured health visual callback recovers without changing root size or reloading",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Previously captured mana visual callback recovers without a root event",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Mask-only native rewrite leaves the independent square health display unchanged",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "World entry verifies later native changes even after initial layout success",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Late-created edit-mode manager is attached and exit resumes compact layout",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Replaced global visual callback is hooked again",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Independent login activation survives an unrelated shared startup callback failure",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Saved compact settings survive a new login and native health/power rewrites",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Repeated native property writes coalesce and our own layout never loops",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "A canceled verification timer cannot clear an urgent replacement in the same window",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "World verification finishes within six delayed checks and leaves no idle task",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "OFF cancels a verification window and stale callbacks cannot reactivate compact",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Combat does not re-anchor player parts and recovery applies on leaving combat",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "A pending old window cannot overwrite a newly selected profile",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Secret setter arguments are not inspected and public geometry can later recover",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "A normal player update can wake readiness recovery after the initial retry limit",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Repeated activation/settings calls do not accumulate part hooks, frames or timers",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Compact OFF immediately cancels world verification and restores native appearance",
+    "passed": true
+  },
+  {
+    "group": "relogin",
+    "test": "Entering edit mode immediately cancels verification and leaving starts a fresh window",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "1.11.2.4 reproduces the reported UF flags, four geometry lines, UF-D and ineffective OFF/ON",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Fresh login applies compact without reading or writing restricted native health geometry",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Public geometry also uses an independent display and leaves native size and anchors unchanged",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "OFF restores native decoration and text, hides owned display, and ON reapplies with the restriction still present",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Value and range changes reach the owned display without replacing native scripts or reading geometry",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Secret range and value packets are forwarded without calculations or comparisons",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Unavailable non-numeric health values hide the display safely",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Combat updates values while deferring visibility and layout until combat ends",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Edit mode restores native appearance and resumes compact when it closes",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Name, level, border and power anchor to the owned health display",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Default health text is mirrored and current-value override does not duplicate native labels",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Profile selection refreshes owned dimensions and stale timers cannot restore an older width",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Repeated settings calls do not allocate extra displays or leave idle recovery",
+    "passed": true
+  },
+  {
+    "group": "health-layout",
+    "test": "Other genuinely unreadable geometry still defers safely",
+    "passed": true
+  },
+  {
+    "group": "header",
+    "test": "Entering player/basic ignores the remembered target NPC category",
+    "passed": true
+  },
+  {
+    "group": "header",
+    "test": "Target/aura category is shown and changing category updates the header immediately",
+    "passed": true
+  },
+  {
+    "group": "header",
+    "test": "Leaving target auras clears route category without discarding the remembered selection",
+    "passed": true
+  },
+  {
+    "group": "header",
+    "test": "Player auras and other unit parts never inherit target aura labels",
+    "passed": true
+  },
+  {
+    "group": "header",
+    "test": "Reopening the unit settings after another page preserves a clean current header",
+    "passed": true
+  },
+  {
+    "group": "header",
+    "test": "Search navigation to target NPC auras retains its valid category and player navigation drops it",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Curse applies exact requested RGBA and restores the class fill on dispel",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Disease applies exact requested RGBA and restores the class fill on dispel",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Magic applies exact requested RGBA and restores the class fill on dispel",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Poison applies exact requested RGBA and restores the class fill on dispel",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Bleed applies exact requested RGBA and restores the class fill on dispel",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Mixed harmful types use one native priority slot, with unsupported and untyped effects ignored",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Color and zero opacity edits update the existing sealed native slot without aura reads",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Tint OFF and ON is independent of the existing debuff icon preference",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Shield texture shield and RGBA are applied to a reverse-fill status bar",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Shield texture absorb and RGBA are applied to a reverse-fill status bar",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Shield texture solid and RGBA are applied to a reverse-fill status bar",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Absorb amount and maximum-health events refresh the same bar; zero and over-cap values go to the engine",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Opaque absorb and maximum-health objects are handed to widgets without Lua arithmetic or formatting",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Shield OFF unregisters only its event and tint remains active; ON uses the latest value",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Missing absorb API or setter failure hides stale shield data without breaking health or tint",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Unavailable atlas falls back to a plain bar and texture switching does not retain an old atlas",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Reassigned, hidden, missing and invalid unit tokens do not retain another member tint or shield",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Death shade covers effects while labels and icon previews stay above them",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "All 45 party and raid members keep independent units and share only the public color curve",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Late-created unit buttons initialize native effects and respond to attribute changes",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Missing color-curve capability reports a feature issue and never allocates repeated containers",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Failed slot initialization stays disabled and repeated apply does not leak containers",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Module OFF disables native tint and events; re-enable reuses native objects",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Combat settings defer to the last requested palette and shield preference while current displays keep updating",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "New settings preserve legacy icon placement, false/zero, unknown keys and normalize invalid RGBA",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Frame profile copy and selection preserve independent colors and shield choices",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Selecting another frame profile recolors existing native slots and restores that profile shield texture",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Account frame profiles expose new colors and shield settings to another character after saving",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Settings register exactly the four requested tabs and aura controls live outside Common",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Debuff size, spacing and XY controls form two-column rows and reflow at narrow widths",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Preview shows normal plus five types, shield textures and opacity, without any live-unit aura allocation",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "All six color controls open an opacity picker, commit zero alpha, and cancel to the original RGBA",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Preview ratio remains usable with module OFF and zero is a real sample value",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Icon preview uses saved placement and reserves vertical space for large icon rows",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Existing full-layout preview now reflects tint and shield without creating native aura slots",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Palette reset restores only the five defaults and preserves unknown extension colors",
+    "passed": true
+  },
+  {
+    "group": "effects",
+    "test": "Party addon owns its native aura template and does not depend on UnitFrames or inspect private aura data",
+    "passed": true
   }
 ]

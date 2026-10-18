@@ -29,6 +29,7 @@ function M:NormalizeDB(db)
   a.perRow=math.floor(bounded(a.perRow,5,1,12));a.gap=bounded(a.gap,2,0,20)
   a.x=bounded(a.x,0,-300,300);a.y=bounded(a.y,0,-300,300)
   if a.position~="TOP" and a.position~="LEFT" and a.position~="RIGHT" and a.position~="CENTER" then a.position="BOTTOM" end
+  self:NormalizeEffectSettings(db)
   for _,kind in ipairs({"party","raid"}) do
     local d,default=db[kind],self.defaults[kind]
     local minimumHeight=2*db.fontSize+10+(db.showPower and db.powerHeight or 0)
@@ -118,7 +119,7 @@ end
 function M:Prepare()
   if self.ready then return true end
   if C_AddOns and type(C_AddOns.LoadAddOn)=="function" then
-    call(C_AddOns.LoadAddOn,"Blizzard_UnitFrame");call(C_AddOns.LoadAddOn,"Blizzard_CompactRaidFrames")
+    call(C_AddOns.LoadAddOn,"Blizzard_UnitFrame");call(C_AddOns.LoadAddOn,"Blizzard_CompactRaidFrames");call(C_AddOns.LoadAddOn,"Blizzard_AuraContainer")
   end
   local supported,reason=self:Capabilities();if not supported then return false,reason end
   local ok,message=pcall(function()
@@ -237,14 +238,15 @@ function M:ApplyLatest()
   if self.pending then R:Defer("partyFrames",function(m) m:ApplyLatest() end,true) end
   self:ConfigureEvents()
   self:RefreshLivePreview()
+  self:RefreshEffectPreview()
   self:RefreshStatus()
 end
 function M:RefreshStatus()
   local feature
   for _,value in pairs(self.featureReasons or {}) do feature=value;break end
   local notice=self.inputReason or self.failure or (self.pending and "전투 종료 후 변경을 적용합니다.") or self.wheelReason or feature or ""
-  for _,key in ipairs({"statusLabel","commonStatusLabel","profileNotice"}) do if self[key] then self[key]:SetText(notice) end end
-  for _,key in ipairs({"settingsContent","commonContent","profileContent"}) do
+  for _,key in ipairs({"statusLabel","commonStatusLabel","auraStatusLabel","profileNotice"}) do if self[key] then self[key]:SetText(notice) end end
+  for _,key in ipairs({"settingsContent","commonContent","auraContent","profileContent"}) do
     local content=self[key]
     if content and content.uiBuilder and call(content.IsVisible,content)==true then content.uiBuilder:Reflow() end
   end
@@ -264,6 +266,7 @@ function M:Status()
 end
 function M:CancelPreview()
   self:CloseLivePreview()
+  self.effectPreviewShield=nil
   for _,f in pairs(self.previews or {}) do f:Hide() end
   if not combat() and #self.buttons>0 then self:ClearWheel() end
 end

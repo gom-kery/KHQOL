@@ -1,8 +1,8 @@
 {
-  "version": "1.11.2.5",
-  "source": "1.11.2.4",
+  "version": "1.11.3",
+  "source": "1.11.2.5",
   "date": "2026-10-18",
-  "tests_passed": 419,
+  "tests_passed": 456,
   "test_groups": {
     "regression": 256,
     "targeted": 18,
@@ -14,10 +14,12 @@
     "free-drag": 20,
     "relogin": 19,
     "health-layout": 14,
-    "header": 6
+    "header": 6,
+    "effects": 37
   },
   "folders": 19,
-  "files": 268,
-  "lua": 191,
+  "files": 271,
+  "lua": 193,
+  "xml": 5,
   "in_game": "pending"
 }

@@ -75,7 +75,7 @@ function M:ApplyLayout()
     header:SetAttribute("_ignore",nil)
     RegisterStateDriver(header,"visibility",kind=="raid" and "[group:raid] show; hide" or (db.showSolo and "[group:raid] hide; show" or "[group:raid] hide; [group:party] show; hide"))
   end
-  for _,button in ipairs(self.buttons) do self:StyleButton(button,db[button.khqolKind],db);self:StyleDebuffs(button) end
+  for _,button in ipairs(self.buttons) do self:StyleButton(button,db[button.khqolKind],db);self:StyleDebuffs(button);self:StyleEffects(button,db) end
   for _,header in ipairs(self.headers) do
     header:RegisterEvent("GROUP_ROSTER_UPDATE");header:RegisterEvent("UNIT_NAME_UPDATE")
     header:SetAttribute("kh-layout-revision",(header:GetAttribute("kh-layout-revision") or 0)+1)

@@ -19,7 +19,7 @@ function M:StyleDebuffs(b)
     if not f then
       -- Reuse the native secure-partition container. Addon Lua never receives
       -- aura records, enumerates aura slots, or reads secret container bounds.
-      f=CreateFrame("AuraContainer",nil,b,"KHQOLNativeTargetAuraLayoutTemplate");b.khqolDebuffs=f
+      f=CreateFrame("AuraContainer",nil,b,"KHQOLPartyNativeAuraLayoutTemplate");b.khqolDebuffs=f
     end
     for _,name in ipairs(required) do assert(type(f[name])=="function",name) end
     f:SetMaxBuffs(0);f:SetMaxDebuffs(cfg.count)
@@ -29,6 +29,7 @@ function M:StyleDebuffs(b)
     f:SetConstrainedFlowLayoutLineSize(cfg.perRow*cfg.size+(cfg.perRow-1)*cfg.gap)
     f:SetNumConstrainedFlowLayoutLines(12);f:SetFlowLayoutMirroredVertically(cfg.position=="TOP")
     self:AnchorDebuffs(f,b,cfg)
+    f:SetFrameLevel(b:GetFrameLevel()+5)
   end)
   if not ok then
     if f then call(f.SetEnabled,f,false) end

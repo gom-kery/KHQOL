@@ -1,0 +1,5 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <ScopedModifier useForbiddenObjectTable="true" allowUntaintedCreation="true">
+    <AuraContainer name="KHQOLPartyNativeAuraLayoutTemplate" inherits="TargetFrameAuraContainerTemplate" virtual="true"/>
+  </ScopedModifier>
+</Ui>

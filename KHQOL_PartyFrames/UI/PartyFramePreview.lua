@@ -41,6 +41,7 @@ function M:PreviewDebuffs(c,cfg)
     c.sampleDebuffs=CreateFrame("Frame",nil,c);c.sampleDebuffs:EnableMouse(false);c.sampleDebuffs.icons={}
   end
   local f=c.sampleDebuffs
+  f:SetFrameLevel(c:GetFrameLevel()+5)
   f:SetShown(cfg.enabled);if not cfg.enabled then return end
   local cols=math.min(cfg.count,cfg.perRow);local rows=math.ceil(cfg.count/cols)
   f:SetSize(cols*cfg.size+(cols-1)*cfg.gap,rows*cfg.size+(rows-1)*cfg.gap)
@@ -91,6 +92,7 @@ function M:RefreshLivePreview()
       local role=member==0 and "TANK" or member==1 and "HEALER" or "DAMAGER"
       c.roleIcon:SetAtlas(self.roleAtlases[role]);c.roleIcon:SetAlpha(db.showRole and not dead and 1 or 0)
       c.marker:SetTexCoord(0,.25,0,.5);c.marker:SetAlpha(db.showMarker and member==0 and 1 or 0)
+      self:PreviewEffects(c,db,self.debuffTypes[(i-1)%#self.debuffTypes+1].key,self.effectPreviewShield or 25)
       self:PreviewDebuffs(c,db.debuffs);c:Show()
     elseif c then c:Hide() end
   end

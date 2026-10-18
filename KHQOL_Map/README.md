@@ -1,4 +1,4 @@
-# KHQOL 1.11.2.5 — 미니맵 KHQOL_Map
+# KHQOL 1.11.3 — 미니맵 KHQOL_Map
 
 KHQOL 공통 기반 + KHQOL_Map으로 동작합니다. 계정 설정은 KHQOLMapDB입니다. 이번 전체 ZIP에는 KH_map 호환 폴더가 없으며, 이미 생성된 KHQOLMapDB를 그대로 사용합니다. WTF는 삭제하거나 이름을 바꾸지 않습니다.
 

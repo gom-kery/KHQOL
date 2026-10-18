@@ -16,6 +16,7 @@ local function refreshProfiles()
   if M.profileContent then UI:Refresh(M.profileContent) end
   if M.settingsContent then UI:Refresh(M.settingsContent) end
   if M.commonContent then UI:Refresh(M.commonContent) end
+  if M.auraContent then UI:Refresh(M.auraContent) end
 end
 K.PartyFrameSettings=UI:NewSettingsGroup("partyFrames")
 StaticPopupDialogs.KHQOL_DELETE_PARTY_PROFILE={text="계정 공용 파티·공격대 프로필 '%s'를 삭제하시겠습니까?\n이 프로필을 사용하는 다른 캐릭터에도 반영됩니다.",button1="삭제",button2=CANCEL,
@@ -138,18 +139,6 @@ function M:BuildCommonSettings(content,y)
   placement("대상 징표","markerPosition",true)
   b:Checkbox("역할 마크 표시",function() return M:GetDB().showRole end,function(v) set("showRole",v) end)
   placement("역할 마크","rolePosition",true)
-  b:Section("디버프 위치")
-  local function aura(key,value) M:GetDB().debuffs[key]=value;M:RequestApply() end
-  local function ag(key) return M:GetDB().debuffs[key] end
-  b:Checkbox("파티원 디버프 표시",function() return ag("enabled") end,function(v) aura("enabled",v) end)
-  b:Slider("디버프 최대 개수",1,12,1,function() return ag("count") end,function(v) aura("count",v) end,integer)
-  b:Slider("디버프 크기",8,48,1,function() return ag("size") end,function(v) aura("size",v) end,integer)
-  b:Slider("디버프 한 줄 개수",1,12,1,function() return ag("perRow") end,function(v) aura("perRow",v) end,integer)
-  b:Slider("디버프 간격",0,20,1,function() return ag("gap") end,function(v) aura("gap",v) end,integer)
-  b:Dropdown("디버프 위치",M.debuffPositions,function() return ag("position") end,function(v) aura("position",v) end)
-  b:Slider("디버프 X",-300,300,1,function() return ag("x") end,function(v) aura("x",v) end,integer)
-  b:Slider("디버프 Y",-300,300,1,function() return ag("y") end,function(v) aura("y",v) end,integer)
-  b:Description("게임 기본 디버프 표시기를 사용합니다. 미리보기에는 배치 확인용 예시 아이콘이 나타납니다.",true)
   self.commonContent=content
   return b.y
 end
@@ -163,8 +152,10 @@ K.ModuleRegistry:Register("partyFrames",{
   settings={group="partyFrames",id="common",title="파티·공격대",tabTitle="공통",description="1인 플레이어부터 최대 40인 공격대까지 지원합니다",
     commands={"party","raid"},positions=false,build=function(content,y) return M:BuildCommonSettings(content,y) end,
     subtabs={{id="frames",title="파티·공격대",description="파티·공격대 크기·위치·배치를 설정합니다.",build=function(content,y) return M:BuildSettings(content,y) end},
+      {id="auras",title="버프·디버프",description="디버프 아이콘·종류별 체력 색상·보호막 오버레이와 미리보기를 설정합니다.",build=function(content,y) return M:BuildAuraSettings(content,y) end},
       {id="roles",title="프로필",description="클릭 시전과 탱커·딜러·힐러별 프레임 프로필을 설정합니다.",build=function(content,y) return M:BuildRoleSettings(content,y) end}},
-    search={{title="파티·공격대 공통 표시",description="체력·자원·이름·징표·역할 마크·디버프 위치",aliases="health power name marker aura 공통",route={tab="common"}},
+    search={{title="파티·공격대 공통 표시",description="체력·자원·이름·징표·역할 마크",aliases="health power name marker 공통",route={tab="common"}},
+      {title="파티·공격대 버프·디버프",description="디버프 위치·저주·질병·마법·독·출혈 색상과 보호막",aliases="aura debuff absorb shield 보호막 디버프",route={tab="auras"}},
       {title="파티·공격대 프레임",description="솔로 표시, 기준점, 미리보기, 체력·징표·디버프와 10·20·40인 배치",aliases="party raid solo 파티 공격대 솔로",route={tab="frames"}},
       {title="역할 프로필",description="파티·공격대 전용 프로필과 역할 자동 선택",aliases="role profile tank healer dps 탱 딜 힐",route={tab="roles"}},
       {title="프레임 전용 휠 시전",description="마법책 드래그로 휠 업·다운 주문 등록",aliases="wheel 휠 클릭 시전 클릭 캐스팅",route={tab="roles",scope="캐릭터별"}}}},

@@ -23,6 +23,7 @@ function M:CreateVisuals(b)
   for _,key in ipairs({"nameText","healthText","leaderText","stateText"}) do b[key]=b.labels:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall") end
   b.marker=b.labels:CreateTexture(nil,"OVERLAY");b.marker:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
   b.roleIcon=b.labels:CreateTexture(nil,"OVERLAY")
+  self:CreateEffectVisuals(b)
 end
 function M:OnButtonLoad(b)
   local h=b:GetParent();b.khqolKind=h.khqolKind
@@ -37,6 +38,7 @@ function M:OnButtonLoad(b)
   b:HookScript("OnHide",function() M:OnButtonHide(b) end)
   self.buttons[#self.buttons+1]=b
   self:StyleButton(b,self.visual[b.khqolKind])
+  if call(InCombatLockdown)~=true then self:StyleDebuffs(b);self:StyleEffects(b,self.visual) else self.pending=true end
 end
 function M:AnchorRegion(region,owner,position,width)
   region:ClearAllPoints();region:SetPoint(position.point,owner,position.point,position.x,position.y)
@@ -48,7 +50,7 @@ end
 function M:StyleButton(b,d,visual)
   local db=visual or self.visual
   b:SetSize(d.width,d.height)
-  local level=b:GetFrameLevel();b.health:SetFrameLevel(level+1);b.power:SetFrameLevel(level+1);b.labels:SetFrameLevel(level+3)
+  local level=b:GetFrameLevel();b.health:SetFrameLevel(level+1);b.power:SetFrameLevel(level+1);b.labels:SetFrameLevel(level+4)
   local ph=db.showPower and db.powerHeight or 0
   b.health:ClearAllPoints();b.health:SetPoint("TOPLEFT",b,"TOPLEFT",1,-1);b.health:SetSize(d.width-2,d.height-2-ph)
   b.power:ClearAllPoints();b.power:SetPoint("BOTTOMLEFT",b,"BOTTOMLEFT",1,1);b.power:SetSize(d.width-2,db.powerHeight);b.power:SetAlpha(db.showPower and 1 or 0)
@@ -111,8 +113,10 @@ function M:ConfigureUnitEvents(b)
   b.khqolUnit=self:ReadUnit(b)
   if self.applied and b.khqolUnit and call(b.IsVisible,b)==true then
     for _,event in ipairs(events) do b:RegisterUnitEvent(event,b.khqolUnit) end
+    if self.visual.absorb.enabled then b:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED",b.khqolUnit) end
   end
   self:SyncDebuffUnit(b)
+  self:SyncEffectUnit(b)
 end
 function M:OnUnitChanged(b,name)
   if not K.IsPublicValue(name) or name~="unit" or not b.health then return end
@@ -129,6 +133,7 @@ end
 function M:OnButtonHide(b)
   b:UnregisterAllEvents();b.khqolUnit=nil
   self:SyncDebuffUnit(b)
+  self:SyncEffectUnit(b)
   self:RefreshGroupTitle(b:GetParent())
 end
 function M:RefreshGroupTitle(h)
@@ -143,6 +148,8 @@ end
 function M:ClearDisplay(b)
   for _,key in ipairs({"nameText","healthText","leaderText","stateText"}) do b[key]:SetText("") end
   b.health:SetAlpha(0);b.power:SetAlpha(0);b.marker:SetAlpha(0);b.roleIcon:SetAlpha(0);b.deadShade:SetAlpha(0)
+  if b.absorb then b.absorb:SetAlpha(0) end
+  self:SyncEffectUnit(b)
 end
 function M:RefreshButton(b)
   if not self.applied then return end
@@ -164,6 +171,7 @@ function M:RefreshButton(b)
   if db.showHealth and healthOK then raw(b.healthText.SetText,b.healthText,health) end
   local connected=call(UnitIsConnected,unit);local dead=call(UnitIsDeadOrGhost,unit);local afk=call(UnitIsAFK,unit)
   self:ApplyHealthColor(b,unit,token,dead)
+  self:UpdateAbsorb(b,unit)
   b.stateText:SetText(connected==false and "오프라인" or dead==true and "사망" or afk==true and "자리 비움" or "")
   -- Use explicit public state booleans only; unreadable state stays blank.
   if connected==false or dead==true or afk==true then b.healthText:SetAlpha(0) else b.healthText:SetAlpha(1) end
