@@ -10,12 +10,13 @@ local dragRule={keys={"OnDragStart","OnDragStop"},ops={["SetScript:OnDragStart"]
 local refreshRule={keys={"points","OnDragStart","OnDragStop"},ops={SetPoint=true,ClearAllPoints=true,
     ["SetScript:OnDragStart"]=true,["SetScript:OnDragStop"]=true}}
 local sizeRule={keys={},ops={SetSize=true,SetWidth=true,SetHeight=true}}
+local toggleSize,toggleGap=36,8
 
 function B:Initialize()
     if not A:Accessible(Minimap, true) then return end
     self.hidden = CreateFrame("Frame",nil,UIParent); self.hidden:Hide(); self.hidden.ignoreInLayout=true
-    self.drawer = CreateFrame("Frame", nil, Minimap)
-    self.drawer:SetFrameStrata("MEDIUM"); self.drawer:SetFrameLevel(40)
+    self.drawer = CreateFrame("Frame", nil, UIParent)
+    self.drawer:SetFrameStrata("HIGH"); self.drawer:SetFrameLevel(40)
     self.drawer:SetClampedToScreen(true); self.drawer:EnableMouse(true)
     local bg = self.drawer:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints(); bg:SetColorTexture(31/255,31/255,31/255,1)
@@ -36,11 +37,16 @@ function B:Initialize()
     self.pageText = self.drawer:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     self.pageText:SetPoint("BOTTOM", 0, 9)
     self.drawer:Hide()
-    local toggle = CreateFrame("Button", nil, Minimap)
-    toggle:SetSize(27, 27); toggle:SetFrameStrata("MEDIUM"); toggle:SetFrameLevel(50)
+    local toggle = CreateFrame("Button", nil, UIParent, "BackdropTemplate")
+    toggle:SetSize(toggleSize, toggleSize); toggle:SetFrameStrata("HIGH"); toggle:SetFrameLevel(50)
+    toggle:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
+    toggle:SetBackdropColor(8/255,13/255,20/255,1);toggle:SetBackdropBorderColor(.82,.72,.38,1)
     local back = toggle:CreateTexture(nil, "ARTWORK")
-    back:SetAllPoints(); back:SetTexture("Interface\\AddOns\\KH_map\\Media\\Storage.tga")
+    back:SetPoint("TOPLEFT",2,-2);back:SetPoint("BOTTOMRIGHT",-2,2)
+    back:SetTexture("Interface\\AddOns\\KHQOL_Map\\Media\\Storage.tga")
     self.toggleArt=back
+    toggle:SetHighlightTexture("Interface\\Buttons\\WHITE8X8")
+    toggle:GetHighlightTexture():SetVertexColor(1,1,.8,.12)
     local text = toggle:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     text:SetAllPoints(); text:SetText("")
     self.toggleText = text
@@ -53,55 +59,147 @@ function B:Initialize()
         A:Request(true)
     end)
     toggle:SetScript("OnEnter", function(frame)
-        GameTooltip:SetOwner(frame, "ANCHOR_LEFT"); GameTooltip:SetText(A.name)
+        GameTooltip:SetOwner(frame, "ANCHOR_LEFT"); GameTooltip:SetText("미니맵 버튼 보관함")
         GameTooltip:AddLine("좌클릭: 수납함 펼치기 / 접기", 0.9, 0.9, 0.9)
-        GameTooltip:AddLine("우클릭: 설정 · 드래그: 가장자리 이동", 0.9, 0.9, 0.9)
+        GameTooltip:AddLine("우클릭: 설정 · 드래그: 화면에서 자유 이동", 0.9, 0.9, 0.9)
         GameTooltip:Show()
     end)
     toggle:SetScript("OnLeave", function() GameTooltip:Hide() end)
     toggle:SetScript("OnDragStart", function()
-        if InCombatLockdown() or A.editing then return end
+        if InCombatLockdown() or A.editing or not A.enabled then return end
+        local x,y=GetCursorPosition()
+        local scale=UIParent:GetEffectiveScale()
+        local center=self.toggleCenterUI
+        if not center or not A:Number(x) or not A:Number(y) or not A:Number(scale) or scale<=0 then return end
         self.dragged = true
+        self.toggleDrag={x=x/scale,y=y/scale,cx=center.x,cy=center.y}
         toggle:SetScript("OnUpdate", function()
-            if InCombatLockdown() then self:StopDrag(); return end
-            local x, y = GetCursorPosition()
-            local mx, my = Minimap:GetCenter()
-            local scale = Minimap:GetEffectiveScale()
-            if not (A:Number(x) and A:Number(y) and A:Number(mx) and A:Number(my) and
-                A:Number(scale) and scale > 0) then return end
-            A.db.angle = math.deg(math.atan2(y / scale - my, x / scale - mx)) % 360
-            self:PositionToggle()
-            if self.open then self:Layout() end
+            if InCombatLockdown() or A.editing or not A.enabled then self:StopDrag(); return end
+            self:UpdateToggleDrag()
         end)
     end)
-    toggle:SetScript("OnDragStop", function() self:StopDrag(); A:Request() end)
+    toggle:SetScript("OnDragStop", function()
+        if not InCombatLockdown() and not A.editing and A.enabled then self:UpdateToggleDrag() end
+        self:StopDrag(); A:Request()
+    end)
     toggle:Hide()
     self.toggle = toggle
 end
 
 function B:StopDrag()
     if self.toggle then self.toggle:SetScript("OnUpdate", nil) end
+    self.toggleDrag=nil
 end
 
+function B:ClampToggle(x,y)
+    local w,h=A.Minimap:Bounds()
+    if not w or not A:Number(x) or not A:Number(y) then return end
+    local ix,iy=math.min(toggleSize/2+toggleGap,w/2),math.min(toggleSize/2+toggleGap,h/2)
+    return A:Clamp(x,ix,w-ix),A:Clamp(y,iy,h-iy),w,h
+end
+
+function B:UpdateToggleDrag()
+    local drag=self.toggleDrag
+    if not drag then return end
+    local x,y=GetCursorPosition();local scale=UIParent:GetEffectiveScale()
+    if not A:Number(x) or not A:Number(y) or not A:Number(scale) or scale<=0 then return end
+    local cx,cy,w,h=self:ClampToggle(drag.cx+x/scale-drag.x,drag.cy+y/scale-drag.y)
+    if not cx then return end
+    A.db.buttonPosition={x=cx/w,y=cy/h}
+    self:PositionToggle()
+    if self.open then self:Layout() end
+end
+
+local function obstacle(frame,scale)
+    if not A:Accessible(frame,true) then return end
+    local visible,shown=pcall(frame.IsVisible,frame)
+    local alphaOK,alpha=pcall(frame.GetEffectiveAlpha,frame)
+    if not visible or A:IsSecret(shown) or shown~=true or not alphaOK or not A:Number(alpha) or alpha<=.01 then return end
+    local centerOK,x,y=pcall(frame.GetCenter,frame)
+    local sizeOK,w,h=pcall(frame.GetSize,frame)
+    local scaleOK,s=pcall(frame.GetEffectiveScale,frame)
+    if centerOK and sizeOK and scaleOK and A:Number(x) and A:Number(y) and A:Number(w) and A:Number(h) and A:Number(s) and w>0 and h>0 and s>0 then
+        return {x=x*s/scale,y=y*s/scale,hw=w*s/scale/2,hh=h*s/scale/2}
+    end
+end
+function B:ToggleOffset(hw,hh,cx,cy)
+    local half=toggleSize/2
+    local square=A.Minimap.active and A.db.shape=="SQUARE"
+    local screenW,screenH=A.Minimap:Bounds()
+    local blocks={}
+    if A:Number(cx) and A:Number(cy) then
+        local cluster=MinimapCluster
+        for _,frame in pairs({cluster and cluster.Tracking,cluster and cluster.DielFrame,cluster and cluster.IndicatorFrame}) do
+            local rect=obstacle(frame,UIParent:GetEffectiveScale())
+            if rect then blocks[#blocks+1]=rect end
+        end
+    end
+    local function candidate(degrees,extra)
+        local angle=math.rad(degrees)
+        local x,y=math.cos(angle),math.sin(angle)
+        local outset=half+toggleGap+extra
+        if square then
+            local d=math.max(math.abs(x),math.abs(y));x,y=x/d,y/d
+        else outset=half*(math.abs(x)+math.abs(y))+toggleGap+extra end
+        return x*(hw+outset),y*(hh+outset)
+    end
+    local preferredX,preferredY=candidate(A.db.angle,0)
+    if not A:Number(cx) or not A:Number(cy) then return preferredX,preferredY end
+    local function fits(x,y)
+        x,y=cx+x,cy+y
+        if A:Number(screenW) and A:Number(screenH) and
+          (x-half<toggleGap or y-half<toggleGap or x+half>screenW-toggleGap or y+half>screenH-toggleGap) then return false end
+        for _,r in ipairs(blocks) do
+            if math.abs(x-r.x)<half+r.hw+toggleGap and math.abs(y-r.y)<half+r.hh+toggleGap then return false end
+        end
+        return true
+    end
+    -- Keep the saved angle. Temporary screen/icon avoidance changes only the
+    -- resolved placement, and returns to that angle when there is room again.
+    for turn=0,12 do
+        for _,sign in ipairs(turn==0 and {1} or {1,-1}) do
+            for extra=0,24,8 do
+                local x,y=candidate(A.db.angle+sign*turn*15,extra)
+                if fits(x,y) then return x,y end
+            end
+        end
+    end
+    if A:Number(screenW) and A:Number(screenH) then
+        local insetX,insetY=math.min(half+toggleGap,screenW/2),math.min(half+toggleGap,screenH/2)
+        preferredX=A:Clamp(cx+preferredX,insetX,screenW-insetX)-cx
+        preferredY=A:Clamp(cy+preferredY,insetY,screenH-insetY)-cy
+    end
+    return preferredX,preferredY
+end
 function B:PositionToggle()
-    if not A:Accessible(Minimap, true) then return end
-    local ms, us = Minimap:GetEffectiveScale(), UIParent:GetEffectiveScale()
-    local w, h = Minimap:GetWidth(), Minimap:GetHeight()
-    if not (A:Number(ms) and A:Number(us) and ms > 0 and us > 0 and A:Number(w) and A:Number(h)) then return end
-    self.toggle:SetScale(us / ms)
-    self.drawer:SetScale(us / ms)
-    local angle = math.rad(A.db.angle)
-    local x, y = math.cos(angle), math.sin(angle)
-    local square = A.Minimap.active and A.db.shape == "SQUARE"
-    if square then local d = math.max(math.abs(x), math.abs(y)); x, y = x / d, y / d end
-    self.toggle:ClearAllPoints()
-    x,y=x * (w * ms / us / 2 + 4),y * (h * ms / us / 2 + 4)
-    self.toggle:SetPoint("CENTER", Minimap, "CENTER", x,y)
-    local cx,cy=Minimap:GetCenter()
-    local center=A.Minimap.active and A.Minimap.centerUI
-    if center then cx,cy=center.x,center.y
-    elseif A:Number(cx) and A:Number(cy) then cx,cy=cx*ms/us,cy*ms/us end
-    if A:Number(cx) and A:Number(cy) then self.toggleCenterUI={x=cx+x,y=cy+y} end
+    local screenW,screenH=A.Minimap:Bounds()
+    if not screenW then return end
+    local position=A.db.buttonPosition
+    local x,y
+    if position then x,y=position.x*screenW,position.y*screenH
+    else
+        -- Convert the old map angle once; subsequent map movement or scale
+        -- changes cannot move the independently anchored launcher.
+        if not A:Accessible(Minimap,true) then return end
+        local ms,us=Minimap:GetEffectiveScale(),UIParent:GetEffectiveScale()
+        local w,h=Minimap:GetWidth(),Minimap:GetHeight()
+        if not (A:Number(ms) and A:Number(us) and ms>0 and us>0 and A:Number(w) and A:Number(h) and w>0 and h>0) then return end
+        local cx,cy=Minimap:GetCenter()
+        local center=A.Minimap.active and A.Minimap.centerUI
+        if center then cx,cy=center.x,center.y
+        elseif A:Number(cx) and A:Number(cy) then cx,cy=cx*ms/us,cy*ms/us end
+        if not A:Number(cx) or not A:Number(cy) then return end
+        local dx,dy=self:ToggleOffset(w*ms/us/2,h*ms/us/2,cx,cy)
+        x,y=cx+dx,cy+dy
+        x,y=self:ClampToggle(x,y)
+        if not x then return end
+        A.db.buttonPosition={x=x/screenW,y=y/screenH}
+    end
+    x,y=self:ClampToggle(x,y)
+    if not x then return end
+    self.toggle:SetScale(1);self.drawer:SetScale(1)
+    self.toggle:ClearAllPoints();self.toggle:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y)
+    self.toggleCenterUI={x=x,y=y}
     return true
 end
 
@@ -408,8 +506,8 @@ function B:Collect(r)
     local ok = j:Set(f,"fixedLevel",false) and j:Set(f,"fixedStrata",false) and
         j:Set(f, "parent", r.slot) and Script("OnDragStart") and Script("OnDragStop") and
         j:Set(f, "points", 1, "CENTER", r.slot, "CENTER", 0, 0) and
-        j:Set(f, "strata", "MEDIUM") and j:Set(f, "level", layer)
-    if ok and (f:GetFrameLevel()~=layer or f:GetFrameStrata()~="MEDIUM") then ok=false end
+        j:Set(f, "strata", self.drawer:GetFrameStrata()) and j:Set(f, "level", layer)
+    if ok and (f:GetFrameLevel()~=layer or f:GetFrameStrata()~=self.drawer:GetFrameStrata()) then ok=false end
     if not ok then r.yielded = true; self:ReleaseRecord(r); return false end
     self:Watch(r)
     r.collecting = true
@@ -487,10 +585,11 @@ function B:Layout()
     if self.toggleCenterUI then tx,ty=self.toggleCenterUI.x,self.toggleCenterUI.y
     else tx, ty = tx * ts/us, ty * ts/us end
     local direction=A.db.drawerDirection
-    local x,y=tx+20,ty-dh/2
-    if direction=="LEFT" then x=tx-20-dw
-    elseif direction=="UP" then x,y=tx-dw/2,ty+20
-    elseif direction=="DOWN" then x,y=tx-dw/2,ty-20-dh end
+    local separation=toggleSize/2+toggleGap
+    local x,y=tx+separation,ty-dh/2
+    if direction=="LEFT" then x=tx-separation-dw
+    elseif direction=="UP" then x,y=tx-dw/2,ty+separation
+    elseif direction=="DOWN" then x,y=tx-dw/2,ty-separation-dh end
     x, y = A:Clamp(x, 8, math.max(8, w-dw-8)), A:Clamp(y, 8, math.max(8, h-dh-8))
     self.drawer:ClearAllPoints(); self.drawer:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
     local onPage = {}

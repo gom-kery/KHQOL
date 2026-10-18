@@ -630,6 +630,7 @@ function M:ApplyStateDecorations(owner,p,unit)
   -- cover the entire solid fill for 0.4 seconds. Its timing/value logic stays
   -- native; only its presentation is suppressed while compact is active.
   if unit=="player" then self:HideNativeDecoration(owner,p.health.AnimatedLossBar or p.healthContainer.PlayerFrameHealthBarAnimatedLoss) end
+  if unit=="player" and owner.healthDisplay then self:HideNativeDecoration(owner,p.healthContainer) end
   if p.hitText then self:HideNativeDecoration(owner,p.hitText) end
   if unit=="player" and p.context then
     self:HideNativeDecoration(owner,p.context.PlayerPortraitCornerIcon)
@@ -674,12 +675,15 @@ function M:ApplyCompactLayout(owner,p,unit,on)
     for _,t in ipairs(owner.outline or {}) do t:Hide() end
     self:ApplyCombo(owner,p,unit);return
   end
-  for _,f in ipairs({p.root,p.healthContainer,p.health,p.power}) do
+  -- Native player health geometry can remain restricted for the whole login.
+  -- Our display owns its geometry; leave native health anchors and size alone.
+  local mirrored=unit=="player" or unit=="target" or unit=="focus"
+  local geometry=mirrored and {p.root,p.power} or {p.root,p.healthContainer,p.health,p.power}
+  for _,f in ipairs(geometry) do
     for _,key in ipairs({"width","height","points"}) do
       if not B:CanRead(f,key) then self.pending=true;self.propertyDeferred=true;return end
     end
   end
-  local mirrored=unit=="target" or unit=="focus"
   if not self:CanDecor(p.root,"hit") or not mirrored and not self:CanDecor(p.healthMask,"texture") or not self:CanDecor(p.powerMask,"texture") then return end
   local db=self:GetDB()[unit]
   local width,height,gap,hh,ph,showPower=self:CompactLayout(db)
@@ -701,11 +705,6 @@ function M:ApplyCompactLayout(owner,p,unit,on)
     self:Write(owner,p.healthContainer,"width",width);self:Write(owner,p.healthContainer,"height",hh)
     if p.healthContainer~=p.health then self:Write(owner,p.health,"points",{{"TOPLEFT",p.healthContainer,"TOPLEFT",0,0}}) end
     self:Write(owner,p.health,"width",width);self:Write(owner,p.health,"height",hh)
-  end
-  if not p.auxiliary then
-    for _,key in ipairs({"PlayerFrameHealthBarAnimatedLoss","PlayerFrameTempMaxHealthLoss"}) do
-      if p.healthContainer[key] then self:Write(owner,p.healthContainer[key],"height",hh) end
-    end
   end
   self:PrepareHealthDisplay(owner,p,unit,width,hh,left,top)
   self:Write(owner,p.power,"points",{{"TOPLEFT",owner.healthDisplay or p.healthContainer,"BOTTOMLEFT",0,-gap}})

@@ -265,6 +265,7 @@ function M:ApplyUnits(onlyUnit)
 end
 function M:ApplyUnitsNow(onlyUnit)
   self.propertyDeferred=false
+  if not onlyUnit or onlyUnit=="player" then self.playerLayoutPending=nil end
   self.units=self.units or {}
   for _,unit in ipairs(self.unitTokens) do
     local p=(not onlyUnit or onlyUnit==unit) and self:UnitParts(unit)
@@ -272,6 +273,9 @@ function M:ApplyUnitsNow(onlyUnit)
       local owner=self.units[unit] or {}; self.units[unit]=owner; owner.parts=p;p.owner=owner;p.unit=unit
       local compact=self:IsEnabled() and self:GetDB()[unit].compact and not editing()
       self:ApplyCompact(owner,p,unit,compact)
+      if unit=="player" and compact and (not owner.compactActive or self.propertyDeferred or not p.name or not p.level) then
+        self.playerLayoutPending=true;self.pending=true
+      end
       if unit=="targettarget" then self:ApplyFramePosition(owner,p) end
       self:ApplyPowerVisibility(owner,p,unit); self:ApplyHealthColor(owner,p,unit)
       if unit=="target" then self:ApplyMonsterMarks(owner,p,true) end
@@ -296,39 +300,119 @@ function M:ApplyUnitsNow(onlyUnit)
         p.root:HookScript("OnShow",function() if M:IsEnabled() then M:ApplyUnits(hookUnit) end end)
         if unit=="target" then p.root:HookScript("OnHide",function() if M.monsterMarkFrame then M.monsterMarkFrame:Hide() end end) end
       end
+    elseif unit=="player" and (not onlyUnit or onlyUnit==unit) and self:IsEnabled() and self:GetDB().player.compact and not editing() then
+      self.playerLayoutPending=true;self.pending=true
     end
   end
 end
-function M:QueuePlayerLayout()
-  if self.playerLayoutQueued or self.applyingUnits or not self:IsEnabled() then return end
-  self.playerLayoutQueued=true
-  local function apply()
-    self.playerLayoutQueued=nil
-    if not M:IsEnabled() then return end
-    if combat() then M.pending=true;return end
-    M:InitializePlayerLayoutHooks()
-    M:ApplyUnits("player");M:ApplyBottom()
+local playerLayoutDelays={.1,.25,.5,1,2}
+local playerSettleDelays={.25,.5,1,2,4,8}
+function M:QueuePlayerLayout(verify)
+  if self.applyingUnits or not self:IsEnabled() or editing() or not self:GetDB().player.compact then return end
+  if self.playerLayoutQueued then
+    if verify then self.playerLayoutQueued.verify=true end
+    if self.playerLayoutQueued.wake then self.playerLayoutQueued.wake() end
+    return
   end
-  if C_Timer and C_Timer.After then C_Timer.After(0,apply) else apply() end
+  local work={attempt=0,verify=verify}
+  self.playerLayoutQueued=work
+  local registry=KHQOL.ModuleRegistry
+  local function finish()
+    if work.timer then work.timer:Cancel();work.timer=nil end
+    if self.playerLayoutQueued==work then self.playerLayoutQueued=nil end
+    if registry then registry:Release("unitFrames",work) end
+  end
+  work.finish=finish
+  if registry then registry:Own("unitFrames",work,finish) end
+  local apply
+  local function later(delay)
+    work.delay=delay
+    work.serial=(work.serial or 0)+1
+    local serial=work.serial
+    local function run()
+      if self.playerLayoutQueued==work and work.serial==serial then apply() end
+    end
+    if C_Timer and C_Timer.NewTimer then work.timer=C_Timer.NewTimer(delay,run)
+    elseif C_Timer and C_Timer.After then C_Timer.After(delay,run)
+    else finish() end
+  end
+  work.wake=function()
+    if work.delay and work.delay>0 then
+      if work.timer then work.timer:Cancel();work.timer=nil end
+      later(0)
+    end
+  end
+  apply=function()
+    if self.playerLayoutQueued~=work then return end
+    work.timer=nil;work.delay=nil
+    if not self:IsEnabled() or editing() or not self:GetDB().player.compact then finish();return end
+    if combat() then self.pending=true;finish();return end
+    local ok,err=pcall(function()
+      self:InitializePlayerLayoutHooks()
+      self:ApplyUnits("player");self:ApplyBottom()
+    end)
+    if not ok then finish();error(err,0) end
+    local delays=work.verify and playerSettleDelays or playerLayoutDelays
+    if (self.playerLayoutPending or work.verify) and work.attempt<#delays then
+      work.attempt=work.attempt+1;later(delays[work.attempt])
+    else finish() end
+  end
+  if C_Timer and (C_Timer.After or C_Timer.NewTimer) then later(0) else apply() end
 end
 function M:InitializePlayerLayoutHooks()
   self.playerLayoutHooks=self.playerLayoutHooks or {}
-  for _,name in ipairs({"PlayerFrame_UpdateArt","PlayerFrame_ToPlayerArt","PlayerFrame_ToVehicleArt"}) do
-    if type(_G[name])=="function" and not self.playerLayoutHooks[name] then
-      self.playerLayoutHooks[name]=true
+  for _,name in ipairs({"PlayerFrame_UpdateArt","PlayerFrame_ToPlayerArt","PlayerFrame_ToVehicleArt","PlayerFrame_UpdateHealthBarVisuals","PlayerFrame_UpdateManaBarVisuals"}) do
+    if type(_G[name])=="function" and self.playerLayoutHooks[name]~=_G[name] then
       hooksecurefunc(name,function() M:QueuePlayerLayout() end)
+      self.playerLayoutHooks[name]=_G[name]
     end
   end
   local root=_G.PlayerFrame
   if root and not self.playerLayoutHooks[root] then
     self.playerLayoutHooks[root]=true
     root:HookScript("OnShow",function() M:QueuePlayerLayout() end)
+    root:HookScript("OnSizeChanged",function() M:QueuePlayerLayout() end)
+    root:HookScript("OnEvent",function(_,event)
+      if event=="PLAYER_ENTERING_WORLD" then M:QueuePlayerLayout(true)
+      elseif M.playerLayoutPending then M:QueuePlayerLayout() end
+    end)
+  end
+  -- Native layout callbacks can keep references captured before global hooks
+  -- were installed. Observe geometry/mask writes on the actual player parts
+  -- too. Never read setter arguments (they may be secret), and coalesce work
+  -- until the entire native update has finished. Our own layout cannot loop.
+  local p=self:UnitParts("player")
+  if p then
+    self.playerPartHooks=self.playerPartHooks or setmetatable({}, {__mode="k"})
+    for _,frame in pairs({p.root,p.healthContainer,p.health,p.power,p.healthMask,p.powerMask}) do
+      local hooks=self.playerPartHooks[frame]
+      if not hooks then hooks={};self.playerPartHooks[frame]=hooks end
+      for _,method in ipairs({"SetPoint","ClearAllPoints","SetSize","SetWidth","SetHeight","SetTexture","SetAtlas"}) do
+        if type(frame[method])=="function" and not hooks[method] then
+          hooks[method]=true
+          hooksecurefunc(frame,method,function()
+            if M.applyingUnits or not M:IsEnabled() or editing() or not M:GetDB().player.compact then return end
+            M:QueuePlayerLayout()
+          end)
+        end
+      end
+    end
+  end
+  local manager=EditModeManagerFrame
+  if manager and not self.playerLayoutHooks[manager] then
+    self.playerLayoutHooks[manager]=true
+    manager:HookScript("OnShow",function() M:ApplySettings() end)
+    manager:HookScript("OnHide",function() M:ApplySettings();M:QueuePlayerLayout(true) end)
   end
 end
 function M:ApplySettings()
   self:InitializePlayerLayoutHooks()
   self:InitializeDecorHooks()
-  self:ApplyUnits(); self:RefreshMonsterMarks();self:ApplyBottom(); if not combat() and not self.propertyDeferred then self.pending=nil end
+  self:ApplyUnits(); self:RefreshMonsterMarks();self:ApplyBottom()
+  if not combat() and not self.propertyDeferred and not self.playerLayoutPending then self.pending=nil end
+  if self.playerLayoutQueued and (not self:IsEnabled() or editing() or not self:GetDB().player.compact) then
+    self.playerLayoutQueued.finish()
+  elseif self.playerLayoutPending then self:QueuePlayerLayout() end
 end
 function M:SetEnabled(on)
   self:Initialize(); self:ApplySettings();self:ConfigureEvents()
@@ -343,7 +427,7 @@ function M:ConfigureEvents()
   end
 end
 function M:Initialize()
-  if self.events then self:InitializeDecorHooks(); return end
+  if self.events then self:InitializePlayerLayoutHooks();self:InitializeDecorHooks(); return end
   self.events=CreateFrame("Frame")
   self:InitializePlayerLayoutHooks()
   self:ConfigureEvents()
@@ -358,6 +442,7 @@ function M:Initialize()
     elseif event=="QUEST_LOG_UPDATE" or event=="QUEST_WATCH_UPDATE" or event=="QUEST_TURNED_IN" then M:RefreshMonsterMarks()
     elseif event=="UNIT_HEALTH" or event=="UNIT_MAXHEALTH" or event=="UNIT_POWER_UPDATE" or event=="UNIT_MAXPOWER" or event=="UNIT_FLAGS" or event=="UNIT_FACTION" or event=="UNIT_CONNECTION" then
       if public(unit) and (unit=="player" or unit=="target" or unit=="pet" or unit=="targettarget" or unit=="focus") then M:UpdateUnitValues(unit) end
+      if public(unit) and unit=="player" and M.playerLayoutPending then M:QueuePlayerLayout() end
     elseif event=="UNIT_DISPLAYPOWER" then
       if public(unit) and (unit=="player" or unit=="target" or unit=="pet" or unit=="targettarget" or unit=="focus") then M:ApplyUnits(unit) end
     elseif event=="UNIT_PET" then M:ApplyUnits("pet")
@@ -371,14 +456,29 @@ function M:Initialize()
     elseif event=="RAID_TARGET_UPDATE" or event=="PLAYER_UPDATE_RESTING" then
       for token,owner in pairs(M.units or {}) do M:ApplyStateDecorations(owner,owner.parts,token) end
     elseif event=="PLAYER_TOTEM_UPDATE" then M:ApplyBottom()
-    else M:ApplySettings();if event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED" then M:QueuePlayerLayout() end end
+    else M:ApplySettings();if event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED" then M:QueuePlayerLayout(event=="PLAYER_ENTERING_WORLD") end end
   end)
   self:InitializeDecorHooks()
-  if EditModeManagerFrame then
-    EditModeManagerFrame:HookScript("OnShow",function() M:ApplySettings() end)
-    EditModeManagerFrame:HookScript("OnHide",function() M:ApplySettings() end)
-  end
   if type(PlayerFrame_UpdatePlayerNameTextAnchor)=="function" then
     hooksecurefunc("PlayerFrame_UpdatePlayerNameTextAnchor",function() if M:IsEnabled() then M:ApplyUnits("player") end end)
   end
 end
+
+-- Give this optional module its own login activation. A transient failure in
+-- another module must not leave unitFrames without its events until /reload.
+-- Run after login/profile preparation, and retain the registry's OFF/cleanup
+-- policy. No extra ticker or permanent OnUpdate is used.
+local login=CreateFrame("Frame")
+login:RegisterEvent("PLAYER_LOGIN");login:RegisterEvent("PLAYER_ENTERING_WORLD")
+local activationQueued,worldSeen
+login:SetScript("OnEvent",function(_,event)
+  if event=="PLAYER_ENTERING_WORLD" then worldSeen=true end
+  if activationQueued then return end
+  activationQueued=true
+  C_Timer.After(0,function()
+    login:UnregisterAllEvents()
+    if not KHQOL.db or not KHQOL.profilesReady then return end
+    KHQOL.ModuleRegistry:Dispatch("unitFrames",KHQOL:GetEnabled("unitFrames"))
+    if worldSeen and M:IsEnabled() then M:QueuePlayerLayout(true) end
+  end)
+end)

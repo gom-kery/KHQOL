@@ -25,7 +25,7 @@ StaticPopupDialogs.KHQOL_RESET_ALL = {
     KHQOLDB=nil; ForeverClockDB=nil; ForeverBuffReminderDB=nil; ForeverWeaponGuideDB=nil
     KHQOLResourceSwingDB=nil; CampfireAlertDB=nil; FRangeDB=nil; KHQOLCursorTrailCharDB=nil
     KHQOLLabDB=nil; KHQOLPartyCharDB=nil
-    if KHQOL.modules.minimap then KHminimapDB=nil end
+    if KHQOL.modules.minimap then KHQOLMapDB=nil;KHminimapDB=nil end
     ReloadUI()
     end)
   end,timeout=0,whileDead=1,hideOnEscape=1,

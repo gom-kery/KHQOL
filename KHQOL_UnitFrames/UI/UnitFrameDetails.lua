@@ -52,8 +52,8 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     UI:CancelInputs(parent);UI:CloseColorPicker();M:StopBottomPreview();selected=v
     if not supportedPart(selectedPart,v) then selectedPart="basic" end
     prefs.unit=selected;prefs.part=selectedPart;parent.selectedUnit=selected;parent.selectedPart=selectedPart
-    if KHQOL.settings then KHQOL.settings.currentRoute={module="unitFrames",unit=selected,part=selectedPart,category=auraCategory} end
-    if KHQOL.settings then KHQOL.settings.pageTitle:SetText(N:Path({module="unitFrames",unit=selected,part=selectedPart})) end
+    if KHQOL.settings then KHQOL.settings.currentRoute=N:UnitRoute(selected,selectedPart,auraCategory) end
+    if KHQOL.settings then KHQOL.settings.pageTitle:SetText(N:Path(N:UnitRoute(selected,selectedPart,auraCategory))) end
     if quiet then return end
     UI:Refresh(parent);UI:Refresh(header);UI:QueueDisplayRefresh(parent)
     if KHQOL.settings and KHQOL.settings.moduleSubHeader==header then N:RestoreScroll(KHQOL.settings) end
@@ -67,13 +67,13 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     prefs.part=selectedPart;self.selectedPart=selectedPart;self.selectedAuraCategory=auraCategory
     UI:CancelInputs(parent);UI:CloseColorPicker();M:StopBottomPreview();UI:Refresh(parent);UI:Refresh(header)
     UI:QueueDisplayRefresh(parent)
-    if KHQOL.settings then KHQOL.settings.currentRoute={module="unitFrames",unit=selected,part=selectedPart,category=auraCategory};KHQOL.settings.pageTitle:SetText(N:Path({module="unitFrames",unit=selected,part=selectedPart}));KHQOL.settings:SetPageScrollLayout("unitFrames");N:RestoreScroll(KHQOL.settings) end
+    if KHQOL.settings then KHQOL.settings.currentRoute=N:UnitRoute(selected,selectedPart,auraCategory);KHQOL.settings.pageTitle:SetText(N:Path(N:UnitRoute(selected,selectedPart,auraCategory)));KHQOL.settings:SetPageScrollLayout("unitFrames");N:RestoreScroll(KHQOL.settings) end
   end
   parent.SelectAuraCategory=function(category)
     if category~="friendlyPlayer" and category~="attackableNPC" then return end
     N:RememberScroll(KHQOL.settings)
     UI:CancelInputs(parent);UI:CloseColorPicker();auraCategory=category;prefs.auraCategory=category;parent.selectedAuraCategory=category;UI:Refresh(parent);UI:QueueDisplayRefresh(parent)
-    if KHQOL.settings then KHQOL.settings.currentRoute={module="unitFrames",unit=selected,part=selectedPart,category=auraCategory};N:RestoreScroll(KHQOL.settings) end
+    if KHQOL.settings then KHQOL.settings.currentRoute=N:UnitRoute(selected,selectedPart,auraCategory);KHQOL.settings.pageTitle:SetText(N:Path(N:UnitRoute(selected,selectedPart,auraCategory)));N:RestoreScroll(KHQOL.settings) end
   end
   local x=0
   local measure=header:CreateFontString(nil,"OVERLAY");measure:SetFont(UI:Font(),T.LabelFontSize,"")

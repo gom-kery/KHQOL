@@ -114,7 +114,7 @@ function M:CreateElements()
     if A:Accessible(tracking,true) then
         self.trackingArt = tracking:CreateTexture(nil,"OVERLAY")
         self.trackingArt:SetAllPoints(tracking)
-        self.trackingArt:SetTexture("Interface\\AddOns\\KH_map\\Media\\Tracking.tga")
+        self.trackingArt:SetTexture("Interface\\AddOns\\KHQOL_Map\\Media\\Tracking.tga")
         self.trackingArt:Hide()
     end
     self.elementHandles = {}
@@ -391,7 +391,7 @@ function M:Apply()
     end
     if A.editing then
         self:Release()
-        A.messages.appearance = "게임 편집 모드 종료 후 KH_map 위치·외형을 적용합니다."
+        A.messages.appearance = "게임 편집 모드 종료 후 KHQOL_Map 위치·외형을 적용합니다."
         return
     end
     if self.foreignMask or (self.provider and GetMinimapShape ~= self.provider) then self.yielded = true end

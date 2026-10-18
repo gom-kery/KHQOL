@@ -83,7 +83,7 @@ function Group:BuildSettings(content,y,host,tabY)
         KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
       end
       if meta.key=="unitFrames" then
-        local p={module="unitFrames",unit=panel.selectedUnit,part=panel.selectedPart,category=panel.selectedAuraCategory}
+        local p=UI.SettingsNavigation:UnitRoute(panel.selectedUnit,panel.selectedPart,panel.selectedAuraCategory)
         KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
       end
       if self.id=="bars" and meta.key=="castBar" then

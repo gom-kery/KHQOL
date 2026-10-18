@@ -163,6 +163,8 @@ local function buildButtons(content,y)
     b:Section("버튼 보관")
     checkbox(b,"사용","drawer")
     b:Flush()
+    b:Description("수납 버튼을 드래그해 화면 어디든 배치할 수 있습니다. 위치는 계정 공용으로 저장됩니다.",true)
+    b:Button("수납 버튼 위치 초기화",function() A.Buttons:StopDrag();A.db.buttonPosition=nil;A:Request() end)
     b:Button("목록 새로고침",function() A.Buttons:Refresh() end)
     b:Flush()
     slider(b,"아이콘 크기","iconSize",20,30," px")
@@ -217,9 +219,11 @@ function A:SetEnabled(enabled)
     self:Request(self.enabled)
 end
 function A:ResetSettings()
+    self.Buttons:StopDrag()
     local copy=K.CopyProfileValue
     for key,value in pairs(self.defaults) do self.db[key]=copy(value) end
     self.db.position=nil
+    self.db.buttonPosition=nil
     self:InitDB();self:Request(true)
 end
 

@@ -12,6 +12,10 @@ function N:Preferences()
 end
 local function token(text) return (text or ""):gsub("|c%x%x%x%x%x%x%x%x",""):gsub("|r",""):lower():gsub("%s+"," ") end
 function N:ID(p,title) return table.concat({p.module or "general",p.tab or "",p.castUnit or "",p.unit or "",p.part or "",p.category or "",p.section or "",title or ""},"/") end
+function N:UnitRoute(unit,part,category)
+  return {module="unitFrames",unit=unit,part=part,
+    category=unit=="target" and part=="auras" and category or nil}
+end
 function N:Path(p,title)
   local meta=p.tab and R.groups.quest[p.tab] and p.module=="questNavigator" and R.groups.quest[p.tab] or R.modules[p.module] or R.routes[p.module]
   if p.tab and meta and meta.group and R.groups[meta.group] and R.groups[meta.group][p.tab] and R.groups[meta.group][p.tab].key==meta.key then meta=R.groups[meta.group][p.tab] end
@@ -23,7 +27,9 @@ function N:Path(p,title)
   if p.castUnit then path[#path+1]=self.units[p.castUnit] or p.castUnit end
   if p.unit then path[#path+1]=self.units[p.unit] or p.unit end
   if p.part then path[#path+1]=self.parts[p.part] or p.part end
-  if p.category then path[#path+1]=p.category=="attackableNPC" and "공격 가능한 NPC" or "아군 플레이어" end
+  if p.module=="unitFrames" and p.unit=="target" and p.part=="auras" and p.category then
+    path[#path+1]=p.category=="attackableNPC" and "공격 가능한 NPC" or "아군 플레이어"
+  end
   if p.section and p.section~="" and p.section~=title then path[#path+1]=p.section end
   if title then path[#path+1]=title end
   return table.concat(path," > ")
@@ -148,7 +154,11 @@ function N:Open(route,itemID,restoreOnly)
   local panel=content and content.tabPanels and content.tabPanels.units
   if route.module=="unitFrames" and panel and panel.SelectUnitPart then
     panel:SelectUnitPart(route.unit,route.part,route.category)
-    s.pageTitle:SetText(self:Path({module="unitFrames",unit=panel.selectedUnit,part=panel.selectedPart}))
+    local resolved=self:UnitRoute(panel.selectedUnit,panel.selectedPart,panel.selectedAuraCategory)
+    local current={};for key,value in pairs(route) do current[key]=value end
+    current.unit=resolved.unit;current.part=resolved.part;current.category=resolved.category
+    route=current
+    s.pageTitle:SetText(self:Path(self:UnitRoute(panel.selectedUnit,panel.selectedPart,panel.selectedAuraCategory)))
   end
   s:RefreshActivePage()
   if route.module=="clock" and route.sideTarget then

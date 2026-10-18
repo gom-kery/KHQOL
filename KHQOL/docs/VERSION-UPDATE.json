@@ -1,10 +1,23 @@
 {
-  "version": "1.11.0.1",
-  "previous_version": "1.11.0",
-  "source_archive": "KHQOL-1.11.0-Full-Bindings-Icon-Fix.zip",
-  "source_sha256": "bc84b6afe72d897cc9949848da51c8d95ec7ce70b4dd25eed2aa70da694f926a",
-  "date": "2026-10-16",
-  "changes": "TOC, runtime version, current docs, distribution names; previous icon/bindings fixes retained",
-  "tests_passed": 242,
-  "game_tests": "not performed"
+  "version": "1.11.2.5",
+  "source": "1.11.2.4",
+  "date": "2026-10-18",
+  "tests_passed": 419,
+  "test_groups": {
+    "regression": 256,
+    "targeted": 18,
+    "party-shared": 24,
+    "login": 26,
+    "visibility": 16,
+    "migration": 12,
+    "stacking": 8,
+    "free-drag": 20,
+    "relogin": 19,
+    "health-layout": 14,
+    "header": 6
+  },
+  "folders": 19,
+  "files": 268,
+  "lua": 191,
+  "in_game": "pending"
 }

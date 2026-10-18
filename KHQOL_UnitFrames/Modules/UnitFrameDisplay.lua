@@ -29,7 +29,7 @@ function M:SyncHealthDisplay(owner,p)
   owner.displaySyncing=false
 end
 function M:PrepareHealthDisplay(owner,p,unit,width,height,left,top)
-  if unit~="target" and unit~="focus" then return end
+  if unit~="player" and unit~="target" and unit~="focus" then return end
   if not owner.healthDisplay then
     local f=CreateFrame("StatusBar",nil,p.root)
     f:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8");f:EnableMouse(false)

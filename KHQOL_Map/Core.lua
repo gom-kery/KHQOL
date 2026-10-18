@@ -1,5 +1,5 @@
 local addonName, A = ...
-A.name, A.version = addonName, "1.11.2"
+A.name, A.version = addonName, "1.11.2.5"
 local K = assert(_G.KHQOL, "Install and enable KHQOL.")
 K.modules.minimap = A
 A.geometryEpsilon = 0.01
@@ -237,11 +237,16 @@ local function Fill(target, defaults)
 end
 
 function A:InitDB()
-    -- Keep the legacy SavedVariables identifiers so a copied KHminimap.lua
-    -- account file can be read as KH_map.lua without executing import code.
-    if type(KHminimapDB) ~= "table" then KHminimapDB = {} end
-    Fill(KHminimapDB, self.defaults)
-    self.db = KHminimapDB
+    -- The optional KH_map data-only addon loads the old account file first.
+    -- Prefer an existing new store; copy once without aliasing or mutating the
+    -- old variable. Each TOC keeps a unique SavedVariables owner.
+    if type(KHQOLMapDB) ~= "table" then
+        local legacy=type(KHminimapDB)=="table"
+        KHQOLMapDB=legacy and K.CopyProfileValue(KHminimapDB) or {}
+        self.importedLegacySettings=legacy or nil
+    end
+    Fill(KHQOLMapDB, self.defaults)
+    self.db = KHQOLMapDB
     -- Discard retired development data if an older account file loaded it.
     KHminimapDebugDB = nil
     local db = self.db
@@ -282,6 +287,13 @@ function A:InitDB()
     if db.position then
         db.position.x = self:Clamp(db.position.x, 0, 1)
         db.position.y = self:Clamp(db.position.y, 0, 1)
+    end
+    if db.buttonPosition and (type(db.buttonPosition)~="table" or not self:Number(db.buttonPosition.x) or not self:Number(db.buttonPosition.y)) then
+        db.buttonPosition=nil
+    end
+    if db.buttonPosition then
+        db.buttonPosition.x=self:Clamp(db.buttonPosition.x,0,1)
+        db.buttonPosition.y=self:Clamp(db.buttonPosition.y,0,1)
     end
 end
 
