@@ -346,6 +346,55 @@ function M:BottomFrame()
     parent=call(parent.GetParent,parent)
   end
 end
+function M:BottomPlacement(f)
+  local db=self:GetDB().player
+  local width,height=self:CompactLayout(db)
+  local fs=f and call(f.GetEffectiveScale,f) or not f and call(PlayerFrame.GetEffectiveScale,PlayerFrame)
+  local ps=call(PlayerFrame.GetEffectiveScale,PlayerFrame)
+  if not finite(fs) or not finite(ps) or fs<=0 or ps<=0 then return end
+  local left=number(call(function() return f and f.leftPadding end),15,0,100)
+  local right=number(call(function() return f and f.rightPadding end),0,0,100)
+  local children=call(function() if f and type(f.GetLayoutChildren)=="function" then return f:GetLayoutChildren() end end)
+  local first=type(children)=="table" and children[1]
+  local single=left+number(call(first and first.GetWidth,first),37,1,100)+right
+  -- Native XML attaches TOPRIGHT to PlayerFrame BOTTOMRIGHT at y=20.
+  -- Normalize its one-button footprint against the configured compact size,
+  -- never the hidden placeholder or temporary native art/layout dimensions.
+  local x=width+32-single*fs/ps
+  local y=-(height+48)+20
+  local point="TOPLEFT"
+  if db.bottomGrowth=="LEFT" then point="TOPRIGHT";x=x+single*fs/ps end
+  return point,x+number(db.bottomX,0,-3000,3000),y+number(db.bottomY,0,-3000,3000),ps/fs,single
+end
+function M:ApplyBottomDirection(owner,restore)
+  local f=owner.frame
+  local status,current=KHQOL.ReadPublicAPI(function() return f.childLayoutDirection end)
+  if status~="ok" then self.pending=true;self.propertyDeferred=true;return false end
+  local wanted=self:GetDB().player.bottomGrowth=="LEFT" and "rightToLeft" or "leftToRight"
+  if restore then
+    if not owner.directionSaved then return true end
+    if current~=owner.directionLast then owner.directionSaved=nil;return true end
+    wanted=owner.directionOriginal
+  elseif not owner.directionSaved or current~=owner.directionLast then
+    owner.directionSaved=true;owner.directionOriginal=current
+  end
+  if current~=wanted then
+    if combat() then
+      local children=call(function() return {f:GetChildren()} end)
+      if type(children)~="table" then self.pending=true;return false end
+      for _,child in ipairs(children) do if call(child.IsProtected,child)~=false then self.pending=true;return false end end
+    end
+    owner.directionLast=wanted
+    local ok=KHQOL.ReadPublicAPI(function()
+      f.childLayoutDirection=wanted
+      if type(f.Layout)=="function" then f:Layout() end
+    end)
+    if ok~="ok" then self.pending=true;self.propertyDeferred=true;return false end
+  end
+  owner.directionLast=wanted
+  if restore then owner.directionSaved=nil;owner.directionOriginal=nil;owner.directionLast=nil end
+  return true
+end
 function M:ApplyBottom()
   if self.bottomApplying then return end
   self.bottomApplying=true
@@ -355,40 +404,110 @@ function M:ApplyBottom()
   self:RefreshBottomPreview()
 end
 function M:ApplyBottomNow()
-  if combat() then self.pending=true; return end
-  local f=self:BottomFrame(); self.bottomOwner=self.bottomOwner or {}
+  local f=self:BottomFrame()
   local owner=self.bottomOwner
-  if not f then if owner.frame then self:Release(owner) end; return end
-  owner.frame=f
+  -- A managed reparent can briefly hide the PlayerFrame ancestry.
+  if not f and owner and owner.frame==_G.TotemFrame then
+    if not self:IsEnabled() or editing() or not self:GetDB().player.compact then
+      if combat() then self.pending=true
+      elseif self:ApplyBottomDirection(owner,true) then self:Release(owner);if not owner.records then owner.origin=nil end end
+    end
+    return
+  end
+  if owner and owner.frame~=f then
+    if combat() then self.pending=true;return end
+    if not self:ApplyBottomDirection(owner,true) then return end
+    self:Release(owner);if owner.records then return end
+    owner.origin=nil;self.bottomOwner=nil;owner=nil
+  end
+  if not f then return end
+  -- Native frames can disappear from the public hierarchy temporarily. Keep
+  -- hook ownership on the actual frame instead of reinstalling on each return.
+  self.bottomOwners=self.bottomOwners or setmetatable({}, {__mode="k"})
+  owner=owner or self.bottomOwners[f] or {frame=f}
+  self.bottomOwners[f]=owner;self.bottomOwner=owner
   if not owner.hooked then
     owner.hooked=true
     f:HookScript("OnShow",function() if M:IsEnabled() then M:ApplyBottom() end end)
     if type(f.Update)=="function" then hooksecurefunc(f,"Update",function() if M:IsEnabled() then M:ApplyBottom() end end) end
+    -- The native managed and pooled-button layouts are multi-step operations.
+    -- Run after they finish, including Layout calls without a Totem Update.
+    local function moved()
+      if M.bottomApplying or M.bottomQueued or not M:IsEnabled() then return end
+      local generation=KHQOL.profileGeneration;local ticket={};M.bottomQueued=ticket
+      C_Timer.After(0,function()
+        if M.bottomQueued~=ticket then return end
+        M.bottomQueued=nil
+        if KHQOL.profileGeneration==generation and M:IsEnabled() then M:ApplyBottom() end
+      end)
+    end
+    hooksecurefunc(f,"SetPoint",moved);hooksecurefunc(f,"ClearAllPoints",moved)
+    if type(f.Layout)=="function" then hooksecurefunc(f,"Layout",moved) end
+    owner.queue=moved
   end
   owner.layoutHooks=owner.layoutHooks or {}
   local parent=call(f.GetParent,f)
   for _=1,16 do
     if not parent or parent==UIParent or parent==PlayerFrame then break end
     if type(parent.Layout)=="function" and not owner.layoutHooks[parent] then
-      owner.layoutHooks[parent]=true;hooksecurefunc(parent,"Layout",function() if M:IsEnabled() then M:ApplyBottom() end end)
+      owner.layoutHooks[parent]=true;hooksecurefunc(parent,"Layout",owner.queue)
     end
     parent=call(parent.GetParent,parent)
   end
   local db=self:GetDB().player
-  local x,y=number(db.bottomX,0,-100,100),number(db.bottomY,0,-100,100)
-  if not self:IsEnabled() or editing() or not db.compact or (x==0 and y==0) then self:Release(owner); return end
-  local count=call(f.GetNumPoints,f); if type(count)~="number" or count<1 or count>32 then self.pending=true; self.propertyDeferred=true; return end
-  local points={}
-  for i=1,count do
-    local status,point,relative,rp,px,py=KHQOL.ReadPublicAPI(f.GetPoint,f,i)
-    if status~="ok" or not finite(px) or not finite(py) then self.pending=true; self.propertyDeferred=true; return end
-    points[i]={point,relative,rp,px,py}
+  local x,y=number(db.bottomX,0,-3000,3000),number(db.bottomY,0,-3000,3000)
+  -- Unprotected native totem geometry can follow its layout in combat. Never
+  -- attempt a protected (or unreadable protection-state) write in combat.
+  if combat() and call(f.IsProtected,f)~=false then self.pending=true;return end
+  if not self:IsEnabled() or editing() or not db.compact or (x==0 and y==0 and db.bottomGrowth~="LEFT" and not db.bottomPlaced) then
+    if self:ApplyBottomDirection(owner,true) then self:Release(owner);if not owner.records then owner.origin=nil end end;return
   end
-  local record=owner.records and owner.records[f] and owner.records[f].points
-  local baseline=record and equal(points,record.last) and record.original or points
-  local shifted={}
-  for i,p in ipairs(baseline) do shifted[i]={p[1],p[2],p[3],p[4]+x,p[5]+y} end
-  self:Write(owner,f,"points",shifted)
+  local point,px,py,ratio=self:BottomPlacement(f)
+  if not point then self.pending=true;self.propertyDeferred=true;return end
+  if not self:ApplyBottomDirection(owner,false) then return end
+  owner.origin={px-x,py-y}
+  -- Compact and native art can resize PlayerFrame. Its TOPLEFT also anchors
+  -- the compact health display, so unlike CENTER it does not drift on resize.
+  self:Write(owner,f,"points",{{point,PlayerFrame,"TOPLEFT",px*ratio,py*ratio}})
+end
+function M:PetHappinessFrame()
+  local f=_G.PetFrameHappiness
+  if f and call(f.GetParent,f)==_G.PetFrame then return f end
+end
+function M:ApplyPetHappiness()
+  if self.happinessApplying then return end
+  if combat() then self.pending=true;return end
+  self.happinessApplying=true
+  local ok,err=pcall(function()
+    local f=self:PetHappinessFrame();local owner=self.happinessOwner
+    if owner and owner.frame~=f then self:Release(owner);owner=nil;self.happinessOwner=nil end
+    if not f then return end
+    self.happinessOwners=self.happinessOwners or setmetatable({}, {__mode="k"})
+    if not owner then
+      owner=self.happinessOwners[f]
+    end
+    if not owner then
+      owner={frame=f};self.happinessOwners[f]=owner
+      local function moved() if not M.happinessApplying and M:IsEnabled() then M:ApplyPetHappiness() end end
+      hooksecurefunc(f,"SetPoint",moved);f:HookScript("OnShow",moved)
+    end
+    self.happinessOwner=owner
+    local db=self:GetDB().pet;local x,y=number(db.happinessX,0,-400,400),number(db.happinessY,0,-400,400)
+    if not self:IsEnabled() or editing() or not db.compact or x==0 and y==0 then self:Release(owner);return end
+    local count=call(f.GetNumPoints,f);local points={}
+    if not finite(count) or count<1 or count>32 then self.pending=true;self.propertyDeferred=true;return end
+    for i=1,count do
+      local status,point,relative,rp,px,py=KHQOL.ReadPublicAPI(f.GetPoint,f,i)
+      if status~="ok" or not finite(px) or not finite(py) then self.pending=true;self.propertyDeferred=true;return end
+      points[i]={point,relative,rp,px,py}
+    end
+    local record=owner.records and owner.records[f] and owner.records[f].points
+    local baseline=record and equal(points,record.last) and record.original or points
+    local shifted={};for i,p in ipairs(baseline) do shifted[i]={p[1],p[2],p[3],p[4]+x,p[5]+y} end
+    self:Write(owner,f,"points",shifted)
+  end)
+  self.happinessApplying=false
+  if not ok then error(err,0) end
 end
 function M:InitializeDecorHooks()
   self.decorHooks=self.decorHooks or {}
@@ -746,13 +865,6 @@ function M:CopyPlayerShape(unit)
   end
   self:ApplySettings()
 end
-function M:EnergySupport()
-  -- GetPowerRegen exposes a rate, not a natural-regeneration phase/source.
-  -- Neither resource-change events nor a +20 delta identify natural ticks.
-  -- No verified Forever timing API is available: preserve preference, create
-  -- no timer/animation, and never manufacture a two-second server heartbeat.
-  return false,"지원 보류: Forever의 자연 기력 회복 주기·기준 시점을 공개 API로 확인하지 못했습니다. 임의의 2초 표시를 만들지 않습니다."
-end
 function M:ApplyFramePosition(owner,p)
   if owner.positionWriting then return end
   if combat() then self.pending=true;return end
@@ -867,22 +979,68 @@ function M:ResetLabel(kind,unit)
 end
 function M:StopBottomPreview()
   self.bottomPreviewParent=nil;self.bottomPreviewGeneration=nil
-  if self.bottomPreview then self.bottomPreview:Hide() end
+  if self.bottomPreview then self.bottomPreview.drag=nil;self.bottomPreview:SetScript("OnUpdate",nil);self.bottomPreview:Hide() end
 end
 function M:SetBottomPreview(parent,on)
   self:StopBottomPreview()
-  if on then self.bottomPreviewParent=parent;self.bottomPreviewGeneration=KHQOL.profileGeneration;self:RefreshBottomPreview() end
+  if on then
+    local settings=KHQOL.settings
+    self.bottomPreviewHosts=self.bottomPreviewHosts or setmetatable({}, {__mode="k"})
+    for _,host in ipairs({settings,settings and settings.activeContent}) do
+      if not self.bottomPreviewHosts[host] then
+        self.bottomPreviewHosts[host]=true;host:HookScript("OnHide",function() M:StopBottomPreview() end)
+      end
+    end
+    self.bottomPreviewParent=parent;self.bottomPreviewGeneration=KHQOL.profileGeneration;self:RefreshBottomPreview()
+  end
+end
+function M:StartBottomDrag()
+  if combat() or not self.bottomPreviewParent or editing() or not self:IsEnabled() then return end
+  local frame=self.bottomPreview;local p=self:UnitParts("player");if not frame or not p then return end
+  local point,x,y=self:BottomPlacement(self:BottomFrame());if not point then return end
+  local cx,cy=call(GetCursorPosition);local fx,fy=call(frame.GetCenter,frame);local fw,fh=call(frame.GetSize,frame)
+  local px,py=call(p.root.GetCenter,p.root);local pw,ph=call(p.root.GetSize,p.root)
+  local fs=call(frame.GetEffectiveScale,frame);local ps=call(p.root.GetEffectiveScale,p.root)
+  for _,v in ipairs({cx,cy,fx,fy,fw,fh,px,py,pw,ph,fs,ps}) do if not finite(v) then return end end
+  if not cx or not cy or not fx or not fy or not fw or not fh or not px or not py or not pw or not ph or not fs or not ps or fs<=0 or ps<=0 then return end
+  local db=self:GetDB().player
+  -- Starting from a native/default position must not jump to the fixed origin.
+  -- Convert the outline's actual anchor to the same saved coordinate system.
+  local actualX=(fx+(point=="TOPRIGHT" and fw/2 or -fw/2))*fs/ps-(px-pw/2)
+  local actualY=(fy+fh/2)*fs/ps-(py+ph/2)
+  db.bottomX=number(db.bottomX,0,-3000,3000)+actualX-x
+  db.bottomY=number(db.bottomY,0,-3000,3000)+actualY-y
+  frame.drag={x=cx,y=cy,offsetX=db.bottomX,offsetY=db.bottomY,scale=ps,db=db,generation=KHQOL.profileGeneration}
+  db.bottomPlaced=true
+  frame:SetScript("OnUpdate",function() M:UpdateBottomDrag() end)
+  self:UpdateBottomDrag()
+end
+function M:UpdateBottomDrag()
+  local frame=self.bottomPreview;local drag=frame and frame.drag;if not drag then return end
+  if combat() or editing() or not self:IsEnabled() or not self.bottomPreviewParent or
+    drag.generation~=KHQOL.profileGeneration or drag.db~=self:GetDB().player then self:StopBottomPreview();return end
+  local x,y=call(GetCursorPosition);if not finite(x) or not finite(y) then return end
+  drag.db.bottomX=KHQOL.PositionStore:Round(number(drag.offsetX+(x-drag.x)/drag.scale,0,-3000,3000))
+  drag.db.bottomY=KHQOL.PositionStore:Round(number(drag.offsetY+(y-drag.y)/drag.scale,0,-3000,3000))
+  self:ApplyBottom()
+end
+function M:FinishBottomDrag()
+  if not self.bottomPreview or not self.bottomPreview.drag then return end
+  self:UpdateBottomDrag();self.bottomPreview.drag=nil;self.bottomPreview:SetScript("OnUpdate",nil)
+  if self.bottomPreviewParent then KHQOL.UI:Refresh(self.bottomPreviewParent) end
 end
 function M:RefreshBottomPreview()
   local parent=self.bottomPreviewParent
   if not parent then return end
-  if not self:IsEnabled() or not self:GetDB().player.compact or editing() or
-    self.bottomPreviewGeneration~=KHQOL.profileGeneration or call(parent.IsShown,parent)~=true then self:StopBottomPreview();return end
+  if combat() or not self:IsEnabled() or not self:GetDB().player.compact or editing() or
+    self.bottomPreviewGeneration~=KHQOL.profileGeneration or call(parent.IsVisible,parent)~=true then self:StopBottomPreview();return end
   local p=self:UnitParts("player");if not p or call(p.root.IsShown,p.root)~=true then self:StopBottomPreview();return end
   local frame=self.bottomPreview
   if not frame then
     frame=CreateFrame("Frame",nil,UIParent);self.bottomPreview=frame
-    frame:EnableMouse(false);frame:SetFrameStrata("TOOLTIP")
+    frame:EnableMouse(true);frame:SetFrameStrata("TOOLTIP");frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart",function() M:StartBottomDrag() end)
+    frame:SetScript("OnDragStop",function() M:FinishBottomDrag() end)
     frame.edges={}
     for i=1,4 do local t=frame:CreateTexture(nil,"OVERLAY");t:SetColorTexture(.45,.85,.75,1);frame.edges[i]=t end
     local a,b,c,d=unpack(frame.edges)
@@ -896,11 +1054,18 @@ function M:RefreshBottomPreview()
   end
   local native=self:BottomFrame();local shown=native and call(native.IsShown,native)==true
   frame:ClearAllPoints()
-  if shown then frame:SetAllPoints(native);frame.icon:Hide();frame.label:SetText(combat() and "토템 현재 위치 · 전투 후 이동" or "토템 현재 위치")
+  local point=self:GetDB().player.bottomGrowth=="LEFT" and "TOPRIGHT" or "TOPLEFT"
+  frame.marker:ClearAllPoints();frame.marker:SetPoint("CENTER",frame,point,0,0)
+  if shown then frame:SetAllPoints(native);frame.icon:Hide();frame.label:SetText("토템 프레임 · 드래그 이동")
   else
-    frame:SetSize(37,45);frame.icon:Show();frame.label:SetText("토템 위치 예시 · 실제 표시 아님")
-    if native then frame:SetPoint("TOPLEFT",native,"TOPLEFT",0,0)
-    else local db=self:GetDB().player;frame:SetPoint("TOPRIGHT",p.root,"BOTTOMRIGHT",number(db.bottomX,0,-100,100),20+number(db.bottomY,0,-100,100)) end
+    local point,x,y,ratio,single=self:BottomPlacement(native)
+    local ps=call(p.root.GetEffectiveScale,p.root);local fs=call(frame.GetEffectiveScale,frame)
+    if not point or not finite(ps) or not finite(fs) or fs<=0 then self:StopBottomPreview();return end
+    local visualScale=ps/ratio/fs
+    frame:SetSize(single*visualScale,35*visualScale);frame.icon:SetSize(28*visualScale,28*visualScale)
+    frame.icon:ClearAllPoints();frame.icon:SetPoint(point,frame,point,(point=="TOPRIGHT" and -4 or 18)*visualScale,-2*visualScale)
+    frame.icon:Show();frame.label:SetText("토템 프레임 · 예시를 드래그하여 이동")
+    frame:SetPoint(point,p.root,"TOPLEFT",x*ps/fs,y*ps/fs)
   end
   frame:Show()
 end

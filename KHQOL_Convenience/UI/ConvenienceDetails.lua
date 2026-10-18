@@ -25,7 +25,8 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
         check("길드 자금 우선 사용",legacy("useGuildFunds"),function(v) G:GetDB().useGuildFunds=v end,"권한·잔액·한도가 충분하면 길드 자금으로, 부족하면 개인 골드로 수리합니다.")}),
       check("이미 습득한 아이템 표시",get("knownItems"),set("knownItems"),"습득 여부가 확인된 도안·탈것에 체크 표시합니다.",supportedItems,{
         check("도안",get("recipes"),set("recipes")),check("탈것",get("mounts"),set("mounts")),
-        check("가방",get("bags"),set("bags")),check("상점",get("merchant"),set("merchant"))})}},
+        check("가방",get("bags"),set("bags")),check("상점",get("merchant"),set("merchant"))}),
+      check("상인 판매목록 확장",get("merchantExpanded"),set("merchantExpanded"),"기본 순서대로 4열 × 5행으로 확장합니다. 상점 변경 애드온과 충돌하면 적용하지 않습니다.")}},
     {title="자동 거절",items={
       check("결투 요청",get("declineDuel"),set("declineDuel"),"결투 요청을 자동 거절합니다. 펫 대전·대기열은 제외합니다.",function() return type(CancelDuel)=="function" and type(StaticPopup_FindVisible)=="function" end),
       check("거절 채팅 알림",get("declineReport"),set("declineReport"),"결투 요청·파티 초대·길드 초대의 거절 결과를 공통으로 대화창에 표시합니다."),
@@ -35,7 +36,6 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
         check("길드원 허용",get("allowGuild"),set("allowGuild"))})}},
     {title="채집",items={check("채집 추적 상태 유지",get("keepTracking"),set("keepTracking"),"직접 선택한 채광·약초 추적을 부활 후 복원합니다. 직접 끈 추적은 복원하지 않습니다.",supportedTracking,{
       check("복원 채팅 알림",get("trackingReport"),set("trackingReport"))})}},
-    {title="상점",items={check("상인 판매목록 확장",get("merchantExpanded"),set("merchantExpanded"),"기본 순서대로 4열 × 5행으로 확장합니다. 상점 변경 애드온과 충돌하면 적용하지 않습니다.")}},
   }
   local page=CreateFrame("Frame",nil,parent); page:SetPoint("TOPLEFT",0,y); page:SetWidth(parent:GetWidth())
   local step=T.RowHeight+T.RowGap
@@ -71,10 +71,10 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
     local top=0; local width=math.min(T.FormMaxWidth,parent:GetWidth());page:SetWidth(width)
     for _,section in ipairs(sections) do
       local f=section.frame;f:ClearAllPoints();f:SetPoint("TOPLEFT",0,top);f:SetWidth(width)
-      section.group.row:SetWidth(width);section.group:Refresh()
+      section.group.row:SetWidth(width);section.group:SetOptionCount(#section.measure)
       local headerHeight=T.SectionGap+section.group.row:GetHeight()+T.RowGap
       section.body:SetPoint("TOPLEFT",0,-headerHeight);section.body:SetWidth(width)
-      local expanded=UI.disclosureStates[section.group.id];section.body:SetShown(expanded)
+      local expanded=section.group:IsExpanded();section.body:SetShown(expanded)
       local columns=width<T.CheckTwoColumnWidth and 1 or 2
       for _,item in ipairs(section.items) do for _,control in ipairs(item.controls) do
         control.text:SetWidth(width)

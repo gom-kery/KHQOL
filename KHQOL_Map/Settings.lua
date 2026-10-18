@@ -235,9 +235,9 @@ K.ModuleRegistry:Register("minimap",{
     resetProfile=function(m) m:ResetSettings() end,
     resetScope=function() return "계정 공용 미니맵·버튼 정리 설정과 위치·보관 제외 목록을 기본값으로 복원합니다. 다른 모듈과 현재 프로필의 사용 ON/OFF는 유지합니다." end,
     availability=function(m) if m.messages.combat then return "pending",m.messages.combat end end,
-    settings={group="minimap",id="minimap",title="미니맵",description="미니맵과 버튼 정리를 설정합니다. 세부 설정은 계정 공용입니다.",
+    settings={group="minimap",id="minimap",title="미니맵",description="미니맵의 모양·크기·테두리와 주변 아이콘을 설정합니다.",
         commands={"minimap","map","khmap"},build=buildMinimap,
-        subtabs={{id="minimapButtons",title="버튼 정리",build=buildButtons}},
+        subtabs={{id="minimapButtons",title="버튼 정리",description="미니맵 버튼의 수납·배치 방향과 보관 제외 목록을 설정합니다.",build=buildButtons}},
         search={
             {title="미니맵 모양·크기·테두리",description="원형·사각형, 크기, 색상",aliases="minimap map shape size border",route={tab="minimap",scope="계정 공용 미니맵 설정"}},
             {title="지역명·주변 아이콘·위치",description="우편·검색·낮/밤·잠금",aliases="zone mail tracking diel lock",route={tab="minimap",scope="계정 공용 미니맵 설정"}},

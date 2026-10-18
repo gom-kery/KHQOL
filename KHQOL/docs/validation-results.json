@@ -2774,5 +2774,480 @@
     "group": "reflow",
     "test": "labs: fold, leave, return and unfold all tab sections without cell overlap",
     "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "All specifically requested singleton and description headings have no accordion button",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "A numeric field is one option despite its number box and description; stale collapse state cannot hide it",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "Descriptions survive on plain headings and dynamic result text has no collapse control",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "Every non-Labs settings tab has a general entry while unit and party entries remain unchanged",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "Quest summary shares the existing module switch and its shortcut opens the tracker tab",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "The minimap button-organizer entry opens its own tab without changing the module setting",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "General excludes Labs controls and direct Labs navigation preserves access locking",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "Installation information is on the General intro row, read-only and current on hover",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "Merchant expansion occupies the item cell right of known items and below guild repair funds",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "No tab has a unified position button and the single header position editor remains usable",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "Dynamic registration and minimap lists keep a disclosure while static one-field sections stay open",
+    "passed": true
+  },
+  {
+    "group": "refinement",
+    "test": "All audited sections across normal, Hunter and Shaman screens obey the reviewed policy",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "General catalog excludes every Labs feature while Labs routes and locks remain",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "General shortcut keeps a complete arrow in a fixed 26-pixel button at narrow and wide widths",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Installation tooltip has one anchor at the right end of the General introduction row",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Central notification text size is the first setting, above Module Management",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Target cast settings expose width height texture colors icon and spell name with separate search routes",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Legacy cast appearance migrates once by value and target edits do not mutate player settings",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Old profile snapshots migrate before default filling and the obsolete energy preference is retired",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Target style validation repairs corrupt fields and clamps geometry and RGBA independently",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Target native engine scripts text and progress remain untouched while appearance is applied and restored",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Target appearance edits defer during combat and apply the latest value on combat end",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Target style profile copying and selection preserve independent player and target values",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Resource unlock displays an outline and accepts drag; locking restores fill and stops movement",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Both combat message color controls sit to the right of their input and survive responsive reflow",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Energy tick UI runtime helper and search entry are removed without altering other class settings",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Pet happiness native anchor uses independent saved offsets without cumulative movement",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Pet happiness changes defer in combat, restore on OFF and do not touch visibility or texture",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Pet happiness drag preview writes only its own offsets and resets through the position editor",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Pet happiness safely skips absent and unreadable frames without fabricated geometry",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Totem position remains player-relative after native post-combat anchor and parent-layout rewrites",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Totem width and repeated applications do not shift the first icon, reset releases native ownership",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Totem late anchor writes coalesce into one bounded callback without a ticker or OnUpdate",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Common borders retain physical thickness and all eight edges at fractional window scales",
+    "passed": true
+  },
+  {
+    "group": "request",
+    "test": "Border refresh preserves selected and focused colors and has a guarded fallback without PixelUtil",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "general: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "chatEnhancement: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "basicUI: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "frameMover: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "unitFrames: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "castBar: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "partyFrames: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "generalConvenience: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "clock: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "todo: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "tooltip: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "weaponGuide: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "range: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "cursorTrail: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "resourceSwing: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "experienceBar: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "environmentTimer: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "combatStatus: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "threat: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "npcAlert: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "pvpAlert: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "campfire: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "questNavigator: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "buffReminder: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "procAlert: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "frameInspector: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "performanceMonitor: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "objectHighlight: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "minimap: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "Every settings tab and all unit/cast routes reuse controls across ten full menu sweeps",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "Every registered position provider keeps target identity order reset callbacks and bounds stable",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "Profile switches preserve notes registered lists map account data and table identities under UI reuse",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "A repeated combat target party inventory spellbook and world event sequence settles without queued-update loops",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "Retained Range invalidation events update its cache while its idle polling is OFF",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "Module registry deferred work expires across profile generations and latest combat request wins",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "Shared navigation cursor and visible cast drivers retain real-time behavior and detach when disabled",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "No timers are created by normal unit health updates after idle player layout has settled",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "Pet happiness temporary unavailability does not accumulate native hooks when the same frame returns",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "Totem temporary unavailability does not accumulate native hooks or retain a stale origin",
+    "passed": true
+  },
+  {
+    "group": "stability",
+    "test": "Additive target and happiness settings survive the real profile transfer encoder validator and importer",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "All second-depth tabs show their own short description and retain it on refresh and reentry",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "All supported unit parts and both target aura categories describe the selected part",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Context descriptions preserve disabled, pending and failure notices and scope tooltips",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Totem labels, breadcrumbs, search routes and expanded coordinate controls match the request",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Cold hidden login, first summon in combat and combat-end layouts keep one fixed icon position",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Native PlayerFrame width and height changes do not move the totem relative to compact health origin",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Two-to-one, one-to-zero-to-one, pool reuse and repeated managed updates preserve the first icon",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Left and right growth keep the first icon fixed and reuse native durations cooldowns and click scripts",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Unprotected totem anchors follow native combat writes; protected geometry defers until combat ends",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Coordinate and growth edits survive profile copying selection and disable/enable restoration",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Preview starts OFF and moves only the totem through its own outline without the global editor",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Empty preview is draggable, clamps expanded coordinates and retains placement when hidden",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Preview stops its temporary drag on tab/page exit, window close, combat, module OFF and profile changes",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Reset restores native points and direction and removes only the totem placement preference",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Player and totem scales are converted consistently in both growth directions",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Protected pooled children defer a direction change and the latest request applies after combat",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Unreadable native scales do not fabricate an anchor or overwrite the last valid placement",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Module OFF restores its native direction and anchors during temporary managed reparenting",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Expanded coordinates growth and explicit placement survive profile export validation and import",
+    "passed": true
+  },
+  {
+    "group": "help-totem",
+    "test": "Native layout hook count and timer work stay bounded through pooled reuse and menu visits",
+    "passed": true
   }
 ]

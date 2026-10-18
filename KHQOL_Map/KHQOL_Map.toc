@@ -3,7 +3,7 @@
 ## Notes: KHQOL minimap and addon button drawer module. Requires KHQOL.
 ## Notes-koKR: KHQOL 미니맵·버튼 정리 모듈. 계정 설정 KHQOLMapDB를 사용합니다.
 ## Author: KH
-## Version: 1.11.4.1
+## Version: 1.11.4.6
 ## Dependencies: KHQOL
 ## OptionalDeps: KH_map
 ## SavedVariables: KHQOLMapDB

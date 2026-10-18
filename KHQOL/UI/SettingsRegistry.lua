@@ -46,6 +46,11 @@ function R:RegisterModule(key, spec)
       local child=entry(spec.group,tab.id,nil,tab.title,tab.description or spec.description or "")
       child.key=key;child.sharedTabs=true
       KHQOL.UI.SettingsGroups[spec.group]:RegisterTab(tab.id,nil,tab.build)
+      if spec.group~="unitFrames" and spec.group~="partyFrames" then
+        for _,group in ipairs(self.moduleGroups) do for _,page in ipairs(self.pages) do
+          if page[1]==spec.group and group.title==page[2] then group.items[#group.items+1]={key,tab.title,tab=tab.id} end
+        end end
+      end
     end
   end
   local N=KHQOL.UI.SettingsNavigation
@@ -79,7 +84,7 @@ entry("alerts","threat","threat","위협 수치","현재 선택한 적에 대한
 entry("interface","basic","basicUI","기본 UI","가방·메뉴바 표시와 Blizzard 기본창 이동을 설정합니다.",{"basicui"})
 entry("unitFrames","units","unitFrames","유닛 프레임","플레이어·대상·소환수·대상의 대상·주시대상 프레임의 간결한 모양과 표시를 설정합니다.",{ "unitframes" })
 entry("interface","tooltip","tooltip","툴팁 설정","툴팁의 위치, 표시 방식 및 무기 전문가 안내를 조정합니다.",{"tooltip","weapon"})
-entry("convenience","general",nil,"일반 편의","아이템, 자동 거절, 채집 및 상점 기능을 각각 설정합니다.")
+entry("convenience","general",nil,"일반 편의","대화창·아이템 표시와 판매·수리·자동 거절·채집 기능을 설정합니다.")
 R.routes.generalConvenience=R.groups.convenience.general
 entry("interface","clock","clock","시계·정보 표시","시간, 날짜, 요일 및 HUD 정보를 표시합니다.",{"clock"})
 entry("convenience","note","todo","포에버 노트","화면의 노트 창에서 할 일과 메모를 관리합니다.",{"todo"})
@@ -90,6 +95,7 @@ entry("labs","buff","buffReminder","버프 리마인더","유지할 버프와 �
 entry("labs","proc","procAlert","발동 버프","등록한 버프의 전투 중 발동 알림을 설정합니다.")
 entry("labs","highlight","objectHighlight","오브젝트 강조","전리품이 있는 퀘스트 오브젝트의 반짝임 유지 설정을 적용합니다.",{"objecthighlight","sparkles"})
 entry("labs","inspector",nil,"프레임 검사기","마우스 아래 실제 Frame 이름과 부모 구조를 확인합니다.")
+R.groups.labs.inspector.owner="frameInspector"
 entry("labs","performance","performanceMonitor","성능 모니터","KHQOL CPU 시간·메모리 사용량을 오버레이로 표시하고 측정 로그를 복사합니다.",{"performance"})
 R.routes.frameMover=R.modules.basicUI
 R.commands.framemover="frameMover"; R.commands.threat="threat"
@@ -106,9 +112,14 @@ for _,page in ipairs(R.pages) do
     local group={title=page[2],items={}}
     for _,id in ipairs(R.orders[page[1]]) do
       local meta=R.groups[page[1]][id]
-      if meta.key and not (page[1]=="quest" and id=="tracker") then group.items[#group.items+1]={meta.key,meta.title} end
+      if meta.key or meta.owner then
+        local item={meta.key or meta.owner,meta.title}
+        if page[1]=="quest" and id=="tracker" then item.route="questTracker" end
+        group.items[#group.items+1]=item
+      end
     end
     if page[1]=="convenience" then
+      group.items[#group.items+1]={"generalConvenience","일반 편의",navigationOnly=true}
       for index,item in ipairs({{"autoConfirmDestroy","아이템 파괴 자동 입력",true},
         {"chatEnhancement","기본 대화창 편의",true},
         {"autoSellJunk","잡템 자동 판매",true},{"autoRepair","자동 수리",true}}) do

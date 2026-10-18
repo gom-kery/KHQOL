@@ -108,10 +108,11 @@ end
 function UI:LayoutPageIntro(parent)
   local intro=parent.khqolPageIntro;if not intro then return -34 end
   local width=parent:GetWidth()>0 and parent:GetWidth() or T.ContentWidth
-  intro.description:SetWidth(math.max(80,width-(intro.toggle and 124 or 0)))
+  intro.description:SetWidth(math.max(80,width-(intro.toggle and 124 or intro.info and T.ButtonHeight+T.RowGap or 0)))
   local height=math.max(34,intro.description:GetStringHeight()+14)
   intro.divider:ClearAllPoints();intro.divider:SetPoint("TOPLEFT",0,-height);intro.divider:SetWidth(width)
   if intro.toggle then intro.toggle:ClearAllPoints();intro.toggle:SetPoint("TOPLEFT",width-108,0) end
+  if intro.info then intro.info:ClearAllPoints();intro.info:SetPoint("TOPRIGHT",parent,"TOPRIGHT",0,0) end
   return -height
 end
 function UI:CreatePage(parent,title,description,getter,setter)
@@ -125,10 +126,40 @@ function UI:CreatePage(parent,title,description,getter,setter)
   return self:LayoutPageIntro(parent),intro.toggle
 end
 -- These skins are used only by settings controls and the position editor.
+function UI:RefreshSurface(frame)
+  if not frame.khqolSurface then return end
+  local scale=KHQOL.PublicCall(frame.GetEffectiveScale,frame)
+  local edge=1
+  if KHQOL.IsPublicNumber(scale) and scale>0 and PixelUtil and type(PixelUtil.GetNearestPixelSize)=="function" then
+    local value=KHQOL.PublicCall(PixelUtil.GetNearestPixelSize,1,scale,1)
+    if KHQOL.IsPublicNumber(value) and value>0 then edge=value end
+  end
+  if frame.khqolSurfaceEdge~=edge then
+    local r,g,b,a=KHQOL.PublicCall(frame.GetBackdropColor,frame)
+    local br,bg,bb,ba=KHQOL.PublicCall(frame.GetBackdropBorderColor,frame)
+    frame:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=edge,tileEdge=false})
+    if KHQOL.IsPublicNumber(r) and KHQOL.IsPublicNumber(g) and KHQOL.IsPublicNumber(b) and KHQOL.IsPublicNumber(a) then frame:SetBackdropColor(r,g,b,a) end
+    if KHQOL.IsPublicNumber(br) and KHQOL.IsPublicNumber(bg) and KHQOL.IsPublicNumber(bb) and KHQOL.IsPublicNumber(ba) then frame:SetBackdropBorderColor(br,bg,bb,ba) end
+    frame.khqolSurfaceEdge=edge
+  end
+  -- Independent vertex snapping can collapse a subpixel edge at fractional
+  -- window scales. Keep each owned border at least one physical pixel wide.
+  for _,name in ipairs({"TopLeftCorner","TopRightCorner","BottomLeftCorner","BottomRightCorner","TopEdge","BottomEdge","LeftEdge","RightEdge"}) do
+    local piece=frame[name]
+    if piece then
+      if type(piece.SetSnapToPixelGrid)=="function" then piece:SetSnapToPixelGrid(false) end
+      if type(piece.SetTexelSnappingBias)=="function" then piece:SetTexelSnappingBias(0) end
+    end
+  end
+end
 function UI:Surface(frame, opacity)
   if not frame.SetBackdrop and Mixin and BackdropTemplateMixin then Mixin(frame,BackdropTemplateMixin) end
   if not frame.SetBackdrop then return end
-  frame:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
+  if not frame.khqolSurface then
+    frame.khqolSurface=true
+    frame:HookScript("OnShow",function() UI:RefreshSurface(frame) end)
+  end
+  self:RefreshSurface(frame)
   frame:SetBackdropColor(T.Background[1],T.Background[2],T.Background[3],opacity or .98)
   frame:SetBackdropBorderColor(unpack(T.Border))
 end
@@ -251,6 +282,7 @@ function UI:Refresh(parent)
 end
 function UI:RefreshOwned(parent)
   if not self.refreshParents[parent] or not refreshSafe(parent) then return end
+  self:RefreshSurface(parent)
   for _, control in ipairs(parent.uiControls or {}) do if control.Refresh and not control.layoutRefresh then control:Refresh() end end
   for _, caption in ipairs(parent.uiCaptions or {}) do
     caption.region:SetFont(self:Font(),caption.size,"")
@@ -790,15 +822,6 @@ function UI:CreateBuilder(parent, y)
     self:Flush(); self.y=UI:CreateSection(parent,title,self.y)
     local hint=CreateFrame("Frame",nil,parent); hint:SetPoint("TOPLEFT",0,self.y+36); hint:SetSize(parent:GetWidth(),24); hint:EnableMouse(false);hint.tooltipRegion=true
     self.lastControl,self.lastTitle=hint,title
-    local root=parent
-    while root and root~=UIParent and not root.settingsModuleKey do root=root:GetParent() end
-    local key=root and root.settingsModuleKey
-    if key and title:find("위치",1,true) and not root.positionShortcut and UI.SettingsRegistry.positionModules[key] then
-      root.positionShortcut=true
-      local button=self:Button("통합 위치 편집",function() KHQOL.PositionEditor:Enter(key,"group") end)
-      button.navigationOnly=true
-      self:Flush()
-    end
   end
   function builder:Checkbox(title,getter,setter,enabled)
     local x,y,width=self:Cell("check",2,T.RowHeight+T.RowGap)

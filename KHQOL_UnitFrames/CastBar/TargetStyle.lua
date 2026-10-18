@@ -46,7 +46,7 @@ function C:PaintTargetStyle(owner)
   -- Only artwork is changed here. Native cast values, durations and private
   -- cast state are never read, compared, copied or replaced.
   local ok=pcall(function()
-    local f=owner.frame;local db=self:GetDB();local current=color(f)
+    local f=owner.frame;local db=self:GetDB().targetStyle;local current=color(f)
     if current and not same(current,owner.lastColor) then owner.originalColor=current end
     local texture=call(f.GetStatusBarTexture,f)
     if texture then
@@ -101,7 +101,7 @@ function C:ApplyTargetStyle()
     end
   end
   owner.active=true
-  local db=self:GetDB();local a=db.appearance
+  local db=self:GetDB().targetStyle;local a=db.appearance
   local inset=db.icon.enabled and db.icon.size+2 or 0
   local width=math.max(1,a.width-inset)
   B:Write(owner,frame,"width",width);B:Write(owner,frame,"height",a.height)
@@ -128,6 +128,6 @@ function C:ApplyTargetStyle()
     U:WriteDecor(owner,region,"justify",side)
   end
   text(frame.Text,db.spellName,math.max(1,width*.65))
-  text(frame.CastTimeText,db.castTime,math.max(1,width*.3))
+  text(frame.CastTimeText,self:GetDB().castTime,math.max(1,width*.3))
   self:PaintTargetStyle(owner);self.targetStylePending=nil
 end

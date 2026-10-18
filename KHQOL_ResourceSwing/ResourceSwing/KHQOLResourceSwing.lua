@@ -463,6 +463,7 @@ local function ensureUpdate()
 end
 
 local function applyLayout()
+    if db.locked and frame.positionMoving then frame:StopMovingOrSizing();frame.positionMoving=nil end
     local laneHeight = db.swingHeight
     local outside = db.swingPosition ~= "INSIDE"
     frame:SetSize(db.width, db.height + (outside and laneHeight + 2 or 0))
@@ -484,6 +485,14 @@ local function applyLayout()
     resourceTextLayer:SetFrameLevel(frame:GetFrameLevel() + math.max(db.resourcePriority, db.swingPriority) + 1)
     swingFill:SetHeight(laneHeight)
     frame:SetBackdropColor(unpack(db.colors.background))
+    -- The unlocked bar is an owned outline, like a position-editor handle.
+    -- Timer/resource values keep updating underneath and return on locking.
+    local unlocked=not db.locked
+    frame:EnableMouse(unlocked)
+    resourceFill:SetAlpha(unlocked and 0 or 1);resourceTextLayer:SetAlpha(unlocked and 0 or 1)
+    swingLane:SetAlpha(unlocked and 0 or 1)
+    frame.dragOutline:SetFrameLevel(frame:GetFrameLevel()+10);frame.dragOutline:SetShown(unlocked)
+    frame:SetBackdropColor(unpack(unlocked and {0,0,0,0} or db.colors.background))
     resourceText:ClearAllPoints()
     resourceText:SetDrawLayer("OVERLAY", 7)
     resourceText:SetFont(STANDARD_TEXT_FONT, db.resourceTextSize, "OUTLINE"); auxText:SetFont(STANDARD_TEXT_FONT, db.ammoTextSize, "OUTLINE")
@@ -515,6 +524,12 @@ local function createUI()
     resourceFill:SetStatusBarTexture(barTextures.DEFAULT)
     resourceTextLayer = CreateFrame("Frame", nil, frame)
     resourceText = resourceTextLayer:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local outline=CreateFrame("Frame",nil,frame,"BackdropTemplate");frame.dragOutline=outline
+    outline:SetAllPoints(frame);outline:EnableMouse(false);NS.UI:Surface(outline,.35)
+    outline:SetBackdropBorderColor(unpack(NS.UI.Theme.FocusAccent))
+    local caption=outline:CreateFontString(nil,"OVERLAY");caption:SetPoint("CENTER")
+    caption:SetFont(NS.UI:Font(),12,"OUTLINE");caption:SetTextColor(unpack(NS.UI.Theme.FocusAccent))
+    caption:SetText("자원·스윙 바 · 드래그 이동")
     ammoFrame = CreateFrame("Frame", ADDON .. "AmmoAnchor", UIParent, "BackdropTemplate")
     ammoFrame:SetSize(140, 20); ammoFrame:SetMovable(true); ammoFrame:SetClampedToScreen(true); ammoFrame:RegisterForDrag("LeftButton")
     ammoFrame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
@@ -721,6 +736,7 @@ function NS.modules.resourceSwing:SetEnabled(enabled)
             "PLAYER_SWING","WEAPON_SLOT_CHANGED","UNIT_POWER_FREQUENT","PLAYER_TARGET_CHANGED","UPDATE_SHAPESHIFT_FORM","PLAYER_ENTERING_WORLD","GET_ITEM_INFO_RECEIVED"}) do eventFrame:RegisterEvent(event) end
         playerGUID=UnitGUID("player"); applyLayout()
     else
+        if frame.positionMoving then frame:StopMovingOrSizing();frame.positionMoving=nil end
         stopAllSwings(); frame:SetScript("OnUpdate",nil)
     end
     frame:SetShown(enabled)

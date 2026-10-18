@@ -5,7 +5,7 @@ local function enable(m,on) if m and m.SetEnabled then m:SetEnabled(on) end end
 R:Register("basicUI",{profile=true,setEnabled=enable,defaults=function(m) return m and m.defaults or {} end})
 R:Register("frameMover",{always=true,initialize=initialize})
 R:Register("unitFrames",{profile=true,setEnabled=enable,defaults=function(m) return m and m.defaults or {} end,requires={"basicUI"},positions=function(m,focus) return m:EditorTargets(focus) end,migrateSettings=function(m,settings,K) K:MigrateUnitFrameSettings(settings) end})
-R:Register("castBar",{profile=true,setEnabled=enable,defaults=function(m) return m and m.defaults or {} end})
+R:Register("castBar",{profile=true,setEnabled=enable,defaults=function(m) return m and m.defaults or {} end,migrateSettings=function(m,settings) m:MigrateSettings(settings) end})
 do local spec=R.entries.basicUI
   if not spec.positions then spec.positions=function(m,focus,K) local provider=K.PositionProviders.basicUI;return provider and provider(focus,K) or {} end end
 end

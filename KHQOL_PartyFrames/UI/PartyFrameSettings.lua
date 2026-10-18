@@ -149,7 +149,7 @@ K.ModuleRegistry:Register("partyFrames",{
   resetProfile=function(m) m:ResetFrameProfile() end,
   resetScope=function() return "현재 계정 공용 파티·공격대 역할 프로필의 표시·배치를 초기화합니다. 이 프로필을 사용하는 다른 캐릭터에도 반영됩니다. 다른 프로필과 캐릭터 휠 주문은 유지합니다." end,
   positions=function(m) return m:PositionTargets() end,
-  settings={group="partyFrames",id="common",title="파티·공격대",tabTitle="공통",description="1인 플레이어부터 최대 40인 공격대까지 지원합니다",
+  settings={group="partyFrames",id="common",title="파티·공격대",tabTitle="공통",description="파티·공격대의 체력·자원·이름·징표와 역할 표시를 설정합니다.",
     commands={"party","raid"},positions=false,build=function(content,y) return M:BuildCommonSettings(content,y) end,
     subtabs={{id="frames",title="파티·공격대",description="파티·공격대 크기·위치·배치를 설정합니다.",build=function(content,y) return M:BuildSettings(content,y) end},
       {id="auras",title="버프·디버프",description="디버프 아이콘·종류별 체력 색상·보호막 오버레이와 미리보기를 설정합니다.",build=function(content,y) return M:BuildAuraSettings(content,y) end},

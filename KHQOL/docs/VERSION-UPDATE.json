@@ -1,10 +1,16 @@
 {
-  "version": "1.11.4.1",
-  "source": "1.11.4",
-  "archive_filename": "KHQOL-1.11.4.1-아코디언여백-겹침수정.zip",
+  "version": "1.11.4.6",
+  "source_version": "1.11.4.5",
+  "archive_filename": "KHQOL-1.11.4.6-탭설명-토템위치편집.zip",
   "date": "2026-10-18",
-  "tests_passed": 504,
-  "test_groups": {
+  "folder_count": 19,
+  "files": 271,
+  "lua": 193,
+  "xml": 5,
+  "media": 32,
+  "logical_modules": 29,
+  "tests_passed": 599,
+  "test_scenarios": {
     "regression": 256,
     "targeted": 18,
     "party-shared": 24,
@@ -20,12 +26,34 @@
     "layout": 7,
     "preview-paint": 1,
     "settings": 20,
-    "reflow": 20
+    "reflow": 20,
+    "refinement": 12,
+    "request": 23,
+    "stability": 40,
+    "help-totem": 20
   },
-  "baseline_reproduction_expected_failures": 4,
-  "folders": 19,
-  "files": 271,
-  "lua": 193,
-  "xml": 5,
-  "in_game": "pending"
+  "settings_audit": {
+    "unique_sections": 213,
+    "plain_sections": 43,
+    "accordion_sections": 170,
+    "classes": [
+      "WARRIOR",
+      "PALADIN",
+      "HUNTER",
+      "ROGUE",
+      "PRIEST",
+      "SHAMAN",
+      "MAGE",
+      "WARLOCK",
+      "DRUID"
+    ],
+    "audited_instances": 1901,
+    "general_catalog_entries": 26
+  },
+  "new_preferences": [
+    "modules.unitFrames.player.bottomGrowth",
+    "modules.unitFrames.player.bottomPlaced"
+  ],
+  "in_game": "IN-GAME REQUIRED",
+  "cpu_memory_fps": "NOT TESTED"
 }

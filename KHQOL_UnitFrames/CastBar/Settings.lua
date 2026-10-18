@@ -88,10 +88,43 @@ function CastBar:BuildTargetSettings(content,y)
   end
   b:Button("대상 시전바 드래그 이동",function() KHQOL.PositionEditor:Enter("cast.target") end,nil,targetEnabled)
   b:Button("대상 시전바 위치 초기화",function() local p=self:GetDB().targetPosition;p.x=0;p.y=0;self:ApplyTargetPosition() end,nil,targetAvailable)
-  b:Description("공유 모양: 플레이어 탭에서 폭·높이·텍스처·색상·아이콘·스킬명을 설정합니다.",true)
-  local shared=b:Button("플레이어 공통 모양으로 이동",function() UI.SettingsNavigation:Open({module="castBar",castUnit="player",section="바 모양"}) end)
-  shared.navigationOnly=true
-  b:Description("기본 CastTimeText가 있으면 시간 표시 여부·위치·글자 크기도 공유합니다. 실제 시간 문자열·형식과 시전 진행·채널 방향은 게임 기본 처리를 유지하며, 시간 영역이 없으면 새로 만들지 않습니다. 대상 체력·자원 바 아래 기준으로 이동하고 전투 중 모양 변경은 종료 후 적용합니다.",true)
+  local function style() return self:GetDB().targetStyle end
+  local function changed() self:ApplyTargetPosition() end
+  local function slider(title,group,key,min,max,available)
+    return b:Slider(title,min,max,1,function() return style()[group][key] end,function(v) style()[group][key]=v;changed() end,function(v) return tostring(math.floor(v+.5)) end,available or targetEnabled)
+  end
+  local function checkbox(title,group)
+    return b:Checkbox(title,function() return style()[group].enabled end,function(v) style()[group].enabled=v;changed() end,targetEnabled)
+  end
+  local function dropdown(title,group,key,options,available)
+    return b:Dropdown(title,options,function() return style()[group][key] end,function(v) style()[group][key]=v;changed() end,available or targetEnabled)
+  end
+  b:Section("바 모양")
+  slider("높이","appearance","height",8,80);slider("폭","appearance","width",80,800)
+  dropdown("텍스처","appearance","texture",{{value="DEFAULT",text="Blizzard 기본"},{value="FLAT",text="단색"},{value="RAID",text="Raid"},{value="SKILL",text="Skill"}})
+  b:Flush()
+  for _,entry in ipairs({{"바 색상","barColor"},{"배경 색상","backgroundColor"},{"시전 중단 색상","interruptedColor"}}) do
+    local title,key=entry[1],entry[2]
+    b:Color(title,function() return unpack(style().appearance[key]) end,function(r,g,bl,a)
+      local c=style().appearance[key];c[1],c[2],c[3]=r,g,bl;if a~=nil then c[4]=a end;changed()
+    end,targetEnabled,nil,key~="interruptedColor")
+  end
+  b:Section("아이콘")
+  checkbox("스킬 아이콘 표시","icon")
+  local function iconEnabled() return targetEnabled() and style().icon.enabled end
+  dropdown("아이콘 위치","icon","position",{{value="left",text="왼쪽"},{value="right",text="오른쪽"}},iconEnabled)
+  slider("아이콘 크기","icon","size",8,80,iconEnabled)
+  b:Section("스킬명")
+  checkbox("스킬명 표시","spellName")
+  local function nameEnabled() return targetEnabled() and style().spellName.enabled end
+  local options={}
+  for _,id in ipairs(self.positions) do
+    local pos=id
+    options[#options+1]={value=pos,text=positionLabels[pos],disabled=function() local t=self:GetDB().castTime;return t.enabled and t.position==pos end}
+  end
+  dropdown("표시 위치","spellName","position",options,nameEnabled)
+  slider("글자 크기","spellName","fontSize",8,32,nameEnabled)
+  b:Description("대상 모양은 현재 프로필에 따로 저장합니다. 기본 CastTimeText의 표시 여부·위치·글자 크기는 플레이어 탭 설정을 공유합니다. 실제 시간 문자열과 시전 진행·채널 방향은 기본 게임이 유지하며, 전투 중 모양 변경은 종료 후 적용합니다.",true)
   b:Flush();return b.y
 end
 function CastBar:BuildSettings(content,y)
@@ -119,6 +152,7 @@ function CastBar:BuildSettings(content,y)
     for id,button in pairs(self.castButtons) do UI:SetButtonSelected(button,id==kind) end
     local settings=KHQOL.settings
     if settings and settings.activeContent and settings.activeContent.activePanel==self then
+      settings:SetModuleHeader(UI.SettingsRegistry.modules.castBar)
       settings.currentRoute={module="castBar",castUnit=kind};settings.pageTitle:SetText(UI.SettingsNavigation:Path(settings.currentRoute))
       settings:SetPageScrollLayout("bars");settings:UpdateContentHeight()
       if changed then UI.SettingsNavigation:RestoreScroll(settings) end

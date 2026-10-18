@@ -2,16 +2,13 @@ local KHQOL=_G.KHQOL
 local PU=KHQOL.PositionUtils
 local call=KHQOL.PublicCall
 local finite,rect=KHQOL.IsPublicNumber,PU.Rect
-local function applyPoint(frame,p) return PU.ApplyPoint(frame,p) end
 KHQOL.PositionProviders.castBar=function(focus)
   local self=KHQOL
-  local E,m=self.PositionEditor,self.modules
-  local fc=m.clock
+  local m=self.modules
   local list={}
   local function add(...) return PU:Add(list,...) end
   local function pointWriter(...) return PU:PointWriter(...) end
   local function lock(...) return PU:Lock(...) end
-  local function clockApply() fc:ApplyClock();fc:ApplyLayout() end
   local cb=m.castBar
   if cb.db then
     local t=cb:TargetPositionPreview()

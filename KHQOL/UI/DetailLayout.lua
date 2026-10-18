@@ -99,9 +99,18 @@ function UI:CreateDetailLayout(parent,y,key)
     local top,rowHeight,count,kind,lastColumns,previousGroup=0,0,0,nil,0,nil
     local width=math.min(T.FormMaxWidth,parent:GetWidth())
     page:SetWidth(width)
+    local counts={};for _,group in ipairs(L.disclosures) do counts[group]=0 end
+    for _,r in ipairs(rows) do if r.disclosure then
+      local amount=0
+      if r.child and r.child.uiBuilders then
+        for _,builder in ipairs(r.child.uiBuilders) do for _,cell in ipairs(builder.cells) do amount=amount+UI:SettingsCellOptionCount(cell) end end
+      elseif r.check or r.slider or r.dropdown or r.flow then amount=r.flow and 2 or 1 end
+      counts[r.disclosure]=counts[r.disclosure]+amount
+    end end
+    for group,amount in pairs(counts) do group:SetOptionCount(amount) end
     for _,r in ipairs(rows) do
       local show=not r.visible or r.visible()
-      if r.disclosure and not UI.disclosureStates[r.disclosure.id] then show=false end
+      if r.disclosure and not r.disclosure:IsExpanded() then show=false end
       r.frame:SetShown(show)
       if show then
         local columns=r.columns and width>=480 and r.columns or 1

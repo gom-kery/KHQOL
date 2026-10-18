@@ -1,11 +1,9 @@
 local KHQOL=_G.KHQOL
 local PU=KHQOL.PositionUtils
-local call=KHQOL.PublicCall
-local finite,rect=KHQOL.IsPublicNumber,PU.Rect
 local function applyPoint(frame,p) return PU.ApplyPoint(frame,p) end
 KHQOL.PositionProviders.clock=function(focus)
   local self=KHQOL
-  local E,m=self.PositionEditor,self.modules
+  local m=self.modules
   local fc=m.clock
   local list={}
   local function add(...) return PU:Add(list,...) end
@@ -61,7 +59,6 @@ KHQOL.PositionProviders.todo=function(focus)
   local function add(...) return PU:Add(list,...) end
   local function pointWriter(...) return PU:PointWriter(...) end
   local function lock(...) return PU:Lock(...) end
-  local function clockApply() fc:ApplyClock();fc:ApplyLayout() end
   if fc.db then
     local p=fc.db.todo.window
     local note=fc.todoFrame or E:Virtual("note",p,p.width or 430,p.height or 310)

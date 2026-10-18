@@ -1,17 +1,13 @@
 local KHQOL=_G.KHQOL
 local PU=KHQOL.PositionUtils
-local call=KHQOL.PublicCall
-local finite,rect=KHQOL.IsPublicNumber,PU.Rect
 local function applyPoint(frame,p) return PU.ApplyPoint(frame,p) end
 KHQOL.PositionProviders.buffReminder=function(focus)
   local self=KHQOL
-  local E,m=self.PositionEditor,self.modules
-  local fc=m.clock
+  local m=self.modules
   local list={}
   local function add(...) return PU:Add(list,...) end
   local function pointWriter(...) return PU:PointWriter(...) end
   local function lock(...) return PU:Lock(...) end
-  local function clockApply() fc:ApplyClock();fc:ApplyLayout() end
   local fbr=_G.ForeverBuffReminder
   if fbr and ForeverBuffReminderDB then
     local db=ForeverBuffReminderDB
@@ -39,13 +35,9 @@ KHQOL.PositionProviders.buffReminder=function(focus)
 end
 KHQOL.PositionProviders.procAlert=function(focus)
   local self=KHQOL
-  local E,m=self.PositionEditor,self.modules
-  local fc=m.clock
+  local m=self.modules
   local list={}
   local function add(...) return PU:Add(list,...) end
-  local function pointWriter(...) return PU:PointWriter(...) end
-  local function lock(...) return PU:Lock(...) end
-  local function clockApply() fc:ApplyClock();fc:ApplyLayout() end
   local proc=m.procAlert
   if proc.db then add("proc","procAlert","발동 버프 · HUD",proc.frame,function(dx,dy)
     proc.db.hud.x=self.PositionStore:Round(proc.db.hud.x+dx*proc.db.hud.scale);proc.db.hud.y=self.PositionStore:Round(proc.db.hud.y+dy*proc.db.hud.scale)
@@ -57,13 +49,11 @@ KHQOL.PositionProviders.procAlert=function(focus)
 end
 KHQOL.PositionProviders.performanceMonitor=function(focus)
   local self=KHQOL
-  local E,m=self.PositionEditor,self.modules
-  local fc=m.clock
+  local m=self.modules
   local list={}
   local function add(...) return PU:Add(list,...) end
   local function pointWriter(...) return PU:PointWriter(...) end
   local function lock(...) return PU:Lock(...) end
-  local function clockApply() fc:ApplyClock();fc:ApplyLayout() end
   local monitor=m.performanceMonitor
   if monitor.db then add("monitor","performanceMonitor","성능 모니터",monitor.frame,pointWriter(monitor.db),lock(monitor.db,"positionLocked"),function() monitor:ApplyLayout() end) end
   PU:ConfigureResets(list,function(t,point)

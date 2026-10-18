@@ -4,7 +4,7 @@ local B=KHQOL.modules.basicUI
 local M={Write=B.Write,Release=B.Release}; KHQOL.modules.unitFrames=M
 local call,public=KHQOL.PublicCall,KHQOL.IsPublicValue
 M.defaults={player={compact=false,health="default",power="default",width=200,height=58,gap=2,borderAlpha=.85,textSize=12,healthColorMode="default",healthColor={r=0,g=1,b=0},
- namePosition="above",nameX=0,nameY=0,levelPosition="above",levelX=0,levelY=0,bottomX=0,bottomY=0},
+ namePosition="above",nameX=0,nameY=0,levelPosition="above",levelX=0,levelY=0,bottomX=0,bottomY=0,bottomGrowth="RIGHT",bottomPlaced=false},
  target={compact=false,health="default",power="default",width=200,height=58,gap=2,borderAlpha=.85,textSize=12,healthColorMode="default",healthColor={r=1,g=0,b=0}},
  pet={compact=false,width=120,height=42,healthHeight=16,powerHeight=8},
  targettarget={compact=false,width=120,height=42,healthHeight=16,powerHeight=8,frameX=0,frameY=0},
@@ -20,6 +20,7 @@ for _,unit in ipairs(M.unitTokens) do
 end
 M.defaults.player.restX=0;M.defaults.player.restY=0
 M.defaults.player.combatX=0;M.defaults.player.combatY=0
+M.defaults.pet.happinessX=0;M.defaults.pet.happinessY=0
 for _,unit in ipairs({"player","target"}) do
   M.defaults[unit].nameColorMode="default";M.defaults[unit].nameColor={r=1,g=.82,b=0}
   M.defaults[unit].levelColorMode="default";M.defaults[unit].levelColor={r=1,g=1,b=1}
@@ -36,7 +37,7 @@ for _,cfg in pairs(M.defaults.target.auras) do
   cfg.buffs={perRow=8,maxRows=4,growth="RIGHT_DOWN"}
   cfg.debuffs={perRow=8,maxRows=2,growth="RIGHT_DOWN"}
 end
-M.defaults.player.showEnergyTick=false; M.defaults.target.hideDefaultCombo=false
+M.defaults.target.hideDefaultCombo=false
 function KHQOL:MigrateUnitFrameSettings(settings)
   settings.modules=settings.modules or {}; settings.enabled=settings.enabled or {}
   local old=type(settings.modules.basicUI)=="table" and settings.modules.basicUI or nil
@@ -45,10 +46,15 @@ function KHQOL:MigrateUnitFrameSettings(settings)
     settings.enabled.unitFrames=settings.enabled.basicUI~=false
   end
   if old then old.player=nil; old.target=nil end
+  local unit=settings.modules.unitFrames
+  if type(unit)=="table" and type(unit.player)=="table" then unit.player.showEnergyTick=nil end
 end
 function M:GetDB()
   KHQOL:MigrateUnitFrameSettings(KHQOL.db)
   KHQOL.db.modules.unitFrames=KHQOL.MergeDefaults(KHQOL.db.modules.unitFrames or {},self.defaults,"tables")
+  local player=KHQOL.db.modules.unitFrames.player
+  if player.bottomGrowth~="LEFT" then player.bottomGrowth="RIGHT" end
+  player.bottomPlaced=player.bottomPlaced==true
   for _,unit in ipairs({"target","targettarget","focus"}) do
     local d=KHQOL.db.modules.unitFrames[unit]
     if d.healthColorMode=="red" or d.healthColorMode=="class" then d.healthColorMode="reaction" end
@@ -408,7 +414,7 @@ end
 function M:ApplySettings()
   self:InitializePlayerLayoutHooks()
   self:InitializeDecorHooks()
-  self:ApplyUnits(); self:RefreshMonsterMarks();self:ApplyBottom()
+  self:ApplyUnits(); self:RefreshMonsterMarks();self:ApplyBottom();self:ApplyPetHappiness()
   if not combat() and not self.propertyDeferred and not self.playerLayoutPending then self.pending=nil end
   if self.playerLayoutQueued and (not self:IsEnabled() or editing() or not self:GetDB().player.compact) then
     self.playerLayoutQueued.finish()
@@ -445,13 +451,14 @@ function M:Initialize()
       if public(unit) and unit=="player" and M.playerLayoutPending then M:QueuePlayerLayout() end
     elseif event=="UNIT_DISPLAYPOWER" then
       if public(unit) and (unit=="player" or unit=="target" or unit=="pet" or unit=="targettarget" or unit=="focus") then M:ApplyUnits(unit) end
-    elseif event=="UNIT_PET" then M:ApplyUnits("pet")
+    elseif event=="UNIT_PET" then M:ApplyUnits("pet");M:ApplyPetHappiness()
     elseif event=="UNIT_TARGET" then
       if public(unit) and unit=="target" then M:ApplyUnits("targettarget") end
       for _,token in ipairs({"target","targettarget","focus"}) do M:UpdateUnitValues(token) end
     elseif event=="PLAYER_TARGET_CHANGED" then M:ApplyUnits("target"); M:ApplyUnits("targettarget");M:RefreshTargetAuraLayouts()
     elseif event=="PLAYER_FOCUS_CHANGED" then M:ApplyUnits("focus")
     elseif event=="UNIT_THREAT_LIST_UPDATE" or event=="UNIT_THREAT_SITUATION_UPDATE" or event=="PLAYER_REGEN_DISABLED" then
+      if event=="PLAYER_REGEN_DISABLED" then M:StopBottomPreview() end
       for _,token in ipairs({"target","targettarget","focus"}) do M:UpdateUnitValues(token) end
     elseif event=="RAID_TARGET_UPDATE" or event=="PLAYER_UPDATE_RESTING" then
       for token,owner in pairs(M.units or {}) do M:ApplyStateDecorations(owner,owner.parts,token) end

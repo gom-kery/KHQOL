@@ -27,6 +27,7 @@ function UI:CreateSettingsAccordion(parent,title,id,changed,ancestor,expanded)
   local group={id=id,title=title,parent=ancestor}
   local row=CreateFrame("Frame",nil,parent);row:SetSize(parent:GetWidth(),T.ButtonHeight);row:EnableMouse(false);row.settingsNoIndex=true
   local toggle=self:CreateButton(row,"",0,0,T.ButtonHeight,function()
+    if group.collapsible==false then return end
     UI:CloseDropdown();UI:CloseColorPicker()
     UI.disclosureStates[id]=not UI.disclosureStates[id];group:Refresh();changed()
   end)
@@ -34,18 +35,38 @@ function UI:CreateSettingsAccordion(parent,title,id,changed,ancestor,expanded)
   local fs=toggle:GetFontString();fs:SetWidth(T.ButtonHeight);fs:SetWordWrap(false);fs:SetJustifyH("CENTER")
   local label=self:CreateLabel(row,title,T.ButtonHeight+T.RowGap,-6,T.SectionFontSize)
   label:SetWidth(math.max(1,parent:GetWidth()-T.ButtonHeight-T.RowGap))
-  row:HookScript("OnSizeChanged",function(_,w)
-    label:SetWidth(math.max(1,w-T.ButtonHeight-T.RowGap));row:SetHeight(math.max(T.ButtonHeight,label:GetStringHeight()+12))
-  end)
+  local function fit()
+    local x=group.collapsible==false and 0 or T.ButtonHeight+T.RowGap
+    label:ClearAllPoints();label:SetPoint("TOPLEFT",x,-6)
+    label:SetWidth(math.max(1,row:GetWidth()-x));row:SetHeight(math.max(T.ButtonHeight,label:GetStringHeight()+12))
+  end
+  row:HookScript("OnSizeChanged",fit)
   group.row,group.toggle,group.label=row,toggle,label;toggle.settingsDisclosure=group
-  function group:Refresh() self.toggle:SetText(UI.disclosureStates[self.id] and "▼" or "▶") end
+  function group:IsExpanded() return self.collapsible==false or UI.disclosureStates[self.id] end
+  function group:Refresh()
+    self.toggle:SetText(UI.disclosureStates[self.id] and "▼" or "▶");self.toggle:SetShown(self.collapsible~=false)
+    local info=self.toggle.tooltipDescription
+    row.tooltipDescription=info~="클릭하여 설정 항목을 접거나 펼칩니다." and info or ""
+    row:EnableMouse(self.collapsible==false and row.tooltipDescription~="");fit()
+  end
+  function group:SetOptionCount(count)
+    self.optionCount=count;self.collapsible=count>1;self:Refresh()
+  end
   function group:Expand()
     if self.parent then self.parent:Expand() end
     if not UI.disclosureStates[self.id] then UI.disclosureStates[self.id]=true;self:Refresh();changed() end
   end
   local refresh=toggle.Refresh;toggle.Refresh=function() refresh();group:Refresh() end
   self:AttachTooltip(toggle,title,"클릭하여 설정 항목을 접거나 펼칩니다.")
+  self:AttachTooltip(row,title,"")
   toggle:Refresh();return group
+end
+function UI:SettingsCellOptionCount(cell)
+  if cell.optionCount~=nil then return cell.optionCount end
+  if cell.kind=="accordion" or cell.kind=="auraHeading" or cell.kind=="description" or cell.kind=="lookupStatus" or cell.kind=="effectPreview" then return 0 end
+  if cell.kind=="minimap-list" then return 2 end
+  if cell.block then return cell.block:GetObjectType()=="FontString" and 0 or 2 end
+  return #cell.regions>0 and 1 or 0
 end
 function UI:ReflowRegisteredPanels(root)
   local list=root.registeredLayoutFrames
@@ -197,12 +218,6 @@ function UI:CreateBuilder(parent,y)
   end
   function b:Section(title)
     local group=self:Accordion(title,nil,true);self.sectionDisclosure=group
-    local root=parent
-    while root and root~=UIParent and not root.settingsModuleKey do root=root:GetParent() end
-    local key=root and root.settingsModuleKey
-    if key and title:find("위치",1,true) and not root.positionShortcut and UI.SettingsRegistry.positionModules[key] then
-      root.positionShortcut=true;local button=self:Button("통합 위치 편집",function() K.PositionEditor:Enter(key,"group") end);button.navigationOnly=true;self:Flush()
-    end
   end
   function b:Color(title,get,set,enabled,restore,alpha)
     local x,top,width=self:Cell("inlineColor",2,T.RowHeight+T.RowGap)
@@ -278,9 +293,13 @@ function UI:CreateBuilder(parent,y)
       end)
       parent.layoutCells=cells
     end
-    for _,builder in ipairs(parent.uiBuilders) do for _,g in ipairs(builder.disclosures or {}) do
-      g:Refresh()
-    end end
+    local groups={}
+    for _,builder in ipairs(parent.uiBuilders) do for _,g in ipairs(builder.disclosures or {}) do groups[g]=0 end end
+    for _,item in ipairs(cells) do
+      local amount=UI:SettingsCellOptionCount(item);local group=item.disclosure
+      while group do if groups[group]~=nil then groups[group]=groups[group]+amount end;group=group.parent end
+    end
+    for group,amount in pairs(groups) do group:SetOptionCount(amount) end
     if #cells==0 then parent.buildersReflowing=nil;return end
     local width=parent.settingsFullWidth and parent:GetWidth() or math.min(T.FormMaxWidth,parent:GetWidth())
     local top=baseline(cells[1]);local count,kind,rowHeight,lastColumns=0,nil,0,0;local buttonRight=0
@@ -288,7 +307,7 @@ function UI:CreateBuilder(parent,y)
     for _,item in ipairs(cells) do
       local shown=not item.visible or item.visible();local disclosure=item.disclosure
       while disclosure do
-        if not UI.disclosureStates[disclosure.id] then shown=false end
+        if not (disclosure.IsExpanded and disclosure:IsExpanded() or not disclosure.IsExpanded and UI.disclosureStates[disclosure.id]) then shown=false end
         disclosure=disclosure.parent
       end
       for _,r in ipairs(item.regions) do
@@ -340,7 +359,7 @@ function UI:CreateBuilder(parent,y)
             c.text:SetWordWrap(true);height=math.max(height,-dy+c.text:GetStringHeight()+12)
           end
           if c.khqolSkinned and c:GetFontString() then
-            local fs=c:GetFontString();fs:SetWordWrap(true);fs:SetWidth(math.max(10,c:GetWidth()-(c.swatch and 42 or 20)))
+            local fs=c:GetFontString();fs:SetWordWrap(not c.layoutGlyph);fs:SetWidth(math.max(10,c:GetWidth()-(c.layoutGlyph and 0 or c.swatch and 42 or 20)))
             c:SetHeight(math.max(T.ButtonHeight,fs:GetStringHeight()+10))
           end
           if c:GetObjectType()=="FontString" then

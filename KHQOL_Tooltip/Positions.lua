@@ -1,11 +1,10 @@
 local KHQOL=_G.KHQOL
 local PU=KHQOL.PositionUtils
 local call=KHQOL.PublicCall
-local finite,rect=KHQOL.IsPublicNumber,PU.Rect
-local function applyPoint(frame,p) return PU.ApplyPoint(frame,p) end
+local finite=KHQOL.IsPublicNumber
 KHQOL.PositionProviders.tooltip=function()
   local self=KHQOL
-  local E,m=self.PositionEditor,self.modules
+  local m=self.modules
   local list={}
   local function sample(...) return PU:Sample(list,...) end
   local cx,cy=call(UIParent.GetCenter,UIParent)

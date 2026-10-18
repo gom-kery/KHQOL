@@ -196,14 +196,35 @@ function M:PositionPreviews(focus)
       end
     end
   end
+  local happiness=self:PetHappinessFrame()
+  if happiness and self:GetDB().pet.compact then
+    local x,y,w,h,r=rect(happiness)
+    if x then
+      add("unitFrames.pet.happiness","소환수 · 포만감 아이콘",x,y,w,h,r,self:GetDB().pet,"happinessX","happinessY",400,
+        {{texture="Interface\\PetPaperDollFrame\\UI-PetHappiness",texCoord={0,1/3,0,1},width=w*r,height=h*r}})
+    end
+  end
   local p=self:UnitParts("player");local d=self:GetDB().player;local f=self:BottomFrame()
   if p and f and d.compact then
     local x,y,w,h,r=rect(f)
-    if not x then
+    if not x or call(f.IsShown,f)~=true or w<=0 or h<=0 then
       local rx,ry,rw,rh,rr=rect(p.root)
-      if rx then x,y,w,h,r=rx+rw/2-18.5+(d.bottomX or 0),ry-rh/2+20-22.5+(d.bottomY or 0),37,45,rr end
+      local point,bx,by,ratio,single=self:BottomPlacement(f)
+      if rx and point then
+        w,h,r=single/ratio,35/ratio,rr
+        x=rx-rw/2+bx+(point=="TOPRIGHT" and -w/2 or w/2);y=ry+rh/2+by-h/2
+      end
     end
-    if x then add("unitFrames.player.totems","플레이어 · 토템·임시 소환",x,y,math.max(37,w),math.max(45,h),r,d,"bottomX","bottomY",100,{{texture="Interface\\Icons\\Spell_Nature_StoneClawTotem",width=28*r,height=28*r}}) end
+    if x then
+      local spec=add("unitFrames.player.totems","플레이어 · 토템 프레임",x,y,math.max(37,w),math.max(45,h),r,d,"bottomX","bottomY",3000,{{texture="Interface\\Icons\\Spell_Nature_StoneClawTotem",width=28*r,height=28*r}})
+      local _,_,_,_,playerRatio=rect(p.root)
+      spec.write=function(dx,dy)
+        if not finite(playerRatio) or playerRatio<=0 then return end
+        d.bottomX=KHQOL.PositionStore:Round(offset((d.bottomX or 0)+dx/playerRatio,3000))
+        d.bottomY=KHQOL.PositionStore:Round(offset((d.bottomY or 0)+dy/playerRatio,3000));d.bottomPlaced=true
+      end
+      spec.resetWrite=function() d.bottomX=0;d.bottomY=0;d.bottomGrowth="RIGHT";d.bottomPlaced=false end
+    end
   end
   local p=self:UnitParts("target");local owner=self.units and self.units.target
   if p and owner and owner.compactActive then

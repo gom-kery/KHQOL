@@ -22,6 +22,7 @@ CastBar.defaults = {
   position = { mode="free", locked=true, free={point="CENTER",relativePoint="CENTER",x=0,y=-120}, resource={gap=4,matchWidth=true} },
   targetPosition = {enabled=false,x=0,y=0},
 }
+CastBar.defaults.targetStyle=KHQOL.MergeDefaults({}, {appearance=CastBar.defaults.appearance,icon=CastBar.defaults.icon,spellName=CastBar.defaults.spellName},"types")
 local function oneOf(value, choices, default)
   for _, choice in ipairs(choices) do if value == choice then return value end end
   return default
@@ -44,23 +45,36 @@ function CastBar:IsTextPositionAvailable(kind, id)
   local other = kind == "spellName" and self.db.castTime or self.db.spellName
   return not other.enabled or other.position ~= id
 end
+function CastBar:MigrateSettings(settings)
+  local db=settings.modules and settings.modules.castBar
+  if type(db)=="table" and type(db.targetStyle)~="table" then
+    db.targetStyle=KHQOL.CopyProfileValue({appearance=db.appearance,icon=db.icon,spellName=db.spellName})
+  end
+end
+local function normalizeStyle(style)
+  local a=style.appearance
+  a.width=clamp(a.width,80,800,300);a.height=clamp(a.height,8,80,22)
+  if not CastBar.textures[a.texture] then a.texture="DEFAULT" end
+  a.notInterruptibleColor=nil
+  for _,key in ipairs({"barColor","backgroundColor","interruptedColor"}) do
+    for i=1,4 do a[key][i]=clamp(a[key][i],0,1,CastBar.defaults.appearance[key][i]) end
+  end
+  style.icon.position=oneOf(style.icon.position,{"left","right"},"left")
+  style.icon.size=clamp(style.icon.size,8,80,22)
+  style.spellName.position=oneOf(style.spellName.position,positions,"inside_left")
+  style.spellName.fontSize=clamp(style.spellName.fontSize,8,32,12)
+end
 function CastBar:GetDB()
   local db = KHQOL.db.modules.castBar
   if type(db) ~= "table" then db={}; KHQOL.db.modules.castBar=db end
+  -- Existing installations inherit their previously shared target appearance
+  -- once. Both tables are copied, so later target edits cannot change player UI.
+  self:MigrateSettings(KHQOL.db)
   KHQOL.MergeDefaults(db, self.defaults, "types")
-  local a, p = db.appearance, db.position
-  a.width=clamp(a.width,80,800,300); a.height=clamp(a.height,8,80,22)
-  if not self.textures[a.texture] then a.texture="DEFAULT" end
-  a.notInterruptibleColor=nil
-  for _, key in ipairs({"barColor","backgroundColor","interruptedColor"}) do
-    for i=1,4 do a[key][i]=clamp(a[key][i],0,1,self.defaults.appearance[key][i]) end
-  end
-  db.icon.position=oneOf(db.icon.position,{"left","right"},"left")
-  db.icon.size=clamp(db.icon.size,8,80,22)
-  for _, key in ipairs({"spellName","castTime"}) do
-    db[key].position=oneOf(db[key].position,positions,self.defaults[key].position)
-    db[key].fontSize=clamp(db[key].fontSize,8,32,12)
-  end
+  local p = db.position
+  normalizeStyle(db);normalizeStyle(db.targetStyle)
+  db.castTime.position=oneOf(db.castTime.position,positions,"inside_right")
+  db.castTime.fontSize=clamp(db.castTime.fontSize,8,32,12)
   db.castTime.format=oneOf(db.castTime.format,{"remaining","total","remaining_total"},"remaining")
   db.behavior.direction=oneOf(db.behavior.direction,{"left_to_right","right_to_left"},"left_to_right")
   p.mode=oneOf(p.mode,{"free","resource_above","resource_below"},"free")
@@ -69,7 +83,9 @@ function CastBar:GetDB()
   p.free.x=clamp(p.free.x,-3000,3000,0); p.free.y=clamp(p.free.y,-3000,3000,-120)
   p.resource.gap=clamp(p.resource.gap,0,20,4)
   db.targetPosition.x=clamp(db.targetPosition.x,-1000,1000,0);db.targetPosition.y=clamp(db.targetPosition.y,-1000,1000,0)
-  self:ResolveTextPositionConflict(nil,db); self.db=db
+  self:ResolveTextPositionConflict(nil,db)
+  self:ResolveTextPositionConflict("castTime",{spellName=db.targetStyle.spellName,castTime=db.castTime})
+  self.db=db
   return db
 end
 function CastBar:IsEnabled() return KHQOL:GetEnabled("castBar") end

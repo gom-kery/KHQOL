@@ -1,17 +1,14 @@
 local KHQOL=_G.KHQOL
 local PU=KHQOL.PositionUtils
 local call=KHQOL.PublicCall
-local finite,rect=KHQOL.IsPublicNumber,PU.Rect
-local function applyPoint(frame,p) return PU.ApplyPoint(frame,p) end
+local finite=KHQOL.IsPublicNumber
 KHQOL.PositionProviders.range=function(focus)
   local self=KHQOL
-  local E,m=self.PositionEditor,self.modules
-  local fc=m.clock
+  local m=self.modules
   local list={}
   local function add(...) return PU:Add(list,...) end
   local function pointWriter(...) return PU:PointWriter(...) end
   local function lock(...) return PU:Lock(...) end
-  local function clockApply() fc:ApplyClock();fc:ApplyLayout() end
   local fr=m.range
   if fr.db then add("range","range","Range · 사거리",fr.Display.frame,pointWriter(fr.db),lock(fr.db),function() fr.Display:ApplyLayout(true) end,{sample=fr.db.shape,sampleSize=fr.db.size,bounds=function(x,y) local w,h=fr.Display.frame:GetSize();return x,y,math.max(16,w),math.max(16,h) end}) end
   PU:ConfigureResets(list,function(t,point)
@@ -22,7 +19,7 @@ end
 local rangeBase=KHQOL.PositionProviders.range
 KHQOL.PositionProviders.range=function(focus)
   local self=KHQOL
-  local E,m=self.PositionEditor,self.modules
+  local m=self.modules
   local list={}
   local function sample(...) return PU:Sample(list,...) end
   local cx,cy=call(UIParent.GetCenter,UIParent)

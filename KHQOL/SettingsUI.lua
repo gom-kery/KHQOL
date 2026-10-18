@@ -72,6 +72,14 @@ local function profileSettings(content,y)
   return b.y
 end
 local function generalSettings(content,y)
+  local intro=content.khqolPageIntro
+  if intro then
+    intro.info=KHQOL.settings.installationStatusInfo
+    intro.info:SetParent(content);intro.info:ClearAllPoints()
+    intro.info:SetSize(T.ButtonHeight,T.ButtonHeight)
+    y=UI:LayoutPageIntro(content)
+  end
+  if KHQOL.modules.general then y=KHQOL.modules.general:BuildGlobalSettings(content,y) end
   local b=UI:CreateBuilder(content,y)
   b:Section("모듈 관리")
   b:Description("변경 즉시 적용 · 파일 저장은 /reload · 로그아웃 시",true)
@@ -81,30 +89,41 @@ local function generalSettings(content,y)
     b:Section(group.title)
     for _,item in ipairs(group.items) do
       local key,name,isGeneral=item[1],item[2],item[3]
+      local route=item.route or (isGeneral and "generalConvenience" or key)
+      local meta=registry.routes[route] or registry.modules[key] or (isGeneral and registry.groups.convenience.general)
+      if item.tab and meta then meta=registry.groups[meta.group][item.tab] or meta end
+      local labProtected=meta and meta.group=="labs" or KHQOL.LabLock:IsExperimental(key)
+      local function open()
+        if item.tab then UI.SettingsNavigation:Open({module=key,tab=item.tab}) else KHQOL:OpenModule(route) end
+      end
+      if item.navigationOnly then
+        local button=b:Button(name.." →",open)
+        button.navigationOnly=true;content.moduleControls[route]=button
+        if meta then UI:AttachTooltip(button,name,meta.description) end
+      else
       local checkbox=b:Checkbox(name,
         function() return isGeneral and KHQOL.modules.general:GetDB()[key] or (not isGeneral and KHQOL:GetEnabled(key)) end,
-        function(on) if isGeneral then KHQOL.modules.general:SetConvenienceEnabled(key,on) else KHQOL:SetEnabled(key,on) end end)
+        function(on) if isGeneral then KHQOL.modules.general:SetConvenienceEnabled(key,on) else KHQOL:SetEnabled(key,on) end end,
+        function() return not labProtected or KHQOL.LabLock:IsUnlocked() end)
+      checkbox.labProtected=labProtected
       checkbox.text:SetWordWrap(true)
-      local meta=registry.modules[key] or (isGeneral and registry.groups.convenience.general)
       if meta then
         UI:AttachTooltip(checkbox,name,meta.description)
+        if key=="questNavigator" then UI:AttachTooltip(checkbox,name,"퀘스트 목록과 길 안내는 같은 모듈 사용 상태를 공유합니다.") end
+        if key=="minimap" then UI:AttachTooltip(checkbox,name,"미니맵과 버튼 정리는 같은 모듈 사용 상태를 공유합니다.") end
+        if labProtected then UI:AttachTooltip(checkbox,name,"실험실 잠금 해제 후 사용할 수 있습니다.") end
         checkbox.layoutLabelReserve=T.ButtonHeight+T.RowGap
         local cell=b.activeCell
-        local shortcut=UI:CreateButton(content,"→",cell.x+cell.width-T.ButtonHeight,cell.top,T.ButtonHeight,function() KHQOL:OpenModule(isGeneral and "generalConvenience" or key) end)
-        shortcut.navigationOnly=true
+        local shortcut=UI:CreateButton(content,"→",cell.x+cell.width-T.ButtonHeight,cell.top,T.ButtonHeight,open)
+        shortcut.navigationOnly=true;shortcut.layoutGlyph=true;shortcut.layoutPreferredWidth=T.ButtonHeight
         shortcut.tooltipTitle="설정 바로가기";shortcut.tooltipDescription=""
       end
-      content.moduleControls[key]=checkbox
+      content.moduleControls[item.route or item.tab or key]=checkbox
+      end
     end
     b:Flush()
   end
-  if KHQOL.modules.general then b.y=KHQOL.modules.general:BuildGlobalSettings(content,b.y) end
-  b:Section("설치 상태")
-  for _,package in ipairs(KHQOL.PackageOrder) do
-    local status=KHQOL:GetPackageStatus(package)
-    b:Description(KHQOL.Packages[package].title.." · "..status,true)
-  end
-  b:Section("미니맵")
+  b:Section("KHQOL 설정 버튼")
   b:Checkbox("KHQOL 미니맵 버튼 표시",function() return KHQOL.db.minimap.show end,function(on) KHQOL.db.minimap.show=on; KHQOL:UpdateMinimapButton() end)
   b:Description("KHQOL·Note 미니맵 버튼은 위치 편집 없이 왼쪽 버튼으로 끌어 이동합니다.",true)
   b:Button("미니맵 버튼 위치 초기화",function() KHQOL.db.minimap.angle=225; KHQOL:UpdateMinimapButton() end,210)
@@ -168,6 +187,19 @@ function KHQOL:CreateSettings()
   local close=UI:CreateButton(f,"X",T.WindowWidth-52,-20,32,function() f:Hide() end); close:SetWidth(32)
   edit:ClearAllPoints();edit:SetPoint("TOPRIGHT",-70,-20)
   close:ClearAllPoints();close:SetPoint("TOPRIGHT",-20,-20)
+  local installationInfo=UI:CreateButton(f,"?",0,0,T.ButtonHeight,function() end)
+  installationInfo.navigationOnly=true;installationInfo.ignoreModuleEnabled=true
+  installationInfo:SetSize(T.ButtonHeight,T.ButtonHeight);installationInfo:ClearAllPoints();installationInfo:Hide()
+  installationInfo:GetFontString():SetWidth(T.ButtonHeight);installationInfo:GetFontString():SetWordWrap(false)
+  installationInfo:SetScript("OnEnter",function()
+    GameTooltip:SetOwner(installationInfo,"ANCHOR_BOTTOMRIGHT");GameTooltip:SetText("설치 상태",unpack(T.Accent))
+    GameTooltip:AddLine("KHQOL 공통 기반 · "..KHQOL.VERSION,unpack(T.TextPrimary))
+    for _,package in ipairs(KHQOL.PackageOrder) do GameTooltip:AddLine(KHQOL.Packages[package].title.." · "..KHQOL:GetPackageStatus(package),unpack(T.TextPrimary)) end
+    GameTooltip:Show()
+  end)
+  installationInfo:SetScript("OnLeave",function() GameTooltip:Hide() end)
+  installationInfo:HookScript("OnHide",function() GameTooltip:Hide() end)
+  f.installationStatusInfo=installationInfo
   N:BuildSearch(f,T.SidebarWidth+T.ContentPadding,-55,math.max(250,f:GetWidth()-T.SidebarWidth-58))
   if UISpecialFrames then table.insert(UISpecialFrames,"KHQOLSettingsFrame") end
   local divider=f:CreateTexture(nil,"ARTWORK"); divider:SetColorTexture(unpack(T.Divider))
@@ -215,7 +247,8 @@ function KHQOL:CreateSettings()
       if f.currentModuleKey then KHQOL:SetEnabled(f.currentModuleKey,on) end
     end)
   moduleHeader.toggle.ignoreModuleEnabled=true;moduleHeader.toggle.text:SetWidth(76)
-  UI:CreateDivider(moduleHeader,-34)
+  local moduleDivider=UI:CreateDivider(moduleHeader,-34)
+  moduleDivider:ClearAllPoints();moduleDivider:SetPoint("BOTTOMLEFT",0,8);moduleDivider:SetPoint("BOTTOMRIGHT",0,8)
   function f:SetModuleSubHeader(header)
     if self.moduleSubHeader and self.moduleSubHeader~=header then self.moduleSubHeader:Hide() end
     self.moduleSubHeader=header
@@ -304,6 +337,7 @@ function KHQOL:CreateSettings()
   end
   function f:SetModuleHeader(meta)
     if meta and meta.group=="labs" and not KHQOL.LabLock:IsUnlocked() then meta=nil end
+    self.currentModuleMeta=meta
     self.currentModuleKey=meta and meta.key
     self.currentRoute={module=self.currentModuleKey or meta and meta.id=="general" and "generalConvenience" or self.page or "general"}
     moduleHeader.moduleKey=self.currentModuleKey
@@ -311,7 +345,16 @@ function KHQOL:CreateSettings()
     local scope=meta and meta.id=="inspector" and "세션 검사 · 페이지 종료 시 정지" or meta and meta.key=="partyFrames" and "프레임 프로필 · 모듈 사용은 전체 프로필" or "현재 전체 프로필"
     local status=meta and N:Status({route={module=meta.key},title="",scope=scope}) or ""
     local shortStatus=tostring(status):match("^[^·\n]+") or status
-    moduleHeader.description:SetText(meta and (status==scope and scope or scope.." · "..shortStatus) or "")
+    local description=meta and meta.description or ""
+    local panel=self.activeContent and self.activeContent.activePanel
+    if meta and meta.key=="castBar" and panel and panel.selectedCastUnit then
+      description=(panel.selectedCastUnit=="target" and "대상" or "플레이어").." 시전 바의 크기·텍스처·색상과 아이콘·스킬명 표시를 설정합니다."
+    end
+    local party=meta and meta.key=="partyFrames" and KHQOL.modules.partyFrames
+    if meta and status~=scope and (not party or party.pending or party.failure or party.editing or not party.applied) then
+      description=description.." · "..shortStatus
+    end
+    moduleHeader.description:SetText(description)
     moduleHeader.tooltipTitle=meta and meta.title or "설정 안내";moduleHeader.tooltipDescription=meta and (meta.description.."\n"..status) or ""
     moduleHeaderHeight=math.max(42,moduleHeader.description:GetStringHeight()+14)
     moduleHeader:SetHeight(moduleHeaderHeight)
@@ -335,7 +378,7 @@ function KHQOL:CreateSettings()
     if panel.Reflow then panel:Reflow() end
     if content~=panel and content.Reflow then content:Reflow() end
     UI:Refresh(content)
-    if self.currentModuleKey then local route=self.currentRoute;self:SetModuleHeader(registry.modules[self.currentModuleKey]);self.currentRoute=route end
+    if self.currentModuleMeta then local route=self.currentRoute;self:SetModuleHeader(self.currentModuleMeta);self.currentRoute=route end
     UI:Refresh(moduleHeader)
     if self.groupHeaders[self.page] then UI:Refresh(self.groupHeaders[self.page]) end
     if self.moduleSubHeader then UI:Refresh(self.moduleSubHeader) end
@@ -357,7 +400,7 @@ function KHQOL:CreateSettings()
     N:CancelSearch(self);UI:CloseDropdown()
     if self.activeContent then UI:CancelInputs(self.activeContent);self.activeContent:Hide() end
     profile:Refresh()
-    self.page=key;self.pageName=definition[2];self.pageTitle:SetText(definition[2])
+    self.page=key;self.pageName=definition[2];self.pageTitle:SetText(definition[2]);installationInfo:SetShown(key=="general")
     local header=self.groupHeaders[key]
     if header then header:SetWidth(child:GetWidth());if header.ReflowTabs then header:ReflowTabs() end end
     self:SetModuleSubHeader(nil)

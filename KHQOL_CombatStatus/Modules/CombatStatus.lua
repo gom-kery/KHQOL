@@ -317,16 +317,32 @@ function CombatStatus:BuildSettings(content,y)
   local function check(title,key)
     return b:Checkbox(title,function() return db[key] end,function(v) db[key]=v; self:Changed(key) end)
   end
-  local function message(title,key,flag)
-    b:Edit(title,function() return db[key] end,function(v) db[key]=v; self:Changed(key) end,function() return db[flag] end)
-  end
-  local function color(title,key,flag)
-    b:Color(title,function() return unpack(db[key]) end,function(r,g,bl) db[key]={r,g,bl}; self:Changed(key) end,function() return db[flag] end)
+  local function message(section,key,colorKey,flag)
+    local UI,T=KHQOL.UI,KHQOL.UI.Theme
+    local row=CreateFrame("Frame",nil,content);row:SetSize(content:GetWidth(),T.DropdownRowHeight)
+    row.settingsRoute={module="combatStatus",section=section};row.settingsDisclosure=b.currentDisclosure
+    local function available() return db[flag] end
+    local function get() return db[key] end
+    local function set(v) db[key]=v;self:Changed(key) end
+    local label=UI:CreateLabel(row,"문구 (Enter로 저장)",0,0)
+    local input=UI:CreateEditBox(row,0,-24,200,get,set,available);input.uiLabels={label}
+    UI.SettingsNavigation:Attach(row,input,"문구 (Enter로 저장)",get,set,available)
+    local colorLabel=UI:CreateLabel(row,"색상",0,-30)
+    local color=UI:CreateColorPicker(row,"",0,0,function() return unpack(db[colorKey]) end,function(r,g,bl) db[colorKey]={r,g,bl};self:Changed(colorKey) end,available)
+    local function fit()
+      local colorWidth=color:GetWidth();local textWidth=colorLabel:GetUnboundedStringWidth()
+      input:SetWidth(math.max(56,row:GetWidth()-colorWidth-textWidth-2*T.RowGap))
+      label:SetWidth(input:GetWidth());colorLabel:SetWidth(textWidth)
+      colorLabel:ClearAllPoints();colorLabel:SetPoint("LEFT",input,"RIGHT",T.RowGap,0)
+      color:ClearAllPoints();color:SetPoint("LEFT",colorLabel,"RIGHT",T.RowGap,0)
+    end
+    local refresh=input.Refresh;input.Refresh=function() refresh();UI:ApplyAvailability(input,available,{label,colorLabel});fit() end
+    row:HookScript("OnSizeChanged",fit);fit();b:Block(row,T.DropdownRowHeight)
   end
   b:Section("전투 시작")
-  check("문구 표시","showEnter"); message("문구 (Enter로 저장)","enterText","showEnter"); color("색상","enterColor","showEnter")
+  check("문구 표시","showEnter");message("전투 시작","enterText","enterColor","showEnter")
   b:Section("전투 종료")
-  check("문구 표시","showLeave"); message("문구 (Enter로 저장)","leaveText","showLeave"); color("색상","leaveColor","showLeave")
+  check("문구 표시","showLeave");message("전투 종료","leaveText","leaveColor","showLeave")
   b:Section("위치")
   check("위치 잠금","locked")
   b:Description("잠금을 해제하면 이동 앵커를 드래그할 수 있습니다. 전투 알림은 잠금 상태와 관계없이 표시됩니다.")

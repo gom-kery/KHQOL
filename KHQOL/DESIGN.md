@@ -1,8 +1,10 @@
-# KHQOL 1.11.4.1 설정 배치
+# KHQOL 1.11.4.6 설정 배치
+
+설정·실행 항목이 0~1개인 섹션은 화살표 없이 일반 제목과 항상 펼친 내용으로 표시합니다. 복수 항목과 가변 등록·편집 영역에 작은 화살표를 사용합니다. 설명은 항목 수에서 제외합니다. 설치 상태는 일반 헤더 [?] 툴팁이며 공용 위치 편집은 설정창 헤더에서 제공합니다.
 
 접기·펼치기는 활성 화면의 상위 배치까지 갱신합니다. 화면 자체의 Builder는 현재 내용 높이를 스크롤 호스트에 전달합니다.
 
-공용 Design System v2.0의 색·글꼴·입력 규칙을 유지하고, 모든 설정의 섹션 앞에 26×26 화살표 버튼과 일반 제목을 사용합니다. 기본 섹션은 펼침, 기존 고급 섹션은 접힘을 유지합니다. 상태는 현재 세션에서만 보관합니다.
+공용 Design System v2.0의 색·글꼴·입력 규칙을 유지하고, 접을 수 있는 섹션 앞에 26×26 화살표 버튼과 일반 제목을 사용합니다. 기본 섹션은 펼침, 기존 고급 섹션은 접힘을 유지합니다. 상태는 현재 세션에서만 보관합니다.
 
 입력 옵션은 폭 480 이상에서 두 열을 사용합니다. 긴 내용과 목록·편집기는 전체 폭이며 좁은 창에서는 한 열로 표시합니다. 접힌 행은 공간을 제거하고 검색은 필요한 섹션을 펼칩니다. 데이터·실제 기능 엔진은 바꾸지 않습니다. 아래 과거 기능별 유지보수 규칙을 함께 보존합니다.
 
@@ -28,7 +30,7 @@
 
 ## 1.10.9.8 대상 시전바 외형·착용 아이템 레벨
 
-- CastBar/TargetStyle.lua는 기존 TargetFrame.spellbar의 공개 외형만 꾸민다. targetPosition.enabled 및 X/Y를 유지하고 플레이어 appearance/icon/spellName 설정을 공유한다. native 값·duration·castID·barType을 읽거나 계산하지 않는다. 기본 SetUnit/이벤트/OnUpdate를 호출·교체·해제하지 않는다.
+- CastBar/TargetStyle.lua는 기존 TargetFrame.spellbar의 공개 외형만 꾸민다. targetPosition.enabled 및 X/Y를 유지하고 targetStyle.appearance/icon/spellName을 따로 저장한다. 이전 프로필은 기본값 병합 전에 기존 플레이어 모양을 값으로 복사한다. castTime은 기존 공유 정책을 유지한다. native 값·duration·castID·barType을 읽거나 계산하지 않는다. 기본 SetUnit/이벤트/OnUpdate를 호출·교체·해제하지 않는다.
 - 공개 크기·폰트·위치·장식 alpha의 소유권은 기존 BasicUI/UnitFrameDecor의 원본/마지막 적용값 정책을 재사용한다. fill texture/atlas/UV/color는 공개 확인된 원본과 실제 엔진의 마지막 적용값을 보관한다. 엔진의 fileID 변환·색 반올림을 반영하고 외부 변경은 OFF에서 덮어쓰지 않는다.
 - 형상·폰트 변경은 전투 밖에서만 한다. native UpdateBarFillTexture/PlayInterruptAnims 후속 훅은 공개 설정 artwork만 쓴다. 비공개 native 색·이미지는 해석하지 않고 마지막 공개 복원값을 유지한다. 채널 방향·기본 시간 문구를 유지하고 없는 시간 영역을 복제하지 않는다. OFF는 소유한 변경만 복원한다.
 - EquipmentLevels.lua는 기존 generalConvenience에 equipmentLevels=true 하나만 추가한다. 표준 Character*Slot 19개와 player inventory ID/link를 사용한다. 아이템 레벨은 상세 아이템 API의 actualItemLevel, 구 API에서는 GetItemInfo의 4번째 값이다. 최소 요구 레벨을 표시하지 않는다.
@@ -146,7 +148,7 @@ XP/환경/발동/PvP의 기존 런타임 잠금과 저장형 잠금을 구분한
 - font 초기화는 compact ON 상태에서도 원본 크기로 복원한다. 모양 복사는 전용 기능/실제 위치/활성을 복사하지 않는다.
 - 퀘스트 viewport는 native 섹션 콘텐츠 사용 높이가 아닌 컨테이너/다음 섹션 경계로 계산한다. 요청 병합과 generation/전투 정책을 유지하고 native Update/MarkDirty는 호출하지 않는다.
 - 대화창 방향키의 native EditBox mode와 기본 자동완성 방향키 스크립트 조정은 유지한다. 1.10.9.9부터 UP/DOWN은 위의 bounded session mirror로 보완한다. 자동완성·사용자/다른 애드온 스크립트를 덮어쓰지 않고 UTF-8·기존 입력 처리를 유지한다.
-- 기력 회복 phase가 검증되지 않으면 표시하지 않는다. 전투 로그 추론, 20 증가 학습, 임의 2초 반복은 금지한다.
+- 기력 회복 표시의 설정·검색·지원 함수를 제거했다. 이전 키는 프로필 읽기에서 정리한다.
 
 ## 1.10.8.4 표시·입력 회귀
 
@@ -263,3 +265,19 @@ KHQOLDB.toolWindows.preferences의 width/height/unit/part/auraCategory/editorMod
 파티·공격대는 common/frames/roles 세 탭에서 공통 표시·크기/배치·클릭/역할 프로필을 나누며 기존 단일 모듈 저장 소유권을 유지한다. 공통 상수 ClassColors는 9개 직업만 제공하고 개인·파티 체력/미리보기/색상 곡선에서 공유한다. 자원색/게임 전역 팔레트/사용자 지정색은 변경하지 않는다.
 
 프로필 전송은 데이터 코드 ProfileTransfer.lua를 그대로 유지하고 UI 창의 표시 계층/레벨만 올린다. 미리보기·위치 편집의 버튼은 자동 축소 뒤에도 중앙에 맞도록 명시 폭으로 배치한다. 편집 결과 경로는 groupFilter에서 선택한 category/group 부분만 표시에서 제거하며 전체 경로 검색/툴팁·안정적 대상 ID·세대 검사·완료/취소 writer는 보존한다.
+
+
+## 1.11.4.5 안정성 계약
+
+- 일반 목록은 실험실을 제외한다. 설치 상태 [?]는 일반 소개 행 오른쪽에 단일 앵커로 둔다. 바로가기 화살표는 26px 안에서 여백 없이 한 글자를 표시한다.
+- 잠금 해제된 자원바는 재사용하는 테두리 프레임과 안내 문구로 이동 상태를 표시하며, 잠금 시 실제 리소스/스윙 표시로 돌아간다.
+- 포만감은 PetFrame 직속 PetFrameHappiness의 공개 앵커만 변경한다. compact OFF, 모듈 OFF, 기본 편집 모드에서 소유 값을 복원하고 전투 중 변경은 보류한다.
+- 토템은 부모를 바꾸지 않고 첫 아이콘의 기준을 PlayerFrame에 고정한다. 외부 SetPoint/ClearAllPoints는 한 번의 After(0)로 병합한다. 기본 컨테이너 폭/위치가 바뀌어도 기준은 누적되지 않는다.
+- 토템·포만감 네이티브 훅은 프레임별 소유 객체를 재사용한다. 공개 참조/부모 계층이 잠시 없어져도 새 훅을 덧붙이지 않는다.
+- 공통 Surface는 가능한 경우 PixelUtil.GetNearestPixelSize로 최소 1 물리 픽셀 두께를 적용하고 소유 NineSlice 가장자리의 개별 스냅을 해제한다. PixelUtil 부재 시 기존 1 UI단위 두께를 유지한다. 실제 래스터 결과는 게임에서 확인한다.
+
+픽셀 크기/Backdrop 구조 대조에 사용한 게임 UI 소스: [PixelUtil.lua](https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_SharedXML/PixelUtil.lua), [Backdrop.lua](https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_SharedXML/Backdrop.lua). Forever의 전체 동작을 Retail 코드와 같다고 가정하지 않으며 지원 함수는 존재 여부와 공개 반환값을 확인한다.
+
+## 1.11.4.6 하위 탭과 토템 편집
+
+하위 탭의 공통 프로필 문구를 선택한 기능의 짧은 설명으로 교체합니다. 상태 경고와 데이터 저장 정책은 유지합니다. 토템 프레임은 프레임 위치 확인 ON에서 전용 테두리를 드래그하며 좌표 ±3000, 좌우 확장 방향을 제공합니다. 네이티브 아이콘·시간·툴팁·우클릭을 유지하고 숨김 프레임의 임시 측정값이나 일시적인 플레이어 크기로 위치 기준을 저장하지 않습니다.

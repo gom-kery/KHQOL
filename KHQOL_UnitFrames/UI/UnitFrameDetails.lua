@@ -39,10 +39,20 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
   local sides={{value="LEFT",text="왼쪽 구석"},{value="RIGHT",text="오른쪽 구석"}}
   local growths={{value="RIGHT_UP",text="오른쪽 이후 위로"},{value="RIGHT_DOWN",text="오른쪽 이후 아래로"},{value="LEFT_UP",text="왼쪽 이후 위로"},{value="LEFT_DOWN",text="왼쪽 이후 아래로"}}
   local function db() return M:GetDB() end
+  local partHelp={
+    basic="프레임의 간결한 모양과 기본 표시를 설정합니다.",
+    bars="프레임 크기와 체력·자원 바, 수치 표시를 설정합니다.",
+    labels="이름·레벨의 표시 위치와 글자 모양을 설정합니다.",
+    status="전투·상태 아이콘과 징표의 표시·위치를 설정합니다.",
+    auras="버프·디버프 아이콘의 크기와 배치를 설정합니다.",
+    class="토템·임시 소환 표시의 위치를 설정하고 미리 확인합니다.",
+  }
   l:Description(function()
     if KHQOL.LabLock:IsExperimental("unitFrames") and not KHQOL.LabLock:IsUnlocked() then return "실험실 잠금 · 설정은 보관되어 있습니다. 실험실에서 잠금을 해제하면 적용할 수 있습니다." end
-    if not KHQOL:GetEnabled("unitFrames") then return "모듈 OFF · 설정 탐색은 가능하며 기능은 자동 활성화되지 않습니다. 저장: 현재 프로필." end
-    return "저장: 현재 프로필 · 없는 유닛의 값은 유지하며 해당 부품이 나타나면 적용합니다."
+    local title=N.units[selected]
+    if selected=="target" and selectedPart=="auras" then title=title.." · "..(auraCategory=="attackableNPC" and "공격 가능한 NPC" or "아군 플레이어") end
+    local help=selected=="pet" and selectedPart=="status" and "상태·징표와 포만감 아이콘의 표시·위치를 설정합니다." or partHelp[selectedPart]
+    return title.." · "..help..(KHQOL:GetEnabled("unitFrames") and "" or " · 모듈 OFF")
   end)
   l:Description("전투 중 크기·배치 변경은 종료 후 적용합니다. 공개 원본값이 확인되지 않으면 적용을 보류합니다.",function() return M.pending==true end)
   local header=CreateFrame("Frame",nil,parent);header:SetWidth(parent:GetWidth());header:SetHeight(2*(T.ButtonHeight+T.RowGap))
@@ -207,6 +217,16 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
         for _,key in ipairs({"status","rest","combat","marker"}) do if db()[u][key.."X"]~=nil then db()[u][key.."X"]=0;db()[u][key.."Y"]=0 end end
         M:ApplySettings()
       end,nil,compact)
+      if u=="pet" then
+        local function happinessAvailable() return compact() and M:PetHappinessFrame()~=nil end
+        builder:Section("소환수 포만감 아이콘")
+        for _,axis in ipairs({"X","Y"}) do
+          local a=axis
+          builder:Slider("포만감 아이콘 "..a.." 위치 보정",-400,400,1,function() return db().pet["happiness"..a] end,function(v) db().pet["happiness"..a]=v;M:ApplySettings() end,function(v) return v.." px" end,happinessAvailable)
+        end
+        builder:Button("포만감 아이콘 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.pet.happiness") end,nil,happinessAvailable)
+        builder:Button("포만감 아이콘 위치 초기화",function() db().pet.happinessX=0;db().pet.happinessY=0;M:ApplySettings() end,nil,happinessAvailable)
+      end
       finish(row,builder)
     end
     if u=="target" then
@@ -284,22 +304,19 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
       l:Description("내 캐릭터의 버프·디버프를 각각 이동합니다. 기본 게임의 목록·타이머·숨김 조건은 유지합니다. 드래그 화면의 예시 아이콘에는 실제 효과가 없습니다.",shown("auras"))
       part="class"
       f,b=field()
-      b:Section("토템·임시 소환")
+      b:Section("프레임 위치")
       for _,axis in ipairs({"X","Y"}) do
         local a=axis
-        b:Slider("토템·임시 소환 "..a.." 보정",-100,100,1,function() return db().player["bottom"..a] end,function(v) db().player["bottom"..a]=v;M:ApplySettings() end,function(v) return v.." px" end,function() return compact() and M:BottomFrame()~=nil end,"플레이어 하위 배치 컨테이너에 있는 기본 토템·임시 소환 표시를 이동합니다. 0 px는 기존 위치입니다.")
+        b:Slider("프레임 "..a.." 좌표",-3000,3000,1,function() return db().player["bottom"..a] end,function(v) db().player["bottom"..a]=v;db().player.bottomPlaced=true;M:ApplySettings() end,function(v) return v.." px" end,function() return compact() and M:BottomFrame()~=nil end,"플레이어에 연결된 토템 프레임을 이동합니다. X는 오른쪽, Y는 위쪽이 +입니다.")
       end
       local previewField=f
-      b:Checkbox("토템 현재 위치 확인",function() return M.bottomPreviewParent==previewField end,function(on) M:SetBottomPreview(previewField,on) end,compact)
-      b:Button("토템 위치 초기화",function() db().player.bottomX=0;db().player.bottomY=0;M:ApplySettings() end,nil,compact)
-      b:Button("토템·임시 소환 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.player.totems") end,nil,function() return compact() and M:BottomFrame()~=nil end)
+      b:Dropdown("프레임 확장 방향",{{value="LEFT",text="왼쪽"},{value="RIGHT",text="오른쪽"}},function() return db().player.bottomGrowth end,function(v) db().player.bottomGrowth=v;db().player.bottomPlaced=true;M:ApplySettings() end,compact)
+      b:Checkbox("프레임 위치 확인",function() return M.bottomPreviewParent==previewField end,function(on) M:SetBottomPreview(previewField,on) end,function() return compact() and not InCombatLockdown() end)
+      b:Button("토템 위치 초기화",function() db().player.bottomX=0;db().player.bottomY=0;db().player.bottomGrowth="RIGHT";db().player.bottomPlaced=false;M:StopBottomPreview();M:ApplySettings() end,nil,compact)
       previewField:HookScript("OnHide",function() if M.bottomPreviewParent==previewField then M:StopBottomPreview() end end)
       UI:RegisterDraft(previewField,function() if M.bottomPreviewParent==previewField then M:StopBottomPreview() end end)
       finish(f,b)
-      l:Description("실제 표시가 있으면 현재 경계를, 없으면 클릭 없는 예시 아이콘을 표시합니다. 예시는 타이머·실제 토템이 아닙니다.",visible)
-      l.controlRoute={module="unitFrames",unit=u,part="class"}
-      l:Check("기력 회복 표시 — 도적 / 표범 드루이드",function() return db().player.showEnergyTick end,function(v) db().player.showEnergyTick=v;M:ApplySettings() end,shown("class"),"캐릭터 기력 바 아래 부착 기능입니다. 공개 회복 주기·기준 시점이 확인될 때만 지원하며 ResourceSwing과 독립적으로 저장합니다.",nil,function() return compact() and M:EnergySupport() end)
-      l:Description(function() local _,reason=M:EnergySupport();return reason end,shown("class"))
+      l:Description("프레임 위치 확인을 켜고 테두리를 끌어 토템만 이동합니다. 표시 중인 토템이 없으면 예시를 사용합니다. 전투 시작·메뉴 이동 시 위치 확인을 종료합니다.",shown("class"))
     elseif u=="target" then
       part="status"
       l.controlRoute={module="unitFrames",unit=u,part="status"}

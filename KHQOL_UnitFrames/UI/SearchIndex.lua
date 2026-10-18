@@ -6,6 +6,10 @@ N:Register({module="castBar",castUnit="player",scope="현재 프로필",section=
   N:Register({module="castBar",castUnit="target",scope="현재 프로필",section="대상 시전바"},"대상 시전바 ")
   N:Register({module="castBar",castUnit="target",scope="현재 프로필",section="대상 시전바"},"대상 시전바 드래그 이동")
   N:Register({module="castBar",castUnit="target",scope="현재 프로필",section="대상 시전바"},"대상 시전바 위치 초기화")
+for section,titles in pairs({["바 모양"]={"높이","폭","텍스처","바 색상","배경 색상","시전 중단 색상"},
+  ["아이콘"]={"스킬 아이콘 표시","아이콘 위치","아이콘 크기"},["스킬명"]={"스킬명 표시","표시 위치","글자 크기"}}) do
+  for _,title in ipairs(titles) do N:Register({module="castBar",castUnit="target",scope="현재 프로필",section=section},title) end
+end
 N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 프레임 이동"},"Blizzard 기본 프레임 이동")
 N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 프레임 이동"},"이동 키 (+ 드래그)")
 N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 프레임 이동"},"모든 프레임 위치 초기화")
@@ -173,12 +177,14 @@ N:Register({module="unitFrames",unit="focus",part="status"},"상태·징표 X �
 N:Register({module="unitFrames",unit="focus",part="status"},"상태·징표 Y 위치 보정")
 N:Register({module="unitFrames",unit="focus",part="status"},"상태·징표 드래그 이동")
 N:Register({module="unitFrames",unit="focus",part="status"},"상태·징표 위치 초기화")
-N:Register({module="unitFrames",unit="player",part="class"},"토템·임시 소환 X 보정")
-N:Register({module="unitFrames",unit="player",part="class"},"토템·임시 소환 Y 보정")
-N:Register({module="unitFrames",unit="player",part="class"},"토템 현재 위치 확인")
+N:Register({module="unitFrames",unit="player",part="class"},"프레임 X 좌표","토템·임시 소환 위치 보정")
+N:Register({module="unitFrames",unit="player",part="class"},"프레임 Y 좌표","토템·임시 소환 위치 보정")
+N:Register({module="unitFrames",unit="player",part="class"},"프레임 위치 확인","토템 테두리 드래그 이동")
+N:Register({module="unitFrames",unit="player",part="class"},"프레임 확장 방향","토템 아이콘을 왼쪽 또는 오른쪽으로 배치")
 N:Register({module="unitFrames",unit="player",part="class"},"토템 위치 초기화")
-N:Register({module="unitFrames",unit="player",part="class"},"토템·임시 소환 드래그 이동")
-N:Register({module="unitFrames",unit="player",part="class"},"기력 회복 표시 — 도적 / 표범 드루이드")
+for _,title in ipairs({"포만감 아이콘 X 위치 보정","포만감 아이콘 Y 위치 보정","포만감 아이콘 드래그 이동","포만감 아이콘 위치 초기화"}) do
+  N:Register({module="unitFrames",unit="pet",part="status"},title)
+end
 N:Register({module="unitFrames",unit="target",part="status"},"기본 대상 콤보 포인트 숨김")
 N:Register({module="unitFrames",unit="target",part="auras"},"대상 버프·디버프 적용 유형")
 N:Register({module="unitFrames",unit="player",part="auras"},"플레이어 버프 위치 설정 사용")
