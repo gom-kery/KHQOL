@@ -54,7 +54,11 @@ function K:ApplyEditorPositions()
     if spec.editorPositions then spec.editorPositions(self.modules[id],self) end
   end
 end
-function K:BuildPositionTargets(focus)
+function K:BuildPositionTargets(focus,scope)
+  if scope=="unitRoots" then
+    local m=self.modules.unitFrames
+    return m and m.RootEditorTargets and m:RootEditorTargets() or {}
+  end
   local list={}
   self.ModuleRegistry:PositionTargets(focus,function(...) PU:Add(list,...) end)
   -- Navigation is a shared core service used by both Quest and ForeverNote.

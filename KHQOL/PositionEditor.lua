@@ -20,7 +20,7 @@ end
 function E:CreateToolbar()
   if self.toolbar then return end
   local f=CreateFrame("Frame","KHQOLPositionEditorToolbar",UIParent,"BackdropTemplate")
-  f:SetSize(650,390); f:SetPoint("TOP",0,-32); f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetFrameLevel(200)
+  f:SetSize(650,458); f:SetPoint("TOP",0,-32); f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetFrameLevel(200)
   f:SetMovable(true); f:SetClampedToScreen(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart",f.StartMoving); f:SetScript("OnDragStop",f.StopMovingOrSizing)
   UI:Surface(f,1)
@@ -61,26 +61,29 @@ function E:CreateToolbar()
   viewport:EnableMouseWheel(true);viewport:SetScript("OnMouseWheel",function(_,delta)
     viewport:SetVerticalScroll(math.max(0,math.min(math.max(0,list:GetHeight()-viewport:GetHeight()),viewport:GetVerticalScroll()-delta*28)))
   end)
-  f.coordinateHint=UI:CreateDescription(f,"미세 이동: 편집 시작 위치 기준, 화면 UI px. 연결 부품은 부모 기준입니다.",14,-310);f.coordinateHint:SetWidth(622);f.coordinateHint:SetHeight(28);f.coordinateHint:SetJustifyH("CENTER")
-  self.xInput=UI:CreateEditBox(f,139,-344,84,function() return string.format("%.1f",E:Offset("x")) end,function(v) E:SetOffset("x",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
-  self.yInput=UI:CreateEditBox(f,265,-344,84,function() return string.format("%.1f",E:Offset("y")) end,function(v) E:SetOffset("y",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
+  f.coordinateHint=UI:CreateDescription(f,"화면 중앙 (0, 0) · 선택한 테두리 중심 · 오른쪽 +X / 위쪽 +Y · UI px",14,-310);f.coordinateHint:SetWidth(622);f.coordinateHint:SetHeight(28);f.coordinateHint:SetJustifyH("CENTER")
+  self.xInput=UI:CreateEditBox(f,139,-344,84,function() return E:CoordinateText("x") end,function(v) E:SetCoordinate("x",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
+  self.yInput=UI:CreateEditBox(f,265,-344,84,function() return E:CoordinateText("y") end,function(v) E:SetCoordinate("y",tonumber(v)) end,function() return E.selected and not E.selected.target.linked end)
+  for _,box in ipairs({self.xInput,self.yInput}) do UI:AttachTooltip(box,"화면 좌표","화면 중앙이 (0, 0)입니다. 선택한 프레임 테두리 중심의 UI px 좌표를 입력하세요. 화면 밖 입력은 화면 안으로 조정합니다.") end
   f.xLabel=UI:CreateLabel(f,"X",115,-350);f.xLabel:SetWidth(16);f.xLabel:SetJustifyH("CENTER")
   f.yLabel=UI:CreateLabel(f,"Y",241,-350);f.yLabel:SetWidth(16);f.yLabel:SetJustifyH("CENTER")
   for _,v in ipairs({{"←",-1,0},{"→",1,0},{"↑",0,1},{"↓",0,-1}}) do
     local value=v
-    UI:CreateButton(f,value[1],373+(#(self.nudgeButtons or {}))*42,-344,36,function() E:Nudge(value[2],value[3]) end,function() return E.selected and not E.selected.target.linked end)
-    self.nudgeButtons=self.nudgeButtons or {};self.nudgeButtons[#self.nudgeButtons+1]=value
+    local button=UI:CreateButton(f,value[1],373+(#(self.nudgeButtons or {}))*42,-344,36,function() E:Nudge(value[2],value[3]) end,function() return E.selected and not E.selected.target.linked end)
+    self.nudgeButtons=self.nudgeButtons or {};self.nudgeButtons[#self.nudgeButtons+1]=button
   end
+  KHQOL.PositionGrid:CreateControls(self,f)
   f:EnableKeyboard(true); f:SetPropagateKeyboardInput(true)
   f:SetScript("OnKeyDown",function(self,key)
     self:SetPropagateKeyboardInput(key~="ESCAPE")
     if key=="ESCAPE" then E:Finish(false) end
   end)
   f:SetScript("OnHide",function() if E.active then E:Finish(false) end end)
-  f:RegisterEvent("PLAYER_REGEN_DISABLED"); f:RegisterEvent("PLAYER_LOGOUT")
+  f:RegisterEvent("PLAYER_REGEN_DISABLED"); f:RegisterEvent("PLAYER_REGEN_ENABLED"); f:RegisterEvent("PLAYER_LOGOUT")
   f:RegisterEvent("PLAYER_ENTERING_WORLD");f:RegisterEvent("PLAYER_LEAVING_WORLD")
   f:RegisterEvent("UPDATE_SHAPESHIFT_FORM");f:RegisterEvent("UI_SCALE_CHANGED");f:RegisterEvent("DISPLAY_SIZE_CHANGED")
   f:SetScript("OnEvent",function(_,event)
+    if event=="PLAYER_REGEN_ENABLED" then E:RestorePendingAlphas();return end
     if E.active then E:Finish(false,event=="PLAYER_REGEN_DISABLED") end
   end)
   if UISpecialFrames then table.insert(UISpecialFrames,"KHQOLPositionEditorToolbar") end
@@ -88,7 +91,7 @@ function E:CreateToolbar()
 end
 function E:SetHandleHighlight(h,on)
   h.focus:SetShown(on and true or false)
-  h.focus:SetFrameLevel(h:GetFrameLevel()+2)
+  h.focus:SetFrameLevel(h:GetFrameLevel()+(h.target and h.target.rootVisual and 8 or 2))
   h.caption:SetTextColor(unpack(on and UI.Theme.FocusAccent or UI.Theme.Accent))
   h.caption:SetFont(UI:Font(),on and 14 or 12,on and "OUTLINE" or "")
   h.caption:SetWidth(math.max(160,h.caption:GetStringWidth()+8))
@@ -183,16 +186,28 @@ function E:RefreshList()
   self.listViewport:SetVerticalScroll(math.min(self.listViewport:GetVerticalScroll(),math.max(0,self.listBody:GetHeight()-self.listViewport:GetHeight())))
   if self.groupPicker then self.groupPicker:Refresh() end
 end
-function E:Offset(axis)
+function E:Coordinate(axis)
   local h=self.selected;if not h then return 0 end
-  local x,y=center(h);if not x then return end
-  if h.parentHandle then local px,py=center(h.parentHandle);if not px then return end;x=x-px-h.relativeX;y=y-py-h.relativeY
-  else x=x-h.originX;y=y-h.originY end
-  return axis=="x" and x or y
+  local x,y=center(h);local cx,cy=KHQOL.PositionStore:Screen();if not x or not cx then return end
+  return axis=="x" and x-cx or y-cy
 end
-function E:SetOffset(axis,value)
-  if not self.active or not self.selected or self.selected.target.linked or not KHQOL.PositionStore:Number(value) then return end
-  local current=self:Offset(axis);if current==nil then return end
+function E:CoordinateText(axis)
+  local value=self:Coordinate(axis);return value and string.format("%.1f",value) or "—"
+end
+function E:RefreshCoordinates()
+  for axis,box in pairs({x=self.xInput,y=self.yInput}) do
+    if box and not box:HasFocus() then
+      local text=self:CoordinateText(axis);if box:GetText()~=text then box:SetText(text) end
+    end
+  end
+end
+function E:SetCoordinate(axis,value)
+  local h=self.selected
+  if not self.active or not h or h.target.linked or (axis~="x" and axis~="y") or not KHQOL.PositionStore:Number(value) then return end
+  local current=self:Coordinate(axis);local cx,cy,w,ht=KHQOL.PositionStore:Screen();if current==nil or not cx then return end
+  local _,_,ratio=KHQOL.PositionStore:Center(h);if not ratio then return end
+  local limit=math.max(0,((axis=="x" and w or ht)-(axis=="x" and h:GetWidth() or h:GetHeight())*ratio)/2)
+  value=math.max(-limit,math.min(limit,value))
   self:Nudge(axis=="x" and value-current or 0,axis=="y" and value-current or 0)
 end
 function E:Nudge(dx,dy)
@@ -216,6 +231,7 @@ function E:Select(handle)
   end
   self:UpdateSuppression()
   self.resetButton:Refresh()
+  for _,button in ipairs(self.nudgeButtons or {}) do button:Refresh() end
   if self.modePicker then self.modePicker:Refresh() end
   if self.categoryPicker then self.categoryPicker:Refresh() end
   if self.xInput then self.xInput:Refresh();self.yInput:Refresh() end
@@ -224,8 +240,32 @@ end
 function E:UpdateSuppression()
   for frame,state in pairs(self.suppressed or {}) do
     local hide=false
-    for h in pairs(state.handles or {}) do if h:IsShown() then hide=true;break end end
-    if safe(frame) then frame:SetAlpha(hide and 0 or state.alpha);if frame.EnableMouse then frame:EnableMouse(not hide and state.mouse) end end
+    for h in pairs(state.handles or {}) do if h:IsShown() and (not state.alphaOnly or h.previewReady) then hide=true;break end end
+    if state.alphaOnly then
+      local status,current=KHQOL.ReadPublicAPI(frame.GetAlpha,frame)
+      if status=="ok" and KHQOL.IsPublicNumber(current) then
+        if current~=state.last then state.alpha=current end
+        local wanted=hide and 0 or state.alpha
+        if current==wanted or KHQOL.ReadPublicAPI(frame.SetAlpha,frame,wanted)=="ok" then state.last=wanted end
+      end
+    elseif safe(frame) then frame:SetAlpha(hide and 0 or state.alpha);if frame.EnableMouse then frame:EnableMouse(not hide and state.mouse) end end
+  end
+  for _,h in ipairs(self.handles or {}) do
+    if h.nativeBlocker then
+      local show=h:IsShown() and h.previewReady and h.target.blockOriginal and h.target.blockOriginal()
+      h.nativeBlocker:SetShown(show and true or false);h.nativeBlocker:EnableMouse(show and true or false)
+    end
+  end
+end
+function E:RestoreAlpha(frame,state)
+  local status,current=KHQOL.ReadPublicAPI(frame.GetAlpha,frame)
+  if status~="ok" or not KHQOL.IsPublicNumber(current) then return false end
+  if current~=state.last or current==state.alpha then return true end
+  return KHQOL.ReadPublicAPI(frame.SetAlpha,frame,state.alpha)=="ok"
+end
+function E:RestorePendingAlphas()
+  for frame,state in pairs(self.pendingAlphaRestores or {}) do
+    if self:RestoreAlpha(frame,state) then self.pendingAlphaRestores[frame]=nil end
   end
 end
 function E:ResetSelection()
@@ -258,11 +298,23 @@ end
 function E:IsCurrent()
   if self.generation~=KHQOL.profileGeneration or self.labUnlocked~=KHQOL.LabLock:IsUnlocked() then return false end
   for key,enabled in pairs(self.enabled or {}) do if KHQOL:GetEnabled(key)~=enabled then return false end end
+  for _,target in ipairs(self.targets or {}) do if target.current and not target.current() then return false end end
   return true
 end
 -- A read-only rendering copy: no live alert/test functions, scripts or sounds.
--- The original frame keeps its anchors, visibility and state throughout editing.
+-- Native anchors, visibility flags and unit state stay unchanged. Root
+-- previews can separately suppress opacity while the copied bars are shown.
 function E:Mirror(h,frame)
+  h.previewReady=nil
+  if h.unitPreview then h.unitPreview:Hide() end
+  if h.target.render then
+    for _,region in ipairs(h.mirrors) do region:Hide() end
+    for _,region in ipairs(h.art) do region:Hide() end
+    h.previewReady=h.target.render(h)==true
+    h.mirrorCount=h.previewReady and 1 or 0
+    h.sample:SetShown(not h.previewReady)
+    if h.previewReady then return end
+  end
   local used=0; local hx,hy=h.originX,h.originY
   local function visit(node,depth)
     if depth>5 or used>=100 or not safe(node) then return end
@@ -321,14 +373,16 @@ function E:Mirror(h,frame)
 end
 function E:Enter(focus,entryMode)
   if self.active then return true end
+  self:RestorePendingAlphas()
   if EditModeManagerFrame and KHQOL.PublicCall(EditModeManagerFrame.IsShown,EditModeManagerFrame)==true then self:Message("기본 게임 편집 모드를 닫은 후 KHQOL 위치 편집을 열어 주세요.");return false end
   if combat() then self:Message("전투 중에는 위치를 편집할 수 없습니다."); return false end
   if KHQOL.AlertLayout then KHQOL.AlertLayout:Suspend(true) end
   self:CreateToolbar(); UI:CancelDrafts(); UI:CloseDropdown(); GameTooltip:Hide()
   self.returnSettings=KHQOL.settings and KHQOL.settings:IsShown()
-  self.targets=KHQOL:BuildPositionTargets(focus);
+  self.scope=entryMode=="unitRoots" and "unitRoots" or nil
+  self.targets=KHQOL:BuildPositionTargets(focus,self.scope);
   for _,t in ipairs(self.targets) do N:EditorMeta(t) end
-  self.mode=entryMode=="group" and "group" or focus and "part" or N:Preferences().editorMode or "representative";self.onlySelected=self.mode=="part"
+  self.mode=self.scope=="unitRoots" and "all" or entryMode=="group" and "group" or focus and "part" or N:Preferences().editorMode or "representative";self.onlySelected=self.mode=="part"
   N:RememberScroll(KHQOL.settings)
   self.returnRoute=KHQOL.settings and KHQOL.settings.currentRoute
    self.sources={}; self.suppressed={}; self.handles={}; self.byID={}
@@ -344,10 +398,11 @@ function E:Enter(focus,entryMode)
       if x and ratio>0 and status=="ok" and KHQOL.PositionStore:Number(w) and KHQOL.PositionStore:Number(ht) then
         if target.bounds then x,y,w,ht=target.bounds(x,y,w*ratio,ht*ratio) else w,ht=w*ratio,ht*ratio end
         if KHQOL.PositionStore:Number(x) and KHQOL.PositionStore:Number(y) and KHQOL.PositionStore:Number(w) and KHQOL.PositionStore:Number(ht) then
-          if not target.art or #target.art==0 then
+          if not target.exactBounds and (not target.art or #target.art==0) then
             w=math.max(w,math.min(360,#(target.sample or "")*4+16));ht=math.max(ht,28)
           end
-          h:SetSize(math.max(16,w),math.max(16,ht)); h:ClearAllPoints(); h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y)
+          local minimum=target.exactBounds and 1 or 16
+          h:SetSize(math.max(minimum,w),math.max(minimum,ht)); h:ClearAllPoints(); h:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y)
           h.originX,h.originY=x,y; target.scale=ratio
           h.caption:SetText(target.name); self:SetHandleHighlight(h,false)
           h.sample:SetWidth(math.max(target.art and #target.art>0 and 160 or 8,w-8)); h:SetFrameLevel(100); h:EnableMouse(true); h:Show()
@@ -365,9 +420,21 @@ function E:Enter(focus,entryMode)
     end
     local ok=pcall(self.Mirror,self,h,h.target.mirror or h.target.frame)
     if not ok then
+      h.previewReady=nil
+      h.mirrorCount=0
+      if h.unitPreview then h.unitPreview:Hide() end
       for _,region in ipairs(h.mirrors) do region:Hide() end
       for _,region in ipairs(h.art) do region:Hide() end
       h.sample:SetText(h.target.sample or "편집용 미리보기"); h.sample:Show()
+    end
+    local rect=h.target.inputBlockRect
+    if rect then
+      if not h.nativeBlocker then
+        h.nativeBlocker=CreateFrame("Frame",nil,UIParent);h.nativeBlocker:SetFrameStrata("FULLSCREEN_DIALOG");h.nativeBlocker:SetFrameLevel(90)
+        h.nativeBlocker:SetScript("OnMouseDown",function() if E.active and h.target then E:Select(h) end end)
+      end
+      h.nativeBlocker:ClearAllPoints();h.nativeBlocker:SetPoint("CENTER",UIParent,"BOTTOMLEFT",rect.x,rect.y)
+      h.nativeBlocker:SetSize(rect.width,rect.height);h.nativeBlocker:Hide();h.nativeBlocker:EnableMouse(false)
     end
   end
   -- Suppress original mouse input too: transparent old HUDs must not catch clicks.
@@ -380,11 +447,20 @@ function E:Enter(focus,entryMode)
   for _,h in ipairs(self.handles) do
     suppress(h.target.frame,h)
     for _,frame in ipairs(h.target.suppress or {}) do suppress(frame,h) end
+    for _,frame in ipairs(h.target.suppressAlpha or {}) do
+      local status,alpha=KHQOL.ReadPublicAPI(frame.GetAlpha,frame)
+      if status=="ok" and KHQOL.IsPublicNumber(alpha) then
+        self.suppressed[frame]=self.suppressed[frame] or {alpha=alpha,last=alpha,alphaOnly=true,handles={}}
+        self.suppressed[frame].handles[h]=true
+      end
+    end
   end
   self.active=true
   if KHQOL.settings then KHQOL.settings:Hide() end
-  self.toolbar.info:SetText("목록에서 대상을 고르고 테두리를 드래그하세요. ESC는 취소합니다. ("..#self.handles.."개)")
-  self.toolbar:SetScale(math.min(1,(UIParent:GetWidth()-24)/650,(UIParent:GetHeight()-24)/390)); UI:Refresh(self.toolbar); self.toolbar:Show()
+  self.toolbar.title:SetText(self.scope=="unitRoots" and "KHQOL · 유닛 프레임 위치 이동" or "KHQOL · 위치 편집")
+  self.toolbar.info:SetText(self.scope=="unitRoots" and "간결한 프레임을 켠 유닛의 테두리를 드래그하세요. 완료 시 저장 · ESC 취소" or "목록에서 대상을 고르고 테두리를 드래그하세요. ESC는 취소합니다. ("..#self.handles.."개)")
+  self.toolbar:SetScale(math.min(.9,(UIParent:GetWidth()-24)/650,(UIParent:GetHeight()-24)/458)); UI:Refresh(self.toolbar); self.toolbar:Show()
+  KHQOL.PositionGrid:Refresh();KHQOL.PositionGrid:RefreshControls()
   local selected
   for _,h in ipairs(self.handles) do if h.target.id==focus or h.target.key==focus then selected=selected or h end end
   selected=selected or self.handles[1]
@@ -397,8 +473,9 @@ function E:Enter(focus,entryMode)
   self:Select(selected)
   -- Exists only during editing; live HUD animations may write their own alpha.
   self.toolbar:SetScript("OnUpdate",function()
-    if combat() or not self:IsCurrent() then self:Finish(false,combat()); return end
+    if combat() or not self:IsCurrent() or KHQOL.PublicCall(EditModeManagerFrame and EditModeManagerFrame.IsShown,EditModeManagerFrame)==true then self:Finish(false,combat()); return end
     self:UpdateSuppression()
+    if self.dragging then self:RefreshCoordinates() end
   end)
   return true
 end
@@ -414,9 +491,14 @@ function E:Finish(save,combatExit)
   end
   UI:CloseDropdown()
   self.active=false; self.toolbar:SetScript("OnUpdate",nil)
+  KHQOL.PositionGrid:Hide()
   -- Restore input/alpha first; applying module locks below decides final input.
   for frame,state in pairs(self.suppressed) do
-    if safe(frame) then frame:SetAlpha(state.alpha); if frame.EnableMouse then frame:EnableMouse(state.mouse) end end
+    if state.alphaOnly then
+      if not self:RestoreAlpha(frame,state) then
+        self.pendingAlphaRestores=self.pendingAlphaRestores or {};self.pendingAlphaRestores[frame]=state
+      end
+    elseif safe(frame) then frame:SetAlpha(state.alpha); if frame.EnableMouse then frame:EnableMouse(state.mouse) end end
   end
   if save then
     for _,h in ipairs(self.handles) do
@@ -432,8 +514,11 @@ function E:Finish(save,combatExit)
     for _,h in ipairs(self.handles) do if h.target.apply then h.target.apply() end end
     if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
   end
-  for _,h in ipairs(self.handles) do h:StopMovingOrSizing(); h:EnableMouse(false); h:Hide(); h.target=nil; h.parentHandle=nil end
-  self.selected=nil;self.enabled=nil;self.targets=nil; self.suppressed=nil; self.sources=nil; self.handles=nil; self.byID=nil
+  for _,h in ipairs(self.handles) do
+    if h.nativeBlocker then h.nativeBlocker:Hide();h.nativeBlocker:EnableMouse(false) end
+    h:StopMovingOrSizing();h:EnableMouse(false);h:Hide();h.target=nil;h.parentHandle=nil;h.previewReady=nil
+  end
+  self.selected=nil;self.enabled=nil;self.targets=nil; self.suppressed=nil; self.sources=nil; self.handles=nil; self.byID=nil;self.scope=nil
   self.toolbar:StopMovingOrSizing(); self.toolbar:Hide(); GameTooltip:Hide()
   if combatExit then self:Message("전투가 시작되어 위치 편집을 취소했습니다.")
   elseif self.returnSettings and KHQOL.settings then

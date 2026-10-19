@@ -20,7 +20,7 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
     {title="아이템",items={
       check("착용 아이템 레벨 표시",get("equipmentLevels"),set("equipmentLevels"),"캐릭터창의 착용 아이템 아이콘 안쪽 위 중앙에 아이템 레벨 숫자만 표시합니다. 빈 칸·탄약은 제외합니다.",function() return M:EquipmentLevelsSupported() end),
       check("아이템 파괴 자동 입력",legacy("autoConfirmDestroy"),legacySet("autoConfirmDestroy"),"파괴 확인 문구를 자동 입력합니다. 최종 확인은 직접 선택합니다."),
-      check("잡템 자동 판매",legacy("autoSellJunk"),legacySet("autoSellJunk"),"상점에서 판매 가능한 회색 아이템을 판매합니다. 퀘스트 아이템과 불확실한 아이템은 제외합니다."),
+      check("잡템 자동 판매",legacy("autoSellJunk"),legacySet("autoSellJunk"),"상점에서 잡템을 자동 판매합니다. 기본 일괄 판매 기능을 지원하면 우선 사용합니다."),
       check("자동 수리",legacy("autoRepair"),legacySet("autoRepair"),"상점에서 수리 비용을 지불할 수 있을 때 수리합니다.",nil,{
         check("길드 자금 우선 사용",legacy("useGuildFunds"),function(v) G:GetDB().useGuildFunds=v end,"권한·잔액·한도가 충분하면 길드 자금으로, 부족하면 개인 골드로 수리합니다.")}),
       check("이미 습득한 아이템 표시",get("knownItems"),set("knownItems"),"습득 여부가 확인된 도안·탈것에 체크 표시합니다.",supportedItems,{

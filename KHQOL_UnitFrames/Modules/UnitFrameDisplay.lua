@@ -21,7 +21,7 @@ function M:SyncHealthDisplay(owner,p)
   -- This child belongs to a protected unit frame. Its values can still update
   -- in combat, but PLAYER_REGEN_ENABLED must re-evaluate visibility afterward.
   if call(InCombatLockdown)==true then
-    owner.healthVisibilityPending=true;self.pending=true
+    owner.healthVisibilityPending=true
   else
     if visible then display:Show() else display:Hide() end
     owner.healthVisibilityPending=nil
@@ -77,7 +77,7 @@ function M:SyncDisplayText(owner,p,fromNativeHook)
         copy:ClearAllPoints();copy:SetPoint("LEFT",display,"LEFT",2,0);copy:SetPoint("RIGHT",display,"RIGHT",-2,0)
         copy:SetJustifyH(side);copy:SetJustifyV("MIDDLE")
       end
-      if mode=="default" or always then
+      if mode=="default" and not owner.healthDefaultOverride or always then
         local textOK,text=raw(source.GetText,source)
         if textOK and type(text)=="string" then pcall(copy.SetText,copy,text) else copy:SetText("") end
         local colorOK,r,g,b,a=raw(source.GetTextColor,source)
@@ -93,5 +93,7 @@ function M:SyncDisplayText(owner,p,fromNativeHook)
       if not fromNativeHook then self:HideNativeDecoration(owner,source) end
     end
   end
+  local state=owner.textOwners and owner.textOwners.health
+  if owner.healthDefaultOverride and state and state.text then state.text:SetShown(self:RenderDefaultValue(state.text,p.health)) end
   owner.displayTextWriting=false
 end

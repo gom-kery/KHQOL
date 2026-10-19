@@ -130,6 +130,16 @@ local function filteredRange(db)
   for _,key in ipairs(rangePersonal) do result[key]=nil end
   return result
 end
+-- Auxiliary fields remain in the legacy table so old profiles keep their
+-- values. They are active with UnitFrames even when ResourceSwing is absent.
+local function copyPlayerAuxFields(target,source)
+  if not installed("unitFrames") or not KHQOL.PlayerAux then return end
+  for key,default in pairs(KHQOL.PlayerAux.defaults) do
+    local value=source and source[key]
+    if value==nil then value=default end
+    target[key]=copy(value)
+  end
+end
 local function clearRetiredOptions(settings)
   if settings.enabled then settings.enabled.generalConvenience=nil end
   if settings.general then settings.general.autoSellJunkReport=nil end
@@ -160,6 +170,7 @@ function KHQOL:CaptureProfile()
   if installed("buffReminder") or result.legacy.buffReminder==nil then result.legacy.buffReminder=filteredBuff(ForeverBuffReminderDB) end
   if installed("range") or result.legacy.range==nil then result.legacy.range=filteredRange(FRangeDB) end
   if installed("resourceSwing") or result.legacy.resourceSwing==nil then result.legacy.resourceSwing=copy(KHQOLResourceSwingDB or {}) end
+  copyPlayerAuxFields(result.legacy.resourceSwing,KHQOLResourceSwingDB)
   local overrides=result.legacy.resourceSwing.resourceColorOverrides or {}
   if not installed("resourceSwing") and previous then result.resourceColor=copy(previous.resourceColor) else result.resourceColor=copy(overrides[self.profileCharacter or self:GetProfileCharacterKey()]) end
   if installed("resourceSwing") then result.legacy.resourceSwing.resourceColorOverrides=nil end
@@ -181,6 +192,7 @@ function KHQOL:MakeDefaultProfile(legacyDefaults)
   result.legacy.buffReminder=filteredBuff(ForeverBuffReminder and ForeverBuffReminder.profileDefaults)
   result.legacy.range=filteredRange(m.range and m.range.defaults)
   result.legacy.resourceSwing=copy(m.resourceSwing and m.resourceSwing.defaults or {})
+  copyPlayerAuxFields(result.legacy.resourceSwing,KHQOL.PlayerAux and KHQOL.PlayerAux.defaults)
   result.legacy.resourceSwing.resourceColorOverrides=nil
   result.legacy.campfire=copy(m.campfire and m.campfire.defaults or {})
   if not legacyDefaults then
@@ -272,6 +284,10 @@ function KHQOL:LoadProfileSettings(profile)
   retainContentAndCharacterData(self,profile)
   for key,variable in pairs(legacy) do
     if installed(key) then _G[variable]=replace(type(_G[variable])=="table" and _G[variable] or {},profile.legacy[key]) end
+  end
+  if not installed("resourceSwing") and installed("unitFrames") then
+    KHQOLResourceSwingDB=KHQOLResourceSwingDB or {}
+    copyPlayerAuxFields(KHQOLResourceSwingDB,profile.legacy.resourceSwing)
   end
   if installed("cursorTrail") then KHQOLCursorTrailCharDB=replace(type(KHQOLCursorTrailCharDB)=="table" and KHQOLCursorTrailCharDB or {},profile.cursorColor) end
   self:RefreshRuntimeProfile()
@@ -419,7 +435,10 @@ function KHQOL:ResetProfileModule(key)
   if key=="clock" then
     local note=profile.legacy.clock.todo; profile.legacy.clock=copy(defaults.legacy.clock); profile.legacy.clock.todo=note
   elseif key=="todo" then profile.legacy.clock.todo=copy(defaults.legacy.clock.todo)
-  elseif legacy[key] then profile.legacy[key]=copy(defaults.legacy[key])
+  elseif legacy[key] then
+    local auxiliary=key=="resourceSwing" and copy(profile.legacy.resourceSwing)
+    profile.legacy[key]=copy(defaults.legacy[key])
+    if auxiliary then copyPlayerAuxFields(profile.legacy.resourceSwing,auxiliary) end
   else
     local spec=self.ModuleRegistry.entries[key]
     if spec and spec.resetProfile then spec.resetProfile(self.modules[key],profile,defaults,self)
@@ -429,6 +448,7 @@ function KHQOL:ResetProfileModule(key)
       profile.settings.modules[key]=overlay(value,defaults.settings.modules[key] or {})
     end
   end
+  if key=="unitFrames" then copyPlayerAuxFields(profile.legacy.resourceSwing,defaults.legacy.resourceSwing) end
   -- This new module only has an ON/OFF preference: reset means OFF + restore.
   if key=="objectHighlight" then
     self.modules.objectHighlight:CancelPending()

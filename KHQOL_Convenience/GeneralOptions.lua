@@ -102,13 +102,13 @@ end
 local function CancelDeferred(owner)
   if owner and owner.timer and owner.timer.Cancel then owner.timer:Cancel() end
 end
-local function DeferOnce(owner, callback)
+local function DeferOnce(owner, callback, delay)
   local function run() owner.timer = nil; callback() end
   if C_Timer and type(C_Timer.NewTimer) == "function" then
-    local ok, timer = pcall(C_Timer.NewTimer, 0, run)
+    local ok, timer = pcall(C_Timer.NewTimer, delay or 0, run)
     if ok then owner.timer = timer end
   elseif C_Timer and type(C_Timer.After) == "function" then
-    pcall(C_Timer.After, 0, run)
+    pcall(C_Timer.After, delay or 0, run)
   end
 end
 
@@ -174,9 +174,12 @@ local function SaleIsActive(state)
 end
 local function ScheduleSale(state, delay, callback)
   if General.junkSale ~= state then return end
+  CancelDeferred(state)
+  state.ticket=(state.ticket or 0)+1
+  local ticket=state.ticket
   local function run()
+    if General.junkSale ~= state or state.ticket~=ticket then return end
     state.timer = nil
-    if General.junkSale ~= state then return end
     if not SaleIsActive(state) then General:CancelJunkSale(); return end
     callback()
   end
@@ -189,17 +192,35 @@ local function ScheduleSale(state, delay, callback)
   end
 end
 
+function General:RequestJunkSaleCheck()
+  local state=self.junkSale
+  if not state or not state.pending or state.wakeQueued or not SaleIsActive(state) then return end
+  state.wakeQueued=true
+  ScheduleSale(state,0,function()
+    state.wakeQueued=nil
+    General:ProcessJunkSale(state)
+  end)
+end
+
 function General:ProcessJunkSale(state)
   if not SaleIsActive(state) then self:CancelJunkSale(); return end
+  if state.native then
+    local remaining=publicCall(C_MerchantFrame and C_MerchantFrame.GetNumJunkItems)
+    if not validNumber(remaining) or remaining%1~=0 then self:CancelJunkSale();return end
+    if remaining==0 then self:FinishJunkSale(state)
+    elseif GetTime()>=state.pending.deadline then self:CancelJunkSale()
+    else ScheduleSale(state,.05,function() General:ProcessJunkSale(state) end) end
+    return
+  end
   if state.pending then
     local pending = state.pending
     local info, known = GetBagItemInfo(pending.bag, pending.slot)
     if not known then self:CancelJunkSale(); return end
     if info then
-      -- Never retry UseContainerItem. Wait at most .75s for the original sale.
-      pending.checks = pending.checks + 1
-      if pending.checks >= 5 then self:CancelJunkSale(); return end
-      ScheduleSale(state, .15, function() General:ProcessJunkSale(state) end)
+      -- Keep the original response window even with faster/event-driven checks.
+      -- A pending sale is never submitted a second time.
+      if GetTime()>=pending.deadline then self:CancelJunkSale(); return end
+      ScheduleSale(state, .05, function() General:ProcessJunkSale(state) end)
       return
     end
     local amount = pending.price * pending.stackCount
@@ -217,17 +238,25 @@ function General:ProcessJunkSale(state)
     state.index = state.index + 1
     local item = GetSaleCandidate(queued.bag, queued.slot)
     if item and item.hyperlink == queued.hyperlink and item.stackCount == queued.stackCount then
-      item.money, item.checks = publicCall(GetMoney), 0
-      if not SellBagItem(item.bag, item.slot) then self:CancelJunkSale(); return end
+      item.money, item.deadline = publicCall(GetMoney), GetTime()+.75
       state.pending = item
-      ScheduleSale(state, .15, function() General:ProcessJunkSale(state) end)
+      -- Arm the fallback before the call: synchronous bag events can replace
+      -- it with an immediate, coalesced check without being overwritten.
+      ScheduleSale(state, .05, function() General:ProcessJunkSale(state) end)
+      if not SellBagItem(item.bag, item.slot) then self:CancelJunkSale(); return end
       return
     end
   end
+  self:FinishJunkSale(state)
+end
+function General:FinishJunkSale(state)
+  if not SaleIsActive(state) then return end
   self:CancelJunkSale()
-
-  -- All sale confirmations finish before any repair deduction.
-  self:TryAutoRepair(self.merchantVisit)
+  -- Let the final bag/money updates settle before the one repair decision.
+  local visit=self.merchantVisit
+  if visit and self:GetDB().autoRepair==true then
+    DeferOnce(visit,function() General:TryAutoRepair(visit) end,.05)
+  end
 end
 
 function General:StartJunkSale()
@@ -244,6 +273,19 @@ function General:StartJunkSale()
   self.junkSale = state
   -- Merchant UI can process MERCHANT_SHOW after this frame; defer one turn.
   ScheduleSale(state, 0, function()
+    local merchant=C_MerchantFrame
+    if merchant and type(merchant.SellAllJunkItems)=="function" and type(merchant.GetNumJunkItems)=="function"
+      and publicCall(merchant.IsSellAllJunkEnabled)==true then
+      local count=publicCall(merchant.GetNumJunkItems)
+      if not validNumber(count) or count%1~=0 then General:CancelJunkSale();return end
+      if count==0 then General:FinishJunkSale(state);return end
+      state.native=true;state.pending={deadline=GetTime()+2}
+      -- One native batch request per visit. Never fall through to per-slot
+      -- selling after submission, even if the API throws or times out.
+      ScheduleSale(state,.05,function() General:ProcessJunkSale(state) end)
+      if not pcall(merchant.SellAllJunkItems) then General:CancelJunkSale() end
+      return
+    end
     ForEachBagItem(function(bag, slot)
       local item = GetSaleCandidate(bag, slot)
       if item then state.queue[#state.queue + 1] = item end
@@ -280,6 +322,7 @@ function General:Initialize()
   events:RegisterEvent("ADDON_LOADED")
   events:RegisterEvent("MERCHANT_SHOW")
   events:RegisterEvent("MERCHANT_CLOSED")
+  events:RegisterEvent("BAG_UPDATE_DELAYED")
   for _, event in ipairs({"PARTY_INVITE_REQUEST", "PARTY_INVITE_CANCEL", "GUILD_INVITE_REQUEST", "GUILD_INVITE_CANCEL"}) do
     -- Some older builds do not expose all invite events.
     if not C_EventUtils or type(C_EventUtils.IsEventValid) ~= "function" or publicCall(C_EventUtils.IsEventValid, event) == true then
@@ -291,6 +334,7 @@ function General:Initialize()
       if inviter=="Blizzard_StaticPopup" or inviter=="Blizzard_StaticPopup_Game" then General:InitializeDestroyConfirmation() end
     elseif event == "MERCHANT_SHOW" then General:StartJunkSale()
     elseif event == "MERCHANT_CLOSED" then General:CloseMerchantWork()
+    elseif event == "BAG_UPDATE_DELAYED" then General:RequestJunkSaleCheck()
     elseif event == "PARTY_INVITE_REQUEST" then General:QueueInviteDecline("party", inviter)
     elseif event == "GUILD_INVITE_REQUEST" then General:QueueInviteDecline("guild", inviter, guildName)
     elseif event == "PARTY_INVITE_CANCEL" then General:CancelInviteDecline("party")

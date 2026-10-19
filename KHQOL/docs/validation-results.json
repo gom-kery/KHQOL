@@ -3,7 +3,7 @@
     "group": "regression",
     "test": "Clean full-install structure, exact versions, unique saved ownership and Lua 5.1 syntax",
     "passed": true,
-    "details": "19 folders / 193 Lua / 11 variables"
+    "details": "19 folders / 201 Lua / 11 variables"
   },
   {
     "group": "regression",
@@ -2012,7 +2012,7 @@
   },
   {
     "group": "migration",
-    "test": "Map runtime and core profile/input/ownership engines stay unchanged",
+    "test": "Map runtime and unaffected transfer/input/ownership engines stay unchanged; auxiliary profile fields have separate coverage",
     "passed": true
   },
   {
@@ -3248,6 +3248,916 @@
   {
     "group": "help-totem",
     "test": "Native layout hook count and timer work stay bounded through pooled reuse and menu visits",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Locked icon destroys exactly one excess shard per click without invoking a popup",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Unlocked auxiliary display blocks destruction and number input while retaining drag",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Combat, module OFF, hidden shard display, other class and editor suppress both clicks",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Bag and combat events never auto-delete and at or below maximum clicks do nothing",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Pre-existing item or spell cursor is never cleared, picked up or destroyed",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Locked shard slots are skipped and metadata/count failures fail closed",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Unexpected stack and race to a different cursor item cannot destroy any item",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Client refusal returns the picked shard without clearing an unrelated cursor",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Capacity uses carried normal and soul bags; invalid numbers do not change the limit",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Right-click number edits maximum only and rejects stale profile or unlocked submissions",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Label OFF leaves icon and count and settings/search write the same profile fields",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Every unit Basic tab opens the same five-root editor and no unrelated provider is called",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "All five root positions save to KHQOL and reapply after native anchor rebuild without changing native metadata",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Cancel, ESC and combat entry leave every saved position and native root anchor unchanged",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Compact OFF and module OFF restore native anchors and preserve saved custom positions",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Native edit mode owns roots while open; exit restores saved KHQOL coordinates",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Combat anchor rewrites defer protected placement until combat ends",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Unconfigured units remain native; compact OFF roots are read-only in both editor entry points",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Absent pet and focus receive separate movable placeholders; save applies on later creation",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Scale changes preserve absolute UI position and later external anchors become restore baseline",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Profile generation or compact changes invalidate drafts and queued work",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Reset returns to native anchor, saves only chosen root and supports a subsequent nudge",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Saved placements load without an editor and target-of-target legacy offsets remain until explicit replacement",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Both new feature preferences survive profile export validation import and selection",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Switching to an older profile without root preferences restores native placement and does not carry custom anchors across profiles",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Native root hook work coalesces, is generation-guarded and stops creating timers during idle value updates",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Unreadable root coordinates preserve the owned anchor and retry after becoming public",
+    "passed": true
+  },
+  {
+    "group": "shards-roots",
+    "test": "Removing a moved native root while disabling still releases its old anchor record",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "All five edit outlines match the actual bar rectangle rather than the oversized native root",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Dragging moves visible health power name and value previews together without moving native roots before commit",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Absent pet target-of-target and focus have complete movable temporary frames instead of empty boxes",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Temporary frames apply each unit width health power gap fonts colors and label anchors",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Power OFF makes the outline exactly the health height including an eight-pixel compact bar",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Committed bar positions match the preview for every unit under different frame and parent scales",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Entry and cancel restore source alpha and use unprotected blockers without modifying native mouse or visibility",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "ESC and combat cancellation restore all native visuals and leave no saved draft",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "External alpha updates during editing become the restore value rather than being overwritten",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Changing editor filters restores hidden previews sources and releases their input blockers",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "An alpha restore rejected by the client is retained and retried at combat end",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Failed preview rendering leaves the original frame visible and its old-position input unblocked",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Unreadable original opacity does not invent a restore value or change the source",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Opening native edit mode cancels the preview and restores source visuals",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Repeated editor sessions reuse all preview bars labels and blockers without new timers or script hooks",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Private native health geometry is never queried to size or move the compact preview",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "A profile generation change cancels visible previews and restores native alpha",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Global root movement carries part previews without adding their root movement to stored part offsets",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Preview reset and subsequent nudge commit the same visible rectangle shown in the editor",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Compact OFF stays read-only and does not hide or replace that native frame",
+    "passed": true
+  },
+  {
+    "group": "root-preview",
+    "test": "Druid mana has its single display option under its own title with the same saved setting and form rules",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Entry X and Y show the visible frame center relative to the screen center rather than zero",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Numeric inputs place player and target symmetrically at minus and plus 300 with Y 100",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Entering position editing shows a centered full-screen grid with 32 UI pixel spacing",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "All five visible and absent unit previews accept the same screen coordinate basis",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Party and raid group centers use screen coordinates while retaining their own anchor storage",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Editable child coordinates are absolute even after moving the parent without double-saving the parent delta",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "UIParent scale and per-unit scales preserve mirrored screen positions and commit precision",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Toolbar text and controls scale to 90 percent without scaling handles or coordinate values",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Toolbar still fits small screens and UIParent resize cancels the old coordinate draft and grid",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Drag updates both live coordinate fields while a focused text draft is preserved",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Reset updates the absolute readout and cancel leaves the previous stored root coordinates intact",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Invalid numbers or unreadable screen geometry cannot move a frame or format secret coordinates",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Numeric coordinates clamp the complete selected frame inside the visible screen",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Read-only linked and noncompact frames expose coordinates but reject numeric and arrow moves",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Grid checkbox, label toggle and spacing slider affect only account view preferences and never save a module draft",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Grid line density changes at the slider limits with symmetric coordinates and a reused texture pool",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Grid lines remain single physical pixels at UI scale while the center axes are emphasized",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Grid stays below previews and the toolbar and never captures mouse wheel keyboard or drag input",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Grid preferences survive cancel, repeated entry and profile switches without entering profile snapshots",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Malformed saved grid settings normalize to bounded spacing and no grid events or update handlers are registered",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Grid disappears on save cancel ESC combat profile generation native editor and hidden toolbar exits",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "Grid setters cannot reopen or allocate the grid after editing has ended",
+    "passed": true
+  },
+  {
+    "group": "grid-coordinates",
+    "test": "A new login reads saved account grid preferences and allocates no grid until it is switched on",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Moved class tab and all auxiliary settings route to player while ResourceSwing has none of those controls",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Auxiliary display works with ResourceSwing switched OFF and keeps both lock-specific shard actions",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "UnitFrames-only installation supplies inventory display destruction and settings without ResourceSwing addon",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Auxiliary-only profile fields persist and switch correctly when the ResourceSwing addon is absent",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Auxiliary settings remain usable when compact player frames are OFF and do not automatically delete shards",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Global position editor owns auxiliary entry under player class route even with the resource bar OFF",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Ammo class retains equipped-weapon validation and invalid or unreadable counts stay hidden",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "All four new text positions default to center and zero without changing existing modes or other units",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Player and target health and power values independently apply alignment offsets and current format",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Default native single and dual text remain legible as one movable display with no overlap",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Preview bars mirror value alignment and offsets at native scale without moving names or frames",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "All text modes retain hide and resource OFF behavior after alignment changes",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Text coordinates reject malformed values and combat defers layout until safe apply",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Text layout changes serialize through profile copy export import and selection",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Default health display follows native text visibility without leaving a stale value",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Resetting ResourceSwing preserves moved preferences and resetting UnitFrames resets them with text placement",
+    "passed": true
+  },
+  {
+    "group": "features",
+    "test": "Auxiliary-only profiles pass the real export codec and keep dormant ResourceSwing settings untouched",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Forty confirmed stacks advance immediately on bag events without duplicate sales",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Without bag events fallback checks advance once per 0.05 seconds",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Slow 0.6 second responses stay within the preserved response window",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Missing response times out after 0.75 seconds and never retries the item",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Synchronous bag confirmation cannot be overwritten by the polling fallback",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Event storms coalesce checks and stale uncancellable After callbacks stay inert",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Merchant close stops the queue and a new visit uses a fresh session",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Turning auto sale OFF cancels all queued work without reusing the snapshot",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Quest locked uncached and unknown-value items remain excluded",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Changed inventory is revalidated and unreadable pending inventory fails closed",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "Vendor refusal stops after one call and never reaches later stacks",
+    "passed": true
+  },
+  {
+    "group": "sale",
+    "test": "One repair follows final sale and delayed money update; close cancels deferred repair",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Default empty list preserves the original native aura container without allocating a custom group",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "IDs validate normalize sort deduplicate and remove without changing valid stored entries",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Public excluded auras are removed before the display cap and remaining native icons pack without gaps",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Protected friendly debuffs remain visible and their limitation is reported instead of bypassed",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Filtered group is reused across edits and size gap line count and offsets stay in user pixels",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Deleting the last ID returns to native rendering and later additions reuse the cached group",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Missing group API falls back to native icons once while retaining the exclusion list",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Failed group setup leaves native icons enabled and does not retry per unit update",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Turning icon display OFF or hiding its owner disables filtered native work without losing IDs",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Settings add error duplicate select and delete controls operate on the current profile",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Filter lists are independent across party frame profiles and stay outside overall profile transfer",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "Frame-profile reset clears the known dynamic exclusion map while preserving unrelated future fields",
+    "passed": true
+  },
+  {
+    "group": "filter",
+    "test": "String-keyed spell maps survive SavedVariables-style logout and login unchanged",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "Party page first entry builds every tab under native SetText argument validation",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "Party filter feedback is string text and updates through add duplicate and remove commands",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "player: collapse and expand refresh the final visible scroll layout without revisiting a tab",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "target: collapse and expand refresh the final visible scroll layout without revisiting a tab",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "pet: collapse and expand refresh the final visible scroll layout without revisiting a tab",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "targettarget: collapse and expand refresh the final visible scroll layout without revisiting a tab",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "focus: collapse and expand refresh the final visible scroll layout without revisiting a tab",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "Video sequence: class display folds leave return then folds again with headings visible",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "Video sequence: aura section folds and all remaining controls stay in the refreshed clip bounds",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "Rapid repeated folds coalesce next-frame work and never save profile settings",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "Closing before a queued redraw skips hidden work and reopening uses the current page",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "Page changes before queued work cannot restore stale page geometry or settings",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "All ordinary settings groups refresh native scroll rectangles after folding",
+    "passed": true
+  },
+  {
+    "group": "ui-refresh",
+    "test": "Missing optional rectangle refresh API does not break folding or leave a redraw loop",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "player health: actual dropdown clicks immediately change the selected bar anchor without a reload or timer",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "player health: both sliders and typed coordinates clamp to the requested minus fifty through plus fifty range",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "player power: actual dropdown clicks immediately change the selected bar anchor without a reload or timer",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "player power: both sliders and typed coordinates clamp to the requested minus fifty through plus fifty range",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "target health: actual dropdown clicks immediately change the selected bar anchor without a reload or timer",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "target health: both sliders and typed coordinates clamp to the requested minus fifty through plus fifty range",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "target power: actual dropdown clicks immediately change the selected bar anchor without a reload or timer",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "target power: both sliders and typed coordinates clamp to the requested minus fifty through plus fifty range",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "Older profile offsets normalize at their bounds while labels frame positions and other unit coordinates are preserved",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "Invalid saved value offsets and alignment recover to public zero and center",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "Alignment anchors scale in the preview without reading a rendered text width or changing its bar",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "Bounded coordinates and alignment survive real profile copy export import and selection",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "Protected Rested Enhancement 1229451 is retained but clearly reported as not excludable and stays visible",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "Existing protected Rested entry shows a persistent explanation on opening the party aura settings",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "Public exclusion still packs icons and removal restores them without hiding protected or unrelated auras",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "Selecting public and protected entries clears stale add feedback and restores the appropriate explanation",
+    "passed": true
+  },
+  {
+    "group": "value-alignment",
+    "test": "Missing secrecy API reports unknown availability rather than falsely claiming exclusion is possible",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Unchanged combat end restores unit displays without full layout auxiliary initialization or event re-registration",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "A full unit settings apply normalizes the stored DB once rather than repeating recursive merges per helper",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "A direct single-unit apply also shares the resolved DB and expires its cache after returning",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Unchanged party combat end performs no layout restyle wheel rewrite or header state-driver registration",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "party-first: deferred party changes apply exactly once and use the latest settings",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "registry-first: deferred party changes apply exactly once and use the latest settings",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "A failed registry-first party application is not retried by the same combat-end dispatch",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Party OFF requested in combat restores native ownership once after combat",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Role profile changes discovered after combat still trigger one full party application",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Raid tier changes discovered after combat still update the active layout",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Native frame ownership loss at combat end is detected and yields safely to its external owner",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "A unit width changed in combat keeps the old layout until one complete safe apply",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Unit module OFF during combat still releases compact ownership and restores normal events afterward",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Unprotected totem position and left growth survive native combat-end movement without a full unit apply",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Protected totem movement deferred in combat retains a full restoration path",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Combat-only health visibility and text styling recover through the light display path",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Resolved DB state is released after an apply throws and the next read normalizes new values",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Resolved DB follows generation and table replacement inside a synchronous apply",
+    "passed": true
+  },
+  {
+    "group": "combat-end",
+    "test": "Several unchanged combat cycles do not add frames and keep party layout and unit-root coordinates unchanged",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Forty junk stacks use one native batch call and no per-item calls or addon bag scan",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Repeated merchant and bag events cannot submit a second native batch during the same visit",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "A synchronous native completion preserves its queued check and does not leave the sale pending",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Native completion without bag events is detected by bounded count checks",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Zero native junk items skips sale submission and allows the existing single repair decision",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Closing the merchant before the deferred start makes no native or per-item sale call",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Turning automatic sale OFF before submission prevents the native batch",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Closing after submission cancels addon follow-up repair without reselling an accepted native batch",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Each separate completed merchant visit receives its own single native sale",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "A native API error stops without falling through to individual sales",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "No native response times out without repeating the batch or starting an individual queue",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Unknown native counts cannot authorize any transaction",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Unavailable native count during an accepted batch stops polling without an alternate sale",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "feature-disabled: an unavailable native feature preserves the existing guarded compatibility queue",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "sell-api-missing: an unavailable native feature preserves the existing guarded compatibility queue",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "count-api-missing: an unavailable native feature preserves the existing guarded compatibility queue",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Native batch completion waits for delayed sale money before one repair",
+    "passed": true
+  },
+  {
+    "group": "native-sale",
+    "test": "Native selection remains inside the client boundary and leaves items its model excludes alone",
     "passed": true
   }
 ]

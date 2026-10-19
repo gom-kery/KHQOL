@@ -10,9 +10,6 @@ KHQOL.PositionProviders.resourceSwing=function(focus)
   local rs=KHQOLResourceSwingDB
   if rs and rs.enabled~=false then
     add("resource","resourceSwing","Resource Swing · 자원 / 스윙",KHQOLResourceSwingFrame,pointWriter(rs),lock(rs),function() m.resourceSwing:ApplyPosition() end,{bounds=function(x,y,w,h) return m.resourceSwing:GetEditorBounds(x,y,w,h) end})
-    if m.resourceSwing:CanShowAux() then
-      add("ammo","resourceSwing","Resource Swing · 탄약 / 영혼의 조각",_G.KHQOLResourceSwingAmmoAnchor,pointWriter(rs,"ammoX","ammoY"),lock(rs,"ammoLocked"),function() m.resourceSwing:ApplyPosition() end,{sample="탄약 / 영혼의 조각"})
-    end
     if rs.showCombo and rs.comboPosition=="FREE" and select(2,m.resourceSwing:GetComboData()) then
       local combo=m.resourceSwing.comboFrame
       if combo then
@@ -25,7 +22,6 @@ KHQOL.PositionProviders.resourceSwing=function(focus)
   PU:ConfigureResets(list,function(t,point)
     local d=m.resourceSwing.defaults
     if t.id=="resource" then point(t,function() return KHQOLResourceSwingDB end,d)
-    elseif t.id=="ammo" then point(t,function() return KHQOLResourceSwingDB end,{point=d.ammoPoint,relativePoint=d.ammoRelativePoint,x=d.ammoX,y=d.ammoY},{point="ammoPoint",relativePoint="ammoRelativePoint",x="ammoX",y="ammoY"})
     elseif t.id=="resource.combo" then point(t,function() return KHQOLResourceSwingDB end,{point=d.comboPoint,relativePoint=d.comboRelativePoint,x=d.comboX,y=d.comboY},{point="comboPoint",relativePoint="comboRelativePoint",x="comboX",y="comboY"}) end
   end)
   return list

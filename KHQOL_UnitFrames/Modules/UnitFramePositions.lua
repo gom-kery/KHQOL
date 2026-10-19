@@ -31,16 +31,6 @@ function M:PositionPreviews(focus)
     local bar=owner and owner.compactActive and owner.healthDisplay or p and p.health
     local x,y,w,h,ratio=rect(bar)
     if x and p then
-      if unit~="targettarget" then
-        local rx,ry,rw,rh,rr=rect(p.root)
-        if rx then
-          local f=self.editorProxies[unit..".root"]
-          if not f then f=CreateFrame("Frame",nil,UIParent);f:EnableMouse(false);f:Hide();self.editorProxies[unit..".root"]=f end
-          f:SetSize(rw*rr,rh*rr);f:ClearAllPoints();f:SetPoint("CENTER",UIParent,"BOTTOMLEFT",rx*rr,ry*rr)
-          list[#list+1]={id="unitFrames."..unit..".root",name=names[unit].." · 전체 프레임",frame=f,linked=true,readOnly=true,representative=true,
-            settingsRoute={module="unitFrames",unit=unit,part="basic"},sample="기본 게임 편집 모드에서 전체 위치 조절",sampleSize=12,art={}}
-        end
-      end
       if d.compact then
         for _,kind in ipairs({"name","level"}) do
           if p[kind] then
@@ -61,10 +51,6 @@ function M:PositionPreviews(focus)
             end
             local spec=add("unitFrames."..unit.."."..kind,names[unit].." · "..(kind=="name" and "이름" or "레벨"),cx,cy,fw,fh,ar,d,kind.."X",kind.."Y",100,{})
             spec.sample=kind=="name" and names[unit].." 이름" or "30";spec.sampleY=0;spec.sampleSize=size*ar;spec.sampleJustify=side
-            if unit=="targettarget" then
-              local rx,ry,_,_,rr=rect(p.root)
-              if rx then spec.parentID="unitFrames.targettarget";spec.resetPoint.x=spec.resetPoint.x-rx*rr;spec.resetPoint.y=spec.resetPoint.y-ry*rr end
-            end
           end
         end
         local sx,sy=offset(d.statusX,200),offset(d.statusY,200)
@@ -100,10 +86,6 @@ function M:PositionPreviews(focus)
         local cx,cy=(left+right)/2,(bottom+top)/2;local art={}
         for _,i in ipairs(icons) do art[#art+1]={texture=i.texture,texCoord=i.texCoord,width=i.size*ratio,height=i.size*ratio,x=(i.x-cx)*ratio,y=(i.y-cy)*ratio} end
         local spec=add("unitFrames."..unit..".status",names[unit].." · 상태·징표 전체",cx,cy,right-left,top-bottom,ratio,d,"statusX","statusY",200,art)
-        if unit=="targettarget" then
-          local rx,ry,_,_,rr=rect(p.root)
-          if rx then spec.parentID="unitFrames.targettarget";spec.resetPoint.x=spec.resetPoint.x-rx*rr;spec.resetPoint.y=spec.resetPoint.y-ry*rr end
-        end
       end
       local function aura(id,title,cfg,kind)
         if not cfg or not cfg.enabled then return end
@@ -240,23 +222,26 @@ function M:PositionPreviews(focus)
   return list
 end
 
--- This module supplies safe proxies; native unit roots stay in Blizzard edit mode.
+-- Compact root positions and individual parts share the global editor.
+-- The dedicated unit editor requests RootEditorTargets directly instead.
 function M:EditorTargets(focus)
   local list=self:PositionPreviews(focus)
-  local proxy,ratio=self:PositionProxy()
-  if proxy then
-    local d=self:GetDB().targettarget
-    local status,x,y=KHQOL.ReadPublicAPI(proxy.GetCenter,proxy)
-    if status=="ok" and KHQOL.PositionStore:Number(x) and KHQOL.PositionStore:Number(y)
-      and KHQOL.PositionStore:Number(ratio) and ratio>0 then
-      list[#list+1]={id="unitFrames.targettarget",name="대상의 대상",frame=proxy,
-        write=function(dx,dy)
-          d.frameX=math.max(-1000,math.min(1000,KHQOL.PositionStore:Round((d.frameX or 0)+dx/ratio)))
-          d.frameY=math.max(-1000,math.min(1000,KHQOL.PositionStore:Round((d.frameY or 0)+dy/ratio)))
-        end,
-        apply=function() self:ApplySettings() end,sample="대상의 대상 · 위치 미리보기",
-        resetPoint={point="CENTER",relativePoint="BOTTOMLEFT",x=x-(d.frameX or 0)*ratio,y=y-(d.frameY or 0)*ratio},
-        resetPhysical=true,resetWrite=function() d.frameX=0;d.frameY=0 end}
+  local auxiliary=KHQOL.PlayerAux and KHQOL.PlayerAux:PositionTarget()
+  if auxiliary then list[#list+1]=auxiliary end
+  local roots=self:RootEditorTargets()
+  local byUnit={}
+  for _,spec in ipairs(roots) do
+    list[#list+1]=spec;byUnit[spec.settingsRoute.unit]=spec
+  end
+  for _,spec in ipairs(list) do
+    local unit=spec.id:match("^unitFrames%.([^.]+)%.")
+    local root=unit and byUnit[unit]
+    if root and root~=spec and not spec.parentID then
+      spec.parentID=root.id
+      if spec.resetPoint and spec.resetPhysical then
+        local x,y=call(root.frame.GetCenter,root.frame)
+        if finite(x) and finite(y) then spec.resetPoint.x=spec.resetPoint.x-x;spec.resetPoint.y=spec.resetPoint.y-y end
+      end
     end
   end
   return list

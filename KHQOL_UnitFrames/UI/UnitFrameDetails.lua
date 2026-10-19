@@ -45,7 +45,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     labels="이름·레벨의 표시 위치와 글자 모양을 설정합니다.",
     status="전투·상태 아이콘과 징표의 표시·위치를 설정합니다.",
     auras="버프·디버프 아이콘의 크기와 배치를 설정합니다.",
-    class="토템·임시 소환 표시의 위치를 설정하고 미리 확인합니다.",
+    class="토템·임시 소환, 탄약과 영혼의 조각 표시·위치를 설정합니다.",
   }
   l:Description(function()
     if KHQOL.LabLock:IsExperimental("unitFrames") and not KHQOL.LabLock:IsUnlocked() then return "실험실 잠금 · 설정은 보관되어 있습니다. 실험실에서 잠금을 해제하면 적용할 수 있습니다." end
@@ -141,23 +141,13 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     local compactControl=l:Check("간결한 프레임 사용",function() return db()[u].compact end,function(v) db()[u].compact=v;M:ApplySettings() end,shown("basic"),"기본 클릭·메뉴·표시 조건을 유지합니다. 실험실 잠금 해제는 필요하지 않습니다. 전투 중 배치 변경은 종료 후 적용하며 지원되는 기본 부품에 적용합니다.",nil,available)
     compactControl:GetParent().settingsRoute={module="unitFrames",unit=u,part="basic"}
     N:Attach(compactControl:GetParent(),compactControl,"간결한 프레임 사용",function() return db()[u].compact end,function(v) db()[u].compact=v;M:ApplySettings() end,available)
-    l:Description(u=="targettarget" and "프레임 위치는 아래 좌표 또는 드래그 이동으로 조절합니다. 0 px는 기본 대상 프레임에 연결된 원래 위치입니다." or "프레임 전체 위치는 게임의 기본 편집 모드를 사용합니다. 아래 좌표는 글자·상태 표시의 미세 보정입니다.",shown("basic"))
-    if u=="targettarget" then
+    l:Description("간결한 프레임을 켜면 KHQOL에서 전체 위치를 이동할 수 있습니다. 끄면 기본 게임 배치를 사용합니다.",shown("basic"))
+    do
       local row,builder=field()
       builder:Section("프레임 위치")
-      for _,axis in ipairs({"X","Y"}) do
-        local a=axis
-        builder:Slider("프레임 "..a.." 위치 보정",-1000,1000,1,function() return db()[u]["frame"..a] end,function(v) db()[u]["frame"..a]=v;M:ApplySettings() end,function(v) return v.." px" end,available)
-      end
-      builder:Button("프레임 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.targettarget") end,nil,available)
-      builder:Button("프레임 위치 초기화",function() db()[u].frameX=0;db()[u].frameY=0;M:ApplySettings() end,nil,available)
-      finish(row,builder)
-    end
-    if u~="targettarget" then
-      local row,builder=field()
-      builder:Section("프레임 위치")
-      builder:Button("전체 프레임 위치 이동",function() M:OpenNativePositionEditor() end,nil,available)
-      builder:Description("전체 프레임 이동은 기본 게임 편집 모드를 사용합니다. 아래 부품 이동은 KHQOL 위치 편집기로 연결됩니다.",true)
+      builder:Button("유닛 프레임 위치 이동",function() M:OpenUnitPositionEditor(u) end,nil,function() return M:IsEnabled() end)
+      builder:Button("프레임 위치 초기화",function() M:ResetRootPosition(u) end,nil,function() return M:IsEnabled() end)
+      builder:Description("플레이어·대상·소환수·대상의 대상·주시대상만 표시합니다. 없는 유닛은 예시 테두리로 이동하며, 완료 시 현재 프로필에 저장합니다. 전투 중에는 편집할 수 없습니다.",true)
       finish(row,builder)
     end
     l:Description(function()
@@ -276,6 +266,17 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     b:Dropdown("체력 수치 표시 방식",textModes,function() return db()[u].health end,function(v) db()[u].health=v;M:ApplySettings() end,available)
     b:Dropdown("자원 수치 표시 방식",textModes,function() return db()[u].power end,function(v) db()[u].power=v;M:ApplySettings() end,available)
     b:Slider("체력·자원 수치 글자 크기",8,24,1,function() return db()[u].textSize end,function(v) db()[u].textSize=v;M:ApplySettings() end,function(v) return v.." px" end,available,"직접 선택한 수치에 적용합니다. 기본 설정 따름은 게임 글꼴을 유지합니다.")
+    if M:HasValueTextPosition(u) then
+      for _,entry in ipairs({{"health","체력"},{"power","자원"}}) do
+        local kind,title=entry[1],entry[2]
+        b:Section(title.." 수치 위치")
+        b:Dropdown(title.." 수치 정렬",{{value="CENTER",text="중앙"},{value="LEFT",text="왼쪽"},{value="RIGHT",text="오른쪽"}},function() return M:ValueTextPosition(u,kind) end,function(v) db()[u][kind.."TextPosition"]=v;M:ApplySettings() end,compact)
+        for _,axis in ipairs({"X","Y"}) do
+          local a=axis
+          b:Slider(title.." 수치 "..a.." 좌표",-50,50,1,function() return select(a=="X" and 2 or 3,M:ValueTextPosition(u,kind)) end,function(v) db()[u][kind.."Text"..a]=v;M:ApplySettings() end,function(v) return v.." px" end,compact,"선택한 정렬 기준 -50~+50 px입니다. 오른쪽 X·위쪽 Y가 +입니다.")
+        end
+      end
+    end
     finish(f,b)
     part="auras"
     if u=="player" then
@@ -303,8 +304,13 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
       end
       l:Description("내 캐릭터의 버프·디버프를 각각 이동합니다. 기본 게임의 목록·타이머·숨김 조건은 유지합니다. 드래그 화면의 예시 아이콘에는 실제 효과가 없습니다.",shown("auras"))
       part="class"
+      do
+        local auxiliary,builder=field()
+        KHQOL.PlayerAux:BuildSettings(auxiliary,0,builder)
+        finish(auxiliary,builder)
+      end
       f,b=field()
-      b:Section("프레임 위치")
+      b:Section("토템·임시 소환")
       for _,axis in ipairs({"X","Y"}) do
         local a=axis
         b:Slider("프레임 "..a.." 좌표",-3000,3000,1,function() return db().player["bottom"..a] end,function(v) db().player["bottom"..a]=v;db().player.bottomPlaced=true;M:ApplySettings() end,function(v) return v.." px" end,function() return compact() and M:BottomFrame()~=nil end,"플레이어에 연결된 토템 프레임을 이동합니다. X는 오른쪽, Y는 위쪽이 +입니다.")

@@ -3,6 +3,7 @@ KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local B=KHQOL.modules.basicUI
 local M={Write=B.Write,Release=B.Release}; KHQOL.modules.unitFrames=M
 local call,public=KHQOL.PublicCall,KHQOL.IsPublicValue
+local resolvedSettings
 M.defaults={player={compact=false,health="default",power="default",width=200,height=58,gap=2,borderAlpha=.85,textSize=12,healthColorMode="default",healthColor={r=0,g=1,b=0},
  namePosition="above",nameX=0,nameY=0,levelPosition="above",levelX=0,levelY=0,bottomX=0,bottomY=0,bottomGrowth="RIGHT",bottomPlaced=false},
  target={compact=false,health="default",power="default",width=200,height=58,gap=2,borderAlpha=.85,textSize=12,healthColorMode="default",healthColor={r=1,g=0,b=0}},
@@ -17,6 +18,7 @@ for _,unit in ipairs(M.unitTokens) do
   KHQOL.MergeDefaults(M.defaults[unit],appearanceDefaults,"tables")
   M.defaults[unit].markerX=0;M.defaults[unit].markerY=0
   M.defaults[unit].statusX=0;M.defaults[unit].statusY=0
+  M.defaults[unit].rootPosition={enabled=false,x=0,y=0}
 end
 M.defaults.player.restX=0;M.defaults.player.restY=0
 M.defaults.player.combatX=0;M.defaults.player.combatY=0
@@ -50,6 +52,8 @@ function KHQOL:MigrateUnitFrameSettings(settings)
   if type(unit)=="table" and type(unit.player)=="table" then unit.player.showEnergyTick=nil end
 end
 function M:GetDB()
+  if resolvedSettings and resolvedSettings.root==KHQOL.db and resolvedSettings.generation==KHQOL.profileGeneration
+    and type(KHQOL.db.modules)=="table" and resolvedSettings.value==KHQOL.db.modules.unitFrames then return resolvedSettings.value end
   KHQOL:MigrateUnitFrameSettings(KHQOL.db)
   KHQOL.db.modules.unitFrames=KHQOL.MergeDefaults(KHQOL.db.modules.unitFrames or {},self.defaults,"tables")
   local player=KHQOL.db.modules.unitFrames.player
@@ -59,15 +63,20 @@ function M:GetDB()
     local d=KHQOL.db.modules.unitFrames[unit]
     if d.healthColorMode=="red" or d.healthColorMode=="class" then d.healthColorMode="reaction" end
   end
+  if self.NormalizeValueTextPositions then self:NormalizeValueTextPositions(KHQOL.db.modules.unitFrames) end
   return KHQOL.db.modules.unitFrames
 end
-function M:IsEnabled() return KHQOL:CanRunModule("unitFrames") end
-function M:OpenNativePositionEditor()
-  -- The client's menu owns edit-mode activation. Avoid invoking an unverified
-  -- protected toggle from an addon or committing a KHQOL draft during transfer.
-  if KHQOL.PositionEditor and KHQOL.PositionEditor.active then KHQOL.PositionEditor:Finish(false) end
-  if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("KHQOL: 전체 유닛프레임 이동은 ESC → 편집 모드에서 조절하세요. KHQOL 부품 위치는 각 드래그 이동 버튼을 사용합니다.") end
+-- Reuse one normalized DB only during a synchronous apply. Never retain a
+-- profile/settings cache across events, profile changes, errors or timers.
+function M:WithResolvedDB(method,...)
+  local previous=resolvedSettings
+  local db=self:GetDB()
+  resolvedSettings={root=KHQOL.db,generation=KHQOL.profileGeneration,value=db}
+  local ok,err=pcall(method,self,...)
+  resolvedSettings=previous
+  if not ok then error(err,0) end
 end
+function M:IsEnabled() return KHQOL:CanRunModule("unitFrames") end
 local function combat() return call(InCombatLockdown)==true end
 local function editing() return EditModeManagerFrame and call(EditModeManagerFrame.IsShown,EditModeManagerFrame)==true end
 function M:UnitParts(unit)
@@ -178,6 +187,7 @@ function M:UpdateBarText(owner,bar,unit,kind)
   if not ok then error(err,0) end
 end
 function M:UpdateBarTextNow(owner,bar,unit,kind)
+  if kind=="health" then owner.healthDefaultOverride=nil end
   if kind=="health" then self:ApplyHealthTextContrast(owner,bar,unit) end
   local mode=self:IsEnabled() and not editing() and self:GetDB()[unit][kind] or "default"
   if (unit=="target" or unit=="focus") and kind=="health" and self:IsEnabled() and not editing() then
@@ -195,7 +205,8 @@ function M:UpdateBarTextNow(owner,bar,unit,kind)
     if state.text then state.text:Hide() end
     if state.layer then state.layer:Hide() end
   end
-  if mode=="default" or (kind=="power" and owner.powerHidden) then
+  local moveDefault=mode=="default" and self:IsEnabled() and owner.compactActive and not editing() and self:HasValueTextPosition(unit)
+  if mode=="default" and not moveDefault or (kind=="power" and owner.powerHidden) then
     if state then self:Release(state) end
     if mirrored then self:SyncDisplayText(owner,owner.parts) end
     return
@@ -232,8 +243,14 @@ function M:UpdateBarTextNow(owner,bar,unit,kind)
     if state.text.SetShadowColor then state.text:SetShadowColor(0,0,0,1) end
     if state.text.SetShadowOffset then state.text:SetShadowOffset(1,-1) end
   end
+  if self:HasValueTextPosition(unit) and not combat() then self:LayoutValueText(state.text,visualBar,unit,kind) end
   state.text:SetTextColor(1,1,1,1)
-  if not self:RenderValue(state.text,unit,kind,mode) then self:Release(state); return end
+  local rendered
+  if moveDefault then rendered=self:RenderDefaultValue(state.text,bar)
+  else rendered=self:RenderValue(state.text,unit,kind,mode) end
+  if not rendered then self:Release(state); return end
+  if moveDefault then self:CopyDefaultValueStyle(state.text,bar,kind) end
+  if moveDefault and mirrored then owner.healthDefaultOverride=true;self:SyncDisplayText(owner,owner.parts) end
   for _,key in ipairs({"TextString","LeftText","RightText","HealthBarText","ManaBarText"}) do
     if bar[key] and not mirrored then self:Write(state,bar[key],"alpha",0) end
   end
@@ -265,7 +282,7 @@ end
 function M:ApplyUnits(onlyUnit)
   if self.applyingUnits then return end
   self.applyingUnits=true
-  local ok,err=pcall(self.ApplyUnitsNow,self,onlyUnit)
+  local ok,err=pcall(self.WithResolvedDB,self,self.ApplyUnitsNow,onlyUnit)
   self.applyingUnits=false
   if not ok then error(err,0) end
 end
@@ -282,7 +299,7 @@ function M:ApplyUnitsNow(onlyUnit)
       if unit=="player" and compact and (not owner.compactActive or self.propertyDeferred or not p.name or not p.level) then
         self.playerLayoutPending=true;self.pending=true
       end
-      if unit=="targettarget" then self:ApplyFramePosition(owner,p) end
+      self:ApplyRootPosition(owner,p,unit)
       self:ApplyPowerVisibility(owner,p,unit); self:ApplyHealthColor(owner,p,unit)
       if unit=="target" then self:ApplyMonsterMarks(owner,p,true) end
       self:ApplyLabelColors(owner,p,unit)
@@ -306,6 +323,8 @@ function M:ApplyUnitsNow(onlyUnit)
         p.root:HookScript("OnShow",function() if M:IsEnabled() then M:ApplyUnits(hookUnit) end end)
         if unit=="target" then p.root:HookScript("OnHide",function() if M.monsterMarkFrame then M.monsterMarkFrame:Hide() end end) end
       end
+    elseif (not onlyUnit or onlyUnit==unit) and self.units[unit] and (not self:IsEnabled() or not self:GetDB()[unit].compact or editing()) then
+      self:ReleaseRootPosition(self.units[unit])
     elseif unit=="player" and (not onlyUnit or onlyUnit==unit) and self:IsEnabled() and self:GetDB().player.compact and not editing() then
       self.playerLayoutPending=true;self.pending=true
     end
@@ -412,6 +431,10 @@ function M:InitializePlayerLayoutHooks()
   end
 end
 function M:ApplySettings()
+  self:WithResolvedDB(self.ApplySettingsNow)
+end
+function M:ApplySettingsNow()
+  if KHQOL.PlayerAux then KHQOL.PlayerAux:Initialize() end
   self:InitializePlayerLayoutHooks()
   self:InitializeDecorHooks()
   self:ApplyUnits(); self:RefreshMonsterMarks();self:ApplyBottom();self:ApplyPetHappiness()
@@ -419,6 +442,20 @@ function M:ApplySettings()
   if self.playerLayoutQueued and (not self:IsEnabled() or editing() or not self:GetDB().player.compact) then
     self.playerLayoutQueued.finish()
   elseif self.playerLayoutPending then self:QueuePlayerLayout() end
+end
+function M:RefreshCombatDisplays()
+  for unit,owner in pairs(self.units or {}) do
+    if owner.parts then
+      self:UpdateUnitValues(unit)
+      self:ApplyStateDecorations(owner,owner.parts,unit)
+    end
+  end
+  self:RefreshMonsterMarks();self:ApplyBottom();self:ApplyPetHappiness()
+end
+function M:OnCombatEnd()
+  if self.pending or self.propertyDeferred or self.playerLayoutPending then
+    self:ApplySettings();self:ConfigureEvents()
+  elseif self:IsEnabled() then self:WithResolvedDB(self.RefreshCombatDisplays) end
 end
 function M:SetEnabled(on)
   self:Initialize(); self:ApplySettings();self:ConfigureEvents()
@@ -438,7 +475,7 @@ function M:Initialize()
   self:InitializePlayerLayoutHooks()
   self:ConfigureEvents()
   self.events:SetScript("OnEvent",function(_,event,unit)
-    if event=="PLAYER_REGEN_ENABLED" then if M.pending or M:IsEnabled() then M:ApplySettings() end;M:ConfigureEvents(); return end
+    if event=="PLAYER_REGEN_ENABLED" then M:OnCombatEnd();return end
     if not M:IsEnabled() then
       if M.pending and (event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED") then M:ApplySettings();M:ConfigureEvents() end
       return

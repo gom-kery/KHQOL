@@ -13,6 +13,9 @@ do local spec=R.entries.frameMover
   if not spec.positions then spec.positions=function(m,focus,K) local provider=K.PositionProviders.frameMover;return provider and provider(focus,K) or {} end end
 end
 do local spec=R.entries.unitFrames
+  spec.dragFrames=function() return {K.PlayerAux.frame} end
+  spec.closeEditors=function() K.PlayerAux:StopEditor() end
+  spec.profileChanged=spec.closeEditors
   if not spec.positions then spec.positions=function(m,focus,K) local provider=K.PositionProviders.unitFrames;return provider and provider(focus,K) or {} end end
 end
 do local spec=R.entries.castBar

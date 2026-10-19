@@ -16,5 +16,5 @@ do local spec=R.entries.resourceSwing
   spec.applyProfile=function(m,K)
   if KHQOLResourceSwingFrame then m:ApplyProfile() end
   end
-  spec.dragFrames=function(m,K) return {_G.KHQOLResourceSwingFrame,_G.KHQOLResourceSwingAmmoAnchor,m.comboFrame} end
+  spec.dragFrames=function(m,K) return {_G.KHQOLResourceSwingFrame,m.comboFrame} end
 end

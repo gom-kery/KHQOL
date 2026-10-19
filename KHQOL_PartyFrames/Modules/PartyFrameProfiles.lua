@@ -180,5 +180,6 @@ end
 function M:ResetFrameProfile()
   local store=self:FrameProfileStore();local name=self:ActiveFrameProfile();local old=store.frameProfiles[name]
   local fresh=self:NormalizeDB({});K.PreserveUnknownProfileValue(old,fresh,self:NormalizeDB({}))
+  fresh.debuffs.excludeSpellIDs={} -- The dynamic ID map is a known setting.
   store.frameProfiles[name]=fresh;self:CloseLivePreview();self:RequestApply()
 end

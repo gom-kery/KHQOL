@@ -72,7 +72,7 @@ function R:ConnectModules()
 end
 entry("bars","experience","experienceBar","경험치","경험치와 휴식 경험치 바의 표시·위치·모양을 설정합니다.")
 entry("bars","cast","castBar","시전","시전 바의 배치·진행 방향·표시 정보를 설정합니다.",{"cast","castbar"})
-entry("bars","resource","resourceSwing","자원/스윙바","자원·스윙 바와 탄약 표시를 설정합니다.",{"resource"})
+entry("bars","resource","resourceSwing","자원/스윙바","자원·스윙 바, 콤보 포인트와 변신 마나를 설정합니다.",{"resource"})
 entry("bars","environment","environmentTimer","환경타이머","호흡·피로도·죽은척 타이머의 표시와 경고를 설정합니다.")
 entry("alerts","npc","npcAlert","NPC","등록한 위험 NPC의 감지·배너·방향 경고를 설정합니다.")
 entry("alerts","combat","combatStatus","전투 상태","전투 시작과 종료 알림을 설정합니다.",{"combat","combatstatus"})

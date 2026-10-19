@@ -25,6 +25,7 @@ function M:NormalizeDB(db)
     if default.size then p.size=bounded(p.size,default.size,8,40) end
   end
   local a=db.debuffs
+  self:NormalizeDebuffFilter(a)
   a.count=math.floor(bounded(a.count,5,1,12));a.size=bounded(a.size,18,8,48)
   a.perRow=math.floor(bounded(a.perRow,5,1,12));a.gap=bounded(a.gap,2,0,20)
   a.x=bounded(a.x,0,-300,300);a.y=bounded(a.y,0,-300,300)
@@ -69,7 +70,8 @@ function M:Initialize()
   self:GetDB();self:GetCharacterDB()
   self.events=CreateFrame("Frame")
   self.events:SetScript("OnEvent",function(_,event)
-    if event=="SPELLS_CHANGED" or event=="PLAYER_REGEN_ENABLED" or event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED" then
+    if event=="PLAYER_REGEN_ENABLED" then self:OnCombatEnd()
+    elseif event=="SPELLS_CHANGED" or event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED" then
       if self.desired or self.applied or next(self.nativeOwners) then self:RequestApply() end
     elseif event=="PLAYER_REGEN_DISABLED" then self:CloseLivePreview()
     elseif self.applied then
@@ -84,13 +86,27 @@ function M:Initialize()
     EventRegistry:RegisterCallback("EditMode.Exit",function() M.editing=false;if M.desired then M:RequestApply() end end,self)
   end
 end
-function M:ConfigureEvents()
+function M:OnCombatEnd()
+  if combat() then return end
+  -- The registry owns pending protected work. Its event may run before or
+  -- after ours; successful application updates the signatures checked below.
+  if self.pending and R.pending.partyFrames then return end
+  -- A failed safe apply already restored/yielded native ownership. Retry on
+  -- a settings/lifecycle request, not twice in one combat-end dispatch.
+  if self.failure and not self.pending then return end
+  local wanted=self.desired==true and not self.editing and call(EditModeManagerFrame and EditModeManagerFrame.IsShown,EditModeManagerFrame)~=true
+  if self.pending or wanted~=(self.applied==true) or self.applied and
+    (self.layoutKey~=self:RaidLayoutKey() or self.groupSignature~=self:RaidGroupSignature() or self.appliedFrameProfile~=self:ActiveFrameProfile()) then
+    self:RequestApply()
+  elseif self.applied then self:CheckNativeOwnership() end
+end
+function M:ConfigureEvents(unitsConfigured)
   self.events:UnregisterAllEvents()
   if self.desired or self.applied or self.pending or next(self.nativeOwners) then
     for _,event in ipairs({"GROUP_ROSTER_UPDATE","PLAYER_ENTERING_WORLD","ADDON_LOADED","SPELLS_CHANGED","PLAYER_REGEN_ENABLED","PLAYER_REGEN_DISABLED","RAID_TARGET_UPDATE","PARTY_LEADER_CHANGED","PLAYER_ROLES_ASSIGNED"}) do self.events:RegisterEvent(event) end
     R:Own("partyFrames",self.events,function(f) f:UnregisterAllEvents() end)
   else R:Release("partyFrames",self.events) end
-  for _,button in ipairs(self.buttons) do self:ConfigureUnitEvents(button) end
+  if not unitsConfigured then for _,button in ipairs(self.buttons) do self:ConfigureUnitEvents(button) end end
 end
 function M:SetEnabled(on)
   self.desired=on and true or false
@@ -236,7 +252,7 @@ function M:ApplyLatest()
   end
   self.applying=nil
   if self.pending then R:Defer("partyFrames",function(m) m:ApplyLatest() end,true) end
-  self:ConfigureEvents()
+  self:ConfigureEvents(self.applied)
   self:RefreshLivePreview()
   self:RefreshEffectPreview()
   self:RefreshStatus()

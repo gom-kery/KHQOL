@@ -124,6 +124,7 @@ function M:BuildAuraSettings(content,y)
  b:Slider("디버프 X 좌표",-300,300,1,function() return cfg().debuffs.x end,function(v) aura("x",v) end,integer)
  b:Slider("디버프 Y 좌표",-300,300,1,function() return cfg().debuffs.y end,function(v) aura("y",v) end,integer)
  b:EndDisclosure()
+ M:BuildDebuffFilterSettings(content,b)
  accordion(b,content,"디버프 별 체력 색상","tint")
  b:Checkbox("디버프 별 체력 색상 변경",function() return cfg().debuffTint.enabled end,function(v) cfg().debuffTint.enabled=v;M:RequestApply() end)
  b.activeCell.full=true

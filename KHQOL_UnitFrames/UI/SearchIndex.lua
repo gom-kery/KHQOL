@@ -15,7 +15,6 @@ N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 �
 N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 프레임 이동"},"모든 프레임 위치 초기화")
 N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 프레임 이동"},"기본창 전체 위치 편집")
 N:Register({module="unitFrames",unit="player",part="basic"},"간결한 프레임 사용")
-N:Register({module="unitFrames",unit="player",part="basic"},"전체 프레임 위치 이동")
 N:Register({module="unitFrames",unit="player",part="basic"},"선택한 유닛의 모양 초기화")
 N:Register({module="unitFrames",unit="player",part="bars"},"프레임 폭")
 N:Register({module="unitFrames",unit="player",part="bars"},"전체 높이")
@@ -49,7 +48,6 @@ N:Register({module="unitFrames",unit="player",part="labels"},"레벨 색 선택"
 N:Register({module="unitFrames",unit="player",part="labels"},"레벨 X 위치 보정")
 N:Register({module="unitFrames",unit="player",part="labels"},"레벨 Y 위치 보정")
 N:Register({module="unitFrames",unit="target",part="basic"},"간결한 프레임 사용")
-N:Register({module="unitFrames",unit="target",part="basic"},"전체 프레임 위치 이동")
 N:Register({module="unitFrames",unit="target",part="basic"},"선택한 유닛의 모양 초기화")
 N:Register({module="unitFrames",unit="target",part="basic"},"플레이어 모양 설정 복사")
 N:Register({module="unitFrames",unit="target",part="bars"},"프레임 폭")
@@ -84,7 +82,6 @@ N:Register({module="unitFrames",unit="target",part="labels"},"레벨 색 선택"
 N:Register({module="unitFrames",unit="target",part="labels"},"레벨 X 위치 보정")
 N:Register({module="unitFrames",unit="target",part="labels"},"레벨 Y 위치 보정")
 N:Register({module="unitFrames",unit="pet",part="basic"},"간결한 프레임 사용")
-N:Register({module="unitFrames",unit="pet",part="basic"},"전체 프레임 위치 이동")
 N:Register({module="unitFrames",unit="pet",part="basic"},"선택한 유닛의 모양 초기화")
 N:Register({module="unitFrames",unit="pet",part="basic"},"플레이어 모양 설정 복사")
 N:Register({module="unitFrames",unit="pet",part="bars"},"프레임 폭")
@@ -138,12 +135,7 @@ N:Register({module="unitFrames",unit="targettarget",part="status"},"상태·징�
 N:Register({module="unitFrames",unit="targettarget",part="status"},"상태·징표 Y 위치 보정")
 N:Register({module="unitFrames",unit="targettarget",part="status"},"상태·징표 드래그 이동")
 N:Register({module="unitFrames",unit="targettarget",part="status"},"상태·징표 위치 초기화")
-N:Register({module="unitFrames",unit="targettarget",part="basic"},"프레임 X 위치 보정")
-N:Register({module="unitFrames",unit="targettarget",part="basic"},"프레임 Y 위치 보정")
-N:Register({module="unitFrames",unit="targettarget",part="basic"},"프레임 드래그 이동")
-N:Register({module="unitFrames",unit="targettarget",part="basic"},"프레임 위치 초기화")
 N:Register({module="unitFrames",unit="focus",part="basic"},"간결한 프레임 사용")
-N:Register({module="unitFrames",unit="focus",part="basic"},"전체 프레임 위치 이동")
 N:Register({module="unitFrames",unit="focus",part="basic"},"선택한 유닛의 모양 초기화")
 N:Register({module="unitFrames",unit="focus",part="basic"},"플레이어 모양 설정 복사")
 N:Register({module="unitFrames",unit="focus",part="bars"},"프레임 폭")
@@ -283,3 +275,16 @@ N:Register({module="unitFrames",unit="target",part="auras",category="attackableN
 N:Register({module="unitFrames",unit="target",part="auras",category="attackableNPC"},"대상 디버프 드래그 이동")
 N:Register({module="unitFrames",unit="target",part="auras",category="attackableNPC"},"대상 디버프 위치 초기화")
 N:Register({module="castBar",castUnit="player",section="위치"},"플레이어 시전바 드래그 이동")
+for _,unit in ipairs({"player","target","pet","targettarget","focus"}) do
+  N:Register({module="unitFrames",unit=unit,part="basic"},"유닛 프레임 위치 이동","프레임 드래그 · 간결한 프레임 위치")
+  N:Register({module="unitFrames",unit=unit,part="basic"},"프레임 위치 초기화")
+end
+
+for _,title in ipairs({"탄약 표시","영혼의 조각 표시","영혼의 조각 문구 표시","최대 보관 수량","보조 표시 위치 잠금","보조 표시 위치 초기화","보조 표시 X 좌표","보조 표시 Y 좌표","보조 표시 글자 크기"}) do
+ N:Register({module="unitFrames",unit="player",part="class"},title,"직업 보조 표시 · 탄약 · 영혼의 조각")
+end
+for _,unit in ipairs({"player","target"}) do
+ for _,kind in ipairs({"체력","자원"}) do
+  for _,suffix in ipairs({" 수치 정렬"," 수치 X 좌표"," 수치 Y 좌표"}) do N:Register({module="unitFrames",unit=unit,part="bars"},kind..suffix) end
+ end
+end

@@ -40,6 +40,15 @@ function S:Center(frame)
   if status~="ok" or ss~="ok" or ps~="ok" or not self:Number(x) or not self:Number(y) or not self:Number(scale) or not self:Number(parentScale) or parentScale<=0 then return end
   return x*scale/parentScale,y*scale/parentScale,scale/parentScale
 end
+-- Screen coordinates use UIParent pixels; toolbar scale never changes them.
+function S:Screen()
+  local cs,x,y=KHQOL.ReadPublicAPI(UIParent.GetCenter,UIParent)
+  local ss,w,h=KHQOL.ReadPublicAPI(UIParent.GetSize,UIParent)
+  local ps,scale=KHQOL.ReadPublicAPI(UIParent.GetEffectiveScale,UIParent)
+  if cs~="ok" or ss~="ok" or ps~="ok" or not self:Number(x) or not self:Number(y)
+    or not self:Number(w) or not self:Number(h) or not self:Number(scale) or w<=0 or h<=0 or scale<=0 then return end
+  return x,y,w,h,scale
+end
 function S:Committed(apply)
   if apply then apply() end
   if KHQOL.profileApplying or KHQOL.profileClosingEditors then return end

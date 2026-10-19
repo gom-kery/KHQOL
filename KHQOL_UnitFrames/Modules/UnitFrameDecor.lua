@@ -110,8 +110,10 @@ function M:ApplyHealthTextContrast(owner,bar,unit)
   local cfg=self:GetDB()[unit]
   local active=self:IsEnabled() and not editing() and (owner.compactActive or cfg.healthColorMode~="default")
   local state=owner.healthTextStyle
-  if not active then if state and not combat() then self:ReleaseDecor(state) end;return end
-  if combat() then self.pending=true;return end
+  local fighting=combat()
+  if not fighting then owner.healthTextStylePending=nil end
+  if not active then if state and not fighting then self:ReleaseDecor(state) end;return end
+  if fighting then owner.healthTextStylePending=true;return end
   if not state then state={};owner.healthTextStyle=state end
   for _,key in ipairs({"TextString","LeftText","RightText","HealthBarText"}) do
     local text=bar[key]
@@ -866,6 +868,7 @@ function M:CopyPlayerShape(unit)
   self:ApplySettings()
 end
 function M:ApplyFramePosition(owner,p)
+  if self:HasRootPosition("targettarget") then return end
   if owner.positionWriting then return end
   if combat() then self.pending=true;return end
   owner.positionOwner=owner.positionOwner or {}

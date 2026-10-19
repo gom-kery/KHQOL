@@ -20,6 +20,9 @@ function UI:RefreshAccordionLayout(parent)
   if panel.Reflow then panel:Reflow() end
   if root then self:ReflowSettingsRoot(root);s:UpdateContentHeight() end
   self.accordionReflowing=nil
+  -- ScrollFrame/font geometry can settle after this click's reflow. Reuse the
+  -- coalesced display pass used by tab changes, after the final visibility.
+  self:QueueDisplayRefresh(root or parent)
 end
 function UI:CreateSettingsAccordion(parent,title,id,changed,ancestor,expanded)
   self.disclosureStates=self.disclosureStates or {}

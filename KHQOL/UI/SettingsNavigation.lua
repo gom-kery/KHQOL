@@ -4,7 +4,7 @@ local R=UI.SettingsRegistry
 local N={items={},controls=setmetatable({}, {__mode="k"}),serial=0}
 UI.SettingsNavigation=N
 N.units={player="플레이어",target="대상",pet="소환수",targettarget="대상의 대상",focus="주시대상"}
-N.parts={basic="기본",bars="체력·자원",labels="이름·레벨",status="상태·징표",auras="버프·디버프",class="토템 프레임"}
+N.parts={basic="기본",bars="체력·자원",labels="이름·레벨",status="상태·징표",auras="버프·디버프",class="직업 보조 표시"}
 function N:Preferences()
   K.db.toolWindows=K.db.toolWindows or {}
   K.db.toolWindows.preferences=K.db.toolWindows.preferences or {}

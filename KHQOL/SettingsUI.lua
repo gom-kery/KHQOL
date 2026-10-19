@@ -311,6 +311,17 @@ function KHQOL:CreateSettings()
     if actions and actions:IsShown() then actions:ClearAllPoints();actions:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,self.footerHeight or 58) end
     scroll:SetPoint("BOTTOMRIGHT",-38,(self.footerHeight or 58)+extra)
   end
+  function f:QueueScrollRectRefresh()
+    if self.scrollRectQueued or not self:IsShown() then return end
+    if type(scroll.UpdateScrollChildRect)~="function" then return end
+    if not C_Timer or type(C_Timer.After)~="function" then scroll:UpdateScrollChildRect();return end
+    self.scrollRectQueued=true
+    C_Timer.After(0,function()
+      self.scrollRectQueued=nil
+      -- Read the current page: a tab/profile can change before this callback.
+      if self:IsShown() and self.activeContent and type(scroll.UpdateScrollChildRect)=="function" then scroll:UpdateScrollChildRect() end
+    end)
+  end
   function f:UpdateContentHeight()
     local page=self.activeContent; if not page then return end
     local height=page.contentHeight or 1
@@ -319,6 +330,7 @@ function KHQOL:CreateSettings()
     local maximum=math.max(0,height-scroll:GetHeight())
     scroll:SetVerticalScroll(math.max(0,math.min(maximum,scroll:GetVerticalScroll())))
     if scroll.ScrollBar then scroll.ScrollBar:SetShown(maximum>1) end
+    self:QueueScrollRectRefresh()
   end
   scroll:EnableMouseWheel(true)
   scroll:SetScript("OnMouseWheel",function(_,delta)
