@@ -141,16 +141,25 @@ function Tooltip:ClearInformationRightColumn(tooltip,index)
     tooltip.__KHQOLClearingRight=nil
   end
 end
+local talentInfoUnavailable="조회 불가(API 응답 이슈)"
+function Tooltip:FormatTalentDistribution(a,b,c)
+  if a==0 and b==0 and c==0 then return " "..talentInfoUnavailable end
+  return string.format(" (%d/%d/%d)",a,b,c)
+end
 function Tooltip:FormatSpecializationText(text,unit)
   if isSecret(text) or type(text)~="string" or not publicUnit(unit) then return text end
   if not text:find("전문화:",1,true) or publicCall(UnitIsPlayer,unit)~=true then return text end
-  local _,token=publicCall(UnitClass,unit); local names=localizedSpecs[token]
-  if not names then return text end
   local plain=text:gsub("|c%x%x%x%x%x%x%x%x",""):gsub("|r","")
   local a,b,c=plain:match("%((%d+)%/(%d+)%/(%d+)%)")
-  local index
-  if a and tonumber(a)+tonumber(b)+tonumber(c)>0 then
+  if a then
     a,b,c=tonumber(a),tonumber(b),tonumber(c)
+    -- An unavailable response may use the class name, with no spec to localize.
+    if a==0 and b==0 and c==0 then text=text:gsub("%(%d+%/%d+%/%d+%)",talentInfoUnavailable,1) end
+  end
+  local _,token=publicCall(UnitClass,unit); local names=localizedSpecs[token]
+  if not names then return text end
+  local index
+  if a and a+b+c>0 then
     index=1; if b>a and b>=c then index=2 elseif c>a and c>b then index=3 end
   else
     for i=1,3 do
@@ -159,7 +168,8 @@ function Tooltip:FormatSpecializationText(text,unit)
   end
   if not index then return text end
   local icon=plain:match("|T.-|t%s*(|T.-|t)") or plain:match("(|T.-|t)") or ""
-  local points=a and string.format(" (%d/%d/%d)",tonumber(a),tonumber(b),tonumber(c)) or ""
+  local points=a and self:FormatTalentDistribution(a,b,c)
+    or (plain:find(talentInfoUnavailable,1,true) and " "..talentInfoUnavailable or "")
   return "|cffffd100전문화:|r "..icon..(icon~="" and " " or "").."|cffffffff"..names[index].."|r|cffffd100"..points.."|r"
 end
 function Tooltip:WatchSpecializationLines(tooltip)
@@ -230,6 +240,9 @@ function Tooltip:NormalizeSpecializationLines(tooltip,unit)
   end
   if not first then
     -- Keep one temporary row only; a later real-rank row will replace it.
+    local keep=rows[1].line
+    local formatted=self:FormatSpecializationText(rows[1].text,unit)
+    if keep:GetText()~=formatted then keep:SetText(formatted) end
     for n=#rows,2,-1 do self:RemoveTooltipLine(tooltip,rows[n].index) end
     return
   end

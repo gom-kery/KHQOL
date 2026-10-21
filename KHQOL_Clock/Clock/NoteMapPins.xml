@@ -1,0 +1,10 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <Frame name="KHQOLNoteMapPinTemplate" mixin="MapCanvasPinMixin, KHQOLNoteMapPinMixin" enableMouse="true" virtual="true">
+    <Size x="26" y="26"/>
+    <Layers>
+      <Layer level="ARTWORK">
+        <Texture parentKey="Icon" file="Interface\AddOns\KHQOL\Media\kh-qol-minimap-button.tga" setAllPoints="true"/>
+      </Layer>
+    </Layers>
+  </Frame>
+</Ui>

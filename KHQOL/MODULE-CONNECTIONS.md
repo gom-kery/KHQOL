@@ -1,3 +1,108 @@
+# KHQOL 1.11.6.0 — 최종 안정화 연결
+
+배포 `KHQOL-1.11.6.0-최종안정화.zip` · 기준 1.11.5.11. 19개 폴더 · 논리 모듈 27개 · 287파일 · Lua 207개 · XML 6개 · 미디어 32개 · 저장 변수 11개.
+
+Labs는 buffReminder/procAlert/objectHighlight를 제공합니다. frameInspector/performanceMonitor 구현·등록·UI/위치/명령 연결을 제거하고 과거 비활성 저장 데이터는 보관합니다. 공통 UI/프로필/Navigation 엔진과 나머지 모듈 기본값은 유지합니다.
+
+QuestNavigator의 점선 표시는 Clock의 기존 todo.navigation.pinLines.visible을 사용합니다. Clock 없는 구성은 비활성, ON/OFF는 기존 지도 갱신 경로로 즉시 반영합니다. 새 저장 키/의존성/엔진/타이머는 없습니다. NoteMapPins는 회전 CVar만 미니맵에 반영하며, ClockTools는 스톱워치 표시 초를 캐시합니다. Core의 구형 버튼 처리는 이름 목록으로 각 존재 여부를 확인합니다.
+
+현재 계약·성능/데이터 검증·보류 항목은 CHANGE-VALIDATION-REPORT.md를 따릅니다. 아래는 **이전 버전 설계 기록**이며 제거 도구/점선 설정/배포 정보는 위의 현재 계약이 우선합니다.
+
+---
+
+# KHQOL 1.11.5.11 — 경로 그리기 계약
+
+설치 ZIP: `KHQOL-1.11.5.11-경로그리기.zip`. Clock은 NoteRouteNavigation 다음/NoteMapPins 앞에 NoteRouteDrawing을 로드합니다. 새 저장 변수는 없습니다. 새 Lua 1개와 native 지도 표시줄을 추가하며 기존 엔진/화살표를 재사용합니다.
+
+입력은 BeginTodoRouteDrawing → OnTodoMapCanvasClick/핀 좌클릭 → AddTodoDrawingPin → 기존 ChangeTodoPinRoute 검증/저장 → native 핀·선·순번/표시줄 갱신 순서입니다. FinishTodoRouteDrawing은 완료 또는 기존 저장 경로 안내로 전환합니다. 일반 입력은 모드 밖에서 그대로 유지합니다.
+
+그리기 중 전체 선택 경로를 미리보기하고 안내 중에는 내 위치→현재 핀→남은 경로를 표시합니다. 새 계약과 검증 범위는 CHANGE-VALIDATION-REPORT.md를 따릅니다. 아래는 **이전 버전 설계 기록**이며 현재의 입력/표시 계약은 이 문단이 우선합니다.
+
+---
+
+# KHQOL 1.11.5.10 — 현재 경유지와 남은 경로 표시
+
+배포: `KHQOL-1.11.5.10-남은경로-안내.zip` · 기준 1.11.5.9.
+
+NotePinRoutes:GetTodoPinRouteDisplayStart는 실제 Navigation 목적지와 선택 경로를 대조합니다. 명시 경로는 세션 index, 일반 노트 안내는 그 핀의 경로 위치를 사용합니다. 표시 캐시는 현재 이전의 핀을 가리고 전체 항목 lookup은 유지합니다. 기본 선은 현재→이후만 그려 기존 진입 구간을 플레이어→현재 선으로 대체합니다.
+
+NoteCoordinates의 기존 driver는 실제 대상이 바뀔 때 공급자의 핀/선을 함께 갱신하고, 단순 이동에서는 선 위치만 갱신합니다. 기존 엔진/화살표/저장 구조·필터·우선순위는 유지합니다. 저장된 전체 route.pinIDs를 잘라 쓰지 않습니다. 이전/재시작/종료 때 현재 상태에서 표시 범위를 다시 계산합니다.
+
+현재 계약은 CHANGE-VALIDATION-REPORT.md를 따릅니다. 다음은 **이전 1.11.5.9 설계 기록**이며 ‘안내 중 전체 과거 선 유지’는 새 정책으로 대체합니다.
+
+---
+
+# KHQOL 1.11.5.9 — 현재 위치와 실제 안내 핀 연결
+
+배포: `KHQOL-1.11.5.9-첫핀-접근안내.zip` · 기준 1.11.5.8.
+
+NotePinRoutes:GetTodoPinLineTarget은 기존 Navigation의 현재 노트 목적지를 읽습니다. 저장 경로와 일반 ForeverNote 안내가 동일한 플레이어 접근선을 사용합니다. Clock/Navigation은 목적지 게시·수동 선택 직후 선을 갱신하고, NoteCoordinates의 기존 driver는 열린 지도에서 이동을 반영합니다. NoteMapPins는 지도 표시 수명에 갱신을 맞춥니다. 새 엔진/HUD/설정/저장 형식은 없습니다.
+
+현재 수정·검증 계약은 CHANGE-VALIDATION-REPORT.md를 따릅니다. 다음은 **기존 1.11.5.8 설계 기록**입니다.
+
+---
+
+# KHQOL 1.11.5.8 — 저장 경로와 기존 Navigation 통합
+
+배포: `KHQOL-1.11.5.8-경로저장-순차안내.zip` · 기준 1.11.5.7.
+
+NoteRouteStore는 계정 공용 콘텐츠와 기존 경로 이전, NoteRouteNavigation은 런타임 순차 안내 상태를 관리합니다. 기존 Navigation 엔진에 명시 경로 선택을 덧씌우고, NavigationUI의 같은 HUD/driver를 사용합니다. NotePinRoutes는 전체 기본 선과 플레이어→현재 구간을 그립니다. 기존 좌표계/지도 공급자/미니맵 풀/프로필 콘텐츠 정책은 재사용합니다.
+
+로드: NoteCoordinates → NoteMapGeometry → **NoteRouteStore → NotePinRoutes → NoteRouteNavigation** → NoteMapPins → NoteMinimapPins → XML/노트 UI. 이후 기존 Clock 초기화가 기본값을 합칩니다. 경로 제어는 사용자 시작 때만 활성화합니다.
+
+우선순위: 명시 경로 > 기존 수동 목적지 > 기존 자동 Quest/ForeverNote. 수동 객체와 native 퀘스트 추적 상태는 덮어쓰지 않습니다. 종료/완료 시 override만 제거하고 최신 정책을 다시 선택합니다.
+
+현재 계약/저장 구조/무결성/갱신 주기/검증은 [변경·검증 보고서](CHANGE-VALIDATION-REPORT.md), 도로 탐색 설계는 [기술 검토](ROAD-NAVIGATION-RESEARCH.md)를 따릅니다. 다음은 **이전 1.11.5.7의 설계 기록**이며 안내 시작/우선순위는 현재 문서를 우선합니다.
+
+---
+
+# KHQOL 1.11.5.7 지도·미니맵 핀 경로
+
+전체 ZIP: `KHQOL-1.11.5.7-지역간경로-미니맵핀.zip`. 공용 ordered pinIDs와 원래 mapID/좌표를 유지하면서 현재 지도에 투영합니다. NoteMapGeometry는 공개 좌표 계산, NoteMinimapPins는 주변/목적지 풀, NotePinRoutes는 순서·안내·점선 표시를 담당합니다. 상세 계약과 제한은 CHANGE-VALIDATION-REPORT.md를 따릅니다.
+
+아래는 이전 버전의 설계 기록입니다.
+
+---
+
+# KHQOL 1.11.5.5 노트 핀 연결선
+
+기존 지도·26px 아이콘·추가/삭제/좌표 편집과 길 안내 엔진을 유지합니다. 새 경로는 계정 공용 노트 mapPinRoutes의 ordered pinIDs이며 일반 핀을 자동 포함하지 않습니다. 표시 설정은 프로필 navigation.pinLines입니다. 색/투명도/굵기는 기존 Builder를 사용합니다.
+
+NotePinRoutes.lua는 노트 ID/좌표를 재사용하며 native MapCanvas 공급자 알림과 같은 scroll child에서만 표시합니다. 최대 128개 선택 핀·512개 재사용 점·비입력 하위 레이어, API 실패 시 선만 숨김. 선 전용 OnUpdate/Ticker는 없습니다. 순서 변경은 Navigation Source를 다시 구성하지 않습니다. 자세한 분석/범위는 CHANGE-VALIDATION-REPORT.md를 따릅니다.
+
+전체 ZIP: `KHQOL-1.11.5.5-지도핀-점선연결.zip`. 아래는 이전 버전의 기록입니다.
+
+---
+
+# KHQOL 1.11.5.2 지도 핀 아이콘 수정
+
+기능 변경은 NoteMapPins.lua/XML의 아이콘 및 크기, NoteSettings의 설명뿐입니다. NoteCoordinates·Navigation·메뉴·도착 드라이버는 1.11.5.1과 동일합니다. 26px 원본 로고만 표시하고 추가 배경·링은 제거합니다. 새 저장 필드·변수·프로필 변경 없음. 아래 연결 계약을 유지하며 40px 장식 관련 내용만 과거 기록입니다.
+
+---
+
+# KHQOL 1.11.5.1 노트 지도 핀 연결
+
+- 분리 구조 유지. Clock의 NoteCoordinates·NoteMapPins·XML·Navigation·NoteSettings·SearchIndex만 기능 수정합니다. 공용 Navigation/NavigationUI 및 파티·유닛·판매 코드는 유지합니다.
+- `todo.navigation.hideArrived=true`는 프로필 설정입니다. `pages` 내부 `waypoint.arrived`는 계정 공용 노트이며 프로필 내보내기에서 제외됩니다. 좌표 재편집 시 새 waypoint 생성으로 도착 상태를 해제합니다.
+- 지도 Shift+우클릭은 즉시 `AddTodoCoordinate`를 호출합니다. 핀 메뉴는 생성 시 해당/지도/전체 미완료 좌표를 스냅샷합니다. 전체 검증 후 한 번에 삭제·갱신합니다. 신규 항목이나 완료 항목·다른 애드온 핀은 삭제하지 않습니다.
+- 도착 드라이버는 미도착 좌표가 있고 노트·지도 핀·도착 숨김 ON일 때만 OnUpdate를 연결합니다. 0.5초마다 한 번 위치·지도 크기를 읽고 좌표 후보를 비교합니다. 10야드 이내 도착 필드를 기록하고 변경이 생길 때만 목록/핀/안내를 갱신합니다. 전투 중 변경은 보류합니다.
+- 도착한 항목은 `RefreshTodoNavigation`에서 완료 항목과 마찬가지로 안내 후보에서 제외하지만 체크 상태는 변경하지 않습니다. 기존 autoAdvance OFF의 일시정지·퀘스트 우선·수동 지정 우선 정책을 유지합니다.
+- 다음 1.11.5.0 항목의 모달·타이머 없음 내용은 과거 기록입니다. 현재 추가·삭제 UI에는 모달이 없고, 위 제한된 도착 드라이버가 추가되었습니다.
+
+---
+
+# KHQOL 1.11.5.0 노트 지도 좌표 연결 (과거 기록)
+
+- `KHQOL_Clock`에만 `Clock/NoteCoordinates.lua`, `Clock/NoteMapPins.lua`, `Clock/NoteMapPins.xml`을 추가합니다. 기존 Navigation 뒤에 로드합니다. 공통 객체는 `_G.KHQOL`입니다.
+- 기존 `RefreshTodoNavigation`에서 핀을 갱신합니다. 길 안내 OFF를 강제로 켜지 않습니다. 반복 프레임 갱신·새 타이머는 없습니다.
+- 기존 `ForeverClockDB.todo.pages`에 `coordinatePage=true` 체크리스트를 추가합니다. 기존 task id·waypoint·길 안내 소스를 재사용합니다. 완료는 숨김, 지도 삭제는 확인 후 해당 항목 제거입니다. 다른 길 안내 소스의 일시정지는 해제하지 않습니다.
+- `todo.navigation.mapPins`, `todo.navigation.shiftClick`은 기본 true인 가산 필드입니다. 새 SavedVariables·프로필 포맷 변경 없음. 노트 내용은 계정 공용이며 기존 정책대로 프로필 문자열에서 제외합니다.
+- 기본 MapCanvas 공급자·핀 풀·캔버스 클릭 핸들러를 사용합니다. 세계지도 지연 로드 시 재시도하고 중복 등록하지 않습니다. 기능 애드온 자동 로드는 하지 않습니다. 지도 API 미지원은 좌표 보존과 기존 길 안내에 영향을 주지 않습니다.
+- 전투 중 지도 변경은 차단/보류하고 종료 후 현재 상태만 반영합니다. 표시 지도와 mapID가 같은 항목만 표시합니다. 기본 핀·사용자 경유지·다른 애드온 핀은 조작하지 않습니다.
+- 아래 1.11.4.13 계약 유지. 파티·유닛·판매 런타임은 바이트 단위로 동일합니다.
+
+---
+
 # KHQOL 1.11.4.13 공통 연결 계약
 
 - 공통 객체는 _G.KHQOL이며 선택 모듈은 ModuleRegistry에 등록합니다. 공통 기반 KHQOL에 의존합니다. 미설치 기능의 DB와 알 수 없는 설정은 보존합니다. 기존 프로필·등록·클릭/휠·정리·전투 보류 엔진을 유지합니다.

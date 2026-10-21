@@ -23,7 +23,7 @@ addPackage("KHQOL_NPCAlert","NPC 알림",{"npcAlert"})
 addPackage("KHQOL_PvPAlert","PvP 알림",{"pvpAlert"})
 addPackage("KHQOL_Campfire","모닥불",{"campfire"})
 addPackage("KHQOL_QuestNavigator","퀘스트",{"questNavigator"})
-addPackage("KHQOL_Labs","실험실 · 개발 도구",{"buffReminder","procAlert","objectHighlight","frameInspector","performanceMonitor"})
+addPackage("KHQOL_Labs","실험실",{"buffReminder","procAlert","objectHighlight"})
 addPackage("KHQOL_Map","미니맵 · 버튼 정리",{"minimap"})
 -- Only KHQOL.toc owns these variables, even when their feature is absent.
 K.legacyProfileVariables={clock="ForeverClockDB",buffReminder="ForeverBuffReminderDB",range="FRangeDB",

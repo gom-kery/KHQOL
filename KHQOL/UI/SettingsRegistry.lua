@@ -94,19 +94,15 @@ entry("quest","navigation","questNavigator","길 안내","퀘스트 선택과 �
 entry("labs","buff","buffReminder","버프 리마인더","유지할 버프와 만료 전 알림을 설정합니다.",{"buff"})
 entry("labs","proc","procAlert","발동 버프","등록한 버프의 전투 중 발동 알림을 설정합니다.")
 entry("labs","highlight","objectHighlight","오브젝트 강조","전리품이 있는 퀘스트 오브젝트의 반짝임 유지 설정을 적용합니다.",{"objecthighlight","sparkles"})
-entry("labs","inspector",nil,"프레임 검사기","마우스 아래 실제 Frame 이름과 부모 구조를 확인합니다.")
-R.groups.labs.inspector.owner="frameInspector"
-entry("labs","performance","performanceMonitor","성능 모니터","KHQOL CPU 시간·메모리 사용량을 오버레이로 표시하고 측정 로그를 복사합니다.",{"performance"})
 R.routes.frameMover=R.modules.basicUI
 R.commands.framemover="frameMover"; R.commands.threat="threat"
 -- Order, commands, general shortcuts and presenter all consume this registry.
 R.orders.interface={"basic","tooltip","cursor","range","clock"}
 R.orders.alerts={"combat","threat","npc","pvp","campfire"}
 R.groups.labs.buff.category="실험 기능"
-R.groups.labs.inspector.category="개발 도구"
-R.routes.proc=R.modules.procAlert;R.routes.inspector=R.groups.labs.inspector
-R.routes.highlight=R.modules.objectHighlight;R.routes.frameInspector=R.groups.labs.inspector
-R.commands.lab="labs";R.commands.labs="labs";R.commands.proc="procAlert";R.commands.inspector="frameInspector"
+R.routes.proc=R.modules.procAlert
+R.routes.highlight=R.modules.objectHighlight
+R.commands.lab="labs";R.commands.labs="labs";R.commands.proc="procAlert"
 for _,page in ipairs(R.pages) do
   if page[1]~="labs" and R.groups[page[1]] then
     local group={title=page[2],items={}}
@@ -149,4 +145,4 @@ end
 
 R.positionModules={clock=true,todo=true,buffReminder=true,range=true,resourceSwing=true,campfire=true,
   castBar=true,combatStatus=true,questNavigator=true,threat=true,pvpAlert=true,experienceBar=true,
-  environmentTimer=true,procAlert=true,performanceMonitor=true,tooltip=true,basicUI=true,unitFrames=true}
+  environmentTimer=true,procAlert=true,tooltip=true,basicUI=true,unitFrames=true}

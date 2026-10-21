@@ -4,7 +4,6 @@ local names={unitFrames="UnitFrameSettings",partyFrames="PartyFrameSettings",bar
   alerts="AlertSettings",labs="LabSettings",interface="InterfaceSettings",convenience="ConvenienceSettings",quest="QuestSettings"}
 for id,name in pairs(names) do K[name]=UI:NewSettingsGroup(id) end
 R.groups.convenience.general.owner="generalConvenience"
-R.groups.labs.inspector.owner="frameInspector"
 local function pruneSettingsGroup(registry,id,group,active)
   local builders={}
   for _,tab in ipairs(group.tabs) do builders[tab.id]=true end

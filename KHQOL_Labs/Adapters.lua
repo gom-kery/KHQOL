@@ -20,8 +20,6 @@ R:Register("buffReminder",{variable="ForeverBuffReminderDB",setEnabled=function(
 end})
 R:Register("procAlert",{profile=true,setEnabled=enable,defaults=function(m) return m and m.defaults or {} end})
 R:Register("objectHighlight",{profile=true,setEnabled=enable,defaults=function(m) return m and m.defaults or {} end})
-R:Register("frameInspector",{setEnabled=enable})
-R:Register("performanceMonitor",{profile=true,setEnabled=enable,defaults=function(m) return m and m.defaults or {} end})
 do local spec=R.entries.buffReminder
   if not spec.positions then spec.positions=function(m,focus,K) local provider=K.PositionProviders.buffReminder;return provider and provider(focus,K) or {} end end
   spec.applyProfile=function(m,K)
@@ -45,10 +43,4 @@ do local spec=R.entries.procAlert
 end
 do local spec=R.entries.objectHighlight
   if not spec.positions then spec.positions=function(m,focus,K) local provider=K.PositionProviders.objectHighlight;return provider and provider(focus,K) or {} end end
-end
-do local spec=R.entries.frameInspector
-  if not spec.positions then spec.positions=function(m,focus,K) local provider=K.PositionProviders.frameInspector;return provider and provider(focus,K) or {} end end
-end
-do local spec=R.entries.performanceMonitor
-  if not spec.positions then spec.positions=function(m,focus,K) local provider=K.PositionProviders.performanceMonitor;return provider and provider(focus,K) or {} end end
 end

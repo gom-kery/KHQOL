@@ -97,6 +97,11 @@ end
 function N:InvalidateMap() self.sizeMapID=nil end
 function N:GetOffset(destination)
   if not destination or not N.ValidPoint(destination.mapID,destination.x,destination.y) then return nil end
+  local source=self.sources[destination.source]
+  if source and type(source.getOffset)=="function" then
+    local dx,dy=N.Call(source.getOffset,destination)
+    if N.IsNumber(dx) and N.IsNumber(dy) then return dx,dy end
+  end
   if not self:GetPlayerPosition() or self.playerMapID~=destination.mapID or not self:ReadMapSize() then return nil end
   return (destination.x-self.playerX)*self.mapWidth,(destination.y-self.playerY)*self.mapHeight
 end
@@ -163,15 +168,15 @@ function N:Refresh(rotate,distance,options)
   local d=self.activeDestination
   self.distanceYards=nil; self.distanceSq=nil; self.playerFacing=nil
   self.targetAngle=nil; self.relativeAngle=nil
-  if not d then self.state="IDLE"
+  if d and self.routeOverride and self.routeOverride.source==d.source and self.routeOverride.paused then self.state="PAUSED"
+  elseif not d then self.state="IDLE"
   elseif not N.ValidPoint(d.mapID,d.x,d.y) then self.state="NO_WAYPOINT"
-  elseif not self:GetPlayerPosition() or self.playerMapID~=d.mapID then self.state="NAVIGATION_UNAVAILABLE"
+  elseif not self:GetPlayerPosition() then self.state="NAVIGATION_UNAVAILABLE"
   else
     self.playerFacing=N.Call(GetPlayerFacing)
-    if not N.IsNumber(self.playerFacing) or not self:ReadMapSize() then self.state="NAVIGATION_UNAVAILABLE"
+    local dx,dy=self:GetOffset(d)
+    if not N.IsNumber(self.playerFacing) or dx==nil then self.state="NAVIGATION_UNAVAILABLE"
     else
-      local dx=(d.x-self.playerX)*self.mapWidth
-      local dy=(d.y-self.playerY)*self.mapHeight
       local sq=dx*dx+dy*dy
       if not N.IsNumber(sq) then self.state="NAVIGATION_UNAVAILABLE"
       else
@@ -196,6 +201,7 @@ function N:SetSourceEnabled(source,enabled)
   local s=self:RegisterSource(source); if not s then return end
   s.enabled=enabled==true; self.selectionManaged=true
   if not s.enabled then
+    if self.routeOverride and self.routeOverride.source==source then self:ClearRouteOverride("source disabled") end
     s.focus=nil; s.hold=nil; s.paused=nil; s.destinations={}
     if self.manual and self.manual.source==source then self.manual=nil end
   end
@@ -220,7 +226,22 @@ function N:SetManualDestination(source,id)
   self.manual={source=source,id=id}; s.paused=nil; self.selectionManaged=true
   self:RefreshSelection(); return true
 end
+-- Explicit route navigation overlays selection without replacing a user's
+-- manual destination or mutating any source's automatic tracking state.
+function N:SetRouteOverride(source,id,paused)
+  local s=self.sources[source];local d=self:FindDestination(source,id)
+  if not s or s.enabled==false or not d or not N.ValidPoint(d.mapID,d.x,d.y) then return false end
+  self.routeOverride={source=source,id=id,paused=paused==true};self.selectionManaged=true
+  self:RefreshSelection();return true
+end
+function N:ClearRouteOverride(reason)
+  local old=self.routeOverride;self.routeOverride=nil
+  local source=old and self.sources[old.source]
+  if source and type(source.onRouteCancel)=="function" then N.Call(source.onRouteCancel,reason) end
+  self:RefreshSelection()
+end
 function N:ClearManualDestination()
+  if self.routeOverride then self:ClearRouteOverride("AUTO") end
   self.manual=nil
   for _,s in pairs(self.sources) do s.paused=nil end
   self:RefreshSelection()
@@ -232,7 +253,14 @@ end
 function N:RefreshSelection(preserveRotation,forceFocus)
   if not self.selectionManaged then return end
   local chosen,source
-  if self.manual then
+  local route=self.routeOverride
+  if route then
+    local s=self.sources[route.source]
+    chosen=s and s.enabled~=false and self:FindDestination(route.source,route.id) or nil
+    if chosen and N.ValidPoint(chosen.mapID,chosen.x,chosen.y) then source=chosen.source
+    else self.routeOverride=nil;chosen=nil end
+  end
+  if not source and self.manual then
     local s=self.sources[self.manual.source]
     chosen=s and s.enabled~=false and self:FindDestination(self.manual.source,self.manual.id) or nil
     if chosen and N.ValidPoint(chosen.mapID,chosen.x,chosen.y) then source=chosen.source

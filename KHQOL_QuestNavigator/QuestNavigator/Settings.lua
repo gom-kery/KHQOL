@@ -59,6 +59,13 @@ function QN:BuildSettings(content,y,part)
   b:Slider("퀘스트 이름 글자 크기",8,30,1,function() return db.titleFontSize end,function(v) db.titleFontSize=v;self:Changed("titleFontSize") end,function(v) return v.." px" end,function() return db.showTitle end)
   b:Slider("진행도 글자 크기",8,30,1,function() return db.progressFontSize end,function(v) db.progressFontSize=v;self:Changed("progressFontSize") end,function(v) return v.." px" end,function() return db.showProgress end)
   b:Dropdown("진행도 표시 방식",{{value="numeric",text="숫자만"},{value="text",text="목표 텍스트 + 숫자"}},function() return db.progressMode end,function(v) db.progressMode=v; self:Changed("progressMode") end,function() return db.showProgress end)
+  local fc=KHQOL.modules.clock
+  local function hasNoteLines() return fc and fc.db and fc.db.todo and fc.GetTodoPinLineOptions~=nil end
+  local lines=b:Checkbox("점선 표시",function() return hasNoteLines() and fc:GetTodoPinLineOptions().visible or false end,function(v)
+    if not hasNoteLines() then return end
+    fc:GetTodoPinLineOptions().visible=v;fc:RefreshTodoMapPins()
+  end,hasNoteLines)
+  UI:AttachTooltip(lines,"점선 표시","노트·저장 경로의 지도 점선을 함께 켜고 끕니다. 포에버 노트의 ‘핀 연결선 표시’와 연동하며, 화살표와 안내 진행은 유지합니다. KHQOL_Clock이 설치되어 있어야 합니다.")
   b:BeginDisclosure("고급","quest-intervals",2)
   b:Slider("화살표 갱신 주기",.05,.5,.05,function() return db.arrowUpdateInterval end,function(v) db.arrowUpdateInterval=v; self:Changed("arrowUpdateInterval") end,function(v) return string.format("%.2f초",v) end,nil,"작은 값일수록 회전 반응이 빠릅니다. 기본 0.10초.")
   b:Slider("거리 갱신 주기",.1,1,.05,function() return db.distanceUpdateInterval end,function(v) db.distanceUpdateInterval=v; self:Changed("distanceUpdateInterval") end,function(v) return string.format("%.2f초",v) end,nil,"거리 표시는 선택 단위의 정수 값이 달라질 때 갱신합니다. 기본 0.25초.")

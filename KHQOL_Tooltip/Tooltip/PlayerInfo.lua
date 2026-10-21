@@ -155,7 +155,7 @@ function Info:Append(tooltip,guid,data)
   if data.spec then
     local icon=data.spec.icon and ("|T"..data.spec.icon..":14:14:0:0|t ") or ""
     local points=data.points
-    local distribution=points and string.format(" (%d/%d/%d)",points[1] or 0,points[2] or 0,points[3] or 0) or ""
+    local distribution=points and Tooltip:FormatTalentDistribution(points[1] or 0,points[2] or 0,points[3] or 0) or ""
     addLine("전문화: "..icon.."|cffffffff"..data.spec.name.."|r"..distribution,1,.82,0)
   end
   if good(data.itemLevel) then addLine("아이템 레벨: "..data.itemLevel,1,1,1) end

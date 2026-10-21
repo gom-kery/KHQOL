@@ -1,9 +1,1269 @@
 [
   {
+    "group": "audit",
+    "test": "Quest guidance exposes the shared visible flag with its unchanged default",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Quest line checkbox immediately hides all route and player approach dots while guidance continues",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "The note page sees the value changed from quest settings",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Turning dots OFF during drawing keeps capture, ordered membership, toolbar and pin numbers",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Line preference is shared through existing clock profile settings and restores across profile switching",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Quest-only installation disables the shared checkbox without creating a clock database",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Settings without clock and quests absent remain valid core/Labs pages",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Every runtime/search/position/command reference to removed Labs tools is absent",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Old profiler preference and nested settings survive save, new profile and return without activating code",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Account notes and shared routes survive removed-tool preference handling and profile export",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Unrelated CVar events perform no full map refresh, new pins or geometry invalidation",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Minimap rotation CVar updates only minimap geometry, including case-normalized names",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Missing or unreadable CVar arguments are ignored without string operations or data changes",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Zone and combat lifecycle events retain full refresh and current pending-route behavior",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Stopwatch avoids duplicate text writes within a second and writes on each visible second boundary",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Stopwatch pause/resume retains fractional elapsed time and reset invalidates its display cache",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Stopwatch keeps hour formatting and stopped close-button timeout behavior",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Legacy minimap hide processes later buttons even when the first optional button is absent",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Legacy minimap cleanup is safe with all optional buttons missing and with only the last present",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Remaining Labs features, locks and unchanged clock FPS/latency module still exist",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: basicUI",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: buffReminder",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: campfire",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: castBar",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: chatEnhancement",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: clock",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: combatStatus",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: cursorTrail",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: environmentTimer",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: experienceBar",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: frameMover",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: general",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: generalConvenience",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: minimap",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: npcAlert",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: objectHighlight",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: partyFrames",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: procAlert",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: pvpAlert",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: questNavigator",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: range",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: resourceSwing",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: threat",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: todo",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: tooltip",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: unitFrames",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: weaponGuide",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Fresh-session restore preserves shared line OFF, route content and dormant removed-tool settings",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "New drawing creates an empty independent selected route and a visible toolbar",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "One entry records three map clicks directly in click order with exact original coordinates",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "New map pins and existing clicked pins can be mixed in one ordered path",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Repeated clicks on an existing route member do not duplicate it or change revision",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Continuing an existing route appends after its saved order without creating another route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Toolbar completion stops capture, retains points and restores ordinary pin left-click guidance",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Toolbar guidance ends drawing and starts at the first added pin through the saved suffix",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "A map click after completion creates only an ordinary pin without enrolling it",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Text-command coordinate creation stays ordinary even while drawing",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Mode temporarily accepts Shift-right-click when the ordinary shortcut preference is OFF",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Plain right-click, Ctrl-Shift and Alt-Shift do not create capture points",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "New route creation from the pin context enrolls the clicked pin once",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Context continue starts from the existing route and appends the context pin",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Context completion replaces drawing actions during capture without changing the deletion divider",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Old context drawing entry cannot modify a newly selected route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "An old captured session cannot finish or append to a newer drawing session",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Route selection cancels capture and hides its toolbar without enrolling a stray pin",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Deleting the drawn route cancels capture while retaining its underlying notes",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Disabling notes cancels drawing and cannot create another pin",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Disabling world-map pins cancels drawing but leaves its saved route intact",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Profile replacement invalidates the capture ticket but keeps account-wide route content",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Combat blocks new capture entry, pin creation, append and guidance without changing content",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Capture resumes normally after combat using the same selected route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "A full 128-pin route rejects map creation before leaving an orphan ordinary pin",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "The 32-route limit does not fall back to or begin drawing on an existing route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Missing route and disabled map-pin display refuse entry without allocating a route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "World-map close/reopen keeps capture, and closed-map minimap left click stays ordinary guidance",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "An open-map minimap pin also joins the drawn route without starting guidance",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Cross-zone drawing keeps original map IDs and world-map clicks resolve to the owning region",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Route numbers update immediately on unchanged-position pins after order edits and route selection",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Minimap route numbers use the original ordinal and remove stale values after exclusion",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Reused native pin frames clear number labels for ordinary unregistered pins",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Toolbar name/count and layout follow route rename and map resizing without new frames",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Empty or navigation-disabled route cannot leave capture through its guidance button",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Beginning capture stops previous ordered guidance and previews the entire selected path",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Drawing exposes all saved members without clearing their completion or arrival flags",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Drawing preserves the underlying normal manual target and restores its approach after completion",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Repeated capture sessions reuse the toolbar and add no update handler or event driver",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "New settings entry opens capture and hides settings after showing the world map",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Toolbar follows the native map stratum in fullscreen and compact layouts",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "A context start switches from recording to guidance without modifying its ordered membership",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Fresh session retains drawn route and coordinates but never restores capture mode or running guidance",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Before reaching the first pin, player-to-first and all future legs are visible",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Screenshot case: arrival at one and detour toward two leaves only player-to-two and two-three-four-five",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "At waypoint 2, no completed or duplicate incoming saved leg is drawn",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "At waypoint 3, no completed or duplicate incoming saved leg is drawn",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "At waypoint 4, no completed or duplicate incoming saved leg is drawn",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "At waypoint 5, no completed or duplicate incoming saved leg is drawn",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Normal note guidance also trims the completed prefix and replaces the incoming leg",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Normal automatic arrival updates visible pins and lines immediately to the next actual arrow target",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Engine-side normal target selection refreshes pins and remaining lines on the shared tick",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Passed minimap pins are hidden while current and future nearby pins remain",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Disabling arrival hiding does not bring passed route pins back during guidance",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Old arrival/completion flags cannot hide pending route members; passed members still disappear",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Previous restores the earlier pin and remaining suffix even when its persisted arrival flag is set",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Pause retains the remaining suffix and resume does not restore passed legs",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Stopping all note guidance restores the full saved base path and eligible pins",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Final arrival removes only runtime progress and restores all saved connections",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Restart from first restores earlier route pins without changing the saved order",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Nearest start hides only the prefix before its chosen index",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Player-to-current behavior is preserved for unregistered pins without trimming an unrelated saved route",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Ordinary pins outside the active route keep their existing visibility",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "No shared pin, route or checklist content is rewritten by rendering and manual progress",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "World-map close/reopen preserves the current remaining suffix",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Remaining route projects correctly on map 13",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Remaining route projects correctly on map 947",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Cross-zone incoming leg is replaced rather than duplicated on the continent map",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "No location data leaves only future saved legs without inventing a player connection",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Line OFF/ON keeps progress and does not resurrect a completed incoming leg",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Forty repeated next/previous steps reuse map pin frames and line textures",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Stationary remaining guidance avoids new texture creation or coordinate writes",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Route completion can restore a pre-existing normal note target using that target remaining suffix",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Fresh Lua session restores full saved route and no runtime display progress",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Screenshot reproduction: regular guidance also connects player to the first saved pin",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Single ordinary pin needs no saved route to draw its approach line",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "World-map left click refreshes the approach immediately to the arrow destination",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Minimap left click uses the same actual target and refreshes the open world map immediately",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Directly selecting another pin updates the line endpoint without changing the saved path",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Player movement updates the normal approach on the existing tenth-second driver",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Clearing a normal target removes its stale line on the next tick and stops unnecessary map work",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "World-map close stops map-only work; reopen restarts it and renders current player location",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Line OFF hides the player approach and suspends map-only movement updates",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Hiding a saved route does not hide a separate ordinary pin destination approach",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Hidden saved-route guidance still honors its existing route visibility setting",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Saved route begins with player-to-first approach and advances it to the next waypoint",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Player approach and base route remain separate white and configured-color lines",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Cross-zone approach is projected and clipped at the region border",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Approach projects both player and target onto map 13",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Approach projects both player and target onto map 947",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Other world does not draw a false ocean/instance approach",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Missing player position hides the approach without deleting its pin or saved path",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Unknown cross-map transforms do not fabricate a line from unmatched normalized coordinates",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "A normal arrival refreshes both automatic arrow target and approach endpoint together",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Turning off note navigation removes the normal approach and leaves saved base links",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Combat does not move player-line textures and normal updates recover afterward",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "A stationary approach reuses textures and avoids coordinate writes",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Line OFF does not perform map projection even when minimap work keeps the shared driver active",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "No route session changes the original source policy or starts guidance automatically",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Legacy 1.11.5.7 shared path becomes a named route without changing any pin coordinate",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Legacy per-zone paths migrate deterministically and retain original tables",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Creating, renaming, saving and selecting multiple independent routes preserves order",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Deleting a route leaves pins and notes intact and never resurrects legacy shared data",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route names validate blanks, newlines and size without changing content",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route limit is bounded without deleting old routes",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Waypoint order can differ between routes using the same existing IDs",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Deleting a pin prunes every saved route while leaving other pins",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Stale route menu cannot append a pin to a newly selected route",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Pin context starts from selected first node through the final node and preserves base lines",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Selecting a middle waypoint displays only its remaining route without changing saved earlier IDs",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Selecting the last waypoint displays only its player approach and retains the saved route",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Saved-route first start ignores player proximity and always starts at index one",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Explicit nearest start chooses the nearest measurable node and continues to the end",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "1-waypoint route begins and completes without destroying saved data",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "2-waypoint route begins and completes without destroying saved data",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "5-waypoint route begins and completes without destroying saved data",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Arrival radius is yards from map geometry, with configurable inside/outside behavior",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Automatic advance shows current waypoint and total count in the existing HUD",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Manual next/previous can navigate the full saved path before and after the start index",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Pause freezes automatic arrival, retains all lines and reuses the same arrow HUD",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Resume continues at the paused index and then advances normally",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Manual next and previous work while paused without silently resuming",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "When route is the only update client, pausing and stopping remove unnecessary loops",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route override has priority over manual destination and Quest; stop restores the manual",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Quest destination data and tracking are not cleared while a route is active",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Quest focus can update behind a route and is current when the route ends",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "A newer manual destination is preserved behind the higher-priority explicit route",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "AUTO explicitly ends the route and clears manual selection to return to automatic policy",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Starting a route does not turn on the legacy note auto-navigation setting",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Missing location APIs do not invent arrival and manual controls remain available",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Missing map size and world coordinates do not treat normalized coordinates as yards",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Departure warning is optional and only follows a measurable segment distance",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Missing location never triggers an inferred departure warning",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "World-map guidance replaces the incoming regional link with the current player leg",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "World-space automatic arrival works across a region boundary",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Arrival hiding does not erase route icons/lines or stop the route update driver prematurely",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Selecting another route stops the old session without modifying either path",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Renaming an active route preserves navigation and updates its presentation",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Deleting an active route restores source selection and preserves all pins",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route editing, pin movement and profile changes invalidate stale sessions safely",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Paused sessions are validated and stopped on pin deletion even when their tick is disabled",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route visibility and navigation enable flags are independent and persist with the route",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Combat blocks data edits and control commands, then resumes safely after combat",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Stale context controls cannot operate on a replaced route session",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Pin menu includes pause/resume, next/previous and the route/deletion divider",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Minimap destination uses the route source while retaining original pin artwork",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Account route content is excluded from profile export while route-control display settings follow profiles",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "The existing settings builder exposes named routes and navigation controls without a new window",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Starting the same route repeatedly reuses the HUD and does not accumulate update frames",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "A full 128-waypoint path stays under the existing texture budget while guiding",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Unsupported future schema is preserved and refuses destructive route edits",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route creation rejects invalid user names before allocating a route ID",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "A coordinate changed behind a paused menu is validated before executing manual next",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Disabling the dedicated source ends its session and removes the override without recursion",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "A route built from already completed checklist items remains reusable without changing checks",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Failed optional distance callback uses verified same-map geometry and rejects unverifiable cross-map geometry",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Actual Quest Navigator keeps native super-track and watched quest data through route controls",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Actual Quest Navigator can adopt a newly tracked quest behind the route and restore it on completion",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Fresh Lua session restores multiple named routes and selection without auto-starting navigation",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Default and migrated old-default lines are bright cyan, opaque and 3px",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Same-map pins retain exact positions and original 26px artwork",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Continent map projects pins from both neighboring zones",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "World map displays and preserves clickable pins from child zones",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Global route explicitly connects pins across zones without enrolling ordinary pins",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone line clips to region edge instead of disappearing",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Crossing segment renders even if both pins are outside the displayed zone",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Different continents remain disconnected and permit explicit manual-waypoint fallback",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "World-map fallback handles Forever continent calibration without native rectangles",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "World-map Shift click resolves original zone coordinates",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Legacy route migration preserves per-map order, original tables and IDs",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Moving an existing selected pin to another zone preserves its route position",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Menu visually separates route actions from deletion actions",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap nearby pin projects relative to player without world map open",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap updates as player moves and rotates with the minimap",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap zoom/resize and independent visibility setting refresh correctly",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Active distant destination floats at minimap edge, unrelated far pins stay hidden",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap pins have the same context actions and separator",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Guidance starts at the selected registered node and draws only its remaining suffix",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "An explicitly selected start keeps saved forward order rather than replacing it with a reversed suffix",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Guidance automatically advances nodes and stops at selected destination",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone note direction/distance remains available without changing quest policy",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Guidance player lead updates while preserving pin positions",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Custom routing is cancelled when AUTO or a different manual destination is chosen",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Changed/deleted waypoint cancels stale guidance safely",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Context action rejects a menu after map/profile/item change",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Combat blocks edits and hides map/minimap overlays until combat ends",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Missing geometry/radius APIs fail closed and recover without deleting data",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Renderer pairs every foreground dot with a contrasting shadow and stays bounded",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Unchanged minimap/map refreshes reuse pins and dots with zero geometry writes",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Existing driver runs minimap with arrival hiding disabled, and stops when both are off",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 0.25",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 0.5",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 1",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 2",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 4",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "World map resize/pan/reopen updates both projected pins and lines without leaks",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Deleting a selected cross-zone pin preserves other-zone pins and prunes the route",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Completed and hidden route pins preserve the entire saved path",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Legacy overflow retains every ID and renders a bounded subset with an explicit notice",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Native legacy dropdown API displays a non-clickable divider and working route actions",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Unregistered guidance is a temporary direct path and never changes saved route membership",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone ordered guidance advances through a boundary and keeps correct destination",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap pool is bounded at 128 nearest pins and remains reusable across map close",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Profile capture excludes account route content and a new profile preserves ordered IDs",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Fresh Lua session restores saved cross-zone IDs, order and projected geometry",
+    "passed": true
+  },
+  {
     "group": "regression",
     "test": "Clean full-install structure, exact versions, unique saved ownership and Lua 5.1 syntax",
     "passed": true,
-    "details": "19 folders / 201 Lua / 11 variables"
+    "details": "19 folders / 207 Lua / 11 variables"
   },
   {
     "group": "regression",
@@ -457,7 +1717,7 @@
   },
   {
     "group": "regression",
-    "test": "Performance monitor aggregates core + installed addons; memory denominator avoids double count",
+    "test": "Requested Labs tools absent from runtime, settings, commands and overlays; clock info retained",
     "passed": true,
     "details": ""
   },
@@ -1534,2630 +2794,5 @@
     "test": "Mock login/UI/editor/profile/export: mixed subset 24",
     "passed": true,
     "details": ""
-  },
-  {
-    "group": "targeted",
-    "test": "Legacy account settings, unknown keys and saved choices survive first merge",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Native minimap starts once and OFF restores mask, geometry, input and drawer",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Disabled module creates no native overlays until explicitly enabled",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Combat login defers native descendants and starts after combat",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Combat changes apply latest master OFF and preserve configured appearance",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Both original tabs and all map sections are registered with shared controls",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Original slash aliases and drawer right click open the KHQOL settings host",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "KHQOL profiles change only module enable preference, account map settings stay shared",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Shared color picker cancellation restores original color and stale callbacks are inert",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Appearance, shape, region, elements, direction, layout and ranges preserve original schema",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Blizzard edit mode restores controls then resumes only enabled module",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Known external shape addon yields appearance without disabling the drawer",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Unsupported native layout keeps settings and drawer available",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Module reset uses explicit account scope and preserves unknown extension keys",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Dynamic exclusion rows rebind correctly and restore buttons when excluded",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "OFF does not discover new buttons or revive bounded startup work",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Explicit KHQOL full reset clears the loaded minimap account DB too",
-    "passed": true
-  },
-  {
-    "group": "targeted",
-    "test": "Registered list viewport remains below actions and above status after narrow reflow",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Actual 1.11.1.2 character data migrates detached party/10/20/40 profiles and retains backups",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "A saves, B sees/selects/edits all four layouts, A reload sees edits with own wheel spells",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Differing same-name profiles keep A and B values, B selection follows its imported alias",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Existing auto-role choices follow conflict aliases and explicit canonical selection can replace them",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Identical same-name profiles deduplicate rather than add character aliases",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Fresh characters use existing shared presets without duplicate defaults",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Repeated login and migration are idempotent including selection/role aliases",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Restoring an old character backup reuses account migration and restores the original role mapping",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Deleted shared profiles do not resurrect from current or restored legacy character backups",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Other characters fall back to Basic after their selected shared profile is deleted",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "An explicit account-library reset does not silently re-import an already migrated backup",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Account profiles stay outside whole-KHQOL profile switching and exports",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Create default/duplicate, select and reset operate on shared values and preserve unknown fields",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Resetting a shared profile is visible to another character using it",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Core-only installation preserves the shared library and reinstall restores it",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Combat and active position editing reject profile commands without changing shared data",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Korean conflict aliases preserve UTF-8 and the 24-character name limit",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Already-used character suffixes receive a numbered alias without overwrites",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Role auto-selection does not claim another character role absent from an old custom library",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Unavailable character identity uses a valid legacy selection and delays account attribution",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Invalid owned selection/migration metadata is safely replaced without losing shared values",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Rollback to actual 1.11.1.2 reads untouched character profile backups",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Settings communicate account edits, character selection, wheel scope and shared deletion",
-    "passed": true
-  },
-  {
-    "group": "party-shared",
-    "test": "Full install sidebar puts Minimap immediately below Interface, hides optional page when absent",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Ready player applies immediately with no retry left behind",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Missing player appears after login without another world/addon event",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Existing visible root gains its contents without OnShow",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Transient unreadable geometry retries once public values become available",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Partial hierarchy gains its missing power bar and applies",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Late player labels receive configured anchors and finish recovery",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "A late native root resize is corrected after its entire update returns",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Forever health visual update leaves native geometry native and keeps the owned square display",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Forever mana visual update restores compact dimensions",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Nested player and vehicle art updates coalesce to one final layout",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Both login/world event orders converge without reload",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Initial combat skips layout mutation and recovers after combat",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Combat beginning during a pending retry defers to regen",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "OFF cancels pending recovery and does not restyle a late native frame",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Profile changes invalidate old callbacks and read the latest desired width",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "A profile with compact OFF leaves native geometry and clears recovery",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Native edit mode pauses recovery and leaving edit mode resumes it",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Repeated settings applications do not duplicate native hooks or frames",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Unavailable native hierarchy uses bounded retries with no idle update loop",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Module initially OFF creates no recovery tasks",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Native-style player setting creates no readiness recovery tasks",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Changes made while waiting use the current configuration, never captured defaults",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "A manually delivered canceled callback cannot clear a newer recovery",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Failed deferred layout releases its task and permits a clean retry",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Secret public-geometry results are deferred without arithmetic on them",
-    "passed": true
-  },
-  {
-    "group": "login",
-    "test": "Two characters cold-login into their own selected whole profiles without defaults overwriting either",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Installed tray fills the 256x256 RGBA TGA and keeps transparent outer pixels",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Launcher is 36px while collected addon icons retain their saved size",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Square map keeps at least 8px gap for all 24 tested angles",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Round map keeps at least 8px gap for all 24 tested angles",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Visible native mail/clock/tracking icons have 8px separation without rewriting saved angle",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Transparent/hidden native icons do not displace the launcher",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Blocked preferred placement returns when the native icon moves away",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "At screen corners the visible launcher stays inside screen without changing its preference",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Insufficient screen space uses a bounded visible fallback",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Different minimap and UI scales retain an independent UIParent launcher position and size",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "All four drawer directions leave an 8px gap from the 36px launcher",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Normal click, settings click, drag suppression and combat drag guard remain intact",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Tooltip identifies the button collection purpose directly",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Inaccessible and secret native geometry is skipped before arithmetic",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Repeated positioning preserves legacy saved values and unknown extensions",
-    "passed": true
-  },
-  {
-    "group": "visibility",
-    "test": "Master OFF hides the new launcher and restores original native minimap state",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Full install has 19 folders and 11 unique saved-variable owners with no KH_map helper",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Existing KHQOLMapDB settings load without KH_map",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Logout and a new login retain current account settings and free launcher coordinates",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Second character reads the same account minimap data without a helper",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Existing new store wins over a separately loaded old store",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "New table is not repopulated from legacy values after an intentional empty reset",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "If legacy data is separately present, the retained importer deep-copies it without aliasing",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Clean installation creates defaults and a working renamed feature with no legacy global",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Module OFF retains new data and creates no launcher until enabled",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Explicit full reset clears both stores and new boot starts from defaults",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Both minimap tabs, aliases and shared catalog work with no Theme.lua",
-    "passed": true
-  },
-  {
-    "group": "migration",
-    "test": "Map runtime and unaffected transfer/input/ownership engines stay unchanged; auxiliary profile fields have separate coverage",
-    "passed": true
-  },
-  {
-    "group": "stacking",
-    "test": "Overlapping launcher receives open/close clicks ahead of a level-500 chat frame",
-    "passed": true
-  },
-  {
-    "group": "stacking",
-    "test": "Empty drawer background stays above chat without changing the chat frame",
-    "passed": true
-  },
-  {
-    "group": "stacking",
-    "test": "Collected real addon icon stays above chat and calls its original handler once",
-    "passed": true
-  },
-  {
-    "group": "stacking",
-    "test": "Drawer pager controls inherit the raised drawer layer",
-    "passed": true
-  },
-  {
-    "group": "stacking",
-    "test": "Shared settings dialog remains above the launcher and drawer",
-    "passed": true
-  },
-  {
-    "group": "stacking",
-    "test": "Master OFF restores original foreign parent, strata, level, flags, scale, anchors and scripts",
-    "passed": true
-  },
-  {
-    "group": "stacking",
-    "test": "Exclusion restores an icon while the launcher and remaining drawer retain their raised layer",
-    "passed": true
-  },
-  {
-    "group": "stacking",
-    "test": "Edit mode restores icon layer and leaving edit mode recollects it above chat",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Launcher and drawer belong to UIParent, keep 36px size and chat-front layer",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Drag preserves the mouse grab offset and travels freely without changing the old map angle",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Distant placement stays unchanged when the map moves, changes shape, size or scale",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Every screen edge clamps the whole button and retains an 8px inset",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Tiny screens use bounded centers rather than negative coordinate limits",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Saved free position is restored by a new login runtime",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Resolution changes preserve normalized preference and adapt the position",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "UI scale is accounted for during dragging while minimap scale is irrelevant",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "An existing free position does not read unavailable minimap geometry",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Old angle converts once, then later angle/map changes cannot move the launcher",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Settings expose a position reset that returns the button near the map",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Module reset stops active dragging and clears the old free position",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Combat blocks drag startup and stops an active drag without a later write",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Master OFF stops dragging, hides UI and preserves the chosen position",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "The post-drag click is suppressed once, and the next click opens the drawer",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Invalid or secret cursor coordinates cannot corrupt the saved position",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Invalid persisted positions are repaired to a usable initial map-adjacent position",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Out-of-range persisted fractions are clamped without losing extension fields",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "Profile changes stop dragging but keep the account-owned free position",
-    "passed": true
-  },
-  {
-    "group": "free-drag",
-    "test": "All four drawer directions follow a free button with the intended separation",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Previously captured health visual callback recovers without changing root size or reloading",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Previously captured mana visual callback recovers without a root event",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Mask-only native rewrite leaves the independent square health display unchanged",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "World entry verifies later native changes even after initial layout success",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Late-created edit-mode manager is attached and exit resumes compact layout",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Replaced global visual callback is hooked again",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Independent login activation survives an unrelated shared startup callback failure",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Saved compact settings survive a new login and native health/power rewrites",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Repeated native property writes coalesce and our own layout never loops",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "A canceled verification timer cannot clear an urgent replacement in the same window",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "World verification finishes within six delayed checks and leaves no idle task",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "OFF cancels a verification window and stale callbacks cannot reactivate compact",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Combat does not re-anchor player parts and recovery applies on leaving combat",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "A pending old window cannot overwrite a newly selected profile",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Secret setter arguments are not inspected and public geometry can later recover",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "A normal player update can wake readiness recovery after the initial retry limit",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Repeated activation/settings calls do not accumulate part hooks, frames or timers",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Compact OFF immediately cancels world verification and restores native appearance",
-    "passed": true
-  },
-  {
-    "group": "relogin",
-    "test": "Entering edit mode immediately cancels verification and leaving starts a fresh window",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "1.11.2.4 reproduces the reported UF flags, four geometry lines, UF-D and ineffective OFF/ON",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Fresh login applies compact without reading or writing restricted native health geometry",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Public geometry also uses an independent display and leaves native size and anchors unchanged",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "OFF restores native decoration and text, hides owned display, and ON reapplies with the restriction still present",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Value and range changes reach the owned display without replacing native scripts or reading geometry",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Secret range and value packets are forwarded without calculations or comparisons",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Unavailable non-numeric health values hide the display safely",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Combat updates values while deferring visibility and layout until combat ends",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Edit mode restores native appearance and resumes compact when it closes",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Name, level, border and power anchor to the owned health display",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Default health text is mirrored and current-value override does not duplicate native labels",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Profile selection refreshes owned dimensions and stale timers cannot restore an older width",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Repeated settings calls do not allocate extra displays or leave idle recovery",
-    "passed": true
-  },
-  {
-    "group": "health-layout",
-    "test": "Other genuinely unreadable geometry still defers safely",
-    "passed": true
-  },
-  {
-    "group": "header",
-    "test": "Entering player/basic ignores the remembered target NPC category",
-    "passed": true
-  },
-  {
-    "group": "header",
-    "test": "Target/aura category is shown and changing category updates the header immediately",
-    "passed": true
-  },
-  {
-    "group": "header",
-    "test": "Leaving target auras clears route category without discarding the remembered selection",
-    "passed": true
-  },
-  {
-    "group": "header",
-    "test": "Player auras and other unit parts never inherit target aura labels",
-    "passed": true
-  },
-  {
-    "group": "header",
-    "test": "Reopening the unit settings after another page preserves a clean current header",
-    "passed": true
-  },
-  {
-    "group": "header",
-    "test": "Search navigation to target NPC auras retains its valid category and player navigation drops it",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Curse applies exact requested RGBA and restores the class fill on dispel",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Disease applies exact requested RGBA and restores the class fill on dispel",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Magic applies exact requested RGBA and restores the class fill on dispel",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Poison applies exact requested RGBA and restores the class fill on dispel",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Bleed applies exact requested RGBA and restores the class fill on dispel",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Mixed harmful types use one native priority slot, with unsupported and untyped effects ignored",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Color and zero opacity edits update the existing sealed native slot without aura reads",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Tint OFF and ON is independent of the existing debuff icon preference",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Shield texture shield and RGBA are applied to a reverse-fill status bar",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Shield texture absorb and RGBA are applied to a reverse-fill status bar",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Shield texture solid and RGBA are applied to a reverse-fill status bar",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Absorb amount and maximum-health events refresh the same bar; zero and over-cap values go to the engine",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Opaque absorb and maximum-health objects are handed to widgets without Lua arithmetic or formatting",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Shield OFF unregisters only its event and tint remains active; ON uses the latest value",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Missing absorb API or setter failure hides stale shield data without breaking health or tint",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Unavailable atlas falls back to a plain bar and texture switching does not retain an old atlas",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Reassigned, hidden, missing and invalid unit tokens do not retain another member tint or shield",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Death shade covers effects while labels and icon previews stay above them",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "All 45 party and raid members keep independent units and share only the public color curve",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Late-created unit buttons initialize native effects and respond to attribute changes",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Missing color-curve capability reports a feature issue and never allocates repeated containers",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Failed slot initialization stays disabled and repeated apply does not leak containers",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Module OFF disables native tint and events; re-enable reuses native objects",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Combat settings defer to the last requested palette and shield preference while current displays keep updating",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "New settings preserve legacy icon placement, false/zero, unknown keys and normalize invalid RGBA",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Frame profile copy and selection preserve independent colors and shield choices",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Selecting another frame profile recolors existing native slots and restores that profile shield texture",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Account frame profiles expose new colors and shield settings to another character after saving",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Settings register exactly the four requested tabs and aura controls live outside Common",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Debuff size, spacing and XY controls form two-column rows and reflow at narrow widths",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Preview shows normal plus five types, shield textures and opacity, without any live-unit aura allocation",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "All six color controls open an opacity picker, commit zero alpha, and cancel to the original RGBA",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Preview ratio remains usable with module OFF and zero is a real sample value",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Icon preview uses saved placement and reserves vertical space for large icon rows",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Existing full-layout preview now reflects tint and shield without creating native aura slots",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Palette reset restores only the five defaults and preserves unknown extension colors",
-    "passed": true
-  },
-  {
-    "group": "effects",
-    "test": "Party addon owns its native aura template and does not depend on UnitFrames or inspect private aura data",
-    "passed": true
-  },
-  {
-    "group": "layout",
-    "test": "Folding each section changes only page visibility and height, while preview and headers remain accessible",
-    "passed": true
-  },
-  {
-    "group": "layout",
-    "test": "Opening a hidden color from search expands its section and focuses the original input",
-    "passed": true
-  },
-  {
-    "group": "layout",
-    "test": "Folded sections keep their state across page visits and cancel only uncommitted hidden number input",
-    "passed": true
-  },
-  {
-    "group": "layout",
-    "test": "Requested row pairs stay aligned at normal and smaller two-column widths, including reset and shield color",
-    "passed": true
-  },
-  {
-    "group": "layout",
-    "test": "Tint instructions appear on hover while removed long descriptions consume no visible rows",
-    "passed": true
-  },
-  {
-    "group": "layout",
-    "test": "Other settings builders now use the same compact columns and arrow disclosure controls",
-    "passed": true
-  },
-  {
-    "group": "layout",
-    "test": "Inline color controls refresh their swatches after a shared frame-profile change and retain zero alpha",
-    "passed": true
-  },
-  {
-    "group": "preview-paint",
-    "test": "Cold preview, resize and reopen use independent color bars without reading a base fill texture; prior dependency reproduced",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "general: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "unitFrames: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "partyFrames: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "convenience: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "interface: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "minimap: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "bars: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "alerts: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "quest: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "profiles: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "labs: every tab builds, arrow sections fold independently and reopening preserves values",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "Unit detail routes expose independent sections and paired sliders for every supported part",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "Same-name unit sections and legacy advanced groups retain independent fold state",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "NPC record editor folds with its list and a draft survives reopening and can be cancelled",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "Unlocked proc editor, inspector and graphics status use folding blocks without runtime recursion",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "Buff reminder list and Shaman controls respond to class, folding, resizing and existing actions",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "Conditional experience layout and common sections resize when switching modes",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "Long inline color names, dropdown labels and number editors fit both narrow and wide layouts",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "Shared inline colors preserve opacity cancellation and reject stale callbacks after folding",
-    "passed": true
-  },
-  {
-    "group": "settings",
-    "test": "Search expands compound convenience sections and both ancestor sections of an open proc draft",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "Focus health sections collapse without reserving their expanded row height",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "Focus labels reenter while folded then expand both sections without overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "Independent name and level folds immediately move the next section in either direction",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "General and profile scroll extents follow folding instead of the initial page height",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "player: all supported part transitions keep nested row bounds current",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "target: all supported part transitions keep nested row bounds current",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "pet: all supported part transitions keep nested row bounds current",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "targettarget: all supported part transitions keep nested row bounds current",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "focus: all supported part transitions keep nested row bounds current",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "general: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "unitFrames: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "partyFrames: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "convenience: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "interface: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "minimap: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "bars: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "alerts: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "quest: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "profiles: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "reflow",
-    "test": "labs: fold, leave, return and unfold all tab sections without cell overlap",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "All specifically requested singleton and description headings have no accordion button",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "A numeric field is one option despite its number box and description; stale collapse state cannot hide it",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "Descriptions survive on plain headings and dynamic result text has no collapse control",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "Every non-Labs settings tab has a general entry while unit and party entries remain unchanged",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "Quest summary shares the existing module switch and its shortcut opens the tracker tab",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "The minimap button-organizer entry opens its own tab without changing the module setting",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "General excludes Labs controls and direct Labs navigation preserves access locking",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "Installation information is on the General intro row, read-only and current on hover",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "Merchant expansion occupies the item cell right of known items and below guild repair funds",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "No tab has a unified position button and the single header position editor remains usable",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "Dynamic registration and minimap lists keep a disclosure while static one-field sections stay open",
-    "passed": true
-  },
-  {
-    "group": "refinement",
-    "test": "All audited sections across normal, Hunter and Shaman screens obey the reviewed policy",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "General catalog excludes every Labs feature while Labs routes and locks remain",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "General shortcut keeps a complete arrow in a fixed 26-pixel button at narrow and wide widths",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Installation tooltip has one anchor at the right end of the General introduction row",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Central notification text size is the first setting, above Module Management",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Target cast settings expose width height texture colors icon and spell name with separate search routes",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Legacy cast appearance migrates once by value and target edits do not mutate player settings",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Old profile snapshots migrate before default filling and the obsolete energy preference is retired",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Target style validation repairs corrupt fields and clamps geometry and RGBA independently",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Target native engine scripts text and progress remain untouched while appearance is applied and restored",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Target appearance edits defer during combat and apply the latest value on combat end",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Target style profile copying and selection preserve independent player and target values",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Resource unlock displays an outline and accepts drag; locking restores fill and stops movement",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Both combat message color controls sit to the right of their input and survive responsive reflow",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Energy tick UI runtime helper and search entry are removed without altering other class settings",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Pet happiness native anchor uses independent saved offsets without cumulative movement",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Pet happiness changes defer in combat, restore on OFF and do not touch visibility or texture",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Pet happiness drag preview writes only its own offsets and resets through the position editor",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Pet happiness safely skips absent and unreadable frames without fabricated geometry",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Totem position remains player-relative after native post-combat anchor and parent-layout rewrites",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Totem width and repeated applications do not shift the first icon, reset releases native ownership",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Totem late anchor writes coalesce into one bounded callback without a ticker or OnUpdate",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Common borders retain physical thickness and all eight edges at fractional window scales",
-    "passed": true
-  },
-  {
-    "group": "request",
-    "test": "Border refresh preserves selected and focused colors and has a guarded fallback without PixelUtil",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "general: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "chatEnhancement: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "basicUI: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "frameMover: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "unitFrames: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "castBar: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "partyFrames: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "generalConvenience: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "clock: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "todo: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "tooltip: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "weaponGuide: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "range: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "cursorTrail: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "resourceSwing: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "experienceBar: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "environmentTimer: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "combatStatus: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "threat: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "npcAlert: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "pvpAlert: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "campfire: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "questNavigator: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "buffReminder: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "procAlert: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "frameInspector: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "performanceMonitor: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "objectHighlight: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "minimap: registry lifecycle, repeated enable/disable, frames and event ownership plateau",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "Every settings tab and all unit/cast routes reuse controls across ten full menu sweeps",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "Every registered position provider keeps target identity order reset callbacks and bounds stable",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "Profile switches preserve notes registered lists map account data and table identities under UI reuse",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "A repeated combat target party inventory spellbook and world event sequence settles without queued-update loops",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "Retained Range invalidation events update its cache while its idle polling is OFF",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "Module registry deferred work expires across profile generations and latest combat request wins",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "Shared navigation cursor and visible cast drivers retain real-time behavior and detach when disabled",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "No timers are created by normal unit health updates after idle player layout has settled",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "Pet happiness temporary unavailability does not accumulate native hooks when the same frame returns",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "Totem temporary unavailability does not accumulate native hooks or retain a stale origin",
-    "passed": true
-  },
-  {
-    "group": "stability",
-    "test": "Additive target and happiness settings survive the real profile transfer encoder validator and importer",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "All second-depth tabs show their own short description and retain it on refresh and reentry",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "All supported unit parts and both target aura categories describe the selected part",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Context descriptions preserve disabled, pending and failure notices and scope tooltips",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Totem labels, breadcrumbs, search routes and expanded coordinate controls match the request",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Cold hidden login, first summon in combat and combat-end layouts keep one fixed icon position",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Native PlayerFrame width and height changes do not move the totem relative to compact health origin",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Two-to-one, one-to-zero-to-one, pool reuse and repeated managed updates preserve the first icon",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Left and right growth keep the first icon fixed and reuse native durations cooldowns and click scripts",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Unprotected totem anchors follow native combat writes; protected geometry defers until combat ends",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Coordinate and growth edits survive profile copying selection and disable/enable restoration",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Preview starts OFF and moves only the totem through its own outline without the global editor",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Empty preview is draggable, clamps expanded coordinates and retains placement when hidden",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Preview stops its temporary drag on tab/page exit, window close, combat, module OFF and profile changes",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Reset restores native points and direction and removes only the totem placement preference",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Player and totem scales are converted consistently in both growth directions",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Protected pooled children defer a direction change and the latest request applies after combat",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Unreadable native scales do not fabricate an anchor or overwrite the last valid placement",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Module OFF restores its native direction and anchors during temporary managed reparenting",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Expanded coordinates growth and explicit placement survive profile export validation and import",
-    "passed": true
-  },
-  {
-    "group": "help-totem",
-    "test": "Native layout hook count and timer work stay bounded through pooled reuse and menu visits",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Locked icon destroys exactly one excess shard per click without invoking a popup",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Unlocked auxiliary display blocks destruction and number input while retaining drag",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Combat, module OFF, hidden shard display, other class and editor suppress both clicks",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Bag and combat events never auto-delete and at or below maximum clicks do nothing",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Pre-existing item or spell cursor is never cleared, picked up or destroyed",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Locked shard slots are skipped and metadata/count failures fail closed",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Unexpected stack and race to a different cursor item cannot destroy any item",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Client refusal returns the picked shard without clearing an unrelated cursor",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Capacity uses carried normal and soul bags; invalid numbers do not change the limit",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Right-click number edits maximum only and rejects stale profile or unlocked submissions",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Label OFF leaves icon and count and settings/search write the same profile fields",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Every unit Basic tab opens the same five-root editor and no unrelated provider is called",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "All five root positions save to KHQOL and reapply after native anchor rebuild without changing native metadata",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Cancel, ESC and combat entry leave every saved position and native root anchor unchanged",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Compact OFF and module OFF restore native anchors and preserve saved custom positions",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Native edit mode owns roots while open; exit restores saved KHQOL coordinates",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Combat anchor rewrites defer protected placement until combat ends",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Unconfigured units remain native; compact OFF roots are read-only in both editor entry points",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Absent pet and focus receive separate movable placeholders; save applies on later creation",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Scale changes preserve absolute UI position and later external anchors become restore baseline",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Profile generation or compact changes invalidate drafts and queued work",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Reset returns to native anchor, saves only chosen root and supports a subsequent nudge",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Saved placements load without an editor and target-of-target legacy offsets remain until explicit replacement",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Both new feature preferences survive profile export validation import and selection",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Switching to an older profile without root preferences restores native placement and does not carry custom anchors across profiles",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Native root hook work coalesces, is generation-guarded and stops creating timers during idle value updates",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Unreadable root coordinates preserve the owned anchor and retry after becoming public",
-    "passed": true
-  },
-  {
-    "group": "shards-roots",
-    "test": "Removing a moved native root while disabling still releases its old anchor record",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "All five edit outlines match the actual bar rectangle rather than the oversized native root",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Dragging moves visible health power name and value previews together without moving native roots before commit",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Absent pet target-of-target and focus have complete movable temporary frames instead of empty boxes",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Temporary frames apply each unit width health power gap fonts colors and label anchors",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Power OFF makes the outline exactly the health height including an eight-pixel compact bar",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Committed bar positions match the preview for every unit under different frame and parent scales",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Entry and cancel restore source alpha and use unprotected blockers without modifying native mouse or visibility",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "ESC and combat cancellation restore all native visuals and leave no saved draft",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "External alpha updates during editing become the restore value rather than being overwritten",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Changing editor filters restores hidden previews sources and releases their input blockers",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "An alpha restore rejected by the client is retained and retried at combat end",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Failed preview rendering leaves the original frame visible and its old-position input unblocked",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Unreadable original opacity does not invent a restore value or change the source",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Opening native edit mode cancels the preview and restores source visuals",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Repeated editor sessions reuse all preview bars labels and blockers without new timers or script hooks",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Private native health geometry is never queried to size or move the compact preview",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "A profile generation change cancels visible previews and restores native alpha",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Global root movement carries part previews without adding their root movement to stored part offsets",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Preview reset and subsequent nudge commit the same visible rectangle shown in the editor",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Compact OFF stays read-only and does not hide or replace that native frame",
-    "passed": true
-  },
-  {
-    "group": "root-preview",
-    "test": "Druid mana has its single display option under its own title with the same saved setting and form rules",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Entry X and Y show the visible frame center relative to the screen center rather than zero",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Numeric inputs place player and target symmetrically at minus and plus 300 with Y 100",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Entering position editing shows a centered full-screen grid with 32 UI pixel spacing",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "All five visible and absent unit previews accept the same screen coordinate basis",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Party and raid group centers use screen coordinates while retaining their own anchor storage",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Editable child coordinates are absolute even after moving the parent without double-saving the parent delta",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "UIParent scale and per-unit scales preserve mirrored screen positions and commit precision",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Toolbar text and controls scale to 90 percent without scaling handles or coordinate values",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Toolbar still fits small screens and UIParent resize cancels the old coordinate draft and grid",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Drag updates both live coordinate fields while a focused text draft is preserved",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Reset updates the absolute readout and cancel leaves the previous stored root coordinates intact",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Invalid numbers or unreadable screen geometry cannot move a frame or format secret coordinates",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Numeric coordinates clamp the complete selected frame inside the visible screen",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Read-only linked and noncompact frames expose coordinates but reject numeric and arrow moves",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Grid checkbox, label toggle and spacing slider affect only account view preferences and never save a module draft",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Grid line density changes at the slider limits with symmetric coordinates and a reused texture pool",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Grid lines remain single physical pixels at UI scale while the center axes are emphasized",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Grid stays below previews and the toolbar and never captures mouse wheel keyboard or drag input",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Grid preferences survive cancel, repeated entry and profile switches without entering profile snapshots",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Malformed saved grid settings normalize to bounded spacing and no grid events or update handlers are registered",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Grid disappears on save cancel ESC combat profile generation native editor and hidden toolbar exits",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "Grid setters cannot reopen or allocate the grid after editing has ended",
-    "passed": true
-  },
-  {
-    "group": "grid-coordinates",
-    "test": "A new login reads saved account grid preferences and allocates no grid until it is switched on",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Moved class tab and all auxiliary settings route to player while ResourceSwing has none of those controls",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Auxiliary display works with ResourceSwing switched OFF and keeps both lock-specific shard actions",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "UnitFrames-only installation supplies inventory display destruction and settings without ResourceSwing addon",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Auxiliary-only profile fields persist and switch correctly when the ResourceSwing addon is absent",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Auxiliary settings remain usable when compact player frames are OFF and do not automatically delete shards",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Global position editor owns auxiliary entry under player class route even with the resource bar OFF",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Ammo class retains equipped-weapon validation and invalid or unreadable counts stay hidden",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "All four new text positions default to center and zero without changing existing modes or other units",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Player and target health and power values independently apply alignment offsets and current format",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Default native single and dual text remain legible as one movable display with no overlap",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Preview bars mirror value alignment and offsets at native scale without moving names or frames",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "All text modes retain hide and resource OFF behavior after alignment changes",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Text coordinates reject malformed values and combat defers layout until safe apply",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Text layout changes serialize through profile copy export import and selection",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Default health display follows native text visibility without leaving a stale value",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Resetting ResourceSwing preserves moved preferences and resetting UnitFrames resets them with text placement",
-    "passed": true
-  },
-  {
-    "group": "features",
-    "test": "Auxiliary-only profiles pass the real export codec and keep dormant ResourceSwing settings untouched",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Forty confirmed stacks advance immediately on bag events without duplicate sales",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Without bag events fallback checks advance once per 0.05 seconds",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Slow 0.6 second responses stay within the preserved response window",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Missing response times out after 0.75 seconds and never retries the item",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Synchronous bag confirmation cannot be overwritten by the polling fallback",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Event storms coalesce checks and stale uncancellable After callbacks stay inert",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Merchant close stops the queue and a new visit uses a fresh session",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Turning auto sale OFF cancels all queued work without reusing the snapshot",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Quest locked uncached and unknown-value items remain excluded",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Changed inventory is revalidated and unreadable pending inventory fails closed",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "Vendor refusal stops after one call and never reaches later stacks",
-    "passed": true
-  },
-  {
-    "group": "sale",
-    "test": "One repair follows final sale and delayed money update; close cancels deferred repair",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Default empty list preserves the original native aura container without allocating a custom group",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "IDs validate normalize sort deduplicate and remove without changing valid stored entries",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Public excluded auras are removed before the display cap and remaining native icons pack without gaps",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Protected friendly debuffs remain visible and their limitation is reported instead of bypassed",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Filtered group is reused across edits and size gap line count and offsets stay in user pixels",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Deleting the last ID returns to native rendering and later additions reuse the cached group",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Missing group API falls back to native icons once while retaining the exclusion list",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Failed group setup leaves native icons enabled and does not retry per unit update",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Turning icon display OFF or hiding its owner disables filtered native work without losing IDs",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Settings add error duplicate select and delete controls operate on the current profile",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Filter lists are independent across party frame profiles and stay outside overall profile transfer",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "Frame-profile reset clears the known dynamic exclusion map while preserving unrelated future fields",
-    "passed": true
-  },
-  {
-    "group": "filter",
-    "test": "String-keyed spell maps survive SavedVariables-style logout and login unchanged",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "Party page first entry builds every tab under native SetText argument validation",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "Party filter feedback is string text and updates through add duplicate and remove commands",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "player: collapse and expand refresh the final visible scroll layout without revisiting a tab",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "target: collapse and expand refresh the final visible scroll layout without revisiting a tab",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "pet: collapse and expand refresh the final visible scroll layout without revisiting a tab",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "targettarget: collapse and expand refresh the final visible scroll layout without revisiting a tab",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "focus: collapse and expand refresh the final visible scroll layout without revisiting a tab",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "Video sequence: class display folds leave return then folds again with headings visible",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "Video sequence: aura section folds and all remaining controls stay in the refreshed clip bounds",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "Rapid repeated folds coalesce next-frame work and never save profile settings",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "Closing before a queued redraw skips hidden work and reopening uses the current page",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "Page changes before queued work cannot restore stale page geometry or settings",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "All ordinary settings groups refresh native scroll rectangles after folding",
-    "passed": true
-  },
-  {
-    "group": "ui-refresh",
-    "test": "Missing optional rectangle refresh API does not break folding or leave a redraw loop",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "player health: actual dropdown clicks immediately change the selected bar anchor without a reload or timer",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "player health: both sliders and typed coordinates clamp to the requested minus fifty through plus fifty range",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "player power: actual dropdown clicks immediately change the selected bar anchor without a reload or timer",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "player power: both sliders and typed coordinates clamp to the requested minus fifty through plus fifty range",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "target health: actual dropdown clicks immediately change the selected bar anchor without a reload or timer",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "target health: both sliders and typed coordinates clamp to the requested minus fifty through plus fifty range",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "target power: actual dropdown clicks immediately change the selected bar anchor without a reload or timer",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "target power: both sliders and typed coordinates clamp to the requested minus fifty through plus fifty range",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "Older profile offsets normalize at their bounds while labels frame positions and other unit coordinates are preserved",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "Invalid saved value offsets and alignment recover to public zero and center",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "Alignment anchors scale in the preview without reading a rendered text width or changing its bar",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "Bounded coordinates and alignment survive real profile copy export import and selection",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "Protected Rested Enhancement 1229451 is retained but clearly reported as not excludable and stays visible",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "Existing protected Rested entry shows a persistent explanation on opening the party aura settings",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "Public exclusion still packs icons and removal restores them without hiding protected or unrelated auras",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "Selecting public and protected entries clears stale add feedback and restores the appropriate explanation",
-    "passed": true
-  },
-  {
-    "group": "value-alignment",
-    "test": "Missing secrecy API reports unknown availability rather than falsely claiming exclusion is possible",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Unchanged combat end restores unit displays without full layout auxiliary initialization or event re-registration",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "A full unit settings apply normalizes the stored DB once rather than repeating recursive merges per helper",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "A direct single-unit apply also shares the resolved DB and expires its cache after returning",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Unchanged party combat end performs no layout restyle wheel rewrite or header state-driver registration",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "party-first: deferred party changes apply exactly once and use the latest settings",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "registry-first: deferred party changes apply exactly once and use the latest settings",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "A failed registry-first party application is not retried by the same combat-end dispatch",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Party OFF requested in combat restores native ownership once after combat",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Role profile changes discovered after combat still trigger one full party application",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Raid tier changes discovered after combat still update the active layout",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Native frame ownership loss at combat end is detected and yields safely to its external owner",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "A unit width changed in combat keeps the old layout until one complete safe apply",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Unit module OFF during combat still releases compact ownership and restores normal events afterward",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Unprotected totem position and left growth survive native combat-end movement without a full unit apply",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Protected totem movement deferred in combat retains a full restoration path",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Combat-only health visibility and text styling recover through the light display path",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Resolved DB state is released after an apply throws and the next read normalizes new values",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Resolved DB follows generation and table replacement inside a synchronous apply",
-    "passed": true
-  },
-  {
-    "group": "combat-end",
-    "test": "Several unchanged combat cycles do not add frames and keep party layout and unit-root coordinates unchanged",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Forty junk stacks use one native batch call and no per-item calls or addon bag scan",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Repeated merchant and bag events cannot submit a second native batch during the same visit",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "A synchronous native completion preserves its queued check and does not leave the sale pending",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Native completion without bag events is detected by bounded count checks",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Zero native junk items skips sale submission and allows the existing single repair decision",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Closing the merchant before the deferred start makes no native or per-item sale call",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Turning automatic sale OFF before submission prevents the native batch",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Closing after submission cancels addon follow-up repair without reselling an accepted native batch",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Each separate completed merchant visit receives its own single native sale",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "A native API error stops without falling through to individual sales",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "No native response times out without repeating the batch or starting an individual queue",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Unknown native counts cannot authorize any transaction",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Unavailable native count during an accepted batch stops polling without an alternate sale",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "feature-disabled: an unavailable native feature preserves the existing guarded compatibility queue",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "sell-api-missing: an unavailable native feature preserves the existing guarded compatibility queue",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "count-api-missing: an unavailable native feature preserves the existing guarded compatibility queue",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Native batch completion waits for delayed sale money before one repair",
-    "passed": true
-  },
-  {
-    "group": "native-sale",
-    "test": "Native selection remains inside the client boundary and leaves items its model excludes alone",
-    "passed": true
   }
 ]

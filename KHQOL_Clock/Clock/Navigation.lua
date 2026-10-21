@@ -2,7 +2,7 @@ local _, KHQOL = ...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local FC=KHQOL.modules.clock
 local N,UI=KHQOL.Navigation,KHQOL.NavigationUI
-FC.DEFAULTS.todo.navigation={enabled=false,autoAdvance=true,showTrackButton=true}
+FC.DEFAULTS.todo.navigation={enabled=false,autoAdvance=true,showTrackButton=true,mapPins=true,shiftClick=true,hideArrived=true}
 N:RegisterSource("ForeverNote",{priority=2,autoSelect=true,allowZero=true,enabled=false})
 
 local function trim(text) return text:match("^%s*(.-)%s*$") end
@@ -169,8 +169,11 @@ function FC:RefreshTodoNavigation()
   local enabled=options.enabled and (not KHQOL.db or KHQOL:GetEnabled("todo")) and true or false
   if not UI.db then UI:Configure(KHQOL:GetNavigationSettings()) end
   N:SetSourceEnabled("ForeverNote",enabled)
+  N.sources.ForeverNote.getOffset=function(destination) return FC:GetTodoPointOffset(FC:GetTodoPlayerPoint(),destination) end
   UI:SetClientEnabled("ForeverNote",enabled)
   self:EnsureTodoNavigationIDs()
+  if self.PruneTodoPinRoutes then self:PruneTodoPinRoutes() end
+  if self.RefreshTodoMapPins then self:RefreshTodoMapPins() end
   if not enabled then
     if self.todoNavigationEvents then self.todoNavigationEvents:UnregisterAllEvents() end
     return
@@ -179,7 +182,7 @@ function FC:RefreshTodoNavigation()
   self:EachTodoTask(function(item,page)
     local p=item.waypoint
     if page.mode=="checklist" and type(p)=="table" and N.ValidPoint(p.mapID,p.x,p.y) then
-      if item.done then
+      if item.done or (self.IsTodoWaypointArrived and self:IsTodoWaypointArrived(item)) then
         if active and active.source=="ForeverNote" and active.id==item.id then completedActive=true end
       else
         destinations[#destinations+1]={source="ForeverNote",id=item.id,label=p.label or item.text or "노트 위치",
@@ -191,6 +194,7 @@ function FC:RefreshTodoNavigation()
   N:SetSourceDestinations("ForeverNote",destinations,{pauseOnRemoval=completedActive and not options.autoAdvance})
   if N.activeSource=="ForeverNote" then UI:Refresh(true,true) end
   UI:Render()
+  if self.RefreshTodoNavigationLine then self:RefreshTodoNavigationLine() end
   if not self.todoNavigationEvents then
     self.todoNavigationEvents=CreateFrame("Frame")
     self.todoNavigationEvents:SetScript("OnEvent",function()
@@ -206,14 +210,17 @@ end
 function FC:TrackTodoWaypoint(item)
   if not self:GetTodoNavigationOptions().enabled then return end
   self:RefreshTodoNavigation()
-  if not item.done and N:SetManualDestination("ForeverNote",item.id) then UI:Refresh(true,true); UI:Render() end
+  if not item.done and not (self.IsTodoWaypointArrived and self:IsTodoWaypointArrived(item)) and N:SetManualDestination("ForeverNote",item.id) then
+    UI:Refresh(true,true);UI:Render()
+    if self.RefreshTodoNavigationLine then self:RefreshTodoNavigationLine() end
+  end
 end
 function FC:UpdateTodoNavigationRow(row,item)
   local options=self:GetTodoNavigationOptions()
   local p=item.waypoint
   local shown=options.enabled and options.showTrackButton and type(p)=="table" and N.ValidPoint(p.mapID,p.x,p.y)
   row.navigate.item=item; row.navigate:SetShown(shown)
-  row.navigate:SetEnabled(not item.done)
+  row.navigate:SetEnabled(not item.done and not (self.IsTodoWaypointArrived and self:IsTodoWaypointArrived(item)))
   row.edit:ClearAllPoints(); row.edit:SetPoint("LEFT",row.check,"RIGHT",1,0)
   row.edit:SetPoint("RIGHT",shown and row.navigate or row.delete,"LEFT",-3,0)
 end

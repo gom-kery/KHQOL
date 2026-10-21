@@ -230,5 +230,3 @@ Lab:RegisterTab("highlight",nil,function(content,y)
   return -content:GetHeight()
 end)
 
-Lab:RegisterTab("inspector",nil,function(content,y) return KHQOL.modules.frameInspector:BuildSettings(content,y) end)
-Lab:RegisterTab("performance",nil,function(content,y) return KHQOL.modules.performanceMonitor:BuildSettings(content,y) end)

@@ -269,9 +269,7 @@ function KHQOL:CreateSettings()
     local body=grouped and key~="unitFrames" and self.groupHeaders[key]
     local sub=self.moduleSubHeader
     local subHeight=grouped and sub and (self:GetHeight()<600 and math.min(68,sub:GetHeight()) or sub:GetHeight()) or 0
-    local actions=KHQOL.modules.frameInspector and KHQOL.modules.frameInspector.actions
-    local actionHeight=actions and actions:IsShown() and actions:GetHeight()+8 or 0
-    local budget=math.max(44,self:GetHeight()-self.contentTop-moduleHeader:GetHeight()-subHeight-(self.footerHeight or 58)-actionHeight-132)
+    local budget=math.max(44,self:GetHeight()-self.contentTop-moduleHeader:GetHeight()-subHeight-(self.footerHeight or 58)-132)
     local headerHeight=body and math.min(body:GetHeight(),budget) or 0
     headerViewport:SetWidth(child:GetWidth());headerViewport:SetHeight(math.max(1,headerHeight));headerViewport:SetShown(body~=nil and body~=false)
     if body then
@@ -306,10 +304,7 @@ function KHQOL:CreateSettings()
     subViewport:SetShown(grouped and sub~=nil)
     scroll:ClearAllPoints()
     scroll:SetPoint("TOPLEFT",T.SidebarWidth+T.ContentPadding,-self.contentTop-(grouped and headerHeight+moduleHeaderHeight+subHeight or 0))
-    local actions=KHQOL.modules.frameInspector and KHQOL.modules.frameInspector.actions
-    local extra=actions and actions:IsShown() and actions:GetHeight()+8 or 0
-    if actions and actions:IsShown() then actions:ClearAllPoints();actions:SetPoint("BOTTOMLEFT",T.SidebarWidth+T.ContentPadding,self.footerHeight or 58) end
-    scroll:SetPoint("BOTTOMRIGHT",-38,(self.footerHeight or 58)+extra)
+    scroll:SetPoint("BOTTOMRIGHT",-38,(self.footerHeight or 58))
   end
   function f:QueueScrollRectRefresh()
     if self.scrollRectQueued or not self:IsShown() then return end
@@ -354,7 +349,7 @@ function KHQOL:CreateSettings()
     self.currentRoute={module=self.currentModuleKey or meta and meta.id=="general" and "generalConvenience" or self.page or "general"}
     moduleHeader.moduleKey=self.currentModuleKey
     self:SetActiveSettingsModule(meta and meta.key,meta and meta.title)
-    local scope=meta and meta.id=="inspector" and "세션 검사 · 페이지 종료 시 정지" or meta and meta.key=="partyFrames" and "프레임 프로필 · 모듈 사용은 전체 프로필" or "현재 전체 프로필"
+    local scope=meta and meta.key=="partyFrames" and "프레임 프로필 · 모듈 사용은 전체 프로필" or "현재 전체 프로필"
     local status=meta and N:Status({route={module=meta.key},title="",scope=scope}) or ""
     local shortStatus=tostring(status):match("^[^·\n]+") or status
     local description=meta and meta.description or ""
@@ -371,9 +366,6 @@ function KHQOL:CreateSettings()
     moduleHeaderHeight=math.max(42,moduleHeader.description:GetStringHeight()+14)
     moduleHeader:SetHeight(moduleHeaderHeight)
     moduleHeader.toggle:SetShown(self.currentModuleKey~=nil)
-    if KHQOL.modules.frameInspector then
-      KHQOL.modules.frameInspector:SetPageActive(meta and meta.group=="labs" and meta.id=="inspector" or false)
-    end
     UI:Refresh(moduleHeader)
   end
   function f:RefreshModuleState()

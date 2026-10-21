@@ -143,7 +143,8 @@ function UI:RenderDistance()
     self.distanceDestination=destination; self:ResetDistanceLabel()
   end
   local text=""
-  if self:GetState()=="NO_WAYPOINT" then text=self.presentation.noWaypointText or "경로 없음"
+  if self:GetState()=="PAUSED" then text="경로 안내 일시 정지"
+  elseif self:GetState()=="NO_WAYPOINT" then text=self.presentation.noWaypointText or "경로 없음"
   elseif self:GetState()=="NAVIGATION_UNAVAILABLE" then text=self.presentation.unavailableText or "경로 안내 불가"
   elseif self:GetState()=="TRACKING" and self.db.showDistance then
     if N.distanceYards~=nil then
@@ -165,7 +166,7 @@ function UI:Render()
   if not self.root then return end
   local destination=N:GetActiveDestination()
   local title=destination and destination.label or ""
-  self.autoButton:SetShown(self.active and (N.manual~=nil or N:HasAutoPause()))
+  self.autoButton:SetShown(self.active and (N.routeOverride~=nil or N.manual~=nil or N:HasAutoPause()))
   local shown=self.active and (destination~=nil or (self.phase~=nil and self.transitionSource==N.activeSource)) and self:GetState()~="IDLE"
   self.root:SetShown(shown or (self.active and (not self.db.locked or N.manual~=nil or N:HasAutoPause())))
   self.hud:SetShown(shown)
@@ -240,7 +241,7 @@ function UI:FadeIn(source)
 end
 function UI:UpdateDriver()
   if not self.root then return end
-  local moving=N:GetActiveDestination() and self:GetState()~="COMPLETED" and self:GetState()~="IDLE"
+  local moving=N:GetActiveDestination() and self:GetState()~="COMPLETED" and self:GetState()~="IDLE" and self:GetState()~="PAUSED"
   local running=self.active and (next(self.jobs) or self.phase or self.fadeInRemaining or moving) and true or false
   if self.driverRunning~=running then
     self.driverRunning=running

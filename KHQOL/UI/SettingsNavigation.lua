@@ -36,8 +36,6 @@ function N:Path(p,title)
 end
 function N:Scope(p,title)
   if p.scope and p.scope~="현재 프로필" then return p.scope end
-  if p.module=="frameInspector" then return "세션 검사 · 페이지 종료 시 정지" end
-  if p.module=="performanceMonitor" and p.section=="측정 로그" then return "세션 로그 · /reload 때 비움" end
   if p.module=="profiles" then return "계정 공용 프로필 · 캐릭터별 선택" end
   if p.module=="npcAlert" and (p.section=="등록된 위험 NPC" or p.section=="NPC 정보") then return "계정 공용 등록 목록" end
   if p.module=="procAlert" and (p.section=="등록된 버프" or p.section=="버프 정보") then return "계정 공용 등록 목록" end

@@ -140,13 +140,14 @@ function FC:CreateClockTools()
   stopwatch:SetSize(300, 58); stopwatch:SetPoint("CENTER", 0, 110); stopwatch:SetFrameStrata("DIALOG")
   self.MakeBackdrop(stopwatch, 1, .78, .18, .95); MakeMovable(stopwatch,"stopwatch")
   stopwatch.time = NewLabel(stopwatch, "00:00:00", 22); stopwatch.time:SetPoint("LEFT", 14, 0)
+  stopwatch.displayedSeconds=0
   stopwatch.start = IconButton(stopwatch, "play", 42, function()
     stopwatch.running = not stopwatch.running
     if stopwatch.running then stopwatch.startedAt = GetTime() - (stopwatch.elapsed or 0) end
     stopwatch.start:SetIcon(stopwatch.running and "pause" or "play")
   end); stopwatch.start:SetPoint("LEFT", stopwatch.time, "RIGHT", 16, 0)
   stopwatch.reset = IconButton(stopwatch, "reset", 42, function()
-    stopwatch.running, stopwatch.elapsed = false, 0; stopwatch.time:SetText("00:00:00"); stopwatch.start:SetIcon("play")
+    stopwatch.running, stopwatch.elapsed = false, 0; stopwatch.displayedSeconds=0; stopwatch.time:SetText("00:00:00"); stopwatch.start:SetIcon("play")
   end); stopwatch.reset:SetPoint("LEFT", stopwatch.start, "RIGHT", 5, 0)
   stopwatch.close = PlainCloseButton(stopwatch, function() stopwatch:Hide() end); stopwatch.close:SetPoint("RIGHT", -7, 0); stopwatch.close:Hide()
   local function UpdateStopwatchClose()
@@ -159,7 +160,11 @@ function FC:CreateClockTools()
   stopwatch.close:SetScript("OnEnter", function() stopwatch.closeHideAt = nil; stopwatch.close:Show() end)
   stopwatch.close:SetScript("OnLeave", UpdateStopwatchClose)
   stopwatch:SetScript("OnUpdate", function()
-    if stopwatch.running then stopwatch.elapsed = GetTime() - stopwatch.startedAt; stopwatch.time:SetText(Format(stopwatch.elapsed)) end
+    if stopwatch.running then
+      stopwatch.elapsed=GetTime()-stopwatch.startedAt
+      local seconds=math.max(0,math.floor(stopwatch.elapsed))
+      if seconds~=stopwatch.displayedSeconds then stopwatch.displayedSeconds=seconds;stopwatch.time:SetText(Format(seconds)) end
+    end
     if stopwatch.closeHideAt and GetTime() >= stopwatch.closeHideAt then stopwatch.closeHideAt = nil; stopwatch.close:Hide() end
   end)
   stopwatch:Hide()

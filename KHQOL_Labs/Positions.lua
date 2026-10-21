@@ -47,17 +47,3 @@ KHQOL.PositionProviders.procAlert=function(focus)
   end)
   return list
 end
-KHQOL.PositionProviders.performanceMonitor=function(focus)
-  local self=KHQOL
-  local m=self.modules
-  local list={}
-  local function add(...) return PU:Add(list,...) end
-  local function pointWriter(...) return PU:PointWriter(...) end
-  local function lock(...) return PU:Lock(...) end
-  local monitor=m.performanceMonitor
-  if monitor.db then add("monitor","performanceMonitor","성능 모니터",monitor.frame,pointWriter(monitor.db),lock(monitor.db,"positionLocked"),function() monitor:ApplyLayout() end) end
-  PU:ConfigureResets(list,function(t,point)
-    point(t,function() return m.performanceMonitor.db end,m.performanceMonitor.defaults,{x="x",y="y"})
-  end)
-  return list
-end

@@ -21,7 +21,6 @@ defaults.enabled.experienceBar = false
 defaults.enabled.procAlert = false
 defaults.enabled.objectHighlight = false
 defaults.enabled.npcAlert = false
-defaults.enabled.performanceMonitor = false
 -- General convenience features have individual switches, no master switch.
 defaults.enabled.basicUI = true
 defaults.enabled.unitFrames = true
@@ -73,8 +72,10 @@ function KHQOL:SetEnabled(key, enabled, reapply)
 end
 
 function KHQOL:HideLegacyButtons()
-  local buttons = { ForeverClockMinimapButton, ForeverBuffReminderMinimapButton, KHQOLResourceSwingMinimapButton }
-  for _, button in ipairs(buttons) do if button then button:Hide(); button:SetScript("OnShow", function(self) self:Hide() end) end end
+  for _, name in ipairs({"ForeverClockMinimapButton","ForeverBuffReminderMinimapButton","KHQOLResourceSwingMinimapButton"}) do
+    local button=_G[name]
+    if button then button:Hide();button:SetScript("OnShow",function(self) self:Hide() end) end
+  end
 end
 
 function KHQOL:CreateMinimapButton()

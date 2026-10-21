@@ -2,6 +2,7 @@ local K=_G.KHQOL
 local N=K.UI.SettingsNavigation
 N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="표시"},"퀘스트 이름 글자 크기")
 N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="표시"},"진행도 글자 크기")
+N:Register({module="questNavigator",tab="navigation",scope="현재 프로필",section="표시"},"점선 표시","노트 저장 경로 지도 핀 연결선 켜기 끄기")
 N:Register({module="questNavigator",tab="tracker",scope="현재 프로필",section="퀘스트 목록 표시"},"자동 전환 대기 시간")
 N:Register({module="questNavigator",tab="tracker",scope="현재 프로필",section="퀘스트 목록 표시"},"퀘스트 글씨 크기")
 N:Register({module="questNavigator",tab="tracker",scope="현재 프로필",section="퀘스트 목록 표시"},"퀘스트 내용 표시 폭")
