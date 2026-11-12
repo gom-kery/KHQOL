@@ -10,7 +10,9 @@ KHQOL.PositionProviders.campfire=function(focus)
   local function lock(...) return PU:Lock(...) end
   local cfa=m.campfire
   if cfa.ui then
-    add("campfire","campfire","Campfire · 발견 / 진행",cfa.ui.root,pointWriter(cfa.db.position),lock(cfa.db),function() applyPoint(cfa.ui.root,cfa.db.position) end,{sample=cfa.db.message,sampleY=-28,art={{texture=cfa.ICON_FILE_ID,width=cfa.db.iconSize,height=cfa.db.iconSize,y=80}}})
+    local size=cfa:NormalizeIconSize(cfa.db.iconSize)
+    local top=cfa.ui.root:GetHeight()/2
+    add("campfire","campfire","Campfire · 발견 / 진행",cfa.ui.root,pointWriter(cfa.db.position),lock(cfa.db),function() applyPoint(cfa.ui.root,cfa.db.position) end,{sample=cfa.db.message,sampleY=math.min(-28,top-size-35),art={{texture=cfa.ICON_FILE_ID,width=size,height=size,y=top-size/2}}})
     local complete=cfa.ui.complete
     add("campfire.complete","campfire","Campfire · 효과 획득",complete,function(dx,dy)
       cfa.db.completePosition=cfa.db.completePosition or {point="CENTER",x=0,y=80}

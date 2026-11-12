@@ -1,5 +1,5 @@
 local addonName, A = ...
-A.name, A.version = addonName, "1.11.6.0"
+A.name, A.version = addonName, "1.11.7.1"
 local K = assert(_G.KHQOL, "Install and enable KHQOL.")
 K.modules.minimap = A
 A.geometryEpsilon = 0.01
@@ -386,6 +386,8 @@ events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("PLAYER_REGEN_ENABLED")
 events:RegisterEvent("PLAYER_REGEN_DISABLED")
+events:RegisterEvent("BANKFRAME_OPENED")
+events:RegisterEvent("BANKFRAME_CLOSED")
 events:RegisterEvent("UI_SCALE_CHANGED")
 events:RegisterEvent("DISPLAY_SIZE_CHANGED")
 events:SetScript("OnEvent", function(_, event, name)
@@ -396,6 +398,10 @@ events:SetScript("OnEvent", function(_, event, name)
         if not A.db then A:InitDB(); A:InstallSlash() end
         A.loggedIn = true
         -- KHQOL dispatches the module after profiles and settings are ready.
+    elseif event == "BANKFRAME_OPENED" or event == "BANKFRAME_CLOSED" then
+        A.Buttons.bankSignal=event=="BANKFRAME_OPENED"
+        A.Buttons:WatchBank()
+        A.Buttons:RefreshVisibility()
     elseif event == "PLAYER_REGEN_ENABLED" and A.loggedIn and not A.ready then
         A:Start()
     elseif A.ready and event == "PLAYER_REGEN_DISABLED" then

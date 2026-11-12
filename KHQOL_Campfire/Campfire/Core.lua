@@ -4,7 +4,7 @@ local CFA = KHQOL.modules.campfire
 
 CFA.NAME = ADDON_NAME or "CampfireAlert"
 CFA.PREFIX = "[CampfireAlert]"
-CFA.VERSION = "1.0.13"
+CFA.VERSION = "1.11.7.1"
 CFA.SPELLS = {
     NEARBY_CAMPFIRE = 1283391,
     REST_PROCESS = 1229739,
@@ -95,10 +95,10 @@ function CFA:UpdateCampfireDistance()
     end
 
     local nearestDistance, nearestObjectID = nil, nil
-    for _, objectID in ipairs(self.CAMPFIRE_GAMEOBJECT_IDS) do
-        local ok, _, _, distance = pcall(ClosestGameObjectPosition, objectID)
-        if ok and type(distance) == "number" and distance >= 0 and (not nearestDistance or distance < nearestDistance) then
-            nearestDistance, nearestObjectID = distance, objectID
+    for _, row in ipairs(self:ReadCampfirePositions()) do
+        local distance=row.distance and row.distance.status=="number" and row.distance.value
+        if distance and distance >= 0 and (not nearestDistance or distance < nearestDistance) then
+            nearestDistance, nearestObjectID = distance, row.objectID
         end
     end
     self.nearestCampfireDistance = nearestDistance
@@ -124,21 +124,7 @@ function CFA:StartDistanceScan()
 end
 
 function CFA:DiagnoseCampfireDistance()
-    if type(ClosestGameObjectPosition) ~= "function" then
-        self:Print("Distance API: unavailable (ClosestGameObjectPosition 없음)")
-        return
-    end
-    self:Print("Distance API: available")
-    for _, objectID in ipairs(self.CAMPFIRE_GAMEOBJECT_IDS) do
-        local ok, _, _, distance = pcall(ClosestGameObjectPosition, objectID)
-        if not ok then
-            self:Print("Object " .. objectID .. ": query failed")
-        elseif type(distance) == "number" and distance >= 0 then
-            self:Print("Object " .. objectID .. ": " .. string.format("%.1f yd", distance))
-        else
-            self:Print("Object " .. objectID .. ": not found")
-        end
-    end
+    return self:DiagnoseCampfireCoordinates("distance")
 end
 
 function CFA:StopWaiting(message)

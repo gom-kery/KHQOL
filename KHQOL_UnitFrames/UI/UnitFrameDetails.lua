@@ -1,29 +1,20 @@
+local _,addon=...
+if not addon.loadUnitFrames then return end
 local KHQOL = _G.KHQOL
 local UI,T=KHQOL.UI,KHQOL.UI.Theme
+local resetDialog="KHQOL_RESET_UNIT_FRAMES_RELOAD"
+local resetTitle="기본 설정으로 초기화 + UI 다시 불러오기"
+StaticPopupDialogs[resetDialog]={
+  text="‘%s’ 프로필의 개인 유닛 프레임과 직업 보조 표시를 초기화하고 UI를 다시 불러옵니다. 유닛 프레임은 OFF로 유지되며 공통 직업 색상, 파티·공격대, 다른 프로필은 보존됩니다.",
+  button1=ACCEPT,button2=CANCEL,timeout=0,whileDead=true,hideOnEscape=true,
+  OnAccept=function(_,data)
+    if not UI:IsCurrentConfirmation(data) or type(ReloadUI)~="function" then return end
+    local ok,message=KHQOL:ResetDisabledUnitFrameProfile()
+    if ok then ReloadUI() else KHQOL:ProfileMessage(message) end
+  end,
+}
 local function layout(...) return UI:CreateDetailLayout(...) end
-local barModes={{value="default",text="기본 표시"},{value="hide",text="항상 숨김"},{value="hover",text="마우스 오버 시 표시"}}
 local textModes={{value="default",text="기본 설정 따름"},{value="hide",text="숨김"},{value="current",text="현재값"},{value="both",text="현재값 / 최대값"},{value="percent",text="백분율"},{value="currentPercent",text="현재값 + 백분율"}}
-function KHQOL.modules.basicUI:BuildSettings(parent,y)
-  local M=self; local l=layout(parent,y,"basicUI")
-  local function db() return M:GetDB() end
-  l:Description("전투 중 변경은 전투 종료 후 적용합니다.",function() return M.pending==true end)
-  l:Section("가방·메뉴바")
-  -- Shared builder fields use two columns and refresh preserves their width.
-  local f=CreateFrame("Frame",nil,l.page); f:SetWidth(parent:GetWidth())
-  local b=UI:CreateBuilder(f,0)
-  local bags=b:Dropdown("가방 버튼 표시 방식",barModes,function() return db().bags end,function(v) db().bags=v; M:ApplySettings() end,function() return _G.BagsBar~=nil end)
-  local micro=b:Dropdown("메뉴바 표시 방식",barModes,function() return db().micro end,function(v) db().micro=v; M:ApplySettings() end,function() return _G.MicroMenu~=nil end)
-  UI:AttachTooltip(bags,"가방 버튼 표시 방식","마우스 오버 모드에서는 버튼 영역에 마우스를 올리면 표시합니다.")
-  UI:AttachTooltip(micro,"메뉴바 표시 방식","마우스 오버 모드에서는 메뉴 영역에 마우스를 올리면 표시합니다.")
-  -- The detail layout owns this fixed two-column row.
-  l:Fields(f,-b.y)
-  l:Slider("공통 숨김 지연",0,2,.1,function() return db().hideDelay end,function(v) db().hideDelay=v; M:ApplySettings() end,function(v) return string.format("%.1f초",v) end,function() return db().bags=="hover" or db().micro=="hover" end)
-  l:Description("상단 모듈 사용과 하단 모듈 초기화는 가방·메뉴바에 적용됩니다. 기본창 이동은 아래 별도 스위치와 위치 초기화를 사용합니다.")
-  local mover=CreateFrame("Frame",nil,l.page); mover:SetWidth(parent:GetWidth())
-  l:EndSection()
-  l:Fields(mover,-KHQOL.modules.frameMover:BuildSettings(mover,0))
-  return l:Finish()
-end
 function KHQOL.modules.unitFrames:BuildSettings(parent,y)
   local M=self;local N=UI.SettingsNavigation;local prefs=N:Preferences()
   local l=layout(parent,y,"unitFrames");local selected=prefs.unit or "player";local selectedPart=prefs.part or "basic"
@@ -55,6 +46,18 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     return title.." · "..help..(KHQOL:GetEnabled("unitFrames") and "" or " · 모듈 OFF")
   end)
   l:Description("전투 중 크기·배치 변경은 종료 후 적용합니다. 공개 원본값이 확인되지 않으면 적용을 보류합니다.",function() return M.pending==true end)
+  do
+    local actions=CreateFrame("Frame",nil,l.page);actions:SetWidth(parent:GetWidth())
+    local b=UI:CreateBuilder(actions,0)
+    local function available() return not KHQOL:GetEnabled("unitFrames") and KHQOL.WindowLayers:OutsideCombat() end
+    local button=b:Button(resetTitle,function()
+      if available() and KHQOL:CanChangeProfile() then
+        StaticPopup_Show(resetDialog,KHQOL:GetCurrentProfileName(),nil,UI:Confirmation())
+      end
+    end,350,available)
+    button.ignoreModuleEnabled=true
+    b:Flush();l:Fields(actions,-b.y,function() return not KHQOL:GetEnabled("unitFrames") end)
+  end
   local header=CreateFrame("Frame",nil,parent);header:SetWidth(parent:GetWidth());header:SetHeight(2*(T.ButtonHeight+T.RowGap))
   header.moduleKey="unitFrames";parent.fixedHeader=header;parent.unitTabButtons={}
   local function selectUnit(v,quiet)
@@ -122,6 +125,19 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
   end
   local sentinel=CreateFrame("Frame",nil,header);sentinel.Refresh=headerLayout;sentinel.layoutRefresh=true;UI:RegisterControl(header,sentinel)
   header:HookScript("OnSizeChanged",function() if not header.layingOut then header.layingOut=true;headerLayout();header.layingOut=nil end end)
+  do
+    local shared=CreateFrame("Frame",nil,l.page);shared:SetWidth(parent:GetWidth())
+    shared.settingsRoute={module="unitFrames",part="bars",scope="플레이어·대상·대상의 대상·주시·파티 공통"}
+    local b=UI:CreateBuilder(shared,0)
+    b:Section("유닛 프레임 직업 색상")
+    b:Checkbox("직업 색상 적용",function() return db().classHealth.enabled end,function(v) db().classHealth.enabled=v;KHQOL:RefreshClassHealthColors() end)
+    b:Dropdown("색상 스타일",{{value="dark",text="어둡게 (-10%)"},{value="bright",text="밝게 (+10%)"}},
+      function() return db().classHealth.style end,function(v) db().classHealth.style=v;KHQOL:RefreshClassHealthColors() end,
+      function() return db().classHealth.enabled end)
+    b:Description("플레이어·대상·대상의 대상·주시 및 KHQOL 파티/공격대 생명력에 같은 직업 색상을 적용합니다. OFF·NPC·확인 불가 직업은 기존 색상을 따릅니다. 공통 색상 사용 중에는 파티 체력 그라데이션보다 이 색상이 우선합니다.",true)
+    b:Flush()
+    l:Fields(shared,-b.y,function() return selectedPart=="bars" and selected~="pet" end)
+  end
   for _,unit in ipairs(M.unitTokens) do
     local u=unit
     local function visible() return selected==u end
@@ -168,7 +184,6 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     if u=="player" then modes[#modes+1]={value="class",text="직업색"}
     elseif u=="target" or u=="targettarget" or u=="focus" then
       modes[#modes+1]={value="reaction",text="관계·직업색"}
-      modes[#modes+1]={value="class",text="직업색",disabled=true}
     end
     modes[#modes+1]={value="custom",text="사용자 지정색"}
     local mode=b:Dropdown("체력 바 색상",modes,function() return db()[u].healthColorMode end,function(v) db()[u].healthColorMode=v;M:ApplySettings() end,available)
@@ -394,3 +409,5 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
   parent.unitLayout=l;headerLayout()
   return l:Finish()
 end
+
+KHQOL.UnitFrameSettings:RegisterTab("units",nil,function(content,y) return KHQOL.modules.unitFrames:BuildSettings(content,y) end)

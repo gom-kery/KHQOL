@@ -128,7 +128,7 @@ NotePinRoutes.lua는 노트 ID/좌표를 재사용하며 native MapCanvas 공급
 - 일반 목록은 설정 탭을 대조합니다. 퀘스트 목록/길 안내 및 미니맵/버튼 정리는 기존 모듈 사용 상태를 공유하고 진입 탭만 구분합니다. 일반 편의는 설정 진입입니다. 실험실 기능은 일반 목록에서 제외하고 기존 실험실 잠금과 미설치 필터를 유지합니다.
 - 설치 상태는 일반 소개 문구 행 오른쪽의 [?] 툴팁, 공용 위치 편집은 설정창 헤더에서 제공합니다. 탭 내부의 자동 위치 편집 버튼은 생성하지 않습니다.
 
-파일/로드 순서는 docs/MODULE-FILES.csv, 배포 명세는 docs/PACKAGE-MANIFEST.json에 있습니다.
+파일/로드 순서는 docs/MODULE-FILES-1.11.6.0.csv, 배포 명세는 docs/PACKAGE-MANIFEST-1.11.6.0.json에 있습니다.
 
 - 하위 탭에는 기능 설명을 표시하고 저장 범위는 기존 툴팁에 유지합니다. 공유 모듈을 사용하는 탭도 선택된 설명을 새로고침 후 유지합니다.
 - 토템 좌표는 기존 player.bottomX/bottomY를 유지하며 ±3000으로 확장합니다. bottomGrowth(기본 RIGHT)와 bottomPlaced(기본 false)는 현재 전체 프로필의 추가 설정입니다. 위치 확인·드래그 상태는 세션 전용이며 별도 SavedVariables가 없습니다.

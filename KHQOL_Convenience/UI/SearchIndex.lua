@@ -2,6 +2,9 @@ local K=_G.KHQOL
 local N=K.UI.SettingsNavigation
 N:Register({module="general",scope="현재 프로필",section="전역 설정"},"중앙 알림 텍스트 크기")
 N:Register({module="generalConvenience"},"기본 대화창 편의")
+for _,title in ipairs({"Alt+좌클릭 파티 초대","말머리 사용","일반 말머리 (최대 10글자)","파티 말머리 (최대 10글자)","길드 말머리 (최대 10글자)","공격대 말머리 (최대 10글자)","말머리 초기화","파티 자동 인사","공격대 자동 인사","인사말 (캐릭터별 저장 · 최대 255바이트)"}) do
+  N:Register({module="generalConvenience"},title)
+end
 N:Register({module="generalConvenience"},"아이템 파괴 자동 입력")
 N:Register({module="generalConvenience"},"잡템 자동 판매")
 N:Register({module="generalConvenience"},"자동 수리")

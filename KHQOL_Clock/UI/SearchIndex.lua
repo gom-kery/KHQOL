@@ -13,6 +13,8 @@ N:Register({module="clock",scope="현재 프로필",section="전문기술"},"배
 N:Register({module="clock",scope="현재 프로필",section="전문기술"},"아이콘 크기")
 N:Register({module="clock",scope="현재 프로필",section="전문기술"},"숙련도 표시")
 N:Register({module="clock",scope="현재 프로필",section="알람·타이머·스톱워치"},"도구 창 위치 잠금")
+N:Register({module="clock",scope="현재 프로필",section="알람·타이머·스톱워치"},"알람·타이머 창 크기")
+N:Register({module="clock",scope="현재 프로필",section="알람·타이머·스톱워치"},"타이머 바 위치 잠금")
 N:Register({module="todo",scope="현재 프로필",section="노트 사용"},"노트 열기")
 N:Register({module="todo",scope="현재 프로필",section="위치"},"위치 잠금")
 N:Register({module="todo",scope="현재 프로필",section="창 크기·모양"},"글자 크기")

@@ -241,7 +241,7 @@ end
 function N:BuildSearch(s,x,y,width)
   local box=UI:CreateEditBox(s,x,y,width,nil,nil);box:SetMaxLetters(80)
   UI:AttachTooltip(box,"설정 검색","설정 이름·설명·별칭 검색. 예: 레벨 크기, 이름 위치, 자동 수리, quest width. 결과 선택으로 해당 항목에 이동합니다.")
-  local pane=CreateFrame("Frame",nil,s,"BackdropTemplate");pane:SetFrameStrata("FULLSCREEN_DIALOG");pane:SetClampedToScreen(true);UI:Surface(pane,.98)
+  local pane=CreateFrame("Frame",nil,s,"BackdropTemplate");pane:SetFrameLevel(s:GetFrameLevel()+50);pane:SetClampedToScreen(true);UI:Surface(pane,.98)
   pane:SetPoint("TOPLEFT",box,"BOTTOMLEFT",0,-4);pane:SetWidth(width);pane:Hide();s.searchResults=pane;s.searchBox=box
   local viewport=CreateFrame("ScrollFrame",nil,pane);viewport:SetPoint("TOPLEFT",6,-6);viewport:SetPoint("BOTTOMRIGHT",-6,6)
   local list=CreateFrame("Frame",nil,viewport);viewport:SetScrollChild(list);local rows={}

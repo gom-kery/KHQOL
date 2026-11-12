@@ -208,20 +208,53 @@ Lab:RegisterTab("highlight",nil,function(content,y)
   if not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,y) end
   local H,UI=KHQOL.modules.objectHighlight,KHQOL.UI
   content.moduleKey="objectHighlight"
+  H:GetDB();H.statusContent=content
   local b=UI:CreateBuilder(content,y)
-  b:Section("동작 설명")
+  local function enabled() return KHQOL:CanRunModule("objectHighlight") end
+  local function changed() H:Sync() end
+  b:Section("퀘스트 오브젝트")
+  b:Checkbox("퀘스트 오브젝트 반짝임 유지",function() return H:GetDB().questSparkles end,function(v) H:GetDB().questSparkles=v;changed() end,enabled)
   b:Description("전리품이 있는 퀘스트 오브젝트의 반짝임을 유지하도록 게임 그래픽 설정을 조정합니다. 반짝임 유지를 위해 일반·공격대 윤곽선 모드가 변경됩니다.")
+  b:Section("채집 오브젝트 강조")
+  b:Description("제공된 조준선 이미지 5종과 기존 효과를 종류별로 선택합니다. 약초·광맥·상자에만 표시하며 퀘스트 관련 대상은 제외합니다. 기존 선택은 유지되므로 이미지 01~05를 직접 고를 수 있습니다. 거리·각도 설정이 보호되면 감지 범위가 제한될 수 있습니다.",true)
+  b:Checkbox("채집 오브젝트 강조 사용",function() return H:GetDB().gatherEnabled end,function(v) H:GetDB().gatherEnabled=v;changed() end,enabled)
+  b:Description("현재 게임이 Soft Target으로 선택한 오브젝트 한 개만 강조합니다. 기본은 OFF이며 사용하면 전역 Soft Target 설정을 변경합니다. 이름표가 없거나 분류가 불확실하면 표시하지 않습니다.",true)
+  local function gathering() return enabled() and H:GetDB().gatherEnabled end
+  for _,entry in ipairs({{"herb","약초"},{"ore","광맥"},{"chest","보물상자"}}) do
+    local key,title=entry[1],entry[2]
+    local function db() return H:GetDB().categories[key] end
+    local function categoryEnabled() return gathering() and db().enabled end
+    b:Checkbox(title.." 강조",function() return db().enabled end,function(v) db().enabled=v;changed() end,gathering)
+    b:Dropdown(title.." 효과",KHQOL.ObjectHighlightEffects.options,function() return db().effect end,function(v) db().effect=v;changed() end,categoryEnabled)
+    b:Color(title.." 색상",function() return unpack(db().color) end,function(r,g,b) db().color={r,g,b};changed() end,categoryEnabled)
+  end
+  b:Section("공통 설정")
+  b:Slider("강조 크기",40,240,5,function() return H:GetDB().size end,function(v) H:GetDB().size=v;changed() end,function(v) return v.." px" end,gathering)
+  b:Slider("강조 X 위치",-200,200,1,function() return H:GetDB().offsetX end,function(v) H:GetDB().offsetX=v;changed() end,function(v) return v.." px" end,gathering)
+  b:Slider("강조 Y 위치",-200,100,1,function() return H:GetDB().offsetY end,function(v) H:GetDB().offsetY=v;changed() end,function(v) return v.." px" end,gathering)
+  b:Description("X가 커지면 오른쪽, Y가 작아지면 아래로 이동합니다. 기본 위치는 X 0 / Y -60px입니다. 이미지에는 종류별 색상과 공통 크기 설정을 적용하며, 위치 조절은 감지 거리를 바꾸지 않습니다.",true)
+  b:Button("강조 위치 초기화",function() local d=H:GetDB();d.offsetX=0;d.offsetY=-60;changed() end,nil,gathering)
+  b:Slider("강조 투명도",.1,1,.05,function() return H:GetDB().alpha end,function(v) H:GetDB().alpha=v;changed() end,function(v) return string.format("%.0f%%",v*100) end,gathering)
+  b:Checkbox("전투 중 강조 표시",function() return H:GetDB().showInCombat end,function(v) H:GetDB().showInCombat=v;changed() end,gathering)
   b:Section("주의사항")
   b:Description("개발 중인 실험 기능입니다. 클라이언트 또는 API 변경으로 동작하지 않을 수 있습니다.")
   b:Description("해제 후 효과가 사라지려면 게임 재시작이 필요할 수 있습니다. /reload만으로 해제 표시가 완료되지 않을 수 있습니다.")
   b:Description("Forever Loot Sparkles와 중복 사용할 수 없습니다. 해당 애드온이 로드되어 있으면 적용·복원을 보류하고 복원 기록을 유지합니다.")
+  b:Description("Lueur가 로드되면 새 채집 강조의 적용·복원을 보류합니다. 다른 곳에서 Soft Target 값을 바꾸면 강조를 중지하고 그 변경을 보존합니다. 충돌을 해결한 뒤 사용 토글로 다시 적용하세요.")
   b:Section("현재 적용 상태")
+  b:Button("오브젝트 진단 출력",function() H.gathering:PrintDiagnostics() end)
+  b:Description("표시되지 않는 오브젝트 가까이에서 바라본 뒤 진단을 실행하세요. 설정·감지·분류·이름표·효과 오류를 대화창에 출력합니다. /오브젝트진단 명령도 사용할 수 있습니다.",true)
   local statusY=b.y
   H.statusText=UI:CreateDescription(content,H:GetStatus(),0,statusY)
   H.statusText:SetWidth(UI.Theme.ContentWidth)
   b:Block(H.statusText,function() return math.max(54,H.statusText:GetStringHeight()) end)
+  local softStatus=UI:CreateDescription(content,H.gathering:GetStatus(),0,b.y)
+  softStatus:SetWidth(UI.Theme.ContentWidth)
+  b:Block(softStatus,function() return math.max(54,softStatus:GetStringHeight()) end)
   function H:RefreshStatus()
+    if not content:IsShown() then return end
     H.statusText:SetHeight(0);H.statusText:SetText(H:GetStatus())
+    softStatus:SetHeight(0);softStatus:SetText(H.gathering:GetStatus())
     b:Reflow();content:SetHeight(-(b.reflowBottom or b.y)+UI.Theme.ContentPadding)
   end
   content.Reflow=function() H:RefreshStatus() end

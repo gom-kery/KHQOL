@@ -124,20 +124,8 @@ function FR:OpenSettings() KHQOL:ShowSettings("range") end
 
 local function read(fn,...) return KHQOL.PublicCall(fn,...) end
 local function validID(id) return KHQOL.IsPublicValue(id) and type(id)=="number" and id>0 and id<2147483648 and id==math.floor(id) end
--- Own UI only. No native spell click, drag, Mixin or protected attribute replaced.
-local function bookHost()
-  local modern=PlayerSpellsFrame and PlayerSpellsFrame.SpellBookFrame
-  return modern or SpellBookFrame
-end
-local function outsideCombat()
-  if type(InCombatLockdown)~="function" then return true end
-  local status,on=KHQOL.ReadPublicAPI(InCombatLockdown)
-  return status=="ok" and on==false
-end
-local function visible(frame)
-  if not frame or (frame.IsForbidden and read(frame.IsForbidden,frame)~=false) then return false end
-  return read(frame.IsVisible or frame.IsShown,frame)==true
-end
+local layers=KHQOL.WindowLayers
+local function outsideCombat() return layers:OutsideCombat() end
 function FR:GetBookCandidates()
   local ids,seen={},{}
   local function add(id)
@@ -191,14 +179,14 @@ function FR:RegisterBookSelection(slot)
 end
 function FR:RefreshSpellBookPanel(rebuild)
   local p=self.bookPanel;if not p or not p:IsShown() then return end
-  if p.wheelBody and KHQOL.modules.partyFrames.RefreshBookWheel then KHQOL.modules.partyFrames:RefreshBookWheel() end
+  if p.wheelBody then KHQOL.modules.partyFrames:RefreshBookWheel() end
   if rebuild or not self.bookOptions then self.bookOptions=self:GetBookCandidates() end
   p.selection:Refresh()
   local selected,message=self:ValidateReferenceSpell(self.bookSelected)
   p.selectedName:SetText(selected and selected.name or "스킬명 또는 SpellID 입력")
   p.icon:SetTexture(selected and selected.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
   p.message:SetText(self.registrationMessage or (self.bookSelected and message) or (#self.bookOptions==0 and "학습한 주문 목록 조회 불가. 스킬명 또는 SpellID를 입력하세요." or "스킬을 아래 등록 버튼으로 끌어 놓으세요. 목록 선택·스킬명 입력도 가능합니다."))
-  if not KHQOL:GetEnabled("range") then p.message:SetText("사거리 모듈을 켠 후 기준 주문을 등록하세요. 휠 클릭 시전 탭은 별도로 설정할 수 있습니다.") end
+  if not KHQOL:GetEnabled("range") then p.message:SetText("사거리 모듈을 켠 후 기준 주문을 등록하세요.") end
   for _,slot in ipairs({"melee","ranged"}) do
     local id=self.db and self.db[slot.."SpellID"]
     local name=id and (self.Range:GetSpellInfo(id) or self.db[slot.."SpellName"])
@@ -212,16 +200,18 @@ function FR:CloseSpellBookPanel()
     self.bookPanel:Hide();self.bookPanel.input:ClearFocus()
   end
 end
-function FR:SyncSpellBook(enabled)
-  if not self.bookButton then return end
-  local show=KHQOL.db and visible(self.bookHost)
-  self.bookButton:SetShown(show and true or false)
+function FR:SyncSpellBook()
+  if not self.bookButton then return false end
+  local show=layers:PlaceOnSpellBook(self.bookButton,self.bookHost,self.bookRoot,20)
+    and layers:PlaceOnSpellBook(self.bookPanel,self.bookHost,self.bookRoot,30)
+  self.bookButton:SetShown(show)
   if not show then self:CloseSpellBookPanel() end
+  return show
 end
 function FR:TryAttachSpellBook()
   if not self.db or not KHQOL.db or not outsideCombat() then return end
-  local host=bookHost();if not host then return end
-  if host.IsForbidden and read(host.IsForbidden,host)~=false then return end
+  local host,root=layers:SpellBook()
+  if not host then self:CloseSpellBookPanel();if self.bookButton then self.bookButton:Hide() end;return end
   local UI=KHQOL.UI
   if not self.bookButton then
     local button=UI:CreateButton(UIParent,"KHQOL\n설정",0,0,100,function()
@@ -230,15 +220,21 @@ function FR:TryAttachSpellBook()
     end)
     self.bookButton=button;button:SetSize(100,44);button:SetFrameStrata("DIALOG");button:SetClampedToScreen(true)
     local p=CreateFrame("Frame","KHQOLRangeBookRegistration",UIParent,"BackdropTemplate")
-    self.bookPanel=p;p.uiControls={};p:SetSize(310,412);p:SetFrameStrata("DIALOG");p:SetClampedToScreen(true)
+    self.bookPanel=p;p.uiControls={};p.khqolSpellBookPanel=true;p:SetSize(310,412);p:SetFrameStrata("DIALOG");p:SetClampedToScreen(true)
     p:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
     p:SetBackdropColor(unpack(UI.Theme.Background));p:SetBackdropBorderColor(unpack(UI.Theme.Border))
     UI:CreateLabel(p,"KHQOL 설정",12,-12):SetWidth(245)
     UI:CreateButton(p,"X",272,-8,26,function() FR:CloseSpellBookPanel() end)
-    p.rangeBody=CreateFrame("Frame",nil,p);p.rangeBody:SetPoint("TOPLEFT",0,-40);p.rangeBody:SetSize(310,366)
-    p.wheelBody=CreateFrame("Frame",nil,p);p.wheelBody:SetPoint("TOPLEFT",0,-80);p.wheelBody:SetSize(310,326);p.wheelBody:Hide()
-    p.rangeTab=UI:CreateButton(p,"사거리 설정",12,-42,137,function() FR:SelectBookTab("range") end)
-    p.wheelTab=UI:CreateButton(p,"휠 클릭 시전",161,-42,137,function() FR:SelectBookTab("wheel") end)
+    p.rangeBody=CreateFrame("Frame",nil,p);p.rangeBody:SetSize(310,366)
+    local party=KHQOL.modules.partyFrames
+    local kinds={"range"}
+    if KHQOL.ModuleRegistry.entries.partyFrames and party and party.BuildBookWheel then
+      p.wheelBody=CreateFrame("Frame",nil,p);p.wheelBody:SetSize(310,326);p.wheelBody:Hide()
+      p.rangeTab=UI:CreateButton(p,"사거리 설정",12,-42,137,function() FR:SelectBookTab("range") end)
+      p.wheelTab=UI:CreateButton(p,"휠 클릭 시전",161,-42,137,function() FR:SelectBookTab("wheel") end)
+      party:BuildBookWheel(p.wheelBody)
+      kinds[2]="wheel"
+    end
     local body=p.rangeBody
     p.selection=UI:CreateDropdown(body,12,-42,286,function() return FR.bookOptions or {} end,
       function() return FR.bookSelected end,function(id) FR.bookSelected=id;FR.registrationMessage=nil;FR:RefreshSpellBookPanel() end)
@@ -261,11 +257,10 @@ function FR:TryAttachSpellBook()
     p.meleeInfo=UI:CreateDescription(body,"",12,-216);p.meleeInfo:SetWidth(286)
     p.rangedInfo=UI:CreateDescription(body,"",12,-253);p.rangedInfo:SetWidth(286)
     p.message=UI:CreateDescription(body,"",12,-296);p.message:SetWidth(286)
-    KHQOL.modules.partyFrames:BuildBookWheel(p.wheelBody)
-    for _,kind in ipairs({"range","wheel"}) do
+    for _,kind in ipairs(kinds) do
       local child=p[kind.."Body"]
       local view=CreateFrame("ScrollFrame",nil,p)
-      view:SetPoint("TOPLEFT",0,-80);view:SetPoint("BOTTOMRIGHT",0,8)
+      view:SetPoint("TOPLEFT",0,p.wheelBody and -80 or -42);view:SetPoint("BOTTOMRIGHT",0,8)
       child:SetParent(view);child:ClearAllPoints();child:SetPoint("TOPLEFT",0,0);view:SetScrollChild(child)
       p[kind.."Viewport"]=view;view:EnableMouseWheel(true)
       view:SetScript("OnMouseWheel",function(_,delta)
@@ -290,54 +285,37 @@ function FR:TryAttachSpellBook()
     p:SetScript("OnHide",function() p.input:ClearFocus();if UI.openDropdown==p.selection.menu then UI:CloseDropdown() end end)
     p:Hide();button:Hide()
   end
-  self.bookHost=host
-  self.bookButton:ClearAllPoints()
-  local search=host.SearchBox
-  if search and (not search.IsForbidden or read(search.IsForbidden,search)==false) then
-    self.bookButton:SetPoint("TOPRIGHT",search,"BOTTOMRIGHT",0,-10)
-  else self.bookButton:SetPoint("TOPRIGHT",host,"TOPRIGHT",-30,-80) end
-  local hostTop,buttonTop=read(host.GetTop,host),read(self.bookButton.GetTop,self.bookButton)
-  local hs,bs,ps=read(host.GetEffectiveScale,host),read(self.bookButton.GetEffectiveScale,self.bookButton),read(self.bookPanel.GetEffectiveScale,self.bookPanel)
-  local offset=-90
-  if type(hostTop)=="number" and type(buttonTop)=="number" and type(hs)=="number" and type(bs)=="number" and type(ps)=="number" and ps>0 then
-    offset=(buttonTop*bs-hostTop*hs)/ps
-  end
-  self.bookPanel:ClearAllPoints();self.bookPanel:SetPoint("TOPLEFT",host,"TOPRIGHT",6,offset)
-  self.bookHooked=self.bookHooked or {}
-  if not self.bookHooked[host] then
-    self.bookHooked[host]=true
-    host:HookScript("OnShow",function() FR:CloseSpellBookPanel();FR:TryAttachSpellBook();FR:SyncSpellBook() end)
-    host:HookScript("OnHide",function() FR:CloseSpellBookPanel();FR:SyncSpellBook() end)
-    local parent=PlayerSpellsFrame
-    if parent and parent~=host and not self.bookHooked[parent] then
-      self.bookHooked[parent]=true
-      parent:HookScript("OnShow",function() FR:CloseSpellBookPanel();FR:TryAttachSpellBook();FR:SyncSpellBook() end)
-      parent:HookScript("OnHide",function() FR:CloseSpellBookPanel();FR:SyncSpellBook(false) end)
-    end
+  if self.bookHost~=host or self.bookRoot~=root then
+    self:CloseSpellBookPanel();self.bookHost,self.bookRoot=host,root
+    self.bookButton:ClearAllPoints()
+    local search=read(function() return host.SearchBox end)
+    if layers:Readable(search) then self.bookButton:SetPoint("TOPRIGHT",search,"BOTTOMRIGHT",0,-10)
+    else self.bookButton:SetPoint("TOPRIGHT",host,"TOPRIGHT",-30,-80) end
+    self.bookPanel:ClearAllPoints();self.bookPanel:SetPoint("TOPLEFT",host,"TOPRIGHT",8,-80)
+    layers:WatchSpellBook(self,host,root,function() self:CloseSpellBookPanel();self:SyncSpellBook() end)
   end
   self:SyncSpellBook()
 end
 function FR:SelectBookTab(tab)
   local p=self.bookPanel;if not p then return end
-  self.bookTab=tab=="wheel" and "wheel" or "range"
+  self.bookTab=tab=="wheel" and p.wheelBody and "wheel" or "range"
   KHQOL.UI:CloseDropdown();p.input:ClearFocus()
-  p.rangeBody:SetShown(self.bookTab=="range");p.wheelBody:SetShown(self.bookTab=="wheel")
-  p.rangeViewport:SetShown(self.bookTab=="range");p.wheelViewport:SetShown(self.bookTab=="wheel")
-  KHQOL.UI:SetButtonSelected(p.rangeTab,self.bookTab=="range");KHQOL.UI:SetButtonSelected(p.wheelTab,self.bookTab=="wheel")
+  local range=self.bookTab=="range"
+  p.rangeBody:SetShown(range);p.rangeViewport:SetShown(range)
+  if p.wheelBody then
+    p.wheelBody:SetShown(not range);p.wheelViewport:SetShown(not range)
+    KHQOL.UI:SetButtonSelected(p.rangeTab,range);KHQOL.UI:SetButtonSelected(p.wheelTab,not range)
+  end
   KHQOL.UI:Refresh(p);self:RefreshSpellBookPanel()
 end
 function FR:OpenSpellBookPanel(tab)
   if not KHQOL.db or not self.db then return false end
+  local party=KHQOL.modules.partyFrames
+  if tab=="wheel" and (not KHQOL.ModuleRegistry.entries.partyFrames or not party or not party.BuildBookWheel) then return false end
   if not outsideCombat() then self:Print("전투 종료 후 스킬북 등록창을 여세요.");return false end
-  local host=bookHost()
-  if not visible(host) then
-    -- Use a public opener only; never force-show/reparent the native book frame.
-    if PlayerSpellsUtil and type(PlayerSpellsUtil.OpenToSpellBookTab)=="function" then pcall(PlayerSpellsUtil.OpenToSpellBookTab)
-    elseif type(ToggleSpellBook)=="function" then pcall(ToggleSpellBook,BOOKTYPE_SPELL or "spell")
-    elseif type(TogglePlayerSpellsFrame)=="function" then pcall(TogglePlayerSpellsFrame) end
-  end
+  layers:OpenSpellBook()
   self:TryAttachSpellBook()
-  if not self.bookPanel or not visible(self.bookHost) then self:Print("게임 스킬북을 연 뒤 옆의 KHQOL 버튼을 누르세요.");return false end
+  if not self:SyncSpellBook() then self:Print("게임 스킬북을 연 뒤 옆의 KHQOL 버튼을 누르세요.");return false end
   self.registrationMessage=nil;self.bookPanel:Show();self:SelectBookTab(tab or "range");KHQOL.UI:Refresh(self.bookPanel);self:RefreshSpellBookPanel(true)
   return true
 end

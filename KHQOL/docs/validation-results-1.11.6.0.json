@@ -1,0 +1,2798 @@
+[
+  {
+    "group": "audit",
+    "test": "Quest guidance exposes the shared visible flag with its unchanged default",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Quest line checkbox immediately hides all route and player approach dots while guidance continues",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "The note page sees the value changed from quest settings",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Turning dots OFF during drawing keeps capture, ordered membership, toolbar and pin numbers",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Line preference is shared through existing clock profile settings and restores across profile switching",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Quest-only installation disables the shared checkbox without creating a clock database",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Settings without clock and quests absent remain valid core/Labs pages",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Every runtime/search/position/command reference to removed Labs tools is absent",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Old profiler preference and nested settings survive save, new profile and return without activating code",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Account notes and shared routes survive removed-tool preference handling and profile export",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Unrelated CVar events perform no full map refresh, new pins or geometry invalidation",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Minimap rotation CVar updates only minimap geometry, including case-normalized names",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Missing or unreadable CVar arguments are ignored without string operations or data changes",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Zone and combat lifecycle events retain full refresh and current pending-route behavior",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Stopwatch avoids duplicate text writes within a second and writes on each visible second boundary",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Stopwatch pause/resume retains fractional elapsed time and reset invalidates its display cache",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Stopwatch keeps hour formatting and stopped close-button timeout behavior",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Legacy minimap hide processes later buttons even when the first optional button is absent",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Legacy minimap cleanup is safe with all optional buttons missing and with only the last present",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Remaining Labs features, locks and unchanged clock FPS/latency module still exist",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: basicUI",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: buffReminder",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: campfire",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: castBar",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: chatEnhancement",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: clock",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: combatStatus",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: cursorTrail",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: environmentTimer",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: experienceBar",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: frameMover",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: general",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: generalConvenience",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: minimap",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: npcAlert",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: objectHighlight",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: partyFrames",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: procAlert",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: pvpAlert",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: questNavigator",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: range",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: resourceSwing",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: threat",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: todo",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: tooltip",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: unitFrames",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Module lifecycle OFF/ON, repeated dispatch and stable frames: weaponGuide",
+    "passed": true
+  },
+  {
+    "group": "audit",
+    "test": "Fresh-session restore preserves shared line OFF, route content and dormant removed-tool settings",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "New drawing creates an empty independent selected route and a visible toolbar",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "One entry records three map clicks directly in click order with exact original coordinates",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "New map pins and existing clicked pins can be mixed in one ordered path",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Repeated clicks on an existing route member do not duplicate it or change revision",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Continuing an existing route appends after its saved order without creating another route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Toolbar completion stops capture, retains points and restores ordinary pin left-click guidance",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Toolbar guidance ends drawing and starts at the first added pin through the saved suffix",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "A map click after completion creates only an ordinary pin without enrolling it",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Text-command coordinate creation stays ordinary even while drawing",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Mode temporarily accepts Shift-right-click when the ordinary shortcut preference is OFF",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Plain right-click, Ctrl-Shift and Alt-Shift do not create capture points",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "New route creation from the pin context enrolls the clicked pin once",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Context continue starts from the existing route and appends the context pin",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Context completion replaces drawing actions during capture without changing the deletion divider",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Old context drawing entry cannot modify a newly selected route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "An old captured session cannot finish or append to a newer drawing session",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Route selection cancels capture and hides its toolbar without enrolling a stray pin",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Deleting the drawn route cancels capture while retaining its underlying notes",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Disabling notes cancels drawing and cannot create another pin",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Disabling world-map pins cancels drawing but leaves its saved route intact",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Profile replacement invalidates the capture ticket but keeps account-wide route content",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Combat blocks new capture entry, pin creation, append and guidance without changing content",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Capture resumes normally after combat using the same selected route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "A full 128-pin route rejects map creation before leaving an orphan ordinary pin",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "The 32-route limit does not fall back to or begin drawing on an existing route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Missing route and disabled map-pin display refuse entry without allocating a route",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "World-map close/reopen keeps capture, and closed-map minimap left click stays ordinary guidance",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "An open-map minimap pin also joins the drawn route without starting guidance",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Cross-zone drawing keeps original map IDs and world-map clicks resolve to the owning region",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Route numbers update immediately on unchanged-position pins after order edits and route selection",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Minimap route numbers use the original ordinal and remove stale values after exclusion",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Reused native pin frames clear number labels for ordinary unregistered pins",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Toolbar name/count and layout follow route rename and map resizing without new frames",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Empty or navigation-disabled route cannot leave capture through its guidance button",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Beginning capture stops previous ordered guidance and previews the entire selected path",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Drawing exposes all saved members without clearing their completion or arrival flags",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Drawing preserves the underlying normal manual target and restores its approach after completion",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Repeated capture sessions reuse the toolbar and add no update handler or event driver",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "New settings entry opens capture and hides settings after showing the world map",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Toolbar follows the native map stratum in fullscreen and compact layouts",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "A context start switches from recording to guidance without modifying its ordered membership",
+    "passed": true
+  },
+  {
+    "group": "drawing",
+    "test": "Fresh session retains drawn route and coordinates but never restores capture mode or running guidance",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Before reaching the first pin, player-to-first and all future legs are visible",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Screenshot case: arrival at one and detour toward two leaves only player-to-two and two-three-four-five",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "At waypoint 2, no completed or duplicate incoming saved leg is drawn",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "At waypoint 3, no completed or duplicate incoming saved leg is drawn",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "At waypoint 4, no completed or duplicate incoming saved leg is drawn",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "At waypoint 5, no completed or duplicate incoming saved leg is drawn",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Normal note guidance also trims the completed prefix and replaces the incoming leg",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Normal automatic arrival updates visible pins and lines immediately to the next actual arrow target",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Engine-side normal target selection refreshes pins and remaining lines on the shared tick",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Passed minimap pins are hidden while current and future nearby pins remain",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Disabling arrival hiding does not bring passed route pins back during guidance",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Old arrival/completion flags cannot hide pending route members; passed members still disappear",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Previous restores the earlier pin and remaining suffix even when its persisted arrival flag is set",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Pause retains the remaining suffix and resume does not restore passed legs",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Stopping all note guidance restores the full saved base path and eligible pins",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Final arrival removes only runtime progress and restores all saved connections",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Restart from first restores earlier route pins without changing the saved order",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Nearest start hides only the prefix before its chosen index",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Player-to-current behavior is preserved for unregistered pins without trimming an unrelated saved route",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Ordinary pins outside the active route keep their existing visibility",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "No shared pin, route or checklist content is rewritten by rendering and manual progress",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "World-map close/reopen preserves the current remaining suffix",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Remaining route projects correctly on map 13",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Remaining route projects correctly on map 947",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Cross-zone incoming leg is replaced rather than duplicated on the continent map",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "No location data leaves only future saved legs without inventing a player connection",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Line OFF/ON keeps progress and does not resurrect a completed incoming leg",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Forty repeated next/previous steps reuse map pin frames and line textures",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Stationary remaining guidance avoids new texture creation or coordinate writes",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Route completion can restore a pre-existing normal note target using that target remaining suffix",
+    "passed": true
+  },
+  {
+    "group": "remaining-route",
+    "test": "Fresh Lua session restores full saved route and no runtime display progress",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Screenshot reproduction: regular guidance also connects player to the first saved pin",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Single ordinary pin needs no saved route to draw its approach line",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "World-map left click refreshes the approach immediately to the arrow destination",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Minimap left click uses the same actual target and refreshes the open world map immediately",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Directly selecting another pin updates the line endpoint without changing the saved path",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Player movement updates the normal approach on the existing tenth-second driver",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Clearing a normal target removes its stale line on the next tick and stops unnecessary map work",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "World-map close stops map-only work; reopen restarts it and renders current player location",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Line OFF hides the player approach and suspends map-only movement updates",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Hiding a saved route does not hide a separate ordinary pin destination approach",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Hidden saved-route guidance still honors its existing route visibility setting",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Saved route begins with player-to-first approach and advances it to the next waypoint",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Player approach and base route remain separate white and configured-color lines",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Cross-zone approach is projected and clipped at the region border",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Approach projects both player and target onto map 13",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Approach projects both player and target onto map 947",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Other world does not draw a false ocean/instance approach",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Missing player position hides the approach without deleting its pin or saved path",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Unknown cross-map transforms do not fabricate a line from unmatched normalized coordinates",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "A normal arrival refreshes both automatic arrow target and approach endpoint together",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Turning off note navigation removes the normal approach and leaves saved base links",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Combat does not move player-line textures and normal updates recover afterward",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "A stationary approach reuses textures and avoids coordinate writes",
+    "passed": true
+  },
+  {
+    "group": "player-link",
+    "test": "Line OFF does not perform map projection even when minimap work keeps the shared driver active",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "No route session changes the original source policy or starts guidance automatically",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Legacy 1.11.5.7 shared path becomes a named route without changing any pin coordinate",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Legacy per-zone paths migrate deterministically and retain original tables",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Creating, renaming, saving and selecting multiple independent routes preserves order",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Deleting a route leaves pins and notes intact and never resurrects legacy shared data",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route names validate blanks, newlines and size without changing content",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route limit is bounded without deleting old routes",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Waypoint order can differ between routes using the same existing IDs",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Deleting a pin prunes every saved route while leaving other pins",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Stale route menu cannot append a pin to a newly selected route",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Pin context starts from selected first node through the final node and preserves base lines",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Selecting a middle waypoint displays only its remaining route without changing saved earlier IDs",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Selecting the last waypoint displays only its player approach and retains the saved route",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Saved-route first start ignores player proximity and always starts at index one",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Explicit nearest start chooses the nearest measurable node and continues to the end",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "1-waypoint route begins and completes without destroying saved data",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "2-waypoint route begins and completes without destroying saved data",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "5-waypoint route begins and completes without destroying saved data",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Arrival radius is yards from map geometry, with configurable inside/outside behavior",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Automatic advance shows current waypoint and total count in the existing HUD",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Manual next/previous can navigate the full saved path before and after the start index",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Pause freezes automatic arrival, retains all lines and reuses the same arrow HUD",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Resume continues at the paused index and then advances normally",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Manual next and previous work while paused without silently resuming",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "When route is the only update client, pausing and stopping remove unnecessary loops",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route override has priority over manual destination and Quest; stop restores the manual",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Quest destination data and tracking are not cleared while a route is active",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Quest focus can update behind a route and is current when the route ends",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "A newer manual destination is preserved behind the higher-priority explicit route",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "AUTO explicitly ends the route and clears manual selection to return to automatic policy",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Starting a route does not turn on the legacy note auto-navigation setting",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Missing location APIs do not invent arrival and manual controls remain available",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Missing map size and world coordinates do not treat normalized coordinates as yards",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Departure warning is optional and only follows a measurable segment distance",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Missing location never triggers an inferred departure warning",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "World-map guidance replaces the incoming regional link with the current player leg",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "World-space automatic arrival works across a region boundary",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Arrival hiding does not erase route icons/lines or stop the route update driver prematurely",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Selecting another route stops the old session without modifying either path",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Renaming an active route preserves navigation and updates its presentation",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Deleting an active route restores source selection and preserves all pins",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route editing, pin movement and profile changes invalidate stale sessions safely",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Paused sessions are validated and stopped on pin deletion even when their tick is disabled",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route visibility and navigation enable flags are independent and persist with the route",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Combat blocks data edits and control commands, then resumes safely after combat",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Stale context controls cannot operate on a replaced route session",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Pin menu includes pause/resume, next/previous and the route/deletion divider",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Minimap destination uses the route source while retaining original pin artwork",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Account route content is excluded from profile export while route-control display settings follow profiles",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "The existing settings builder exposes named routes and navigation controls without a new window",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Starting the same route repeatedly reuses the HUD and does not accumulate update frames",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "A full 128-waypoint path stays under the existing texture budget while guiding",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Unsupported future schema is preserved and refuses destructive route edits",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Route creation rejects invalid user names before allocating a route ID",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "A coordinate changed behind a paused menu is validated before executing manual next",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Disabling the dedicated source ends its session and removes the override without recursion",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "A route built from already completed checklist items remains reusable without changing checks",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Failed optional distance callback uses verified same-map geometry and rejects unverifiable cross-map geometry",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Actual Quest Navigator keeps native super-track and watched quest data through route controls",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Actual Quest Navigator can adopt a newly tracked quest behind the route and restore it on completion",
+    "passed": true
+  },
+  {
+    "group": "navigation-route",
+    "test": "Fresh Lua session restores multiple named routes and selection without auto-starting navigation",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Default and migrated old-default lines are bright cyan, opaque and 3px",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Same-map pins retain exact positions and original 26px artwork",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Continent map projects pins from both neighboring zones",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "World map displays and preserves clickable pins from child zones",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Global route explicitly connects pins across zones without enrolling ordinary pins",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone line clips to region edge instead of disappearing",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Crossing segment renders even if both pins are outside the displayed zone",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Different continents remain disconnected and permit explicit manual-waypoint fallback",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "World-map fallback handles Forever continent calibration without native rectangles",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "World-map Shift click resolves original zone coordinates",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Legacy route migration preserves per-map order, original tables and IDs",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Moving an existing selected pin to another zone preserves its route position",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Menu visually separates route actions from deletion actions",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap nearby pin projects relative to player without world map open",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap updates as player moves and rotates with the minimap",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap zoom/resize and independent visibility setting refresh correctly",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Active distant destination floats at minimap edge, unrelated far pins stay hidden",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap pins have the same context actions and separator",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Guidance starts at the selected registered node and draws only its remaining suffix",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "An explicitly selected start keeps saved forward order rather than replacing it with a reversed suffix",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Guidance automatically advances nodes and stops at selected destination",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone note direction/distance remains available without changing quest policy",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Guidance player lead updates while preserving pin positions",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Custom routing is cancelled when AUTO or a different manual destination is chosen",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Changed/deleted waypoint cancels stale guidance safely",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Context action rejects a menu after map/profile/item change",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Combat blocks edits and hides map/minimap overlays until combat ends",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Missing geometry/radius APIs fail closed and recover without deleting data",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Renderer pairs every foreground dot with a contrasting shadow and stays bounded",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Unchanged minimap/map refreshes reuse pins and dots with zero geometry writes",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Existing driver runs minimap with arrival hiding disabled, and stops when both are off",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 0.25",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 0.5",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 1",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 2",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone endpoints, outline size and clipping match native zoom 4",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "World map resize/pan/reopen updates both projected pins and lines without leaks",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Deleting a selected cross-zone pin preserves other-zone pins and prunes the route",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Completed and hidden route pins preserve the entire saved path",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Legacy overflow retains every ID and renders a bounded subset with an explicit notice",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Native legacy dropdown API displays a non-clickable divider and working route actions",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Unregistered guidance is a temporary direct path and never changes saved route membership",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Cross-zone ordered guidance advances through a boundary and keeps correct destination",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Minimap pool is bounded at 128 nearest pins and remains reusable across map close",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Profile capture excludes account route content and a new profile preserves ordered IDs",
+    "passed": true
+  },
+  {
+    "group": "map-route",
+    "test": "Fresh Lua session restores saved cross-zone IDs, order and projected geometry",
+    "passed": true
+  },
+  {
+    "group": "regression",
+    "test": "Clean full-install structure, exact versions, unique saved ownership and Lua 5.1 syntax",
+    "passed": true,
+    "details": "19 folders / 207 Lua / 11 variables"
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: core only",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Clock",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: KHQOL_UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: full original order",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: full reverse order",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: core only",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Clock",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: KHQOL_Campfire+KHQOL_Clock+KHQOL_CombatStatus+KHQOL_Convenience+KHQOL_CursorTrail+KHQOL_EnvironmentTimer+KHQOL_ExperienceBar+KHQOL_Labs+KHQOL_Map+KHQOL_NPCAlert+KHQOL_PartyFrames+KHQOL_PvPAlert+KHQOL_QuestNavigator+KHQOL_Range+KHQOL_ResourceSwing+KHQOL_Threat+KHQOL_Tooltip+KHQOL_UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Representative saved data from actual 1.10.10 source",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Partial/core-only profile create/copy/switch/delete + absent data equality",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Reinstall restores selected dormant profile, note content, lists, spells, colors, party policy",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Repeated split install/reload is idempotent for content + character data",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Rollback to actual 1.10.10 source reads same SavedVariables and content",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_Campfire",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_Clock",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: KHQOL_UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Original data upgrade + profile cycle: full upgrade",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Second character uses own spells/wheel and own role-profile migration",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Installed-only reset, rejected absent reset, failed profile apply restores source",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Party alone, missing native API, wheel registration UI, combat close, duplicate/late registration",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Latest-only combat queue, OFF/profile cancellation, public/secret boundary",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Missing/disabled/not-loaded states and unavailable menu/search",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Labs absent graphics journal: restore",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Labs absent graphics journal: combat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Labs absent graphics journal: conflict",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Labs absent graphics journal: external-user-change",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Labs absent graphics journal: unknown-record",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Requested Labs tools absent from runtime, settings, commands and overlays; clock info retained",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Failed initialization retries once successfully; missing dependency/cycle detected",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "All feature bootstraps reject absent core and unrelated addon namespace",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + Clock",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Campfire + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + CombatStatus",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Clock + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Convenience",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CombatStatus + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + CursorTrail",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Convenience + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + EnvironmentTimer",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair CursorTrail + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + ExperienceBar",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair EnvironmentTimer + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Labs",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ExperienceBar + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + Map",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Labs + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Map + NPCAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Map + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Map + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Map + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Map + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Map + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Map + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Map + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Map + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + PartyFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair NPCAlert + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + PvPAlert",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PartyFrames + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PvPAlert + QuestNavigator",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PvPAlert + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PvPAlert + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PvPAlert + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PvPAlert + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair PvPAlert + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + Range",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair QuestNavigator + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Range + ResourceSwing",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Range + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Range + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Range + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + Threat",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair ResourceSwing + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Threat + Tooltip",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Threat + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Load/default/profile/schema/menu/search: pair Tooltip + UnitFrames",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 1",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 2",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 3",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 4",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 5",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 6",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 7",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 8",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 9",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 10",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 11",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 12",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 13",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 14",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 15",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 16",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 17",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 18",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 19",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 20",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 21",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 22",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 23",
+    "passed": true,
+    "details": ""
+  },
+  {
+    "group": "regression",
+    "test": "Mock login/UI/editor/profile/export: mixed subset 24",
+    "passed": true,
+    "details": ""
+  }
+]

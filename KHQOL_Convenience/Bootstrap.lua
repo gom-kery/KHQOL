@@ -4,3 +4,4 @@ assert(not K.installationReady, "KHQOL features require a UI reload; late hot-lo
 K.modules.general = K.modules.general or {}
 K.modules.generalConvenience = K.modules.generalConvenience or {}
 K.modules.chatEnhancement = K.modules.chatEnhancement or {}
+K.modules.chatAutomation = K.modules.chatAutomation or {}

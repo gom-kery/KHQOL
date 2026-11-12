@@ -15,8 +15,22 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
     return {title=title,get=getter,set=setter,tip=tip,enabled=enabled,children=children or {}}
   end
   local party,guild=legacy("declinePartyInvites"),legacy("declineGuildInvites")
+  local A=KHQOL.modules.chatAutomation
+  local prefixes=check("말머리 사용",legacy("chatPrefixes"),legacySet("chatPrefixes"),"일반·파티·길드·공격대 발신에 적용합니다. 각 10글자, 캐릭터별 저장. /말머리 명령도 사용할 수 있습니다.",function() return A.preSendSupported==true end)
+  prefixes.fields={}
+  for _,entry in ipairs({{"SAY","일반 말머리"},{"PARTY","파티 말머리"},{"GUILD","길드 말머리"},{"RAID","공격대 말머리"}}) do
+    local channel,title=entry[1],entry[2]
+    prefixes.fields[#prefixes.fields+1]={title=title.." (최대 10글자)",get=function() return A:GetPrefix(channel) end,set=function(v) A:SetPrefix(channel,v) end}
+  end
+  prefixes.button={title="말머리 초기화",click=function() A:ResetPrefixes() end}
+  local greeting=check("파티 자동 인사",legacy("chatAutoGreeting"),legacySet("chatAutoGreeting"),"새 파티 구성·참여 시 한 번 전송합니다. 접속·재접속·지역 이동·파티원 변경에는 보내지 않습니다. 빈 인사말은 보내지 않습니다.",nil,{
+    check("공격대 자동 인사",legacy("chatRaidGreeting"),legacySet("chatRaidGreeting"),"공격대 참여 시 RAID 채널로 인사합니다. 기본 OFF.")})
+  greeting.fields={{title="인사말 (캐릭터별 저장 · 최대 255바이트)",get=function() return A:GetGreeting() end,set=function(v) A:SetGreeting(v) end}}
   local sections={
-    {title="대화창",items={check("기본 대화창 편의",legacy("chatEnhancement"),legacySet("chatEnhancement"),"대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사를 개선합니다.")}},
+    {title="대화창",items={
+      check("기본 대화창 편의",legacy("chatEnhancement"),legacySet("chatEnhancement"),"대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사를 개선합니다."),
+      check("Alt+좌클릭 파티 초대",legacy("chatAltInvite"),legacySet("chatAltInvite"),"채팅 캐릭터 이름을 Alt+좌클릭하여 초대합니다. Forever 이름·성을 지원합니다. /초대진단으로 설정·훅·최근 처리 결과를 확인합니다. /파티요청 전체이름은 전송 전 귓속말 초안을 엽니다."),
+      prefixes,greeting}},
     {title="아이템",items={
       check("착용 아이템 레벨 표시",get("equipmentLevels"),set("equipmentLevels"),"캐릭터창의 착용 아이템 아이콘 안쪽 위 중앙에 아이템 레벨 숫자만 표시합니다. 빈 칸·탄약은 제외합니다.",function() return M:EquipmentLevelsSupported() end),
       check("아이템 파괴 자동 입력",legacy("autoConfirmDestroy"),legacySet("autoConfirmDestroy"),"파괴 확인 문구를 자동 입력합니다. 최종 확인은 직접 선택합니다."),
@@ -62,6 +76,22 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
         control.childColumn,control.childRow=childColumn,childRow
         UI:AttachTooltip(control,child.title,child.tip); item.controls[#item.controls+1]=control
       end
+      local function fieldsEnabled() return item.get() and (not item.enabled or item.enabled()) end
+      for _,field in ipairs(item.fields or {}) do
+        section.measure[#section.measure+1]=field
+        field.label=UI:CreateLabel(cell,field.title,T.ContentPadding,0,T.LabelFontSize)
+        field.label:SetWordWrap(true)
+        field.box=UI:CreateEditBox(cell,T.ContentPadding,0,200,field.get,field.set,fieldsEnabled)
+        if UI.SettingsNavigation then UI.SettingsNavigation:Attach(cell,field.box,field.title,field.get,field.set,fieldsEnabled) end
+        -- Byte cap is only an input guard. ValidateText enforces Unicode counts
+        -- on commit, without OnTextChanged rewriting or interfering with IME.
+        field.box:SetMaxLetters(1024)
+        UI:AttachTooltip(field.box,field.title,"Enter 또는 포커스 이동으로 저장 · Esc로 취소. 제어 문자·색상·링크 코드는 사용할 수 없습니다.")
+      end
+      if item.button then
+        section.measure[#section.measure+1]=item.button
+        item.button.control=UI:CreateButton(cell,item.button.title,T.ContentPadding,0,180,item.button.click,fieldsEnabled)
+      end
       cell:SetHeight((item.title=="이미 습득한 아이템 표시" and 3 or #item.controls)*step)
       if section.title=="자동 거절" then cell:SetHeight(step) end
     end
@@ -76,6 +106,7 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
       section.body:SetPoint("TOPLEFT",0,-headerHeight);section.body:SetWidth(width)
       local expanded=section.group:IsExpanded();section.body:SetShown(expanded)
       local columns=width<T.CheckTwoColumnWidth and 1 or 2
+      if section.title=="대화창" then columns=1 end
       for _,item in ipairs(section.items) do for _,control in ipairs(item.controls) do
         control.text:SetWidth(width)
         if control.text:GetStringWidth()+T.CheckboxSize+T.CheckboxLabelGap+T.ContentPadding>(width-T.ColumnGap)/2 then columns=1 end
@@ -93,6 +124,20 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
           control.text:SetWidth(math.max(40,cellWidth-indent-T.CheckboxSize-T.CheckboxLabelGap));control.text:SetWordWrap(true)
           control:ClearAllPoints();control:SetPoint("TOPLEFT",indent,childTop)
           childTop=childTop-math.max(step,control.text:GetStringHeight()+12)
+        end
+        for _,field in ipairs(item.fields or {}) do
+          field.label:ClearAllPoints();field.label:SetPoint("TOPLEFT",T.ContentPadding,childTop)
+          field.label:SetWidth(math.max(1,cellWidth-T.ContentPadding*2))
+          childTop=childTop-field.label:GetStringHeight()-T.RowGap
+          field.box:ClearAllPoints();field.box:SetPoint("TOPLEFT",T.ContentPadding,childTop)
+          field.box:SetWidth(math.max(1,cellWidth-T.ContentPadding*2))
+          childTop=childTop-T.EditBoxHeight-T.RowGap*2
+        end
+        if item.button then
+          local button=item.button.control
+          button:ClearAllPoints();button:SetPoint("TOPLEFT",T.ContentPadding,childTop)
+          button:SetWidth(math.max(1,math.min(180,cellWidth-T.ContentPadding*2)))
+          childTop=childTop-T.ButtonHeight-T.RowGap*2
         end
         item.cell:SetHeight(-childTop);rowHeight=math.max(rowHeight,-childTop)
       end

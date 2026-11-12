@@ -225,6 +225,7 @@ function FC:CreateProfessions()
   button:SetScript("OnClick", function(self) if self.didDrag then self.didDrag = nil; return end; FC:ToggleProfessions() end)
   local panel = CreateFrame("Frame", "ForeverClockProfessionsPanel", UIParent, "BackdropTemplate")
   panel:SetFrameStrata("DIALOG"); panel:SetClampedToScreen(true); FC.MakeBackdrop(panel, .95, .73, .15, .92)
+  KHQOL.WindowLayers:RegisterWindow(panel)
   panel.cells = {}; for i=1,5 do panel.cells[i]=MakeCell(panel) end
   panel.empty = panel:CreateFontString(nil,"OVERLAY"); Font(panel.empty, 12); panel.empty:SetPoint("CENTER")
   panel:Hide(); self.professionsButton, self.professionsPanel = button, panel

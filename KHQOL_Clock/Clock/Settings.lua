@@ -83,10 +83,21 @@ function FC:CreateSettings(parent)
     local mode=entry[2]
     b:Button(entry[1],function()
       if mode=="stopwatch" then FC.stopwatchFrame:Show()
-      else FC.clockToolsFrame:SelectMode(mode);FC.clockToolsFrame:Show() end
+      else FC:OpenClockTools(mode) end
     end)
   end
-  b:Checkbox("도구 창 위치 잠금",function() return FC.db.clockTools.positionLocked end,function(v) FC.db.clockTools.positionLocked=v end)
+  b:Slider("알람·타이머 창 크기",80,100,5,function() return FC.db.clockTools.toolsScale end,function(v)
+    FC.db.clockTools.toolsScale=v;FC:ApplyClockToolsSize()
+  end,function(v) return v.."%" end)
+  b:Checkbox("도구 창 위치 잠금",function() return FC.db.clockTools.positionLocked end,function(v)
+    FC:SaveClockTool(FC.clockToolsFrame,"tools");FC.db.clockTools.positionLocked=v
+  end)
+  b:Checkbox("타이머 바 위치 잠금",function() return FC.db.clockTools.timerBarLocked end,function(v)
+    FC:SaveClockTool(FC.timerBarFrame,"timerBar");FC.db.clockTools.timerBarLocked=v
+  end)
+  b:Button("알람·타이머 위치 초기화",function() FC:ResetClockToolPosition("tools") end)
+  b:Button("타이머 바 위치 초기화",function() FC:ResetClockToolPosition("timerBar") end)
+  b:Description("타이머의 접기/펼치기는 실행 상태를 유지합니다. ‘음식 15분’은 수동 타이머이며, 다른 타이머가 남아 있으면 초기화 후 시작하세요.",true)
   b:Description("시간 HUD와 도구 창은 독립 위치입니다. 직접 드래그와 통합 편집 모두 현재 프로필에 저장합니다. 중앙 테스트 알림은 Alt+드래그로 이동합니다.",true)
   f:SetHeight(-b.y); self:RefreshSettings()
   return f

@@ -132,7 +132,7 @@ end
 function UI:EmbedModulePanel(content,panel,y,refresh)
   if not panel then return y end
   panel:SetParent(content);panel:ClearAllPoints();panel:SetPoint("TOPLEFT",0,y)
-  panel:SetScale(1);panel:SetWidth(content:GetWidth());panel:SetFrameStrata("DIALOG")
+  panel:SetScale(1);panel:SetWidth(content:GetWidth())
   -- Legacy panels were created under UIParent before this tab existed.
   -- Put their regions and controls above the current settings body, including
   -- descendants whose old levels did not follow the reparented panel.

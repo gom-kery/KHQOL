@@ -1,3 +1,5 @@
+local _,addon=...
+if not addon.loadUnitFrames then return end
 local _, KHQOL = ...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local B=KHQOL.modules.basicUI
@@ -14,6 +16,7 @@ local appearanceDefaults={health="default",power="default",gap=2,borderAlpha=.85
  healthColorMode="default",healthColor={r=0,g=1,b=0},borderStyle="none",
  namePosition="above",nameSide="LEFT",nameX=0,nameY=0,levelPosition="above",levelSide="RIGHT",levelX=0,levelY=0}
 M.unitTokens={"player","target","pet","targettarget","focus"}
+M.defaults.classHealth={enabled=false,style="dark"}
 for _,unit in ipairs(M.unitTokens) do
   KHQOL.MergeDefaults(M.defaults[unit],appearanceDefaults,"tables")
   M.defaults[unit].markerX=0;M.defaults[unit].markerY=0
@@ -40,23 +43,14 @@ for _,cfg in pairs(M.defaults.target.auras) do
   cfg.debuffs={perRow=8,maxRows=2,growth="RIGHT_DOWN"}
 end
 M.defaults.target.hideDefaultCombo=false
-function KHQOL:MigrateUnitFrameSettings(settings)
-  settings.modules=settings.modules or {}; settings.enabled=settings.enabled or {}
-  local old=type(settings.modules.basicUI)=="table" and settings.modules.basicUI or nil
-  if not settings.modules.unitFrames and old and (old.player or old.target) then
-    settings.modules.unitFrames={player=old.player,target=old.target}
-    settings.enabled.unitFrames=settings.enabled.basicUI~=false
-  end
-  if old then old.player=nil; old.target=nil end
-  local unit=settings.modules.unitFrames
-  if type(unit)=="table" and type(unit.player)=="table" then unit.player.showEnergyTick=nil end
-end
 function M:GetDB()
   if resolvedSettings and resolvedSettings.root==KHQOL.db and resolvedSettings.generation==KHQOL.profileGeneration
     and type(KHQOL.db.modules)=="table" and resolvedSettings.value==KHQOL.db.modules.unitFrames then return resolvedSettings.value end
   KHQOL:MigrateUnitFrameSettings(KHQOL.db)
   KHQOL.db.modules.unitFrames=KHQOL.MergeDefaults(KHQOL.db.modules.unitFrames or {},self.defaults,"tables")
   local player=KHQOL.db.modules.unitFrames.player
+  local shared=KHQOL.db.modules.unitFrames.classHealth
+  if shared.style~="dark" and shared.style~="bright" then shared.style="dark" end
   if player.bottomGrowth~="LEFT" then player.bottomGrowth="RIGHT" end
   player.bottomPlaced=player.bottomPlaced==true
   for _,unit in ipairs({"target","targettarget","focus"}) do
@@ -459,6 +453,7 @@ function M:OnCombatEnd()
 end
 function M:SetEnabled(on)
   self:Initialize(); self:ApplySettings();self:ConfigureEvents()
+  KHQOL.modules.castBar:ApplyTargetPosition()
 end
 function M:ConfigureEvents()
   if not self.events then return end

@@ -1,3 +1,5 @@
+local _,addon=...
+if not addon.loadUnitFrames then return end
 local _,KHQOL=...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local M=KHQOL.modules.unitFrames
@@ -11,79 +13,9 @@ local function number(v,default,low,high)
   if not public(v) or type(v)~="number" or v~=v or math.abs(v)==math.huge then v=default end
   return math.max(low,math.min(high,v))
 end
-local function equal(a,b)
-  if a==b then return true end
-  if type(a)~=type(b) then return false end
-  if type(a)~="table" then return a==b end
-  if a.GetObjectType or b.GetObjectType then return false end
-  if #a~=#b then return false end
-  for i=1,#a do if not equal(a[i],b[i]) then return false end end
-  return true
-end
--- This module owns texture/atlas/coordinates and hit insets explicitly. They
--- are not supported by basicUI's geometry Write/Release. Read every component
--- through the public API helper before making a snapshot or comparing it.
-local function read(f,key)
-  if key=="texture" then
-    local ts,t=KHQOL.ReadPublicAPI(f.GetTexture,f)
-    local as,a=KHQOL.ReadPublicAPI(f.GetAtlas,f)
-    local cs,x1,x2,x3,x4,x5,x6,x7,x8=KHQOL.ReadPublicAPI(f.GetTexCoord,f)
-    if ts~="ok" or (as~="ok" and as~="missing") or cs~="ok" then return end
-    for _,v in ipairs({x1,x2,x3,x4}) do if type(v)~="number" or v~=v or math.abs(v)==math.huge then return end end
-    if x1==nil or x2==nil or x3==nil or x4==nil then return end
-    return {a or false,t or false,{x1,x2,x3,x4,x5,x6,x7,x8}}
-  elseif key=="hit" then
-    local status,l,r,t,b=KHQOL.ReadPublicAPI(f.GetHitRectInsets,f)
-    if status~="ok" or not finite(l) or not finite(r) or not finite(t) or not finite(b) then return end
-    return {l,r,t,b}
-  elseif key=="font" then
-    local status,path,size,flags=KHQOL.ReadPublicAPI(f.GetFont,f)
-    if status=="ok" and (type(path)=="string" or type(path)=="number") and finite(size) then return {path,size,flags or ""} end
-  elseif key=="shadowColor" then
-    local status,r,g,b,a=KHQOL.ReadPublicAPI(f.GetShadowColor,f)
-    if status=="ok" and finite(r) and finite(g) and finite(b) and finite(a) then return {r,g,b,a} end
-  elseif key=="shadowOffset" then
-    local status,x,y=KHQOL.ReadPublicAPI(f.GetShadowOffset,f)
-    if status=="ok" and finite(x) and finite(y) then return {x,y} end
-  elseif key=="justify" then return call(f.GetJustifyH,f) end
-end
-local function set(f,key,v)
-  if key=="texture" then
-    if v[1] then
-      if KHQOL.ReadPublicAPI(f.SetAtlas,f,v[1],false)~="ok" then return false end
-    elseif KHQOL.ReadPublicAPI(f.SetTexture,f,v[2] or nil)~="ok" then return false end
-    return KHQOL.ReadPublicAPI(f.SetTexCoord,f,unpack(v[3]))=="ok"
-  elseif key=="hit" then return KHQOL.ReadPublicAPI(f.SetHitRectInsets,f,unpack(v))=="ok"
-  elseif key=="font" then return KHQOL.ReadPublicAPI(f.SetFont,f,unpack(v))=="ok"
-  elseif key=="shadowColor" then return KHQOL.ReadPublicAPI(f.SetShadowColor,f,unpack(v))=="ok"
-  elseif key=="shadowOffset" then return KHQOL.ReadPublicAPI(f.SetShadowOffset,f,unpack(v))=="ok"
-  elseif key=="justify" then return KHQOL.ReadPublicAPI(f.SetJustifyH,f,v)=="ok" end
-end
-function M:WriteDecor(owner,f,key,value)
-  if not f then return true end
-  local current=read(f,key)
-  if current==nil then self.propertyDeferred=true; self.pending=true; return false end
-  owner.decor=owner.decor or {}; owner.decor[f]=owner.decor[f] or {}
-  local record=owner.decor[f][key]
-  if not record then record={original=current}; owner.decor[f][key]=record
-  elseif not equal(current,record.last) then record.original=current end
-  if equal(current,record.last) and equal(value,record.requested) then return true end
-  if not equal(current,value) and not set(f,key,value) then self.propertyDeferred=true; self.pending=true; return false end
-  record.last=read(f,key) or value
-  record.requested=value
-  return true
-end
-function M:ReleaseDecor(owner)
-  for f,keys in pairs(owner.decor or {}) do
-    for key,record in pairs(keys) do
-      local current=read(f,key)
-      if current==nil then self.propertyDeferred=true; self.pending=true
-      elseif not equal(current,record.last) or set(f,key,record.original) then keys[key]=nil
-      else self.propertyDeferred=true; self.pending=true end
-    end
-    if not next(keys) then owner.decor[f]=nil end
-  end
-end
+local appearance=KHQOL.NativeAppearance
+local read=appearance.Read
+M.WriteDecor,M.ReleaseDecor=appearance.Write,appearance.Release
 function M:ReleaseFont(owner,f)
   local keys=owner.decor and owner.decor[f]
   if keys and keys.font then
@@ -188,6 +120,12 @@ local function fillValues(texture)
 end
 local palette={green={0,161/255,24/255},yellow={245/255,190/255,0},red={217/255,79/255,56/255},hostile={134/255,0,0},gray={99/255,99/255,99/255}}
 local classPalette=KHQOL.ClassColors
+function M:SharedClassHealthColor(unit)
+  if unit~="player" and unit~="target" and unit~="targettarget" and unit~="focus" then return end
+  local cfg=self:GetDB().classHealth
+  if cfg.enabled~=true or call(UnitExists,unit)~=true or call(UnitIsPlayer,unit)~=true then return end
+  return KHQOL:GetClassHealthColor(self:ClassToken(unit))
+end
 function M:FightingPlayer(unit)
   if call(UnitAffectingCombat,unit)~=true then return false end
   -- A creature fighting somebody else is not necessarily fighting this player.
@@ -196,6 +134,8 @@ function M:FightingPlayer(unit)
   return call(UnitIsUnit,unit.."target","player")==true or call(UnitIsUnit,unit.."target","pet")==true
 end
 function M:HealthColor(db,unit)
+  local r,g,b=self:SharedClassHealthColor(unit)
+  if r then return r,g,b end
   local mode=db.healthColorMode
   local conditionalUnit=unit=="target" or unit=="targettarget" or unit=="focus"
   if mode=="custom" then
@@ -503,8 +443,7 @@ function M:ApplyPetHappiness()
       if status~="ok" or not finite(px) or not finite(py) then self.pending=true;self.propertyDeferred=true;return end
       points[i]={point,relative,rp,px,py}
     end
-    local record=owner.records and owner.records[f] and owner.records[f].points
-    local baseline=record and equal(points,record.last) and record.original or points
+    local baseline=B:GetPointBaseline(owner,f,points)
     local shifted={};for i,p in ipairs(baseline) do shifted[i]={p[1],p[2],p[3],p[4]+x,p[5]+y} end
     self:Write(owner,f,"points",shifted)
   end)
@@ -545,14 +484,7 @@ end
 -- Read only the class token. UnitClass's localized name can be secret while
 -- its token is public; rejecting all returns together loses a usable token.
 function M:ClassToken(unit)
-  local token=call(function()
-    if type(UnitClassBase)=="function" then return (UnitClassBase(unit)) end
-  end)
-  if type(token)=="string" and token~="" then return token end
-  token=call(function()
-    if type(UnitClass)=="function" then local _,class=UnitClass(unit); return class end
-  end)
-  if type(token)=="string" and token~="" then return token end
+  return KHQOL:GetUnitClassToken(unit)
 end
 function M:ClassColor(unit)
   local token=self:ClassToken(unit); if not token then return end
@@ -894,8 +826,7 @@ function M:ApplyFramePosition(owner,p)
         points[i]={point,relative,rp,px,py}
       end
       if points then
-        local record=owner.positionOwner.records and owner.positionOwner.records[p.root] and owner.positionOwner.records[p.root].points
-        local baseline=record and equal(points,record.last) and record.original or points
+        local baseline=B:GetPointBaseline(owner.positionOwner,p.root,points)
         local shifted={}
         for i,q in ipairs(baseline) do shifted[i]={q[1],q[2],q[3],q[4]+x,q[5]+y} end
         self:Write(owner.positionOwner,p.root,"points",shifted)

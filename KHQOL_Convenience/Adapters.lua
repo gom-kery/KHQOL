@@ -5,6 +5,7 @@ local function enable(m,on) if m and m.SetEnabled then m:SetEnabled(on) end end
 R:Register("general",{always=true,initialize=initialize})
 R:Register("generalConvenience",{profile=true,setEnabled=enable,defaults=function(m) return m and m.defaults or {} end,always=true,requires={"general"}})
 R:Register("chatEnhancement",{always=true,initialize=initialize})
+R:Register("chatAutomation",{always=true,requires={"general"},initialize=initialize,applyProfile=function(m) m:ApplySettings() end})
 do local spec=R.entries.general
   spec.applyProfile=function(m,K)
   if m.CloseMerchantWork then m:CloseMerchantWork() end
@@ -17,6 +18,7 @@ do local spec=R.entries.generalConvenience
 end
 do local spec=R.entries.chatEnhancement
   spec.applyProfile=function(m,K)
+  m.pendingInvite=nil
   m:ApplySettings()
   end
 end

@@ -24,7 +24,7 @@ KHQOL.PositionProviders.clock=function(focus)
     if fc.db.modules.professions.enabled and fc.professionsPanel and fc.professionsPanel:IsShown() then
       add("clock.professions.panel","clock","Clock · 전문기술 목록 (연결)",fc.professionsPanel,nil,lock(fc.db),clockApply,{parentID="clock.professions",linked=true})
     end
-    for _,entry in ipairs({{"alert","중앙 알림",fc.alertMessageFrame,560,64},{"tools","알람 / 타이머",fc.clockToolsFrame,390,282},{"stopwatch","스톱워치",fc.stopwatchFrame,300,58}}) do
+    for _,entry in ipairs({{"alert","중앙 알림",fc.alertMessageFrame},{"tools","알람 / 타이머",fc.clockToolsFrame},{"timerBar","타이머 바",fc.timerBarFrame},{"stopwatch","스톱워치",fc.stopwatchFrame}}) do
       local key=entry[1]; local frame=entry[3]
       add("clock."..key,"clock","Clock · "..entry[2],frame,function(dx,dy)
         local positions=fc.db.clockTools.positions
@@ -36,7 +36,8 @@ KHQOL.PositionProviders.clock=function(focus)
           positions[key]={point=point,relativePoint=relativePoint,x=x,y=y}
         end
         pointWriter(positions[key])(dx,dy)
-      end,lock(fc.db.clockTools,"positionLocked"),function() self:ApplyEditorPositions() end,{alwaysSave=true})
+      end,lock(fc.db.clockTools,key=="timerBar" and "timerBarLocked" or "positionLocked"),function() self:ApplyEditorPositions() end,
+      {alwaysSave=true,exactBounds=key=="tools" or key=="timerBar"})
     end
   end
   PU:ConfigureResets(list,function(t,point)
@@ -44,8 +45,8 @@ KHQOL.PositionProviders.clock=function(focus)
     else
       local key=t.id:match("^clock%.(.+)$")
       if key and fc.db.modules[key] then point(t,function() return fc.db.modules[key].position end,fc.DEFAULTS.modules[key].position,{x="x",y="y"})
-      elseif key=="alert" or key=="tools" or key=="stopwatch" then
-        point(t,function() local d=fc.db.clockTools;d.positions=d.positions or {};d.positions[key]=d.positions[key] or {};return d.positions[key] end,{y=key=="alert" and 160 or key=="tools" and -80 or 110})
+      elseif key and fc.ClockToolPositions[key] then
+        point(t,function() local d=fc.db.clockTools;d.positions=d.positions or {};d.positions[key]=d.positions[key] or {};return d.positions[key] end,fc.ClockToolPositions[key])
       end
     end
   end)

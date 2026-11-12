@@ -93,7 +93,7 @@ R.groups.quest.tracker.key="questNavigator";R.routes.questTracker=R.groups.quest
 entry("quest","navigation","questNavigator","길 안내","퀘스트 선택과 길 안내·화살표 HUD를 설정합니다.",{"quest","questnavigator"})
 entry("labs","buff","buffReminder","버프 리마인더","유지할 버프와 만료 전 알림을 설정합니다.",{"buff"})
 entry("labs","proc","procAlert","발동 버프","등록한 버프의 전투 중 발동 알림을 설정합니다.")
-entry("labs","highlight","objectHighlight","오브젝트 강조","전리품이 있는 퀘스트 오브젝트의 반짝임 유지 설정을 적용합니다.",{"objecthighlight","sparkles"})
+entry("labs","highlight","objectHighlight","오브젝트 강조","퀘스트 반짝임과 현재 Soft Target의 약초·광맥·보물상자 강조를 설정합니다.",{"objecthighlight","sparkles"})
 R.routes.frameMover=R.modules.basicUI
 R.commands.framemover="frameMover"; R.commands.threat="threat"
 -- Order, commands, general shortcuts and presenter all consume this registry.

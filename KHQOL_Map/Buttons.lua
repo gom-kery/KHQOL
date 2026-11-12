@@ -1,4 +1,6 @@
 local _, A = ...
+local K=_G.KHQOL
+local layers,read=K.WindowLayers,K.PublicCall
 local B = { records = {}, ordered = {}, hooks = setmetatable({}, {__mode = "k"}), page = 1 }
 A.Buttons = B
 local conflicts = { "KHminimap", "MinimapButtonButton", "MBB", "HidingBar", "SexyMap", "ElvUI", "Tukui",
@@ -11,6 +13,67 @@ local refreshRule={keys={"points","OnDragStart","OnDragStop"},ops={SetPoint=true
     ["SetScript:OnDragStart"]=true,["SetScript:OnDragStop"]=true}}
 local sizeRule={keys={},ops={SetSize=true,SetWidth=true,SetHeight=true}}
 local toggleSize,toggleGap=36,8
+local drawerStrata={"HIGH","HIGH","HIGH","DIALOG","FULLSCREEN","FULLSCREEN_DIALOG","TOOLTIP","TOOLTIP"}
+
+function B:ApplyChatLayer()
+    local highest=layers.order.HIGH-1
+    for i=1,math.min(K.IsPublicNumber(NUM_CHAT_WINDOWS) and NUM_CHAT_WINDOWS or 10,10) do
+        local chat=_G["ChatFrame"..i]
+        if layers:Readable(chat) then highest=math.max(highest,layers.order[read(chat.GetFrameStrata,chat)] or 0) end
+    end
+    local strata=drawerStrata[highest]
+    if self.drawer:GetFrameStrata()==strata then return end
+    for _,frame in ipairs({self.drawer,self.toggle,self.prev,self.next}) do frame:SetFrameStrata(strata) end
+end
+
+local function bounds(frame)
+    local x,y,w,h=read(frame.GetRect,frame)
+    local scale=read(frame.GetEffectiveScale,frame)
+    if not (K.IsPublicNumber(x) and K.IsPublicNumber(y) and K.IsPublicNumber(w)
+        and K.IsPublicNumber(h) and K.IsPublicNumber(scale) and w>0 and h>0 and scale>0) then return end
+    return x*scale,y*scale,(x+w)*scale,(y+h)*scale
+end
+
+function B:BankAllows(frame)
+    local bank=self.bank
+    local visible=layers:Readable(bank) and read(bank.IsVisible or bank.IsShown,bank)==true
+    if not self.bankSignal and not visible then return true end
+    if not visible then return false end
+    local bankLayer=layers.order[read(bank.GetFrameStrata,bank)]
+    if not bankLayer or bankLayer<=layers.order[frame:GetFrameStrata()] then return false end
+    local left,bottom,right,top=bounds(bank)
+    local x,y,r,t=bounds(frame)
+    return left~=nil and x~=nil and (r<=left or right<=x or t<=bottom or top<=y)
+end
+
+function B:RefreshVisibility()
+    if not self.drawer then return end
+    local enabled=self.drawerEnabled and A.enabled and A.db.drawer and not A.editing
+    local toggle=enabled and self.togglePlaced and self:BankAllows(self.toggle)
+    local drawer=toggle and self.open and self.lastLayout and self:BankAllows(self.drawer)
+    -- In combat only hide these addon-owned roots. Their children then lose
+    -- mouse and wheel input too, without moving or releasing any captured icon.
+    local safe=layers:OutsideCombat()
+    self.settingVisibility=true
+    if A:Accessible(self.drawer,false) and (safe or not drawer) then self.drawer:SetShown(not not drawer) end
+    if A:Accessible(self.toggle,false) and (safe or not toggle) then
+        if not toggle and self.toggleDrag then self:StopDrag() end
+        self.toggle:SetShown(not not toggle)
+    end
+    self.settingVisibility=nil
+end
+
+function B:WatchBank()
+    local bank=BankFrame
+    if not layers:OutsideCombat() or not layers:Readable(bank) or self.bank==bank then return end
+    self.bank=bank
+    read(bank.HookScript,bank,"OnShow",function()
+        if self.bank==bank then self.bankSignal=true;self:RefreshVisibility() end
+    end)
+    read(bank.HookScript,bank,"OnHide",function()
+        if self.bank==bank then self.bankSignal=false;self:RefreshVisibility() end
+    end)
+end
 
 function B:Initialize()
     if not A:Accessible(Minimap, true) then return end
@@ -84,6 +147,7 @@ function B:Initialize()
     end)
     toggle:Hide()
     self.toggle = toggle
+    self:WatchBank()
 end
 
 function B:StopDrag()
@@ -472,7 +536,7 @@ function B:Watch(r)
         if not A:IsSecret(script) and (script == "OnDragStart" or script == "OnDragStop" or script == "OnUpdate") then Changed("SetScript:" .. script) end
     end)
     local function VisibilityChanged()
-        if watch.record.collecting and A.writing == 0 and self.open and not self.layingOut then A:Request() end
+        if watch.record.collecting and A.writing == 0 and self.open and not self.layingOut and not self.settingVisibility then A:Request() end
     end
     -- Show/Hide intent may change while a slot's parent is hidden, in which
     -- case an OnShow/OnHide visibility notification need not fire.
@@ -528,6 +592,9 @@ function B:Apply()
     if not self.drawer then A.messages.drawer = "미니맵 수납함을 만들 수 없어 보류합니다."; return end
     local conflict = A:FindConflict(conflicts) or A:EnhanceConflict({"enableMinimapButtonBin", "minimapButtonsMouseover"})
     local enabled = A.enabled and A.db.drawer and not conflict and not A.editing
+    self.drawerEnabled=enabled
+    self:WatchBank()
+    if enabled then self:ApplyChatLayer() end
     if conflict then A.messages.drawer = conflict .. " 감지: 버튼 수납을 보류합니다." end
     for _, r in ipairs(self.ordered) do
         self:RecoverOwner(r)
@@ -543,11 +610,12 @@ function B:Apply()
     end
     self:ParkCompartment(enabled)
     if not enabled then
-        self:StopDrag(); self.open = false; self.toggle:Hide(); self.drawer:Hide()
+        self:StopDrag();self.open=false;self:RefreshVisibility()
         return
     end
-    if self:PositionToggle() then self.toggle:Show() end
+    self.togglePlaced=self:PositionToggle()
     self:Layout()
+    self:RefreshVisibility()
 end
 
 function B:Layout()
@@ -612,7 +680,7 @@ function B:Layout()
     self.toggleText:SetText("")
     self.layingOut = true
     for _, r in ipairs(self.ordered) do if r.slot then r.slot:SetShown(onPage[r] == true) end end
-    self.drawer:SetShown(self.open == true)
     self.layingOut = nil
     self.lastLayout = {x=x,y=y,width=dw,height=dh,pages=pages,count=#visible,direction=direction,layout=A.db.drawerLayout,columns=cols,rows=rows,capacity=capacity}
+    self:RefreshVisibility()
 end

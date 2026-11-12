@@ -10,7 +10,7 @@
 
 결과는 **19개 폴더 · 논리 모듈 27개 · 287파일 · Lua 207개 · XML 6개 · 미디어 32개 · 저장 변수 11개**입니다. 제거한 두 도구를 제외한 기능 모듈과 자원은 유지했습니다. 소스 Lua는 207개/31,657줄입니다. 신규 Lua·모듈·외부 라이브러리는 없습니다.
 
-- 18개 기능 애드온은 KHQOL 코어를 필수 의존성으로 사용합니다. 기존 OptionalDeps와 파일 순서는 유지하고 Labs TOC에서 삭제 파일 두 개만 제외합니다. 전체 순서는 `docs/MODULE-FILES.csv`와 패키지 명세에 있습니다.
+- 18개 기능 애드온은 KHQOL 코어를 필수 의존성으로 사용합니다. 기존 OptionalDeps와 파일 순서는 유지하고 Labs TOC에서 삭제 파일 두 개만 제외합니다. 전체 순서는 `docs/MODULE-FILES-1.11.6.0.csv`와 패키지 명세에 있습니다.
 - 코어 Bootstrap/ModuleRegistry/Installation이 모듈 소유권을 연결합니다. VARIABLES_LOADED와 PLAYER_LOGIN의 준비/초기화 가드, 의존성 검증, 어댑터 적용·프로필 로그인 마무리를 유지했습니다.
 - 런타임 의존성은 기존 todo→clock, unitFrames→basicUI, generalConvenience→general 등을 유지합니다. owner/always 등록도 포함해 논리 모듈 27개입니다.
 - 공통 MergeDefaults·ReadPublicAPI/PublicCall·ModuleRegistry·PositionStore·UI builder·Navigation을 재사용합니다. 레거시 저장소의 서로 다른 병합/콘텐츠 정책은 합치지 않았습니다.

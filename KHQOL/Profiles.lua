@@ -3,6 +3,7 @@ local DEFAULT = "기본"
 local legacy = KHQOL.legacyProfileVariables
 local function installed(key) return KHQOL.ModuleRegistry.entries[key]~=nil end
 local managed = KHQOL.profileModuleKeys
+local optionalFrames={unitFrames=true,partyFrames=true}
 local common = {"minimap","locked","debug","enabled","general","settingsWindow"}
 local commonKeys={};for _,key in ipairs(common) do commonKeys[key]=true end
 local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
@@ -140,6 +141,17 @@ local function copyPlayerAuxFields(target,source)
     target[key]=copy(value)
   end
 end
+function KHQOL:MigrateUnitFrameSettings(settings)
+  settings.modules=settings.modules or {}; settings.enabled=settings.enabled or {}
+  local old=type(settings.modules.basicUI)=="table" and settings.modules.basicUI or nil
+  if not settings.modules.unitFrames and old and (old.player or old.target) then
+    settings.modules.unitFrames={player=old.player,target=old.target}
+    settings.enabled.unitFrames=settings.enabled.basicUI~=false
+  end
+  if old then old.player=nil; old.target=nil end
+  local unit=settings.modules.unitFrames
+  if type(unit)=="table" and type(unit.player)=="table" then unit.player.showEnergyTick=nil end
+end
 local function clearRetiredOptions(settings)
   if settings.enabled then settings.enabled.generalConvenience=nil end
   if settings.general then settings.general.autoSellJunkReport=nil end
@@ -176,7 +188,11 @@ function KHQOL:CaptureProfile()
   if installed("resourceSwing") then result.legacy.resourceSwing.resourceColorOverrides=nil end
   if installed("campfire") or result.legacy.campfire==nil then result.legacy.campfire=copy(CampfireAlertDB or {}) end
   result.cursorColor=not installed("cursorTrail") and previous and copy(previous.cursorColor) or copy(KHQOLCursorTrailCharDB or {})
-  if not installed("general") and previous and previous.settings and previous.settings.general then result.settings.general=copy(previous.settings.general) end
+  if not installed("general") and previous and previous.settings and previous.settings.general then
+    local overlap=result.settings.general.windowOverlap
+    result.settings.general=copy(previous.settings.general)
+    result.settings.general.windowOverlap=overlap
+  end
   if previous and previous.settings and previous.settings.enabled then
     for key,value in pairs(previous.settings.enabled) do if not installed(key) then result.settings.enabled[key]=copy(value) end end
   end
@@ -259,24 +275,31 @@ function KHQOL:LoadProfileSettings(profile)
   self:MigrateProfileSettings(profile.settings)
   local savedEnabled=profile.settings.enabled or {}
   profile.settings.enabled=savedEnabled
-  for key,value in pairs(self.db.enabled or {}) do if not installed(key) and savedEnabled[key]==nil then savedEnabled[key]=copy(value) end end
+  for key,value in pairs(self.db.enabled or {}) do
+    if not installed(key) and not optionalFrames[key] and savedEnabled[key]==nil then savedEnabled[key]=copy(value) end
+  end
   KHQOL.MergeDefaults(profile,self:MakeDefaultProfile(true))
   local settings=profile.settings
   clearRetiredOptions(settings)
   for _,key in ipairs(common) do
-    if key~="general" or installed("general") then
-    if type(settings[key])=="table" then
+    if key=="general" and not installed("general") then
+      self.db.general.windowOverlap=settings.general.windowOverlap
+    elseif type(settings[key])=="table" then
       self.db[key]=replace(type(self.db[key])=="table" and self.db[key] or {},settings[key])
     else self.db[key]=settings[key] end
-    end
   end
   self.db.modules=self.db.modules or {}
   for _,key in ipairs(managed) do
     self.ModuleRegistry:RestoreSettings(key,settings.modules[key])
   end
-  -- Uninstalled module snapshots are kept; absent snapshots do not erase live data.
+  -- The shared class palette can still be read from the selected snapshot.
+  -- Keep dormant frame profiles separate, including profiles with no snapshot.
+  for key in pairs(optionalFrames) do
+    if not installed(key) then self.db.modules[key]=copy(settings.modules[key]) end
+  end
+  -- Preserve the existing policy for other unavailable modules/extensions.
   for key,value in pairs(settings.modules or {}) do
-    if not self.ModuleRegistry.entries[key] then
+    if not installed(key) and not optionalFrames[key] then
       if type(value)=="table" and type(self.db.modules[key])=="table" then KHQOL.MergeDefaults(self.db.modules[key],value)
       elseif self.db.modules[key]==nil then self.db.modules[key]=copy(value) end
     end
@@ -426,6 +449,53 @@ function KHQOL:DeleteProfile(name)
   if self.RefreshProfileControls then self:RefreshProfileControls() end
   return true
 end
+local function resetUnitFrameSnapshot(profile,defaults)
+  local previous=profile.settings.modules.unitFrames
+  if type(previous)~="table" then previous={} end
+  local shared=copy(previous.classHealth)
+  local settings=overlay(copy(previous),defaults)
+  if shared~=nil then settings.classHealth=shared end
+  profile.settings.modules.unitFrames=settings
+  copyPlayerAuxFields(profile.legacy.resourceSwing,KHQOL.PlayerAux.defaults)
+end
+
+function KHQOL:ResetDisabledUnitFrameProfile()
+  local allowed,reason=self:CanChangeProfile()
+  if not allowed then return false,reason end
+  if not installed("unitFrames") or self:GetEnabled("unitFrames") then return false,"유닛 프레임 모듈을 끈 뒤 초기화하세요." end
+  if not self.profilesReady or self.profileApplying or self.profileResetting then return false,"프로필을 저장할 수 없습니다." end
+  local name=self.currentProfileName
+  local saved=self.db.profiles and self.db.profiles[name]
+  if type(saved)~="table" or type(saved.settings)~="table" or type(saved.settings.modules)~="table"
+    or type(saved.settings.enabled)~="table" or type(saved.legacy)~="table" then return false,"현재 프로필을 저장할 수 없습니다." end
+  local live=self.db.modules.unitFrames
+  local originalResource=KHQOLResourceSwingDB
+  local resource=type(originalResource)=="table" and originalResource or {}
+  local previousAux,previousView={},self.currentProfile
+  for key in pairs(self.PlayerAux.defaults) do previousAux[key]=resource[key] end
+  local ok=pcall(function()
+    local staged=copy(saved)
+    staged.settings.modules.unitFrames=copy(live)
+    staged.settings.enabled.unitFrames=false
+    if type(staged.legacy.resourceSwing)~="table" then staged.legacy.resourceSwing=copy(resource) end
+    resetUnitFrameSnapshot(staged,self.ModuleRegistry:DefaultSettings("unitFrames"))
+    self.db.modules.unitFrames=copy(staged.settings.modules.unitFrames)
+    KHQOLResourceSwingDB=resource
+    copyPlayerAuxFields(resource,staged.legacy.resourceSwing)
+    self.db.profiles[name]=staged
+    self:RefreshRuntimeProfile()
+  end)
+  if not ok then
+    self.db.modules.unitFrames=live;self.db.profiles[name]=saved;self.currentProfile=previousView
+    if KHQOLResourceSwingDB==resource then
+      for key in pairs(self.PlayerAux.defaults) do resource[key]=previousAux[key] end
+    end
+    KHQOLResourceSwingDB=originalResource
+    return false,"초기화 설정을 저장하지 못했습니다. 기존 설정을 복원했습니다."
+  end
+  return true
+end
+
 function KHQOL:ResetProfileModule(key)
   if self.LabLock:IsExperimental(key) and not self.LabLock:IsUnlocked() then return false,"실험실 개발자 잠금을 먼저 해제하세요." end
   if not self.UI.SettingsRegistry.modules[key] then return false,"초기화할 모듈을 찾을 수 없습니다." end
@@ -435,6 +505,7 @@ function KHQOL:ResetProfileModule(key)
   if key=="clock" then
     local note=profile.legacy.clock.todo; profile.legacy.clock=copy(defaults.legacy.clock); profile.legacy.clock.todo=note
   elseif key=="todo" then profile.legacy.clock.todo=copy(defaults.legacy.clock.todo)
+  elseif key=="unitFrames" then resetUnitFrameSnapshot(profile,defaults.settings.modules.unitFrames)
   elseif legacy[key] then
     local auxiliary=key=="resourceSwing" and copy(profile.legacy.resourceSwing)
     profile.legacy[key]=copy(defaults.legacy[key])
@@ -448,8 +519,7 @@ function KHQOL:ResetProfileModule(key)
       profile.settings.modules[key]=overlay(value,defaults.settings.modules[key] or {})
     end
   end
-  if key=="unitFrames" then copyPlayerAuxFields(profile.legacy.resourceSwing,defaults.legacy.resourceSwing) end
-  -- This new module only has an ON/OFF preference: reset means OFF + restore.
+  -- Reset both independent engines OFF, retaining outstanding restore journals.
   if key=="objectHighlight" then
     self.modules.objectHighlight:CancelPending()
     profile.settings.enabled.objectHighlight=false

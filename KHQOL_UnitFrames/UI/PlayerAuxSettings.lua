@@ -1,3 +1,5 @@
+local _,addon=...
+if not addon.loadUnitFrames then return end
 local K=assert(_G.KHQOL)
 local A=K.PlayerAux
 function A:BuildSettings(parent,y,builder)

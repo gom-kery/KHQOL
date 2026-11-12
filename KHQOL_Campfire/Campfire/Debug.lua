@@ -66,10 +66,14 @@ local function HandleSlash(message)
         CFA:PrintStatus()
     elseif command == "distance" then
         CFA:DiagnoseCampfireDistance()
+    elseif command == "coords" then
+        if argument=="list" then CFA:PrintCoordinateSamples()
+        elseif argument=="clear" then CFA.coordinateSamples={};CFA:Print("좌표 진단 표본을 비웠습니다.")
+        else CFA:DiagnoseCampfireCoordinates(argument) end
     elseif command == "test" then
         CFA:RunTest(argument)
     else
-        CFA:Print("명령: /cfa debug | auras | status | distance | test detect|timer|complete")
+        CFA:Print("명령: /cfa debug / auras / status / distance / coords 표본명 / coords list / coords clear / test")
     end
 end
 

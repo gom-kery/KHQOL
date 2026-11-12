@@ -1,3 +1,5 @@
+local _,addon=...
+if not addon.loadUnitFrames then return end
 local K=assert(_G.KHQOL)
 local M=K.modules.unitFrames
 local sides={CENTER=true,LEFT=true,RIGHT=true}

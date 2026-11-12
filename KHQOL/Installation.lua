@@ -7,10 +7,10 @@ local function addPackage(name,title,modules)
   K.Packages[name]={title=title,modules=modules}
   for _,id in ipairs(modules) do K.ModuleOwners[id]=name end
 end
-addPackage("KHQOL_UnitFrames","기본 UI · 개인 프레임 · 시전바",{"basicUI","frameMover","unitFrames","castBar"})
-addPackage("KHQOL_PartyFrames","파티 · 공격대",{"partyFrames"})
+addPackage("KHQOL_UnitFrames","개인 유닛프레임 · 파티·공격대",{"unitFrames","partyFrames"})
+for _,id in ipairs({"basicUI","frameMover","castBar"}) do K.ModuleOwners[id]="KHQOL" end
 addPackage("KHQOL_Clock","시계 · 노트",{"clock","todo"})
-addPackage("KHQOL_Convenience","일반 편의 · 대화창",{"general","generalConvenience","chatEnhancement"})
+addPackage("KHQOL_Convenience","일반 편의 · 대화창",{"general","generalConvenience","chatEnhancement","chatAutomation"})
 addPackage("KHQOL_Tooltip","툴팁 · 무기 안내",{"tooltip","weaponGuide"})
 addPackage("KHQOL_Range","사거리",{"range"})
 addPackage("KHQOL_CursorTrail","마우스 잔상",{"cursorTrail"})
@@ -28,11 +28,20 @@ addPackage("KHQOL_Map","미니맵 · 버튼 정리",{"minimap"})
 -- Only KHQOL.toc owns these variables, even when their feature is absent.
 K.legacyProfileVariables={clock="ForeverClockDB",buffReminder="ForeverBuffReminderDB",range="FRangeDB",
   resourceSwing="KHQOLResourceSwingDB",campfire="CampfireAlertDB"}
+function K:HasLegacyPartyPackage()
+  local api=C_AddOns
+  local legacy="KHQOL_PartyFrames"
+  if self.PublicCall(api and api.IsAddOnLoaded or IsAddOnLoaded,legacy)==true then return true end
+  local exists=self.PublicCall(api and api.DoesAddOnExist,legacy)
+  if exists~=nil then return exists==true end
+  return self.PublicCall(api and api.GetAddOnInfo or GetAddOnInfo,legacy)~=nil
+end
 function K:GetPackageStatus(name)
   local package=self.Packages[name]
   if not package then return "알 수 없는 설치 단위","unknown" end
   for _,id in ipairs(package.modules) do
-    if self.ModuleRegistry.entries[id] then
+    if self.ModuleRegistry.entries[id] and (name~="KHQOL_UnitFrames" or id=="unitFrames") then
+      if name=="KHQOL_UnitFrames" and self:HasLegacyPartyPackage() then return "설치됨 · 구버전 파티 폴더 정리 필요","installed" end
       if name=="KHQOL_Labs" and not self.LabLock:IsUnlocked() then return "설치됨 · 실험실 잠금","locked" end
       return "설치됨","installed"
     end
@@ -66,6 +75,7 @@ function K:GetModuleAvailability(id)
   return "ready","사용 가능"
 end
 function K:MigrateProfileSettings(settings)
+  self:MigrateUnitFrameSettings(settings)
   for _,id in ipairs(self.ModuleRegistry.order) do
     local spec=self.ModuleRegistry.entries[id]
     if spec.migrateSettings then spec.migrateSettings(self.modules[id],settings,self) end
@@ -83,6 +93,7 @@ function K:PrepareInstallation()
 end
 local R=K.ModuleRegistry
 function R:AfterApplyProfileConnections()
+  K.WindowLayers:Refresh()
   for _,id in ipairs(self.order) do
     local spec=self.entries[id]
     if spec.afterApplyProfile then spec.afterApplyProfile(self:Module(id),K) end

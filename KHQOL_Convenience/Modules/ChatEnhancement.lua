@@ -17,6 +17,170 @@ end
 function Chat:IsEnabled()
   return KHQOL.db and KHQOL.db.general and KHQOL.db.general.chatEnhancement==true
 end
+function Chat:InviteEnabled()
+  return KHQOL.db and KHQOL.db.general and KHQOL.db.general.chatAltInvite==true
+end
+local function plainName(value)
+  if type(issecretvalue)=="function" and issecretvalue(value) then return end
+  if type(value)~="string" or value=="" or #value>240 or value:find("[%z\1-\31\127|:/\\]") then return end
+  if public(RegionalUniqueNamesEnabled)==true then
+    -- Forever uses first name + surname. A space is a native name separator,
+    -- not evidence of an invalid Name-Realm link.
+    value=value:gsub("^ +",""):gsub(" +$","")
+    if value=="" then return end
+    return value
+  end
+  local name,realm=value:match("^([^%-]+)%-(.+)$")
+  name=name or value
+  if name:find("[ \t]") then return end
+  if realm then realm=realm:gsub(" ","") end
+  return realm and name.."-"..realm or name
+end
+local function canonical(value)
+  value=plainName(value);if not value then return end
+  if public(RegionalUniqueNamesEnabled)==true then
+    local normalized=public(C_NameUtil and C_NameUtil.ReplaceSurnameSeparatorWithLinkSeparator,value)
+    if type(normalized)~="string" or normalized=="" then return end
+    return normalized:lower()
+  end
+  if not value:find("-",1,true) then
+    local realm=public(GetNormalizedRealmName) or public(GetRealmName)
+    if type(realm)~="string" or realm=="" then return end
+    value=value.."-"..realm:gsub(" ","")
+  end
+  return value:lower()
+end
+local function unitName(unit)
+  if public(RegionalUniqueNamesEnabled)==true then
+    local full=public(NameUtil and NameUtil.GetUnmodifiedUnitFullName,unit)
+    if type(full)=="string" and full~="" then return plainName(full) end
+    local first,surname=public(UnitName,unit)
+    if type(first)~="string" then return end
+    if type(surname)=="string" and surname~="" then first=first.." "..surname end
+    return plainName(first)
+  end
+  local name,realm=public(UnitFullName or UnitName,unit)
+  if type(name)~="string" then return end
+  if type(realm)=="string" and realm~="" then name=name.."-"..realm end
+  return plainName(name)
+end
+function Chat:OpenPartyWhisper(name,explicit)
+  name=plainName(name);if not name then return false end
+  local util=ChatFrameUtil
+  local box=public(util and util.GetActiveWindow or ChatEdit_GetActiveWindow)
+  local draft=box and public(box.GetText,box)
+  if not explicit and type(draft)=="string" and draft~="" then
+    KHQOL.modules.chatAutomation:Message("다른 파티 소속으로 확인됨. 입력 중인 대화를 보존했습니다. /파티요청 "..name)
+    return true
+  end
+  if util and type(util.SendTellWithMessage)=="function" then
+    public(util.SendTellWithMessage,name,"파티 참여 가능할까요?")
+  elseif type(ChatFrame_OpenChat)=="function" then
+    public(ChatFrame_OpenChat,(SLASH_WHISPER1 or "/w").." "..name.." 파티 참여 가능할까요?")
+  else return false end
+  return true -- Only a draft; never SendChatMessage.
+end
+function Chat:TryInvite(name)
+  name=plainName(name);local target=canonical(name)
+  local function stop(reason) Chat.lastInviteResult=reason;return false end
+  if not target then return stop("캐릭터 이름을 확인할 수 없습니다.") end
+  local player=canonical(unitName("player"));if not player then return stop("자신의 전체 이름을 확인할 수 없습니다.") end
+  if target==player or public(UnitIsUnit,name,"player")==true then return stop("자신의 캐릭터는 초대하지 않습니다.") end
+  local grouped,raid=public(IsInGroup),public(IsInRaid)
+  if type(grouped)~="boolean" or type(raid)~="boolean" then return stop("그룹 상태를 확인할 수 없습니다.") end
+  local count=grouped and public(GetNumGroupMembers) or 0
+  if type(count)~="number" or count<0 or count>40 or count%1~=0 then return end
+  if grouped then
+    for i=1,(raid and count or count-1) do
+      local member=canonical(unitName(raid and "raid"..i or "party"..i))
+      if not member then return stop("그룹 명단의 전체 이름을 확인할 수 없습니다.") end
+      if target==member then return stop("이미 같은 그룹에 속한 캐릭터입니다.") end
+    end
+  end
+  local now=public(GetTime)
+  if type(now)~="number" then return end
+  if self.lastInvite and now-self.lastInvite<2 then return end
+  -- Arbitrary chat names do not reveal another player's group. Only trust a
+  -- public unit token whose FULL name matches, never UnitInParty(name)==false.
+  if not grouped then
+    for _,unit in ipairs({"target","mouseover"}) do
+      if target==canonical(unitName(unit)) and public(UnitInAnyGroup,unit,LE_PARTY_CATEGORY_HOME or 1)==true then
+        self.lastInvite=now
+        local request=C_PartyInfo and C_PartyInfo.RequestInviteFromUnit
+        if type(request)=="function" then
+          local ok=pcall(request,name);self.lastInviteResult=ok and "확인된 다른 그룹에 참여 신청 API 호출을 시도했습니다." or "참여 신청 API가 호출을 거부했습니다."
+        else self:OpenPartyWhisper(name) end
+        return
+      end
+    end
+  end
+  local canInvite
+  if not grouped then canInvite=true -- A solo player can create a group.
+  elseif C_PartyInfo and type(C_PartyInfo.CanInvite)=="function" then canInvite=public(C_PartyInfo.CanInvite)==true
+  else canInvite=public(UnitIsGroupLeader,"player")==true or (raid and public(UnitIsGroupAssistant,"player")==true) end
+  if not canInvite then return stop("현재 그룹에서 초대 권한이 없습니다.") end
+  if grouped and count>=(raid and 40 or 5) then return stop("그룹 인원이 가득 찼습니다.") end
+  local invite=C_PartyInfo and C_PartyInfo.InviteUnit or InviteUnit
+  if type(invite)~="function" then return stop("파티 초대 API를 사용할 수 없습니다.") end
+  self.lastInvite=now;self.pendingInvite={name=name,time=now}
+  -- A thrown call is not permission to retry via a different API.
+  local ok=pcall(invite,name)
+  if not ok then self.pendingInvite=nil end
+  self.lastInviteResult=ok and "초대 API 호출을 시도했습니다. 수락/성공은 서버 응답으로 확인하세요." or "클라이언트가 초대 API 호출을 거부했습니다."
+  return ok
+end
+function Chat:PrintInviteDiagnostics()
+  local registered,wrapped=0,0
+  for frame,record in pairs(self.frames) do
+    registered=registered+1
+    if record.inviteWrapper and public(frame.GetScript,frame,"OnHyperlinkClick")==record.inviteWrapper then wrapped=wrapped+1 end
+  end
+  local message="Alt 초대 "..(self:InviteEnabled() and "ON" or "OFF").." · 채팅창 "..registered.." / 적용 훅 "..wrapped
+  KHQOL.modules.chatAutomation:Message(message)
+  KHQOL.modules.chatAutomation:Message(self.lastInviteResult or "아직 처리한 Alt 이름 클릭이 없습니다.")
+end
+function Chat:InviteSystemMessage(message)
+  local pending=self.pendingInvite
+  if not pending or not self:InviteEnabled() then return end
+  local now=public(GetTime)
+  if type(now)~="number" or now-pending.time>8 then self.pendingInvite=nil;return end
+  if type(issecretvalue)=="function" and issecretvalue(message) then return end
+  -- Only an EXACT localized, named server response can identify the cause.
+  -- Generic failures and UI_ERROR_MESSAGE never imply another party.
+  if type(message)=="string" and type(ERR_ALREADY_IN_GROUP_S)=="string" then
+    local ok,expected=pcall(string.format,ERR_ALREADY_IN_GROUP_S,pending.name)
+    if ok and message==expected then self.pendingInvite=nil;self:OpenPartyWhisper(pending.name) end
+  end
+end
+function Chat:InviteClick(frame,link,button)
+  if not self:InviteEnabled() or button~="LeftButton" or frame.isUninteractable
+    or public(IsAltKeyDown)~=true or public(IsControlKeyDown)==true or public(IsShiftKeyDown)==true then return false end
+  if type(issecretvalue)=="function" and issecretvalue(link) then return false end
+  if type(link)~="string" or #link>512 then return false end
+  local name=plainName(link:match("^player:([^:]+)") or link:match("^playerCommunity:([^:]+)"))
+  if not name then return false end
+  self:TryInvite(name)
+  return true -- Consume this gesture even when self/permission/cooldown rejects.
+end
+function Chat:ApplyInviteHandler(frame)
+  local record=self.frames[frame];if not record then return end
+  if locked(frame) then self.pending=true;return end
+  if public(frame.IsForbidden,frame)==true then return end
+  local current=public(frame.GetScript,frame,"OnHyperlinkClick")
+  if self:InviteEnabled() and not record.inviteWrapper and type(current)=="function" then
+    record.inviteOriginal=current
+    record.inviteWrapper=function(owner,link,label,button,...)
+      if Chat:InviteClick(owner,link,button) then return end
+      return current(owner,link,label,button,...)
+    end
+    -- Per-frame pre-dispatch interception avoids the duplicate native whisper
+    -- caused by a post-hook. Never replace SetItemRef or the global mixin.
+    frame:SetScript("OnHyperlinkClick",record.inviteWrapper)
+  elseif not self:InviteEnabled() and record.inviteWrapper and current==record.inviteWrapper then
+    frame:SetScript("OnHyperlinkClick",record.inviteOriginal)
+    record.inviteWrapper=nil;record.inviteOriginal=nil
+  end
+end
 -- Keep native cursor/IME/Alt behavior. A bounded, per-editbox session mirror
 -- of native AddHistoryLine calls supplies Up/Down on clients where native
 -- recall does not run after releasing the autocomplete arrow script.
@@ -290,6 +454,7 @@ function Chat:ShowCopy(url)
     local UI,T=KHQOL.UI,KHQOL.UI.Theme
     local f=CreateFrame("Frame","KHQOLChatURLCopy",UIParent,"BackdropTemplate")
     self.copyFrame=f; f:SetSize(440,132); f:SetPoint("CENTER"); f:SetFrameStrata("DIALOG")
+    KHQOL.WindowLayers:RegisterWindow(f)
     f:SetClampedToScreen(true); UI:Surface(f); f:Hide()
     UI:CreateLabel(f,"링크 복사",T.ContentPadding,-T.ContentPadding,T.SectionFontSize)
     UI:CreateButton(f,"X",400,-12,26,function() Chat:CloseCopy() end)
@@ -320,14 +485,15 @@ function Chat:ApplyFrameInput(frame)
   if locked(frame) then self.pending=true; return end
   if type(r.mouseClick)=="boolean" and type(frame.SetMouseClickEnabled)=="function" then
     local enabled=r.mouseClick
-    if self:IsEnabled() then enabled=not frame.isUninteractable end
+    if self:IsEnabled() or self:InviteEnabled() then enabled=not frame.isUninteractable end
     frame:SetMouseClickEnabled(enabled)
   end
   if type(r.mouseMotion)=="boolean" and type(frame.SetMouseMotionEnabled)=="function" then
     local enabled=r.mouseMotion
-    if self:IsEnabled() then enabled=not frame.isUninteractable end
+    if self:IsEnabled() or self:InviteEnabled() then enabled=not frame.isUninteractable end
     frame:SetMouseMotionEnabled(enabled)
   end
+  self:ApplyInviteHandler(frame)
 end
 function Chat:RegisterFrame(frame)
   if not frame or self.frames[frame] then return end
@@ -358,7 +524,12 @@ function Chat:ApplySettings()
     self.pendingTooltipOwner=nil
   end
   self.pending=nil
-  if self:IsEnabled() then self:DiscoverFrames() end
+  if self:IsEnabled() or self:InviteEnabled() then self:DiscoverFrames() end
+  if not self:InviteEnabled() then self.pendingInvite=nil end
+  if self.events then
+    if self:InviteEnabled() then self.events:RegisterEvent("CHAT_MSG_SYSTEM")
+    else self.events:UnregisterEvent("CHAT_MSG_SYSTEM") end
+  end
   for frame in pairs(self.frames) do self:ApplyFrameInput(frame) end
   for box in pairs(self.boxes) do self:ApplyNavigation(box) end
   if not self:IsEnabled() then
@@ -369,6 +540,15 @@ function Chat:ApplySettings()
   end
 end
 function Chat:Initialize()
+  if not self.inviteSlash then
+    self.inviteSlash=true;SLASH_KHQOLPARTYREQUEST1="/파티요청"
+    SLASH_KHQOLINVITEDIAGNOSTICS1="/초대진단"
+    SlashCmdList.KHQOLINVITEDIAGNOSTICS=function() Chat:PrintInviteDiagnostics() end
+    SlashCmdList.KHQOLPARTYREQUEST=function(value)
+      if not Chat:InviteEnabled() then return end
+      Chat:OpenPartyWhisper(value,true)
+    end
+  end
   self:DiscoverFrames()
   for _,name in ipairs({"FCF_OpenNewWindow","FCF_OpenTemporaryWindow"}) do
     if type(_G[name])=="function" and not self.hooks[name] then
@@ -401,7 +581,8 @@ function Chat:Initialize()
     self.events=CreateFrame("Frame")
     self.events:RegisterEvent("ADDON_LOADED"); self.events:RegisterEvent("PLAYER_ENTERING_WORLD"); self.events:RegisterEvent("PLAYER_REGEN_ENABLED")
     self.events:SetScript("OnEvent",function(_,event,addon)
-      if event=="PLAYER_REGEN_ENABLED" then
+      if event=="CHAT_MSG_SYSTEM" then Chat:InviteSystemMessage(addon)
+      elseif event=="PLAYER_REGEN_ENABLED" then
         if Chat.pending or Chat.pendingTooltipOwner then Chat:DiscoverFrames(); Chat:ApplySettings() end
       elseif event=="PLAYER_ENTERING_WORLD" or addon=="Blizzard_ChatFrameBase" or addon=="Blizzard_ChatFrame" or addon=="Blizzard_AutoComplete" then Chat:Initialize() end
     end)

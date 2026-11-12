@@ -161,7 +161,7 @@ function T:Schema()
   end
   clock.clockTools.positionLocked=true
   clock.todo.window.positionLocked=true;clock.todo.minimap.positionLocked=true
-  clock.clockTools.positions={tools=K.CopyProfileValue(point),stopwatch=K.CopyProfileValue(point),alert=K.CopyProfileValue(point)}
+  clock.clockTools.positions={tools=K.CopyProfileValue(point),stopwatch=K.CopyProfileValue(point),alert=K.CopyProfileValue(point),timerBar=K.CopyProfileValue(point)}
   end
   local buff=schema.legacy.buffReminder
   buff.classes={SHAMAN={specials={weapon={mainHand={enabled=false},offHand={enabled=false}},
@@ -219,6 +219,8 @@ function T:Filter(source)
       end
       return result
     end
+    local campfire=K.modules.campfire
+    if path=="profile.legacy.campfire.iconSize" and campfire and campfire.NormalizeIconSize then value=campfire:NormalizeIconSize(value) end
     if not validSetting(value,path,key,schema) then reject(path,value,"값 또는 범위 확인 필요");return end
     report.normal=report.normal+1;return value
   end

@@ -1,6 +1,7 @@
 local _, KHQOL = ...
 local UI, T = KHQOL.UI, KHQOL.UI.Theme
 local N=UI.SettingsNavigation
+N:Register({module="general"},"기본 UI와 겹칠 때","기본 UI 우선 · KHQOL 우선")
 -- Compact only navigation and the general module grid; retain control sizes.
 local defaultRowStep = T.RowHeight + T.RowGap
 local menuRowStep = T.ButtonHeight + math.max(0, defaultRowStep - T.ButtonHeight) / 2
@@ -81,6 +82,12 @@ local function generalSettings(content,y)
   end
   if KHQOL.modules.general then y=KHQOL.modules.general:BuildGlobalSettings(content,y) end
   local b=UI:CreateBuilder(content,y)
+  b:Dropdown("기본 UI와 겹칠 때",{{value="BLIZZARD",text="기본 UI 우선"},{value="KHQOL",text="KHQOL 우선"}},
+    function() return KHQOL.db.general.windowOverlap=="KHQOL" and "KHQOL" or "BLIZZARD" end,
+    function(value) KHQOL.db.general.windowOverlap=value;KHQOL.WindowLayers:Refresh() end)
+  if KHQOL:HasLegacyPartyPackage() then
+    b:Description("이전 KHQOL_PartyFrames 폴더가 있습니다. 통합 파티·공격대 기능을 사용하려면 게임을 종료하고 이전 폴더를 정리한 뒤 다시 접속하세요.",true)
+  end
   b:Section("모듈 관리")
   b:Description("변경 즉시 적용 · 파일 저장은 /reload · 로그아웃 시",true)
   local gap=T.ColumnGap
@@ -150,7 +157,7 @@ function KHQOL:CreateSettings()
   UI:Surface(f,1)
   local texture=f:CreateTexture(nil,"BACKGROUND",nil,1); texture:SetAllPoints(); texture:SetTexture("Interface\\AddOns\\KHQOL\\Media\\SettingsGrain.tga"); texture:SetAlpha(.12)
   f.backgroundTexture=texture
-  f:Hide(); self.settings=f
+  f:Hide(); self.settings=f;self.WindowLayers:RegisterWindow(f)
   function f:FitScreen()
     local db=KHQOL.db.settingsWindow or {scale=100,opacity=100}
     local requested=math.max(80,math.min(120,tonumber(db.scale) or 100))/100

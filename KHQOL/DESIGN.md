@@ -1,3 +1,59 @@
+# KHQOL 1.11.6.5 — 이미지 조준선 계약
+
+사용자 제공 TGA 5개는 KH QOL Labs의 Media/ObjectReticles에서 경로로 로드합니다. 변환·생성하지 않고 원본 해시와 PNG 픽셀을 검증합니다. effect 키에 imageCross/imageDiamond/imageRing/imageSwirl/imageOrbit를 추가하며 기존 키를 변경하지 않습니다.
+
+ObjectHighlightEffects의 이미지 renderer는 공유 효과 프레임에 Texture 하나를 재사용합니다. BLEND/원본 알파/SetVertexColor와 공통 size/alpha/offsetX/offsetY를 사용합니다. 기존 선/입자 효과와 상호 배타적으로 표시하고 Hide/Stop/실패에서 정리합니다. 새 전역 CVar·감지/폴링 엔진·선택/이름표 변경은 없습니다.
+
+기존 약초·광맥·보물상자 분류·퀘스트 제외·실험실 잠금·저장/복원을 유지합니다. 공용 Builder에 X/위치 초기화만 추가하고 Y 기본 -60과 기존 설정은 유지합니다. 실게임 제한과 확인 항목은 RETICLES-1.11.6.5.md가 우선합니다. 아래는 이전 기록입니다.
+
+---
+
+# KHQOL 1.11.6.4 — 순차 XP·Sparkle·공통 생명력 색상 계약
+
+기존 XP segment/StatusBar를 유지하고 questEnd 뒤에 restedXP 길이를 배치합니다. 휴식은 예측 XP/레벨업 계산에 포함하지 않습니다. QuestExperiencePreview의 계산·반납 캐시와 Quest Navigator는 수정하지 않습니다.
+
+Sparkle는 기존 Nameplate 기반 효과 registry의 네 번째 선택지입니다. 독립 절차형 별 4개, 네이티브 Alpha/Scale 그룹, 프레임 풀 재사용, Hide/대상 교체/모듈/잠금 수명에 중단. 외부 미디어·3D 강제 반짝임·OnUpdate 전체 탐색은 없습니다. 이전 설정은 그대로이며 새 기본 카테고리만 Sparkle입니다.
+
+SoftTargetJournal은 핵심 생성 설정과 보조 범위 설정을 구별합니다. 보호된 보조 값은 소유/쓰기 없이 유지하고 제한을 안내합니다. 실제 쓰기·원본 복원·전투·충돌/외부 변경 보호는 유지합니다.
+
+생명력 확정 HEX는 코어 ClassHealthColors 한 곳에 두며 기존 unitFrames.classHealth 프로필 옵션을 재사용합니다. 플레이어/대상/대상의 대상/주시/파티·공격대와 미리보기가 같은 값을 읽습니다. 이름·자원·전역 클래스 색상표는 변경하지 않습니다. 공통 ON은 파티 그라데이션보다 우선하고 기존 그라데이션 저장값은 보존합니다.
+
+기존 Builder/간격/프로필/기본 OFF 정책을 유지합니다. 실제 게임 미검증과 적용 한계는 LAYERS-SPARKLE-1.11.6.4.md가 우선합니다. 아래는 이전 기록입니다.
+
+---
+
+# KHQOL 1.11.6.3 — 직업 색상·완료 퀘스트 XP 확장 계약
+
+직업 색상은 unitFrames.classHealth 한 공통 옵션으로 target/targettarget/focus 플레이어 생명력에만 우선 RGB를 반환합니다. 기존 HealthColor/ApplyBarColor의 갱신·복원 처리를 확장하며 이름/수치/오라/위치/텍스처 경로는 수정하지 않습니다. 기본 OFF, 지정 HEX 18개를 그대로 사용합니다.
+
+퀘스트 XP는 experienceBar.questPreview 보조 객체에서만 조회·캐시합니다. 기존 segment 내부 Texture로 표시하고 실제 XP/휴식 값이나 Quest Navigator 선택·추적을 변경하지 않습니다. 필수 API 미지원·Secret·불완전 로그·불명확한 XP 동기화는 표시를 보류합니다. 시간 경과를 반납 증거로 쓰지 않습니다. 부모 옵션 OFF 시 이벤트 해제와 예약 무효화. 런타임 캐시는 저장하지 않습니다.
+
+두 기능은 독립적이며 기존 Builder/프로필/모듈 활성화 경로를 사용합니다. 새 상위 스위치는 모두 OFF, 기존 사용자 설정은 유지합니다. 실제 게임 NOT TESTED, 상세 API 계약/제한과 체크리스트는 UNIT-XP-1.11.6.3.md에 있습니다. 아래는 이전 릴리스 기록입니다.
+
+---
+
+# KHQOL 1.11.6.2 — 오브젝트 강조 계약
+
+기존 GraphicsJournal과 새 SoftTargetJournal은 서로 다른 CVar/복원 영역을 소유합니다. 실험실/프로필의 기존 objectHighlight 소유자를 유지하고 questSparkles와 gatherEnabled로 독립 제어합니다. 모듈 OFF/재잠금/초기화는 두 journal을 확인합니다.
+
+새 효과는 게임이 고른 softinteract 한 개와 검증된 이름표에 자체 비입력 프레임을 연결합니다. 다른 이름표/아이콘을 직접 숨기지 않습니다. Lueur 소스/미디어/번역/미니맵 스캔은 이식하지 않습니다. 공용 Builder/컨트롤과 한국어 UI를 유지합니다.
+
+모닥불 좌표는 public/Secret 상태를 분리해 수동 진단만 제공합니다. 좌표계가 미검증이므로 화살표/목적지 등록은 없으며 기존 Navigation 상태를 건드리지 않습니다. 상세 검증과 제한은 OBJECTS-1.11.6.2.md가 우선합니다. 아래는 이전 릴리스 기록입니다.
+
+---
+
+# KHQOL 1.11.6.1 — 채팅 편의 확장
+
+배포: KHQOL-1.11.6.1.zip. 기존 계약을 유지하며 Convenience의 대화창 섹션만 확장합니다.
+
+ChatEnhancement는 기존 커서/히스토리/툴팁/URL을 유지하고 프레임별 Alt 이름 클릭만 앞에서 소비합니다. ChatAutomation은 native OnEditBoxPreSendText의 말머리와 confirmed solo→group 인사만 담당합니다. 전역 송신/링크 함수를 교체하지 않습니다.
+
+네 ON/OFF는 general 프로필 설정이며 기본 false입니다. 문구는 기존 globalData.profileCharacters[이름-서버].chatAutomation에 저장해 프로필에서 제외합니다. 별도 SavedVariables 전역/마이그레이션/상시 ticker가 없습니다. 자동 작별 UI/송신은 없습니다.
+
+공용 입력 확정/취소와 Checkbox/EditBox/Button을 재사용하고 대화창 입력을 한 열로 배치해 아코디언 높이에 포함합니다. 상세 검증 범위·알려진 제한은 CHAT-1.11.6.1.md를 따릅니다. 다음은 이전 버전 기록입니다.
+
+---
+
 # KHQOL 1.11.6.0 — 최종 안정화 연결
 
 배포 `KHQOL-1.11.6.0-최종안정화.zip` · 기준 1.11.5.11. 19개 폴더 · 논리 모듈 27개 · 287파일 · Lua 207개 · XML 6개 · 미디어 32개 · 저장 변수 11개.

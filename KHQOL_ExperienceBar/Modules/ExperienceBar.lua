@@ -8,6 +8,7 @@ X.defaults={
   showRested=true,tooltip=true,hideAtMaxLevel=true,followReputation=true,
   color={.58,0,.55,1},backgroundColor={.04,.04,.06,.85},restedColor={0,.39,.88,.7},textColor={1,1,1,1},
   wrapHorizontalLength=220,wrapVerticalLength=48,wrapThickness=6,wrapOffset=4,wrapX=0,wrapY=0,
+  showQuestPreview=false,showQuestXPText=true,showQuestLevelPrediction=true,questPreviewColor={1,.78,.12,1},
 }
 X.reputationNames={"매우 적대적","적대적","약간 적대적","중립적","약간 우호적","우호적","매우 우호적","확고한 동맹"}
 X.reputationColors={
@@ -29,7 +30,7 @@ function X:GetDB()
   local limits={width={120,1200},height={8,80},x={-3000,3000},y={-3000,3000},scale={.5,2},alpha={.1,1},
     wrapHorizontalLength={160,600},wrapVerticalLength={16,180},wrapThickness={2,16},wrapOffset={0,60},wrapX={-500,500},wrapY={-500,500}}
   for key,bounds in pairs(limits) do db[key]=clamp(number(db[key]) and db[key] or self.defaults[key],bounds[1],bounds[2]) end
-  for _,key in ipairs({"color","backgroundColor","restedColor","textColor"}) do
+  for _,key in ipairs({"color","backgroundColor","restedColor","textColor","questPreviewColor"}) do
     for i=1,4 do db[key][i]=clamp(number(db[key][i]) and db[key][i] or self.defaults[key][i],0,1) end
   end
   if db.mode~="horizontal" and db.mode~="wrapTop" and db.mode~="wrapBottom" then db.mode="horizontal" end
@@ -95,12 +96,12 @@ function X:ReadData(newLevel)
   local rested=read(GetXPExhaustion)
   rested=number(rested) and math.max(0,rested) or 0
   local cap=self:GetCap()
-  local atCap=read(IsPlayerAtEffectiveMaxLevel)==true or (cap and level>=cap) or maximum==0
+  local atCap=KHQOL.PublicCall(IsPlayerAtEffectiveMaxLevel)==true or (cap and level>=cap) or maximum==0
   value=clamp(value,0,maximum)
   self.data={kind="experience",level=level,value=value,maximum=maximum,remaining=maximum-value,
     percent=maximum>0 and value/maximum*100 or 0,rested=rested,atCap=atCap and true or false}
 end
-function X:Text()
+function X:BaseText()
   local d,db=self.data,self.db
   if not d then return "" end
   if d.atCap then return "최대 레벨" end
@@ -112,6 +113,10 @@ function X:Text()
   if db.textMode=="remaining" then return prefix..self:FormatNumber(d.remaining).." 남음" end
   local result=self:FormatNumber(d.value).." / "..self:FormatNumber(d.maximum)
   return prefix..(db.textMode=="currentMaxPercent" and result.." ("..percent..")" or result)
+end
+function X:Text()
+  local text=self:BaseText()
+  return self.questPreview and self.questPreview:Text(text,self.data) or text
 end
 function X:IsReplacingReputation()
   return self:IsEnabled() and self.db.followReputation and self.data and self.data.kind=="reputation"
@@ -286,6 +291,16 @@ function X:ShowTooltip(owner)
     GameTooltip:AddDoubleLine("진행률",string.format("%.1f%%",d.percent))
     GameTooltip:AddDoubleLine("다음 레벨까지",self:FormatNumber(d.remaining))
     if d.rested>0 then GameTooltip:AddDoubleLine("휴식 경험치",self:FormatNumber(d.rested)) end
+    local amount=self.questPreview and self.questPreview:Amount(d) or 0
+    if amount>0 then
+      GameTooltip:AddDoubleLine("완료 퀘스트 예상 XP",self:FormatNumber(amount))
+      if amount>=d.remaining and self.db.showQuestLevelPrediction then
+        GameTooltip:AddLine("반납 시 레벨업 예상 (보상은 변동될 수 있습니다)",1,.8,.2)
+        if amount>d.remaining then GameTooltip:AddDoubleLine("현재 레벨 초과 예상",self:FormatNumber(amount-d.remaining).." XP") end
+      end
+    elseif self.db.showQuestPreview and self.questPreview and self.questPreview.awaitLog then
+      GameTooltip:AddLine("퀘스트 로그 동기화 대기 · 예상 구간 일시 숨김",1,.8,.2)
+    end
   end
   GameTooltip:Show()
 end
@@ -332,6 +347,7 @@ function X:CreateFrames()
     local s=CreateFrame("StatusBar",nil,f); s:SetStatusBarTexture(flat)
     s.bg=s:CreateTexture(nil,"BACKGROUND"); s.bg:SetAllPoints(); s.bg:SetTexture(flat)
     s.rested=s:CreateTexture(nil,"OVERLAY"); s.rested:SetTexture(flat)
+    s.questXP=s:CreateTexture(nil,"OVERLAY",nil,1);s.questXP:SetTexture(flat);s.questXP:Hide()
     s:SetScript("OnEnter",function(owner) self:ShowTooltip(owner) end)
     s:SetScript("OnLeave",function() self:HideTooltip() end)
     self.segments[i]=s
@@ -394,6 +410,7 @@ function X:ApplyLayout()
   f:EnableMouse(self.unlocked and not wrap or false); self.guide:SetShown(self.unlocked and not wrap or false)
   for _,s in ipairs(self.segments) do
     s:SetStatusBarColor(unpack(db.color)); s.bg:SetVertexColor(unpack(db.backgroundColor)); s.rested:SetVertexColor(unpack(db.restedColor))
+    s.questXP:SetVertexColor(unpack(db.questPreviewColor))
     if self.unlocked then
       s:EnableMouse(false)
       if s.SetMouseClickEnabled then s:SetMouseClickEnabled(false) end
@@ -424,10 +441,22 @@ function X:LayoutMarkers()
   end
 end
 -- Distribute a continuous interval over the vertical-then-horizontal path.
-function X:SetSegment(s,offset,current,restEnd)
+function X:SetSegment(s,offset,current,restEnd,questEnd)
   local length=s.length
   s:SetMinMaxValues(0,length); s:SetValue(clamp(current-offset,0,length))
   local a,b=clamp(current-offset,0,length),clamp(restEnd-offset,0,length)
+  local endQuest=clamp((questEnd or current)-offset,0,length)
+  s.questXP:ClearAllPoints()
+  if endQuest>a then
+    if s.vertical then
+      local edge=s.reverse and "TOPLEFT" or "BOTTOMLEFT"
+      s.questXP:SetPoint(edge,s,edge,0,s.reverse and -a or a);s.questXP:SetSize(s:GetWidth(),endQuest-a)
+    else s.questXP:SetPoint("LEFT",s,"LEFT",a,0);s.questXP:SetSize(endQuest-a,s:GetHeight()) end
+    s.questXP:Show()
+  else s.questXP:Hide() end
+  -- The verified rested amount is a separate visual interval after quest XP.
+  -- It never contributes to the predicted turn-in XP or level-up result.
+  a=math.max(a,endQuest)
   s.rested:ClearAllPoints()
   if b>a and self.db.showRested then
     if s.vertical then
@@ -442,21 +471,26 @@ function X:Render()
   local db,d=self.db,self.data
   local visible=self:IsEnabled() and d and (not db.hideAtMaxLevel or not d.atCap)
   self.frame:SetShown(visible and true or false)
+  if not visible and self.questPreview then self.questPreview:Hide() end
   if visible then
     local color=d.kind=="reputation" and self.reputationColors[d.reaction] or db.color
     for _,segment in ipairs(self.segments) do segment:SetStatusBarColor(color[1],color[2],color[3],db.color[4]) end
     local length=self.segments[1].length+(db.mode~="horizontal" and self.segments[2].length or 0)
     local fraction=d.maximum>0 and d.value/d.maximum or ((d.atCap or d.capped) and 1 or 0)
-    local rest=d.maximum>0 and clamp((d.value+d.rested)/d.maximum,0,1) or fraction
-    self:SetSegment(self.segments[1],0,length*fraction,length*rest)
-    if db.mode~="horizontal" then self:SetSegment(self.segments[2],self.segments[1].length,length*fraction,length*rest) end
+    local amount=self.questPreview and self.questPreview:Amount(d) or 0
+    local questFraction=d.maximum>0 and clamp((d.value+amount)/d.maximum,0,1) or fraction
+    local rest=d.maximum>0 and clamp(questFraction+d.rested/d.maximum,0,1) or fraction
+    self:SetSegment(self.segments[1],0,length*fraction,length*rest,length*questFraction)
+    if db.mode~="horizontal" then self:SetSegment(self.segments[2],self.segments[1].length,length*fraction,length*rest,length*questFraction) end
     self.levelText:SetText(d.kind=="reputation" and "" or ("Lv."..d.level)); self.levelText:SetShown(db.showLevel and d.kind~="reputation")
     self.xpText:SetText(self:Text()); self.xpText:SetShown(db.showText)
     if self.tooltipOwner then self:ShowTooltip(self.tooltipOwner) end
   end
 end
 function X:Update(newLevel)
-  self:ReadData(newLevel); self:Render(); self:SyncNative()
+  self:ReadData(newLevel)
+  if self.questPreview then self.questPreview:ObserveXP(self.data,newLevel) end
+  self:Render(); self:SyncNative()
 end
 function X:SavePosition()
   if not self.dragging then return end
@@ -470,11 +504,14 @@ end
 function X:Changed()
   if self.dragging then self:SavePosition(); return end
   self:GetDB(); if self.db.mode~="horizontal" then self.unlocked=false end
+  if self.questPreview then self.questPreview:Configure() end
   self:HideTooltip(); self:ApplyLayout(); self:Update()
   if self.RefreshSettings then self:RefreshSettings() end
 end
 function X:SetEnabled()
-  self:GetDB(); self:CreateFrames(); self.unlocked=false; self:HideTooltip(); self:ApplyLayout(); self:Update()
+  self:GetDB()
+  if self.questPreview then self.questPreview:Configure() end
+  self:CreateFrames(); self.unlocked=false; self:HideTooltip(); self:ApplyLayout(); self:Update()
   if self.RefreshSettings then self:RefreshSettings() end
 end
 local events=CreateFrame("Frame")

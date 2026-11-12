@@ -67,8 +67,13 @@ function H:GetState()
   if type(s.records)~="table" then s.records={} end
   return s
 end
-function H:HasRestoreRecords() return next(self:GetState().records)~=nil end
-function H:IsEnabled() return KHQOL:CanRunModule("objectHighlight") end
+function H:HasRestoreRecords()
+  return next(self:GetState().records)~=nil or (KHQOL.SoftTargetJournal and KHQOL.SoftTargetJournal:HasRecords()) or false
+end
+function H:IsEnabled()
+  local db=KHQOL.db and KHQOL.db.modules and KHQOL.db.modules.objectHighlight
+  return KHQOL:CanRunModule("objectHighlight") and not (db and db.questSparkles==false)
+end
 function H:Conflict()
   local loaded=C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
   if type(loaded)=="function" then
@@ -167,8 +172,10 @@ end
 H.compat={settings=settings,watched=watched,public=public,scalar=scalar,api=api,read=read,writable=writable,combat=combat}
 function H:Sync()
   self:CancelPending()
-  if self:IsEnabled() then return self:Apply() end
-  return self:Restore()
+  local result
+  if self:IsEnabled() then result=self:Apply() else result=self:Restore() end
+  if self.gathering then self.gathering:Sync() end
+  return result
 end
 H.events=CreateFrame("Frame")
 H.events:SetScript("OnEvent",function(_,event,name)
@@ -198,6 +205,8 @@ end)
 
 function KHQOL:RecoverDormantGraphics()
   -- Recovery is a legacy-loader responsibility; applying a feature still requires Labs.
-  local journal=KHQOLLabDB and KHQOLLabDB.objectHighlight
-  if not self.ModuleRegistry.entries.objectHighlight and type(journal)=="table" and type(journal.records)=="table" and next(journal.records) then H:Restore() end
+  if not self.ModuleRegistry.entries.objectHighlight then
+    if next(H:GetState().records) then H:Restore() end
+    if self.SoftTargetJournal and self.SoftTargetJournal:HasRecords() then self.SoftTargetJournal:Restore() end
+  end
 end

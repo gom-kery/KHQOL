@@ -580,10 +580,21 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
     UI:CloseDropdown()
     if not b.menu then
       -- Popup belongs to the window, outside the clipped ScrollFrame.
-      local popupParent=KHQOL.PositionEditor and KHQOL.PositionEditor.active and KHQOL.PositionEditor.toolbar or KHQOL.settings or UIParent
+      local editor=KHQOL.PositionEditor
+      local popupParent=editor and editor.active and editor.toolbar
+      local window
+      if not popupParent then
+        local frame=b:GetParent()
+        while frame and frame~=UIParent do
+          if KHQOL.WindowLayers.windows[frame] or frame.khqolSpellBookPanel then window=frame;break end
+          frame=frame:GetParent()
+        end
+        popupParent=window or KHQOL.settings or UIParent
+      end
       local menu = CreateFrame("Frame", nil, popupParent, "BackdropTemplate")
       menu:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 0, -2)
-      menu:SetFrameStrata("FULLSCREEN_DIALOG"); menu:SetClampedToScreen(true); menu:EnableMouse(true)
+      if window then menu:SetFrameLevel(b:GetFrameLevel()+12) else menu:SetFrameStrata("FULLSCREEN_DIALOG") end
+      menu:SetClampedToScreen(true); menu:EnableMouse(true)
       UI:Surface(menu)
       menu:SetBackdropColor(.04,.04,.04,.98); b.menu = menu; b.rows = {}
       local viewport=CreateFrame("ScrollFrame",nil,menu)

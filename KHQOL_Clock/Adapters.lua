@@ -28,7 +28,7 @@ do local spec=R.entries.clock
   spec.closeEditors=function(m,K)
   local fc=m
   if fc and fc.db then
-    for _,entry in ipairs({{"tools",fc.clockToolsFrame},{"stopwatch",fc.stopwatchFrame},{"alert",fc.alertMessageFrame}}) do
+    for _,entry in ipairs({{"tools",fc.clockToolsFrame},{"timerBar",fc.timerBarFrame},{"stopwatch",fc.stopwatchFrame},{"alert",fc.alertMessageFrame}}) do
       if entry[2] and entry[2].positionMoving then fc:SaveClockTool(entry[2],entry[1]) end
     end
     if fc.todoFrame and fc.todoFrame:IsShown() then fc.todoFrame:StopMovingOrSizing();fc:SaveTodoWindow() end
@@ -50,7 +50,14 @@ do local spec=R.entries.clock
     if not m.db then return end
     local positions=m.db.clockTools.positions or {}
     local point=K.PositionUtils.ApplyPoint
-    point(m.alertMessageFrame,positions.alert or {y=160});point(m.clockToolsFrame,positions.tools or {y=-80});point(m.stopwatchFrame,positions.stopwatch or {y=110})
+    local defaults=m.ClockToolPositions
+    point(m.alertMessageFrame,positions.alert or defaults.alert);point(m.clockToolsFrame,positions.tools or defaults.tools)
+    point(m.stopwatchFrame,positions.stopwatch or defaults.stopwatch);point(m.timerBarFrame,positions.timerBar or defaults.timerBar)
+  end
+  spec.finishDrags=function(m)
+    for _,entry in ipairs({{"tools",m.clockToolsFrame},{"timerBar",m.timerBarFrame},{"stopwatch",m.stopwatchFrame},{"alert",m.alertMessageFrame}}) do
+      if entry[2] and entry[2].positionMoving then m:SaveClockTool(entry[2],entry[1]) end
+    end
   end
   spec.alertFrames=function(m,K)
   return {{frame=m.alertMessageFrame,priority=20,allowed=function() return not m.alertMessageFrame.isTest end}}

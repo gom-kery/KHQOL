@@ -1,0 +1,3 @@
+<Bindings>
+  <Binding name="KHQOL_DEVTOOLS_CAPTURE_FRAME" header="KHQOL_DEVTOOLS">KHQOL_DevTools:CaptureFrame()</Binding>
+</Bindings>

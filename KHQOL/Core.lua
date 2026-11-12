@@ -7,8 +7,10 @@ local defaults = {
   enabled = { clock = true, todo = true, buffReminder = true, range = true, tooltip = true, resourceSwing = true, campfire = true, cursorTrail = true, castBar = true, combatStatus = true, questNavigator = true, threat = true, pvpAlert = true },
   migrated = {}, modules = {},
   general = {
+    windowOverlap = "BLIZZARD",
     centerTextScale = 100, autoSellJunk = false, autoConfirmDestroy = false, chatEnhancement = false,
     autoRepair = false, useGuildFunds = false, declinePartyInvites = false, declineGuildInvites = false,
+    chatAltInvite=false, chatPrefixes=false, chatAutoGreeting=false, chatRaidGreeting=false,
   },
 }
 
@@ -24,6 +26,7 @@ defaults.enabled.npcAlert = false
 -- General convenience features have individual switches, no master switch.
 defaults.enabled.basicUI = true
 defaults.enabled.unitFrames = true
+defaults.enabled.partyFrames = false
 for _,id in ipairs(KHQOL.ModuleRegistry.order) do
   local spec=KHQOL.ModuleRegistry.entries[id]
   if spec.defaultEnabled~=nil then defaults.enabled[id]=spec.defaultEnabled end

@@ -1,3 +1,5 @@
+local _,addon=...
+if not addon.loadUnitFrames then return end
 local K = assert(_G.KHQOL)
 local RS, UI = K.PlayerAux, K.UI
 local read, api = K.PublicCall, K.ReadPublicAPI

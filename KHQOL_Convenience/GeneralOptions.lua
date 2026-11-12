@@ -5,6 +5,7 @@ local General = KHQOL.modules.general
 local defaults = {
   centerTextScale = 100, autoSellJunk = false, autoConfirmDestroy = false, chatEnhancement = false,
   autoRepair = false, useGuildFunds = false, declinePartyInvites = false, declineGuildInvites = false,
+  chatAltInvite=false, chatPrefixes=false, chatAutoGreeting=false, chatRaidGreeting=false,
 }
 
 function General:GetDB()
@@ -349,7 +350,8 @@ end
 -- Preserve the existing cancellation side effects when an option is turned OFF.
 function General:SetConvenienceEnabled(key,on)
   self:GetDB()[key]=on
-  if key=="chatEnhancement" and KHQOL.modules.chatEnhancement then KHQOL.modules.chatEnhancement:ApplySettings() end
+  if (key=="chatEnhancement" or key=="chatAltInvite") and KHQOL.modules.chatEnhancement then KHQOL.modules.chatEnhancement:ApplySettings() end
+  if (key=="chatAutoGreeting" or key=="chatRaidGreeting") and KHQOL.modules.chatAutomation then KHQOL.modules.chatAutomation:ApplySettings() end
   if not on then
     if key=="autoSellJunk" then self:CancelJunkSale()
     elseif key=="autoRepair" then CancelDeferred(self.merchantVisit)

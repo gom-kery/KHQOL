@@ -1,6 +1,13 @@
 local _, KHQOL = ...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local CFA = KHQOL.modules.campfire
+CFA.ICON_MIN,CFA.ICON_MAX,CFA.ICON_STEP=60,120,10
+function CFA:NormalizeIconSize(value)
+    local n=KHQOL.IsPublicValue(value) and tonumber(value)
+    if not KHQOL.IsPublicNumber(n) then return self.defaults.iconSize end
+    n=math.max(self.ICON_MIN,math.min(self.ICON_MAX,n))
+    return self.ICON_MIN+self.ICON_STEP*math.floor((n-self.ICON_MIN)/self.ICON_STEP+.5)
+end
 
 local function SetFont(fontString, size, r, g, b)
     fontString:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", size, "THICKOUTLINE")
@@ -11,7 +18,7 @@ end
 function CFA:CreateUI()
     if self.ui then return end
     local db = self.db
-    db.iconSize = math.max(100, math.min(140, tonumber(db.iconSize) or 100))
+    db.iconSize = self:NormalizeIconSize(db.iconSize)
     db.fontSize = math.max(40, math.min(70, tonumber(db.fontSize) or 50))
     local root = CreateFrame("Frame", nil, UIParent)
     root:SetPoint(db.position.point, UIParent, db.position.point, db.position.x, db.position.y)
@@ -52,7 +59,7 @@ function CFA:CreateUI()
 
     local close = CreateFrame("Button", nil, discovery)
     close:SetSize(26, 26)
-    close:SetPoint("TOPRIGHT", button, "TOPRIGHT", 13, 13)
+    close:SetPoint("TOPLEFT", button, "TOPRIGHT", 6, 0)
     close:SetFrameLevel(button:GetFrameLevel() + 5)
     local closeText = close:CreateFontString(nil, "OVERLAY")
     closeText:SetAllPoints(close)
@@ -142,7 +149,7 @@ function CFA:CreateUI()
     complete:SetText("야영 효과를 받았습니다!")
     complete:Hide()
 
-    self.ui = { root = root, discovery = discovery, button = button, title = title, distance = distance, status = status, progress = progress, complete = complete }
+    self.ui = { root = root, discovery = discovery, button = button, close = close, title = title, distance = distance, status = status, progress = progress, complete = complete }
 
     button:EnableMouseWheel(false)
     button:SetScript("OnMouseWheel", nil)
@@ -151,6 +158,7 @@ end
 function CFA:ApplyLayout()
     if not self.ui then return end
     local db, ui = self.db, self.ui
+    db.iconSize=self:NormalizeIconSize(db.iconSize)
     ui.button:SetSize(db.iconSize, db.iconSize)
     SetFont(ui.title, db.fontSize, 1, 0, 0)
     ui.title:SetText(db.message or "모닥불 발견!")

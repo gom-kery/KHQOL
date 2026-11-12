@@ -8,4 +8,4 @@
 
 Lua 207개의 5.1 문법, 19개 TOC/로드 순서/의존성, XML 6개, 저장 변수 11개 소유권, 삭제 파일·비대상 코드·미디어 비교와 ZIP 파일 목록/CRC/해시를 검증합니다. **실제 Forever 실행·렌더링·보호 실행/taint·CPU/FPS·디스크 저장: NOT RUN / 인게임 확인 필요.**
 
-감사 B/C/D/E는 CHANGE-VALIDATION-REPORT.md에, 완료/인게임 필요 체크리스트 F는 ROADMAP.md에 통합했습니다. 설치/사용법은 INSTALL-GUIDE.md, 전체 파일/변경/해시는 docs/PACKAGE-MANIFEST.json입니다. KH_map 제외·KHQOL_Map/KHQOLMapDB 유지. 이전 배포 ZIP·실제 AddOns/WTF·GitHub는 변경하지 않았습니다.
+감사 B/C/D/E는 CHANGE-VALIDATION-REPORT.md에, 완료/인게임 필요 체크리스트 F는 ROADMAP.md에 통합했습니다. 설치/사용법은 INSTALL-GUIDE.md, 전체 파일/변경/해시는 docs/PACKAGE-MANIFEST-1.11.6.0.json입니다. KH_map 제외·KHQOL_Map/KHQOLMapDB 유지. 이전 배포 ZIP·실제 AddOns/WTF·GitHub는 변경하지 않았습니다.
