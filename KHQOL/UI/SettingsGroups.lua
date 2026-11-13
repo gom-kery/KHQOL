@@ -42,14 +42,19 @@ local function pruneModuleGroups(registry)
 end
 local function prunePositionAndSearch(registry)
   for key in pairs(registry.positionModules) do if not K.ModuleRegistry.entries[key] then registry.positionModules[key]=nil end end
-  for id,item in pairs(UI.SettingsNavigation.items) do
+  local navigation=UI.SettingsNavigation
+  for id,item in pairs(navigation.items) do
     local key=item.route.module
-    if K.ModuleOwners[key] and not K.ModuleRegistry.entries[key] then UI.SettingsNavigation.items[id]=nil end
+    if K.ModuleOwners[key] and not K.ModuleRegistry.entries[key] then navigation.items[id]=nil
+    else navigation:Register(item.route,item.title,item.description,item.aliases) end
   end
 end
 function R:FinalizeInstallation()
   if self.installationFinalized then return end
   self:ConnectModules()
+  if self.groups.convenience.chat and self.groups.convenience.professions then
+    self.orders.convenience={"general","chat","professions","note"}
+  end
   local active={}
   for id,group in pairs(UI.SettingsGroups) do pruneSettingsGroup(self,id,group,active) end
   for key,meta in pairs(self.modules) do if not active[meta] then self.modules[key]=nil end end

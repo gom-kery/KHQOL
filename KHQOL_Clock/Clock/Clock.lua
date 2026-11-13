@@ -2,12 +2,8 @@ local _, KHQOL = ...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local FC = KHQOL.modules.clock
 
-local function MakeBackdrop(frame, r, g, b, a)
-  frame:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 12, insets = { left = 3, right = 3, top = 3, bottom = 3 } })
-  frame:SetBackdropColor(0.015, 0.015, 0.015, a or 0.84)
-  frame:SetBackdropBorderColor(r or 1, g or 0.78, b or 0.18, 0.9)
-end
-FC.MakeBackdrop = MakeBackdrop
+local MakeBackdrop=KHQOL.HUDText.MakeBackdrop
+FC.MakeBackdrop=MakeBackdrop
 
 function FC:CreateClock()
   local frame = CreateFrame("Frame", "ForeverClockClockFrame", UIParent, "BackdropTemplate")
@@ -133,7 +129,6 @@ function FC:UpdateHUDWidth()
   local timeWidth = self.clockFrame.timeText:GetStringWidth()
   -- Enough width to keep a full money panel beside the clock at either side.
   self.clockFrame:SetWidth(math.max(430, timeWidth + moneyWidth * 2 + 40))
-  if self.UpdateProfessionAnchor then self:UpdateProfessionAnchor() end
 end
 
 function FC:StartMinuteTimer()

@@ -1,7 +1,7 @@
 local K=_G.KHQOL
 local H,J=K.modules.objectHighlight,K.SoftTargetJournal
 local G=H.gathering
-G.diagnosticBuild="1.11.7.1"
+G.diagnosticBuild="1.11.7.4"
 local call,read,public=K.PublicCall,K.ReadPublicAPI,K.IsPublicValue
 local function value(v)
   if not public(v) then return "<unreadable>" end

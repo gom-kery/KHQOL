@@ -1,9 +1,8 @@
 local KHQOL = _G.KHQOL
 local UI,T=KHQOL.UI,KHQOL.UI.Theme
-local function layout(...) return UI:CreateDetailLayout(...) end
 -- Stable cells keep subordinate controls in place when switches change.
 -- Availability changes, never row visibility, so neighboring labels cannot shift.
-function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
+function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
   local M=self; local G=KHQOL.modules.general
   local function get(k) return function() return M:GetDB()[k] end end
   local function set(k) return function(v) M:GetDB()[k]=v; M:ApplySettings() end end
@@ -51,6 +50,7 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
     {title="채집",items={check("채집 추적 상태 유지",get("keepTracking"),set("keepTracking"),"직접 선택한 채광·약초 추적을 부활 후 복원합니다. 직접 끈 추적은 복원하지 않습니다.",supportedTracking,{
       check("복원 채팅 알림",get("trackingReport"),set("trackingReport"))})}},
   }
+  if chat then sections={sections[1]} else table.remove(sections,1) end
   local page=CreateFrame("Frame",nil,parent); page:SetPoint("TOPLEFT",0,y); page:SetWidth(parent:GetWidth())
   local step=T.RowHeight+T.RowGap
   local refresh
@@ -144,9 +144,9 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y)
       section.body:SetHeight(-rowTop+rowHeight)
       f:SetHeight(headerHeight+(expanded and section.body:GetHeight() or 0));top=top-f:GetHeight()
     end
-    local text=M.merchantPending and "상점 확장: 전투가 끝나면 적용합니다." or (M:GetDB().merchantExpanded and M.merchantUnavailable and "상점 확장 미적용: "..M.merchantUnavailable or "")
+    local text=not chat and (M.merchantPending and "상점 확장: 전투가 끝나면 적용합니다." or (M:GetDB().merchantExpanded and M.merchantUnavailable and "상점 확장 미적용: "..M.merchantUnavailable or "")) or ""
     status:ClearAllPoints();status:SetPoint("TOPLEFT",0,top-6); status:SetWidth(width); status:SetText(text)
-    top=top-step*2 -- Reserve a stable two-line status area on OFF/ON.
+    if not chat then top=top-step*2 end -- Reserve merchant status space.
     page:SetHeight(-top); parent:SetHeight(-y-top)
   end
   local sentinel=CreateFrame("Frame",nil,page); sentinel.Refresh=refresh; sentinel.layoutRefresh=true

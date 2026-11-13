@@ -9,6 +9,13 @@ local commonKeys={};for _,key in ipairs(common) do commonKeys[key]=true end
 local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=true,tabSpaces=true,
   closeOnEscape=true,minimap=true,window=true}
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID","hunterMeleeSpellName","meleeSpellID","meleeSpellName","rangedSpellID","rangedSpellName"}
+-- Also used by the transfer schema when the owning package is absent.
+KHQOL.professionProfileDefaults={
+  enabled=false,locked=true,layout="horizontal",iconSize=36,showSkill=true,
+  fontSize=14,skillFontSize=12,skillPosition="inside",backgroundAlpha=.92,direction="right",cellGap=4,
+  position={point="CENTER",relativePoint="CENTER",x=160,y=0},order={},
+  style={color={1,1,1,1},effect="OUTLINE"},
+}
 -- Only a genuinely empty installation or an explicitly created default profile
 -- uses this recipe. Keep legacy module defaults for existing/missing fields.
 local installDefaults = {
@@ -269,10 +276,15 @@ local function retainContentAndCharacterData(self,profile)
   resource.resourceColorOverrides[self.profileCharacter]=copy(profile.resourceColor)
   resource.resourceColorsMigrated=true
 end
+function KHQOL:MigrateProfessionProfile(profile,legacyClock)
+  local module=self.modules.professions
+  if module then module:MigrateProfile(profile,legacyClock) end
+end
 function KHQOL:LoadProfileSettings(profile)
   profile=copy(profile)
   profile.settings=profile.settings or {}
   self:MigrateProfileSettings(profile.settings)
+  self:MigrateProfessionProfile(profile)
   local savedEnabled=profile.settings.enabled or {}
   profile.settings.enabled=savedEnabled
   for key,value in pairs(self.db.enabled or {}) do
@@ -322,8 +334,12 @@ function KHQOL:InitializeProfiles()
   -- identity is delayed. Empty/false/legacy-only saved values count as existing.
   if self.isNewInstall==nil then
     self.isNewInstall=true
-    for _,variable in ipairs(savedVariables) do
-      if _G[variable]~=nil then self.isNewInstall=false; break end
+    if type(KHQOLDB)=="table" and KHQOLDB.resetSettings then
+      KHQOLDB.resetSettings=nil
+    else
+      for _,variable in ipairs(savedVariables) do
+        if _G[variable]~=nil then self.isNewInstall=false; break end
+      end
     end
   end
   if self.isNewInstall and not self.installDefaultsSeeded then
@@ -358,10 +374,28 @@ function KHQOL:InitializeProfiles()
     -- Preserve per-character combat spell choices outside shared UI profiles.
     global.profileCharacters[character]={range=copy(FRangeDB or {}),cursorColor=copy(KHQOLCursorTrailCharDB or {})}
   end
+  local liveClock=type(ForeverClockDB)=="table" and ForeverClockDB or nil
+  local live={settings=self.db}
+  local name=self.db.characterProfiles[character]
+  if type(name)~="string" or type(self.db.profiles[name])~="table" then name=DEFAULT end
+  local active=self.db.profiles[name]
+  if fresh or not active then
+    self:MigrateProfessionProfile(live,liveClock)
+  else
+    -- Prefer the selected snapshot's new settings, then committed live
+    -- settings. Only use legacy data when both new paths are absent.
+    if self.modules.professions and active.settings and self.db.modules.professions then
+      active.settings.modules=active.settings.modules or {}
+      if active.settings.modules.professions==nil then active.settings.modules.professions=copy(self.db.modules.professions) end
+    end
+    if type(active.settings)=="table" then self:MigrateProfessionProfile(active,liveClock) end
+  end
+  for _,snapshot in pairs(self.db.profiles) do
+    if type(snapshot)=="table" and type(snapshot.settings)=="table" then self:MigrateProfessionProfile(snapshot) end
+  end
   if type(self.db.profiles[DEFAULT])~="table" then
     self.db.profiles[DEFAULT]=self:CaptureProfile()
   end
-  local name=self.db.characterProfiles[character]
   if type(name)~="string" or type(self.db.profiles[name])~="table" then name=DEFAULT end
   self.profileCharacter=character; self.currentProfileName=name
   self.db.characterProfiles[character]=name; self.db.profileSchema=1
@@ -503,7 +537,19 @@ function KHQOL:ResetProfileModule(key)
   self:CloseProfileEditors(); self:SaveCurrentProfile()
   local profile=self:CaptureProfile(); local defaults=self:MakeDefaultProfile()
   if key=="clock" then
-    local note=profile.legacy.clock.todo; profile.legacy.clock=copy(defaults.legacy.clock); profile.legacy.clock.todo=note
+    local clock=profile.legacy.clock
+    local newClock=copy(defaults.legacy.clock)
+    newClock.todo=clock.todo
+    if clock.modules and clock.modules.professions then
+      -- Keep the original geometry and style even after a clock reset.
+      newClock.professionMigrationSource={
+        enabled=clock.enabled,locked=clock.locked,position=copy(clock.position),
+        fontSize=clock.fontSize,moduleFontSize=clock.moduleFontSize,
+        modules={professions=copy(clock.modules.professions),money=copy(clock.modules.money)},textStyle=copy(clock.textStyle),
+      }
+    end
+    newClock.professionMigrationSource=clock.professionMigrationSource or newClock.professionMigrationSource
+    profile.legacy.clock=newClock
   elseif key=="todo" then profile.legacy.clock.todo=copy(defaults.legacy.clock.todo)
   elseif key=="unitFrames" then resetUnitFrameSnapshot(profile,defaults.settings.modules.unitFrames)
   elseif legacy[key] then
@@ -528,10 +574,6 @@ function KHQOL:ResetProfileModule(key)
   if key=="resourceSwing" then profile.resourceColor=nil end
   local temporary=self:CaptureProfile()
   self.profileApplying=true; self.profileGeneration=(self.profileGeneration or 0)+1
-  if key=="generalConvenience" then
-    profile.settings.general.declinePartyInvites=false
-    profile.settings.general.declineGuildInvites=false
-  end
   local ok,errorMessage=pcall(function() self.ModuleRegistry:ProfileChanged();self:LoadProfileSettings(profile); self:ApplyProfileModules() end)
   if not ok then self:LoadProfileSettings(temporary); pcall(self.ApplyProfileModules,self) end
   self.profileApplying=false; self:SaveCurrentProfile()

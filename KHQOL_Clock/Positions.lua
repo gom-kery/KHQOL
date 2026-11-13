@@ -14,15 +14,12 @@ KHQOL.PositionProviders.clock=function(focus)
     add("clock","clock","Clock · 시간",fc.clockFrame,pointWriter(fc.db.position),lock(fc.db),clockApply,{bounds=function(x,y)
       return x,y,fc.clockFrame.timeText:GetStringWidth()+8,fc.clockFrame.timeText:GetStringHeight()+8
     end})
-    for _,key in ipairs({"date","weekday","money","performance","professions"}) do
+    for _,key in ipairs({"date","weekday","money","performance","guild"}) do
       local cfg=fc.db.modules[key]
       if cfg.enabled then
-        local names={date="날짜",weekday="요일",money="소지금",performance="FPS / 지연시간",professions="전문기술"}
-        add("clock."..key,"clock","Clock · "..names[key],key=="professions" and fc.professionsButton or fc.modules[key],pointWriter(cfg.position),lock(fc.db),clockApply,{parentID="clock"})
+        local names={date="날짜",weekday="요일",money="소지금",performance="FPS / 지연시간",guild="길드 접속"}
+        add("clock."..key,"clock","Clock · "..names[key],fc.modules[key],pointWriter(cfg.position),lock(fc.db),clockApply,{parentID="clock",sample=key=="guild" and "길드 접속" or nil})
       end
-    end
-    if fc.db.modules.professions.enabled and fc.professionsPanel and fc.professionsPanel:IsShown() then
-      add("clock.professions.panel","clock","Clock · 전문기술 목록 (연결)",fc.professionsPanel,nil,lock(fc.db),clockApply,{parentID="clock.professions",linked=true})
     end
     for _,entry in ipairs({{"alert","중앙 알림",fc.alertMessageFrame},{"tools","알람 / 타이머",fc.clockToolsFrame},{"timerBar","타이머 바",fc.timerBarFrame},{"stopwatch","스톱워치",fc.stopwatchFrame}}) do
       local key=entry[1]; local frame=entry[3]

@@ -31,11 +31,11 @@ function R:RegisterModule(key, spec)
   assert(self.groups[spec.group] and spec.id and spec.title and type(spec.build)=="function","Invalid KHQOL settings connection")
   assert(not self.modules[key] and not self.groups[spec.group][spec.id],"Duplicate KHQOL settings connection")
   local meta=entry(spec.group,spec.id,key,spec.title,spec.description or "",spec.commands)
-  meta.tabTitle=spec.tabTitle
+  meta.tabTitle=spec.tabTitle;meta.family=spec.family;meta.hideToggle=spec.hideToggle
   self.positionModules[key]=spec.positions and true or nil
   for _,group in ipairs(self.moduleGroups) do
     for _,page in ipairs(self.pages) do
-      if page[1]==spec.group and group.title==page[2] then group.items[#group.items+1]={key,spec.title} end
+      if page[1]==spec.group and group.title==page[2] then group.items[#group.items+1]={key,spec.title,navigationOnly=spec.navigationOnly} end
     end
   end
   KHQOL.UI.SettingsGroups[spec.group]:RegisterTab(spec.id,nil,spec.build)
@@ -115,9 +115,9 @@ for _,page in ipairs(R.pages) do
       end
     end
     if page[1]=="convenience" then
-      group.items[#group.items+1]={"generalConvenience","일반 편의",navigationOnly=true}
+      group.items[#group.items+1]={"generalConvenience","일반 편의 · 공통",navigationOnly=true}
       for index,item in ipairs({{"autoConfirmDestroy","아이템 파괴 자동 입력",true},
-        {"chatEnhancement","기본 대화창 편의",true},
+        {"chatEnhancement","기본 대화창 편의",true,route="convenienceChat"},
         {"autoSellJunk","잡템 자동 판매",true},{"autoRepair","자동 수리",true}}) do
         if index<=2 then table.insert(group.items,index,item) else group.items[#group.items+1]=item end
       end

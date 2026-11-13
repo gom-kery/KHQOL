@@ -2,10 +2,6 @@ local _, KHQOL = ...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local FC = KHQOL.modules.clock
 local L = FC.L
-local ICON = "|TInterface\\MoneyFrame\\UI-GoldIcon:14:14:2:0|t"
-local SILVER = "|TInterface\\MoneyFrame\\UI-SilverIcon:14:14:2:0|t"
-local COPPER = "|TInterface\\MoneyFrame\\UI-CopperIcon:14:14:2:0|t"
-
 local function NewModule(name)
   local frame = CreateFrame("Button", "ForeverClock" .. name .. "Module", FC.clockFrame, "BackdropTemplate")
   frame:SetHeight(27); frame:SetWidth(120)
@@ -33,16 +29,18 @@ end
 
 function FC:EnableModuleDrag(name, frame)
   frame:SetScript("OnMouseDown", function(f, button)
-    if button == "LeftButton" and not FC.db.locked then
+    f.didDrag=nil
+    if button == "LeftButton" and not FC.db.locked and not KHQOL.PositionEditor.active then
       f.dragStartX, f.dragStartY = GetCursorPosition()
       f:StartMoving()
     end
   end)
   frame:SetScript("OnMouseUp", function(f, button)
-    if button == "LeftButton" and not FC.db.locked then
+    if button == "LeftButton" and f.dragStartX then
       local x, y = GetCursorPosition()
       local moved = math.abs(x - (f.dragStartX or x)) > 5 or math.abs(y - (f.dragStartY or y)) > 5
       f:StopMovingOrSizing()
+      f.didDrag=moved
       if moved then FC:SetModulePosition(name, f) else FC:ApplyLayout() end
       f.dragStartX,f.dragStartY=nil,nil
     end
@@ -55,6 +53,11 @@ function FC:CreateModules()
   self.modules.weekday = NewModule("Weekday")
   self.modules.money = NewModule("Money")
   self.modules.money:SetWidth(175)
+  self.modules.money:SetScript("OnEnter",function(frame) KHQOL:ShowCharacterMoney(frame) end)
+  self.modules.money:SetScript("OnLeave",function(frame) if GameTooltip:IsOwned(frame) then GameTooltip:Hide() end end)
+  self.modules.money:SetScript("OnHide",function(frame) if GameTooltip:IsOwned(frame) then GameTooltip:Hide() end end)
+  self.modules.guild = NewModule("Guild")
+  self:SetupGuildDisplay(self.modules.guild)
   self.modules.performance = NewModule("Performance")
   self.modules.performance:SetWidth(130)
   for name, frame in pairs(self.modules) do self:EnableModuleDrag(name, frame) end
@@ -83,14 +86,11 @@ end
 
 function FC:UpdateMoney()
   if not self.modules or not self.db.modules.money.enabled then return end
-  local amount = type(GetMoney) == "function" and GetMoney() or 0
-  local gold, silver, copper = math.floor(amount / 10000), math.floor((amount % 10000) / 100), amount % 100
-  local units, pieces = self.db.modules.money.units or {}, {}
-  if units.gold then pieces[#pieces + 1] = gold .. " " .. ICON end
-  if units.silver then pieces[#pieces + 1] = silver .. " " .. SILVER end
-  if units.copper then pieces[#pieces + 1] = copper .. " " .. COPPER end
-  self.modules.money.text:SetText(table.concat(pieces, "  "))
-  self:SyncStyledText(self.modules.money.text)
+  local amount=KHQOL.PublicCall(GetMoney)
+  if not KHQOL.IsPublicNumber(amount) then return end
+  local frame=self.modules.money
+  frame.text:SetText(KHQOL.HUDText.FormatMoney(amount,self.db.modules.money.units))
+  self:SyncStyledText(frame.text)
   -- Remove the former fixed-width blank space around short money values.
   self.modules.money:SetWidth(math.max(28, self.modules.money.text:GetStringWidth() + 16))
   self:UpdateHUDWidth()
@@ -124,9 +124,9 @@ function FC:ApplyLayout()
     self:ApplyTextStyle(frame.text, data.fontSize or self.db.moduleFontSize, self:GetTextStyle(name))
     frame:SetBackdropColor(0.015, 0.015, 0.015, self.db.locked and 0 or 0.68)
     frame:SetBackdropBorderColor(0.95, 0.73, 0.15, self.db.locked and 0 or 0.68)
-    frame:SetShown(self.db.enabled and data.enabled)
+    if name~="guild" then frame:SetShown(self.db.enabled and data.enabled) end
   end
-  if self.UpdateProfessionsVisibility then self:UpdateProfessionsVisibility() end
+  self:ConfigureGuildDisplay()
 end
 
 function FC:UpdateTimers()

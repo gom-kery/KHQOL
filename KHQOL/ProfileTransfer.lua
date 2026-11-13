@@ -149,13 +149,32 @@ function T:Unpack(value)
 end
 local point={point="CENTER",relativePoint="CENTER",x=0,y=0}
 -- Audited optional settings which only exist after first edit (not defaults).
-function T:Schema()
+function T:Schema(includeLegacyProfessions)
   local schema=K:MakeDefaultProfile(true)
   schema.settings.modules.partyFrames=nil -- independent character role profiles
   schema.resourceColor={1,1,1,1};schema.cursorColor={color={r=1,g=1,b=1}}
   local clock=schema.legacy.clock
+  local professions=K.modules.professions
+  schema.settings.modules.professions=K.CopyProfileValue(K.professionProfileDefaults)
+  local order=schema.settings.modules.professions.order
+  for index=1,12 do order[index]=0 end
+  if includeLegacyProfessions or not professions then
+    -- Preserve dormant profession settings when a profile is exported from a
+    -- setup without Convenience. Do not activate or complete the migration.
+    clock.modules=clock.modules or {}
+    clock.modules.professions={enabled=true,layout="horizontal",iconSize=36,showSkill=true,position={x=0,y=0},fontSize=14}
+    clock.textStyle=clock.textStyle or {}
+    clock.textStyle.professions={color={1,1,1,1},bold=false,effect="OUTLINE"}
+    clock.textStyle.common=clock.textStyle.common or {color={1,1,1,1},bold=false,effect="OUTLINE"}
+    clock.enabled=true;clock.locked=true;clock.moduleFontSize=14;clock.fontSize=48;clock.position=K.CopyProfileValue(point)
+    clock.modules.money={enabled=true,fontSize=14,units={gold=true,silver=true,copper=true},displayUnits="GSC",
+      position={x=170,y=0}}
+    clock.professionMigrationSource={enabled=true,locked=true,fontSize=48,moduleFontSize=14,position=K.CopyProfileValue(point),
+      modules={professions=K.CopyProfileValue(clock.modules.professions),money=K.CopyProfileValue(clock.modules.money)},
+      textStyle=K.CopyProfileValue(clock.textStyle)}
+  end
   if K.modules.clock then
-  for _,key in ipairs({"date","weekday","money","performance","professions"}) do
+  for _,key in ipairs({"date","weekday","money","performance","guild"}) do
     clock.modules[key].fontSize=14
     clock.textStyle[key]=K.CopyProfileValue(clock.textStyle.common)
   end
@@ -189,6 +208,9 @@ local function validSetting(value,path,key,default)
   if value==0 and default==0 then return true end -- documented default sentinels
   local name=type(key)=="string" and key:lower() or ""
   if path:lower():find("color",1,true) and (type(key)=="number" or key=="r" or key=="g" or key=="b" or key=="a") then return value>=0 and value<=1 end
+  if path=="profile.settings.modules.professions.order."..tostring(key) then
+    return type(key)=="number" and value==math.floor(value) and value>0
+  end
   if name=="alpha" or name=="backgroundalpha" or name=="borderalpha" then return value>=0 and value<=1 end
   if name=="scale" then return value>0 and value<=1000 end
   if name:match("size$") and path~="profile.settings.modules.tooltip.textSize" then return value>0 and value<=512 end
@@ -201,7 +223,7 @@ local function leaves(value)
   local n=0;for _,v in pairs(value) do n=n+leaves(v) end;return math.max(1,n)
 end
 -- Unknown settings are reported and omitted, never interpreted as live DB paths.
-function T:Filter(source)
+function T:Filter(source,includeLegacyProfessions)
   self:Encode(source) -- bound traversal and reject cycles/objects before counting
   local report={normal=0,unsupported=0,review=0,details={}}
   local function reject(path,value,why)
@@ -214,7 +236,12 @@ function T:Filter(source)
     if type(schema)=="table" then
       local result={}
       for k,v in pairs(value) do
-        local child=filter(v,schema[k],path.."."..tostring(k),k)
+        local retired=(path=="profile.legacy.clock.modules" or path=="profile.legacy.clock.textStyle") and k=="professions"
+          or path=="profile.legacy.clock" and k=="professionMigrationSource"
+        local child
+        if not retired or includeLegacyProfessions or not K.modules.professions then
+          child=filter(v,schema[k],path.."."..tostring(k),k)
+        end
         if child~=nil then result[k]=child end
       end
       return result
@@ -224,14 +251,14 @@ function T:Filter(source)
     if not validSetting(value,path,key,schema) then reject(path,value,"값 또는 범위 확인 필요");return end
     report.normal=report.normal+1;return value
   end
-  return filter(source,self:Schema(),"profile"),report
+  return filter(source,self:Schema(includeLegacyProfessions),"profile"),report
 end
 local function client()
   local version,build,_,interface=K.PublicCall(GetBuildInfo)
   return {version=type(version)=="string" and version or "unknown",
     build=type(build)=="string" and build or "unknown",interface=finite(interface) and interface or 0}
 end
-local scopeNotice="노트·체크리스트, 공용 버프/NPC/발동 등록 목록, 캐릭터 기준 주문, 파티·공격대 역할 프로필·휠 주문, 실험실 잠금 정보와 계정 공용 창 선호는 제외됩니다."
+local scopeNotice="노트·체크리스트, 공용 버프/NPC/발동 등록 목록, 캐릭터 기준 주문, 파티·공격대 역할 프로필·휠 주문, 부캐 소지금 기록, 실험실 잠금 정보와 계정 공용 창 선호는 제외됩니다."
 T.scopeNotice=scopeNotice
 function T:Export()
   local ok,result,report=pcall(function()
@@ -268,7 +295,8 @@ function T:Inspect(value)
     local migrated=self:Migrate(envelope)
     -- Only a detached copy is migrated; live DB and saved snapshots are untouched.
     migrated=K.CopyProfileValue(migrated);K:MigrateProfileSettings(migrated.settings)
-    local profile,report=self:Filter(migrated)
+    local profile,report=self:Filter(migrated,true)
+    K:MigrateProfessionProfile(profile)
     if report.normal==0 then fail("현재 버전에서 사용할 수 있는 설정이 없습니다.") end
     local current=client()
     if envelope.addonVersion~=K.VERSION or current.interface~=envelope.sourceClient.interface

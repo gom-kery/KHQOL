@@ -25,6 +25,21 @@ function Group:BuildSettings(content,y,host,tabY)
     return ai<bi
   end)
   local positions,height={},0
+  local familyTabs,familySelection,familyButtons={},{},{}
+  for _,tab in ipairs(self.tabs) do
+    local family=tab.meta.family
+    if family then
+      familyTabs[family]=familyTabs[family] or {}
+      table.insert(familyTabs[family],tab)
+    end
+  end
+  local function topTab(tab)
+    return not tab.meta.family or familyTabs[tab.meta.family][1]==tab
+  end
+  local function titleWidth(title,measure)
+    measure:SetText(title)
+    return math.ceil(measure:GetStringWidth())+24
+  end
   local categoryLabels={}
   local measure=host:CreateFontString(nil,"OVERLAY"); measure:SetFont(UI:Font(),T.LabelFontSize,"")
   local x,top=0,tabY
@@ -34,9 +49,12 @@ function Group:BuildSettings(content,y,host,tabY)
       local label=UI:CreateDescription(host,tab.meta.category,0,top);categoryLabels[tab.id]=label
       label:SetWidth(host:GetWidth()); top=top-22; x=0
     end
-    measure:SetText(tab.title); local width=math.ceil(measure:GetStringWidth())+24
-    if x>0 and x+width>host:GetWidth() then x=0;top=top-T.ButtonHeight-T.RowGap end
-    positions[tab.id]={x=x,y=top,width=width}; x=x+width+T.RowGap
+    if topTab(tab) then
+      local width=titleWidth(tab.meta.family or tab.title,measure)
+      if x>0 and x+width>host:GetWidth() then x=0;top=top-T.ButtonHeight-T.RowGap end
+      positions[tab.id]={x=x,y=top,width=width}; x=x+width+T.RowGap
+    end
+    tab.subWidth=tab.meta.family and titleWidth(tab.title,measure) or nil
   end
   measure:Hide(); height=tabY-top+T.ButtonHeight+T.SectionGap
   local bodyY=host==content and y-height or y
@@ -59,10 +77,18 @@ function Group:BuildSettings(content,y,host,tabY)
     local panel=panels[id];if not panel then return end
     if KHQOL.settings and KHQOL.settings.activeContent==content then UI.SettingsNavigation:RememberScroll(KHQOL.settings) end
     UI:CloseDropdown();self.selected=id
+    local meta=R.groups[self.id][id]
+    local family=meta.family
+    if family then familySelection[family]=id end
     for _,tab in ipairs(self.tabs) do
-      UI:SetButtonSelected(buttons[tab.id],tab.id==id)
+      if topTab(tab) then UI:SetButtonSelected(buttons[tab.id],tab.id==id or family~=nil and tab.meta.family==family) end
+      if familyButtons[tab.id] then
+        familyButtons[tab.id]:SetShown(tab.meta.family==family)
+        UI:SetButtonSelected(familyButtons[tab.id],tab.id==id)
+      end
       if tab.id~=id then panels[tab.id]:Hide() end
     end
+    if host.ReflowTabs and next(familyTabs) then host:ReflowTabs() end
     content.activePanel=panel;panel:Show()
     if panel:GetWidth()~=content:GetWidth() then panel:SetWidth(content:GetWidth()) end
     if panel.uiBuilders then panel.uiBuilders[1]:Reflow() end
@@ -72,8 +98,8 @@ function Group:BuildSettings(content,y,host,tabY)
     if KHQOL.settings then
       KHQOL.settings:SetModuleSubHeader(panel.fixedHeader)
       KHQOL.settings:SetPageScrollLayout(self.id)
-      local meta=R.groups[self.id][id]
       KHQOL.settings:SetModuleHeader(meta)
+      if family then KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path({module=meta.key})) end
       if meta.sharedTabs then
         local p={module=meta.key,tab=id}
         KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
@@ -98,8 +124,17 @@ function Group:BuildSettings(content,y,host,tabY)
   for _,tab in ipairs(self.tabs) do
     local id=tab.id
     local pos=positions[id]
-    buttons[id]=UI:CreateButton(host,tab.title,pos.x,pos.y,pos.width,function() selectTab(id) end)
-    buttons[id].navigationOnly=true
+    local family=tab.meta.family
+    if pos then
+      buttons[id]=UI:CreateButton(host,family or tab.title,pos.x,pos.y,pos.width,function() selectTab(familySelection[family] or id) end)
+      buttons[id].navigationOnly=true
+      buttons[id].settingsFamilyTab=family
+    end
+    if family then
+      familyButtons[id]=UI:CreateButton(host,tab.title,0,tabY,tab.subWidth,function() selectTab(id) end)
+      familyButtons[id].navigationOnly=true;familyButtons[id]:Hide()
+      content.tabButtons["family:"..id]=familyButtons[id]
+    end
     local panel=CreateFrame("Frame",nil,content);panel:SetPoint("TOPLEFT",0,bodyY);panel:SetWidth(content:GetWidth());panel:Hide()
     panel.settingsModuleKey=tab.meta.key;panel.settingsRoute={module=tab.meta.key or tab.meta.id=="general" and "generalConvenience" or self.id,tab=(self.id=="quest" or tab.meta.sharedTabs) and id or nil}; panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
     panel:HookScript("OnSizeChanged",function() if self.selected==id then updateHeight(panel) end end)
@@ -114,14 +149,29 @@ function Group:BuildSettings(content,y,host,tabY)
     if host.khqolPageIntro then tabY=UI:LayoutPageIntro(host)-T.RowGap end
     local left,top=0,tabY
     for _,tab in ipairs(selfGroup.tabs) do
-      local button=buttons[tab.id];local width=positions[tab.id].width
-      if tab.meta.category then
-        top=top-(left>0 and T.ButtonHeight+T.RowGap or 0)
-        local label=categoryLabels[tab.id];label:ClearAllPoints();label:SetPoint("TOPLEFT",0,top);label:SetWidth(host:GetWidth())
-        top=top-math.max(22,label:GetStringHeight()+6);left=0
+      local button=buttons[tab.id]
+      if button then
+        local width=positions[tab.id].width
+        if tab.meta.category then
+          top=top-(left>0 and T.ButtonHeight+T.RowGap or 0)
+          local label=categoryLabels[tab.id];label:ClearAllPoints();label:SetPoint("TOPLEFT",0,top);label:SetWidth(host:GetWidth())
+          top=top-math.max(22,label:GetStringHeight()+6);left=0
+        end
+        if left>0 and left+width>host:GetWidth() then left=0;top=top-T.ButtonHeight-T.RowGap end
+        button:ClearAllPoints();button:SetPoint("TOPLEFT",left,top);left=left+width+T.RowGap
       end
-      if left>0 and left+width>host:GetWidth() then left=0;top=top-T.ButtonHeight-T.RowGap end
-      button:ClearAllPoints();button:SetPoint("TOPLEFT",left,top);left=left+width+T.RowGap
+    end
+    local selected=R.groups[selfGroup.id][selfGroup.selected]
+    local family=selected and selected.family
+    if family then
+      left=0;top=top-T.ButtonHeight-T.RowGap
+      for _,tab in ipairs(familyTabs[family]) do
+        local width=tab.subWidth
+        if left>0 and left+width>host:GetWidth() then left=0;top=top-T.ButtonHeight-T.RowGap end
+        local button=familyButtons[tab.id]
+        button:ClearAllPoints();button:SetPoint("TOPLEFT",left,top)
+        left=left+width+T.RowGap
+      end
     end
     host:SetHeight(-top+T.ButtonHeight+T.SectionGap)
   end

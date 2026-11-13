@@ -22,6 +22,7 @@ function N:Path(p,title)
   local page=p.page or meta and meta.group or "general";local name=page
   for _,v in ipairs(R.pages) do if v[1]==page then name=v[2];break end end
   local path={name}
+  if meta and meta.family then path[#path+1]=meta.family end
   local titleText=meta and (meta.tabTitle or meta.title)
   if meta and page~="unitFrames" and (titleText~=name or p.tab and meta.sharedTabs) then path[#path+1]=titleText end
   if p.castUnit then path[#path+1]=self.units[p.castUnit] or p.castUnit end
@@ -218,12 +219,12 @@ function N:EditorRoute(t)
     return {module="unitFrames",unit=u,part=parts[part] or "basic",category=id:match("%.auras%.([^%.]+)")}
   end
   if id=="settings.window" then return {module="general"} end
-  local sections={clock="시간 글자·모양",["clock.professions"]="전문기술",["clock.professions.panel"]="전문기술",
+  local sections={clock="시간 글자·모양",professions="전문기술 버튼",["professions.panel"]="펼친 목록",
     ["clock.alert"]="알람·타이머·스톱워치",["clock.tools"]="알람·타이머·스톱워치",["clock.stopwatch"]="알람·타이머·스톱워치",
     range="위치",["range.mouseover"]="마우스오버 거리 측정",["tooltip.position"]="배치 방식",
     resource="위치",ammo="탄약 / 영혼의 조각 위치",["resource.combo"]="콤보 포인트",cast="위치",["cast.target"]="대상 시전바 위치"}
   if sections[id] then return {module=t.settingsKey or t.key,section=sections[id],castUnit=id=="cast.target" and "target" or id=="cast" and "player" or nil} end
-  local sides={ ["clock.date"]="date",["clock.weekday"]="weekday",["clock.money"]="money",["clock.performance"]="performance"}
+  local sides={ ["clock.date"]="date",["clock.weekday"]="weekday",["clock.money"]="money",["clock.performance"]="performance",["clock.guild"]="guild"}
   if sides[id] then return {module="clock",section="사이드 텍스트",sideTarget=sides[id]} end
   if t.key=="questNavigator" then return {module="questNavigator",tab="navigation"} end
   return {module=t.settingsKey or t.key or "general"}
@@ -234,7 +235,7 @@ function N:EditorMeta(t)
   t.category=p.module=="unitFrames" and "유닛프레임" or meta and self:Path({page=meta.group}) or "기본창·도구창"
   t.group=p.unit and self.units[p.unit] or meta and meta.title or "도구창"
   t.groupID=(p.module or "general").."/"..(p.unit or "")
-  t.largeWindow=t.id=="settings.window" or t.id:match("^basicUI%.")~=nil or t.id=="note" or t.id=="clock.tools" or t.id=="clock.professions.panel"
+  t.largeWindow=t.id=="settings.window" or t.id:match("^basicUI%.")~=nil or t.id=="note" or t.id=="clock.tools" or t.id=="professions.panel"
   t.representative=t.representative or not t.largeWindow and (p.module~="unitFrames" and not t.parentID or t.id=="unitFrames.targettarget")
   return t
 end

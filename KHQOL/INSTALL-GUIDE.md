@@ -1,3 +1,35 @@
+# KHQOL 1.11.7.4 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.7.4-Base.zip`의 기존 폴더 18개를 `Interface/AddOns`에 교체합니다. 개인·파티 프레임을 사용하는 경우 `KHQOL_UnitFrames-1.11.7.4.zip`의 `KHQOL_UnitFrames`도 교체합니다. `WTF`와 SavedVariables를 유지합니다.
+
+---
+
+# KHQOL 1.11.7.3 설치 안내
+
+| 설치 ZIP | 구성 |
+| --- | --- |
+| `KHQOL-1.11.7.3-Base.zip` | 기존 기본 애드온 폴더 18개 |
+| `KHQOL_UnitFrames-1.11.7.3.zip` | 선택 프레임 폴더 `KHQOL_UnitFrames` 1개 |
+
+게임을 종료하고 기존 KHQOL 폴더를 백업한 다음 ZIP의 최상위 폴더를 Forever의 `Interface/AddOns`에 복사합니다. 기존 `KHQOL_Clock`은 폴더 단위로 교체합니다. 프레임 사용자는 선택 ZIP도 함께 업데이트합니다. `WTF`와 SavedVariables를 유지하면 프로필, 노트, 캐릭터별 설정을 이어서 읽습니다.
+
+[새 기능과 메뉴 위치](README.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.7.3.md)
+
+---
+
+# KHQOL 1.11.7.2 설치 안내
+
+| 설치 ZIP | 폴더 | 파일 |
+| --- | ---: | ---: |
+| `KHQOL-1.11.7.2-Base.zip` | 18 | 290 |
+| `KHQOL_UnitFrames-1.11.7.2.zip` | 1 | 34 |
+
+1. 게임을 완전히 종료하고 기존 KHQOL 코드를 백업합니다.
+2. 기본 ZIP의 최상위 애드온 폴더를 `Interface/AddOns`에 설치합니다. 선택 프레임을 사용 중이면 `KHQOL_UnitFrames` 폴더도 같은 버전으로 교체합니다.
+3. `WTF`와 SavedVariables는 유지합니다. 미니맵은 `KHQOL_Map`의 기존 `KHQOLMapDB`를 계속 사용합니다.
+
+---
+
 # KHQOL 1.11.7.1 설치 안내
 
 | 설치 ZIP | 폴더 | 파일 |

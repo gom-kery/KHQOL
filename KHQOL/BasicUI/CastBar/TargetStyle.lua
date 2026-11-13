@@ -1,137 +1,170 @@
 local _,K=...
-K = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local C=K.modules.castBar
-local B,appearance,layers=K.modules.basicUI,K.NativeAppearance,K.WindowLayers
 local call=K.PublicCall
-local WHITE="Interface\\Buttons\\WHITE8X8"
-function C:TargetStyleEnabled()
-  return self:IsEnabled() and self:GetDB().targetPosition.enabled and
-    call(EditModeManagerFrame and EditModeManagerFrame.IsShown,EditModeManagerFrame)~=true
+
+-- Blizzard owns the cast lifecycle. Forward widget values as-is to the
+-- corresponding display setters. A restricted value never drives Lua logic.
+local function copyValue(destination,setter,source,getter)
+  if not source or type(source[getter])~="function" then return false end
+  local ok,a,b=pcall(source[getter],source)
+  if not ok then return false end
+  local sent
+  if getter=="GetMinMaxValues" then sent=pcall(destination[setter],destination,a,b)
+  else sent=pcall(destination[setter],destination,a) end
+  return sent
 end
-local function color(frame)
-  local status,r,g,b,a=K.ReadPublicAPI(frame.GetStatusBarColor,frame)
-  if status=="ok" and K.IsPublicNumber(r) and K.IsPublicNumber(g) and K.IsPublicNumber(b) and K.IsPublicNumber(a) then return {r,g,b,a} end
+
+function C:SyncTargetCastVisibility(owner)
+  local bar,source=owner.bar,owner.source
+  if not owner.active or not self:IsEnabled() or not self.db.targetPosition.enabled
+    or call(EditModeManagerFrame and EditModeManagerFrame.IsShown,EditModeManagerFrame)==true then
+    self:SetTargetNativeAlpha(owner,false)
+    bar:Hide()
+    return
+  end
+  if not owner.valuesReady then return end
+  if not copyValue(bar,"SetShown",source,"IsVisible") then
+    self:SetTargetNativeAlpha(owner,false)
+    bar:Hide()
+    return
+  end
+  if not self:SetTargetNativeAlpha(owner,true) then bar:Hide() end
 end
-local function same(a,b)
-  if not a or not b then return false end
-  for i=1,4 do if a[i]~=b[i] then return false end end
-  return true
+
+function C:SetTargetNativeAlpha(owner,suppress)
+  if suppress==owner.suppressed then return true end
+  owner.writingAlpha=true
+  local ok=pcall(owner.source.SetAlpha,owner.source,suppress and 0 or owner.nativeAlpha)
+  owner.writingAlpha=false
+  if ok then owner.suppressed=suppress end
+  return ok
 end
-local function fill(texture)
-  local ts,t=K.ReadPublicAPI(texture.GetTexture,texture)
-  local ats,atlas=K.ReadPublicAPI(texture.GetAtlas,texture)
-  local cs,a,b,c,d,e,f,g,h=K.ReadPublicAPI(texture.GetTexCoord,texture)
-  if ts~="ok" or (ats~="ok" and ats~="missing") or cs~="ok" then return end
-  if atlas~=nil and type(atlas)~="string" then return end
-  if t~=nil and type(t)~="string" and not K.IsPublicNumber(t) then return end
-  local coords={a,b,c,d,e,f,g,h}
-  if #coords~=4 and #coords~=8 then return end
-  for _,v in ipairs(coords) do if not K.IsPublicNumber(v) then return end end
-  return {atlas=atlas,texture=t,coords=coords}
+
+function C:SyncTargetCastValues(owner)
+  if not owner.active then return end
+  local bar,source=owner.bar,owner.source
+  owner.valuesReady=copyValue(bar,"SetMinMaxValues",source,"GetMinMaxValues")
+    and copyValue(bar,"SetValue",source,"GetValue")
+  if not owner.valuesReady then
+    self:SetTargetNativeAlpha(owner,false)
+    bar:Hide()
+    return
+  end
+  if not copyValue(owner.icon,"SetTexture",source.Icon,"GetTexture") then owner.icon:SetTexture(nil) end
+  if not copyValue(owner.name,"SetText",source.Text,"GetText") then owner.name:SetText("") end
+  if not copyValue(owner.time,"SetText",source.CastTimeText,"GetText") then owner.time:SetText("") end
+  self:SyncTargetCastVisibility(owner)
 end
-local function sameFill(a,b)
-  if not a or not b or a.texture~=b.texture or a.atlas~=b.atlas or #a.coords~=#b.coords then return false end
-  for i,v in ipairs(a.coords) do if v~=b.coords[i] then return false end end
-  return true
-end
-local function writeFill(texture,value)
-  local status
-  if value.atlas then status=K.ReadPublicAPI(texture.SetAtlas,texture,value.atlas,false)
-  else status=K.ReadPublicAPI(texture.SetTexture,texture,value.texture) end
-  return status=="ok" and K.ReadPublicAPI(texture.SetTexCoord,texture,unpack(value.coords))=="ok"
-end
-function C:PaintTargetStyle(owner)
-  if not owner or not owner.active or not self:TargetStyleEnabled() or owner.painting then return end
-  if not layers:OutsideCombat() and call(owner.frame.IsProtected,owner.frame)~=false then return end
-  owner.painting=true
-  -- Only artwork is changed here. Native cast values, durations and private
-  -- cast state are never read, compared, copied or replaced.
-  local ok=pcall(function()
-    local f=owner.frame;local db=self:GetDB().targetStyle;local current=color(f)
-    if current and not same(current,owner.lastColor) then owner.originalColor=current end
-    local texture=call(f.GetStatusBarTexture,f)
-    if texture then
-      local now=fill(texture)
-      if now and not sameFill(now,owner.lastFill) then owner.originalFill=now end
-      local desired={texture=self.textures[db.appearance.texture],coords={0,0,0,1,1,0,1,1}}
-      -- A private native color/atlas is not a reason to interpret its value.
-      -- Keep the last public restore snapshot and send only our own public
-      -- artwork to the texture setter. Never use private cast data in Lua.
-      if owner.originalFill and writeFill(texture,desired) then owner.lastFill=fill(texture) or desired end
+
+function C:CreateTargetCastDisplay(source,root)
+  self.targetDisplays=self.targetDisplays or setmetatable({}, {__mode="k"})
+  local owner=self.targetDisplays[source]
+  if owner then return owner end
+  -- An independent UIParent bar is never moved by TargetSpellBar:AdjustPosition.
+  local bar=CreateFrame("StatusBar",nil,UIParent)
+  bar:EnableMouse(false);bar:SetFrameStrata("MEDIUM");bar:Hide()
+  local background=bar:CreateTexture(nil,"BACKGROUND",nil,-1)
+  background:SetTexture(self.textures.FLAT);background:SetAllPoints(bar)
+  owner={bar=bar,source=source,background=background,active=false,suppressed=false,nativeAlpha=1}
+  owner.icon=bar:CreateTexture(nil,"ARTWORK")
+  owner.name=bar:CreateFontString(nil,"OVERLAY","GameFontHighlight")
+  owner.time=bar:CreateFontString(nil,"OVERLAY","GameFontHighlight")
+  owner.name:SetWordWrap(false);owner.name:SetMaxLines(1)
+  self.targetDisplays[source]=owner
+
+  for _,method in ipairs({"SetMinMaxValues","SetValue"}) do
+    if type(source[method])=="function" then
+      hooksecurefunc(source,method,function(_,...)
+        if owner.active and not pcall(bar[method],bar,...) then
+          owner.valuesReady=false
+          C:SetTargetNativeAlpha(owner,false);bar:Hide()
+        end
+      end)
     end
-    local desired=owner.interrupted and db.appearance.interruptedColor or db.appearance.barColor
-    if owner.originalColor and K.ReadPublicAPI(f.SetStatusBarColor,f,unpack(desired))=="ok" then owner.lastColor=color(f) or {unpack(desired)} end
+  end
+  hooksecurefunc(source,"SetAlpha",function(_,alpha)
+    if owner.writingAlpha then return end
+    owner.nativeAlpha=alpha
+    if owner.active then
+      pcall(bar.SetAlpha,bar,alpha)
+      if owner.suppressed then
+        owner.suppressed=false
+        if not C:SetTargetNativeAlpha(owner,true) then bar:Hide() end
+      end
+    end
   end)
-  owner.painting=false
-  if not ok then self.targetStylePending=true end
+  for _,entry in ipairs({{source.Text,owner.name,"SetText"},{source.CastTimeText,owner.time,"SetText"},
+      {source.Icon,owner.icon,"SetTexture"}}) do
+    local original,copy,method=unpack(entry)
+    if original and type(original[method])=="function" then
+      hooksecurefunc(original,method,function(_,value)
+        if owner.active and not pcall(copy[method],copy,value) then copy[method](copy,method=="SetText" and "" or nil) end
+      end)
+    end
+  end
+  source:HookScript("OnShow",function() C:SyncTargetCastValues(owner) end)
+  source:HookScript("OnHide",function() if owner.active then bar:Hide() end end)
+  root:HookScript("OnHide",function() if owner.active then bar:Hide() end end)
+  root:HookScript("OnShow",function()
+    if K.WindowLayers:OutsideCombat() then C:ApplyTargetPosition()
+    else C:SyncTargetCastValues(owner) end
+  end)
+  if type(source.UpdateBarFillTexture)=="function" then
+    hooksecurefunc(source,"UpdateBarFillTexture",function()
+      if owner.active then bar:SetStatusBarColor(unpack(owner.normalColor)) end
+    end)
+  end
+  if type(source.PlayInterruptAnims)=="function" then
+    hooksecurefunc(source,"PlayInterruptAnims",function()
+      if owner.active then bar:SetStatusBarColor(unpack(owner.interruptedColor)) end
+    end)
+  end
+  return owner
 end
-function C:ReleaseTargetStyle(owner)
+
+function C:ReleaseTargetCastDisplay()
+  local owner=self.targetDisplay
   if not owner then return end
   owner.active=false
-  if owner.background then owner.background:Hide() end
-  B.Release(self,owner);appearance.Release(self,owner)
-  local texture=call(owner.frame.GetStatusBarTexture,owner.frame)
-  if texture and sameFill(fill(texture),owner.lastFill) and owner.originalFill then writeFill(texture,owner.originalFill) end
-  if same(color(owner.frame),owner.lastColor) and owner.originalColor then
-    K.ReadPublicAPI(owner.frame.SetStatusBarColor,owner.frame,unpack(owner.originalColor))
-  end
-  owner.lastColor=nil;owner.originalColor=nil;owner.lastFill=nil;owner.originalFill=nil;owner.interrupted=nil
+  owner.bar:Hide()
+  self:SetTargetNativeAlpha(owner,false)
+  if not owner.suppressed then self.targetDisplay=nil end
 end
-function C:ApplyTargetStyle()
-  -- Geometry/font changes are deferred even for an unprotected bar. The art
-  -- hooks below keep the already-installed style through native combat casts.
-  if not layers:OutsideCombat() then self.targetStylePending=true;return end
-  self.targetStylePending=nil;self.propertyDeferred=nil
-  local frame=self:TargetFrame();local owner=self.targetStyleOwner
-  if owner and owner.frame~=frame then self:ReleaseTargetStyle(owner);self.targetStyleOwner=nil;owner=nil end
-  if not frame or not self:TargetStyleEnabled() then
-    self:ReleaseTargetStyle(owner);self.targetStylePending=self.propertyDeferred;return
+
+function C:ApplyTargetCastDisplay(source,root,left,top,scale)
+  local owner=self:CreateTargetCastDisplay(source,root)
+  if self.targetDisplay~=owner then
+    self:ReleaseTargetCastDisplay()
+    if self.targetDisplay then return false end
+    self.targetDisplay=owner
   end
-  if not owner then
-    owner={frame=frame};self.targetStyleOwner=owner
-    owner.background=frame:CreateTexture(nil,"BACKGROUND",nil,-1)
-    owner.background:SetTexture(WHITE);owner.background:SetAllPoints(frame)
-    local function paint() C:PaintTargetStyle(owner) end
-    -- Post-hooks only: never invoke/replace the native update, SetUnit, event
-    -- handler or OnUpdate. Cast/channel secrecy stays in Blizzard's engine.
-    if type(frame.UpdateBarFillTexture)=="function" then
-      hooksecurefunc(frame,"UpdateBarFillTexture",function() owner.interrupted=nil;paint() end)
-    end
-    if type(frame.PlayInterruptAnims)=="function" then
-      hooksecurefunc(frame,"PlayInterruptAnims",function() owner.interrupted=true;paint() end)
-    end
-    if type(frame.SetLook)=="function" then
-      hooksecurefunc(frame,"SetLook",function() if owner.active then C:ApplyTargetPosition() end end)
-    end
+  if not owner.suppressed then owner.nativeAlpha=call(source.GetAlpha,source) or 1 end
+  local db=self:GetDB()
+  local style=db.targetStyle
+  local art=style.appearance
+  local bar=owner.bar
+  local icon=style.icon
+  local width=math.max(1,art.width-(icon.enabled and icon.size+2 or 0))
+  owner.normalColor,owner.interruptedColor=art.barColor,art.interruptedColor
+  bar:ClearAllPoints()
+  bar:SetPoint("TOPLEFT",UIParent,"BOTTOMLEFT",left/scale,top/scale)
+  bar:SetScale(scale)
+  bar:SetSize(width,art.height)
+  bar:SetStatusBarTexture(self.textures[art.texture])
+  bar:SetStatusBarColor(unpack(art.barColor))
+  owner.background:SetVertexColor(unpack(art.backgroundColor))
+  local iconLeft=icon.position=="left"
+  owner.icon:ClearAllPoints();owner.icon:SetPoint(iconLeft and "RIGHT" or "LEFT",bar,iconLeft and "LEFT" or "RIGHT",iconLeft and -2 or 2,0)
+  owner.icon:SetSize(icon.size,icon.size);owner.icon:SetShown(icon.enabled and source.Icon~=nil)
+  local function text(region,settings,available,fraction)
+    self:AnchorText(region,settings,bar)
+    region:SetWidth(math.max(1,width*fraction))
+    region:SetShown(settings.enabled and available)
   end
+  text(owner.name,style.spellName,source.Text~=nil,.65)
+  text(owner.time,db.castTime,source.CastTimeText~=nil,.3)
+  pcall(bar.SetAlpha,bar,owner.nativeAlpha)
   owner.active=true
-  local db=self:GetDB().targetStyle;local a=db.appearance
-  local inset=db.icon.enabled and db.icon.size+2 or 0
-  local width=math.max(1,a.width-inset)
-  B.Write(self,owner,frame,"width",width);B.Write(self,owner,frame,"height",a.height)
-  for _,key in ipairs({"Border","BorderShield","BarBorder","TextBorder","Background","Spark","Flash"}) do
-    if frame[key] then B.Write(self,owner,frame[key],"alpha",0) end
-  end
-  owner.background:SetVertexColor(unpack(a.backgroundColor));owner.background:Show()
-  if frame.Icon then
-    B.Write(self,owner,frame.Icon,"width",db.icon.size);B.Write(self,owner,frame.Icon,"height",db.icon.size)
-    local left=db.icon.position=="left"
-    B.Write(self,owner,frame.Icon,"points",{{left and "RIGHT" or "LEFT",frame,left and "LEFT" or "RIGHT",left and -2 or 2,0}})
-    B.Write(self,owner,frame.Icon,"alpha",db.icon.enabled and 1 or 0)
-  end
-  local function text(region,cfg,maximum)
-    if not region then return end
-    local outside=cfg.position:find("outside",1,true)==1
-    local side=cfg.position:match("_(%a+)$"):upper()
-    local anchor=side=="CENTER" and (outside and "BOTTOM" or "CENTER") or (outside and "BOTTOM"..side or side)
-    local relative=outside and (side=="CENTER" and "TOP" or "TOP"..side) or side
-    B.Write(self,owner,region,"points",{{anchor,frame,relative,side=="LEFT" and 4 or side=="RIGHT" and -4 or 0,outside and 3 or 0}})
-    B.Write(self,owner,region,"width",maximum);B.Write(self,owner,region,"height",cfg.fontSize+6)
-    B.Write(self,owner,region,"alpha",cfg.enabled and 1 or 0)
-    appearance.Write(self,owner,region,"font",{K.FONT_PATH or STANDARD_TEXT_FONT,cfg.fontSize,"OUTLINE"})
-    appearance.Write(self,owner,region,"justify",side)
-  end
-  text(frame.Text,db.spellName,math.max(1,width*.65))
-  text(frame.CastTimeText,self:GetDB().castTime,math.max(1,width*.3))
-  self:PaintTargetStyle(owner);self.targetStylePending=self.targetStylePending or self.propertyDeferred
+  self:SyncTargetCastValues(owner)
+  return true
 end

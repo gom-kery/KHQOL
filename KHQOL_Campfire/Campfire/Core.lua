@@ -4,7 +4,7 @@ local CFA = KHQOL.modules.campfire
 
 CFA.NAME = ADDON_NAME or "CampfireAlert"
 CFA.PREFIX = "[CampfireAlert]"
-CFA.VERSION = "1.11.7.1"
+CFA.VERSION = "1.11.7.4"
 CFA.SPELLS = {
     NEARBY_CAMPFIRE = 1283391,
     REST_PROCESS = 1229739,

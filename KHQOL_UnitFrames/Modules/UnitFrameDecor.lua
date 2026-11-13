@@ -272,6 +272,7 @@ function M:UpdateUnitValues(unit)
   self:ApplyHealthColor(owner,p,unit)
   self:ApplyLabelColors(owner,p,unit)
   self:SyncHealthDisplay(owner,p)
+  if unit=="target" then self:SyncTargetHeal(owner) end
   self:UpdateBarText(owner,p.health,unit,"health"); self:UpdateBarText(owner,p.power,unit,"power")
 end
 function M:BottomFrame()
@@ -716,6 +717,7 @@ function M:ApplyCompactLayout(owner,p,unit,on)
   p.unit=unit
   if not on then
     owner.compactActive=false
+    if owner.healDisplay then owner.healDisplay:SetValue(0) end
     self:CompactThreat(owner,p,false)
     self:ReleaseNativeDecorations(owner)
     self:Release(owner);self:ReleaseDecor(owner)

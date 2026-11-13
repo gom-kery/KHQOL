@@ -23,7 +23,7 @@ function C:TargetBase()
   local controlled=self:IsEnabled() and cfg.enabled
   local U=activeUnits()
   local target=U and U:GetDB().target
-  local category=U and U:TargetAuraCategory()
+  local category=not controlled and U and U:TargetAuraCategory()
   local a=category and target.auras[category]
   local above=a and a.enabled and a.position=="above"
   if not controlled and not above then return end
@@ -46,21 +46,47 @@ function C:TargetBase()
   end
   return f,root,x,y,0,0,false
 end
+
+local function targetGeometry(f,relative,x,y,dx,dy)
+  local rx,ry=call(relative.GetCenter,relative)
+  local rw,rh=call(relative.GetSize,relative)
+  local rs,fs=call(relative.GetEffectiveScale,relative),call(f.GetEffectiveScale,f)
+  local ps=call(UIParent.GetEffectiveScale,UIParent)
+  if not finite(rx) or not finite(ry) or not finite(rw) or not finite(rh)
+    or not finite(rs) or rs<=0 or not finite(fs) or fs<=0 or not finite(ps) or ps<=0 then return end
+  local ratio=rs/ps
+  return (rx-rw/2+x+dx)*ratio,(ry-rh/2+y+dy)*ratio,fs/ps,ratio
+end
+
 function C:ApplyTargetPosition()
   if self.targetApplying then return end
-  -- The anchor can be owned by the secure native target even if its cast bar
-  -- appears unprotected. Apply the latest settings after combat.
-  if not layers:OutsideCombat() then self.targetPending=true;return end
+  if not layers:OutsideCombat() then
+    self.targetPending=true
+    if self.targetDisplay and (not self:IsEnabled() or not self.db.targetPosition.enabled) then
+      self:SyncTargetCastVisibility(self.targetDisplay)
+    end
+    return
+  end
   self.targetApplying=true
   local ok,err=pcall(function()
-    self:ApplyTargetStyle()
-    local f=self:TargetFrame();local state=self.targetOwner
-    if state and state.frame~=f then
+    local f,root=self:TargetFrame();local state=self.targetOwner
+    local frame,relative,x,y,dx,dy,controlled=self:TargetBase()
+    if state and (state.frame~=f or not frame or controlled) then
       if not position.Release(self,state) then self.targetPending=true;return end
       self.targetOwner=nil;state=nil
     end
-    local frame,relative,x,y,dx,dy=self:TargetBase()
-    if not frame then self.targetPending=state and not position.Release(self,state) or nil;return end
+    if controlled then
+      local left,top,scale=targetGeometry(frame,relative,x,y,dx,dy)
+      if left then
+        self.targetPending=not self:ApplyTargetCastDisplay(frame,root,left,top,scale)
+      else
+        if self.targetDisplay and self.targetDisplay.source~=frame then self:ReleaseTargetCastDisplay() end
+        self.targetPending=true
+      end
+      return
+    end
+    self:ReleaseTargetCastDisplay()
+    if not frame then self.targetPending=self.targetDisplay~=nil;return end
     if not state then
       self.targetOwners=self.targetOwners or setmetatable({}, {__mode="k"})
       state=self.targetOwners[frame]
@@ -79,19 +105,20 @@ function C:ApplyTargetPosition()
     self.targetPending=not position.Write(self,state,{{"TOPLEFT",relative,"BOTTOMLEFT",(x+dx)*rs/fs,(y+dy)*rs/fs}})
   end)
   self.targetApplying=false
-  if not ok then self.targetPending=true;self.targetPositionReason="게임이 대상 시전바 위치 변경을 제한했습니다. 전투 종료 후 다시 적용합니다."
+  if not ok then
+    self:ReleaseTargetCastDisplay()
+    self.targetPending=true;self.targetPositionReason="게임이 대상 시전바 위치 변경을 제한했습니다. 전투 종료 후 다시 적용합니다."
   elseif not self.targetPending then self.targetPositionReason=nil end
 end
 function C:TargetPositionPreview()
   if call(InCombatLockdown)==true or editing() then return end
   local f,relative,x,y,dx,dy,controlled=self:TargetBase();if not controlled then return end
-  local rx,ry=call(relative.GetCenter,relative);local rw,rh=call(relative.GetSize,relative)
-  local rs=call(relative.GetEffectiveScale,relative);local fs=call(f.GetEffectiveScale,f);local ps=call(UIParent.GetEffectiveScale,UIParent)
-  if not finite(rx) or not finite(ry) or not finite(rw) or not finite(rh) or not finite(rs) or rs<=0 or not finite(fs) or fs<=0 or not finite(ps) or ps<=0 then return end
-  local w=call(f.GetWidth,f,true);local h=call(f.GetHeight,f,true)
-  if not finite(w) or w<=0 then w=200 end;if not finite(h) or h<=0 then h=20 end
-  local ratio=rs/ps;local width,height=w*fs/ps,h*fs/ps
-  local cx,cy=(rx-rw/2+x+dx)*ratio+width/2,(ry-rh/2+y+dy)*ratio-height/2
+  local left,top,scale,ratio=targetGeometry(f,relative,x,y,dx,dy)
+  if not left then return end
+  local style=self:GetDB().targetStyle
+  local width=math.max(1,style.appearance.width-(style.icon.enabled and style.icon.size+2 or 0))*scale
+  local height=style.appearance.height*scale
+  local cx,cy=left+width/2,top-height/2
   if not self.targetProxy then self.targetProxy=CreateFrame("Frame",nil,UIParent);self.targetProxy:EnableMouse(false);self.targetProxy:Hide() end
   local p=self.targetProxy;p:ClearAllPoints();p:SetPoint("CENTER",UIParent,"BOTTOMLEFT",cx,cy);p:SetSize(width,height)
   local cfg=self:GetDB().targetPosition

@@ -15,7 +15,7 @@ FC.DEFAULTS = {
     weekday = { enabled = false, position = { x = 0, y = 35 }, language = "ko" },
     money = { enabled = true, position = { x = 170, y = 0 }, units = { gold = true, silver = true, copper = true } },
     performance = { enabled = true, position = { x = -82, y = -54 } },
-    professions = { enabled = true, layout = "horizontal", iconSize = 36, showSkill = true, position = { x = 160, y = 0 } },
+    guild = { enabled = false, showTitle = true, background = false, tooltipLimit = 15, position = { x = 170, y = 35 } },
   },
   -- Per-target style values are intentionally separate from module data.
   -- Missing target entries inherit the common side-module style, preserving
@@ -79,83 +79,8 @@ function FC:SetTextStyleValue(target, key, value)
   self.db.textStyle[target][key] = key == "color" and CopyColor(value) or value
 end
 
-function FC:SyncStyledText(fontString)
-  if not fontString then return end
-  local overlay = fontString.foreverClockBoldOverlay
-  local point, relativeTo, relativePoint, x, y = fontString:GetPoint(1)
-  if overlay then
-    overlay:SetText(fontString:GetText() or "")
-    overlay:SetShown(fontString:IsShown() and overlay.styleEnabled)
-  end
-  if point and overlay then
-    overlay:ClearAllPoints()
-    -- One full UI pixel is intentional: the prior sub-pixel offset could be
-    -- rounded away by Forever's renderer and made Bold visually identical.
-    overlay:SetPoint(point, relativeTo, relativePoint, (x or 0) + 1, y or 0)
-  end
-  for _, outline in ipairs(fontString.foreverClockThickOutlines or {}) do
-    outline:SetText(fontString:GetText() or "")
-    outline:SetShown(fontString:IsShown() and outline.styleEnabled)
-    if point then
-      outline:ClearAllPoints()
-      outline:SetPoint(point, relativeTo, relativePoint, (x or 0) + outline.offsetX, (y or 0) + outline.offsetY)
-    end
-  end
-end
-
-function FC:ApplyTextStyle(fontString, size, style)
-  if not fontString or not style then return end
-  local effect = style.effect or "OUTLINE"
-  local flags = effect == "OUTLINE" and "OUTLINE" or (effect == "THICKOUTLINE" and "THICKOUTLINE" or "")
-  local color = style.color or { 1, 1, 1, 1 }
-  fontString:SetFont(self.FONT_PATH, size, flags)
-  fontString:SetTextColor(color[1] == nil and 1 or color[1], color[2] == nil and 1 or color[2], color[3] == nil and 1 or color[3], color[4] == nil and 1 or color[4])
-  if effect == "SHADOW" then
-    fontString:SetShadowColor(0, 0, 0, 0.9)
-    fontString:SetShadowOffset(1, -1)
-  else
-    fontString:SetShadowColor(0, 0, 0, 0)
-    fontString:SetShadowOffset(0, 0)
-  end
-
-  -- IsamanruLight has no bundled bold face.  A second, slightly offset copy
-  -- gives a stable synthetic bold without replacing Korean glyph coverage.
-  local overlay = fontString.foreverClockBoldOverlay
-  if style.bold and not overlay then
-    overlay = fontString:GetParent():CreateFontString(nil, "OVERLAY")
-    fontString.foreverClockBoldOverlay = overlay
-  end
-  if overlay then
-    overlay:SetFont(self.FONT_PATH, size, flags)
-    overlay:SetTextColor(color[1] == nil and 1 or color[1], color[2] == nil and 1 or color[2], color[3] == nil and 1 or color[3], color[4] == nil and 1 or color[4])
-    if effect == "SHADOW" then overlay:SetShadowColor(0, 0, 0, 0.9); overlay:SetShadowOffset(1, -1) else overlay:SetShadowColor(0, 0, 0, 0); overlay:SetShadowOffset(0, 0) end
-    overlay.styleEnabled = style.bold and true or false
-    overlay:SetShown(overlay.styleEnabled)
-  end
-  local thickOutlines = fontString.foreverClockThickOutlines
-  if effect == "THICKOUTLINE" and not thickOutlines then
-    thickOutlines = {}
-    for _, offset in ipairs({ { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } }) do
-      -- The helper copies must sit below the source text.  OVERLAY would draw
-      -- their black glyph interiors on top of the coloured text.
-      local outline = fontString:GetParent():CreateFontString(nil, "ARTWORK")
-      outline.offsetX, outline.offsetY = offset[1], offset[2]
-      thickOutlines[#thickOutlines + 1] = outline
-    end
-    fontString.foreverClockThickOutlines = thickOutlines
-  end
-  for _, outline in ipairs(thickOutlines or {}) do
-    -- Some Forever builds render THICKOUTLINE almost like OUTLINE.  Four
-    -- one-pixel black copies make the selected effect reliably thicker.
-    outline:SetFont(self.FONT_PATH, size, "OUTLINE")
-    outline:SetTextColor(0, 0, 0, 0.9)
-    outline:SetShadowColor(0, 0, 0, 0)
-    outline:SetShadowOffset(0, 0)
-    outline.styleEnabled = effect == "THICKOUTLINE"
-    outline:SetShown(outline.styleEnabled)
-  end
-  self:SyncStyledText(fontString)
-end
+FC.SyncStyledText=KHQOL.HUDText.SyncStyledText
+FC.ApplyTextStyle=KHQOL.HUDText.ApplyTextStyle
 
 function FC:Print(message)
   local chat = DEFAULT_CHAT_FRAME or ChatFrame1
@@ -173,10 +98,9 @@ function FC:SetHUDShown(shown)
   self.db.enabled = shown and true or false
   if self.clockFrame then
     self.clockFrame:SetShown(self.db.enabled)
-    if self.db.enabled and self.ApplyLayout then self:ApplyLayout() end
+    if self.ApplyLayout then self:ApplyLayout() end
   end
   if self.UpdateTimers then self:UpdateTimers() end
-  if self.UpdateProfessionsVisibility then self:UpdateProfessionsVisibility() end
   if self.RefreshSettings then self:RefreshSettings() end
 end
 
@@ -210,7 +134,6 @@ function FC:Initialize()
   self:CreateClock()
   self:CreateClockTools()
   self:CreateModules()
-  self:CreateProfessions()
   self:CreateCalendar()
   self:CreateMinimapButton()
   self:CreateTodoMinimapButton()
@@ -221,41 +144,11 @@ function FC:Initialize()
   self.initialized=true
 end
 
--- Skill-line events can arrive in a short burst while zoning or learning a
--- profession.  Coalesce them so the UI is rebuilt once after the client has
--- finished updating its skill data.
-function FC:QueueProfessionScan()
-  if not self.db or self.professionScanQueued then return end
-  if not (C_Timer and C_Timer.After) then
-    if self.ScanProfessions then self:ScanProfessions() end
-    return
-  end
-  self.professionScanQueued = true
-  C_Timer.After(0.15, function()
-    FC.professionScanQueued = nil
-    if FC.db and FC.ScanProfessions then FC:ScanProfessions() end
-  end)
-end
-
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-eventFrame:RegisterEvent("SKILL_LINES_CHANGED")
-eventFrame:SetScript("OnEvent", function(_, event, ...)
-  if event == "PLAYER_LOGIN" then
-    FC:Initialize()
-    SLASH_FOREVERCLOCK1, SLASH_FOREVERCLOCK2 = "/fclock", "/fc"
-    SlashCmdList.FOREVERCLOCK = function(message)
-      local command = (message or ""):lower():match("^%s*(.-)%s*$")
-      if command == "professions" or command == "professions scan" then FC:PrintProfessionDebug()
-      elseif _G.KHQOL and _G.KHQOL.OpenModule then _G.KHQOL:OpenModule("clock") else FC:ToggleSettings() end
-    end
-  elseif event == "PLAYER_MONEY" and FC.UpdateMoney then
-    FC:UpdateMoney()
-  elseif event == "PLAYER_ENTERING_WORLD" or event == "SKILL_LINES_CHANGED" then
-    FC:QueueProfessionScan()
-  elseif FC.OnCalendarEvent then
-    FC:OnCalendarEvent(event, ...)
-  end
+eventFrame:SetScript("OnEvent", function(_, event)
+  if event == "PLAYER_LOGIN" then FC:Initialize()
+  elseif FC.initialized then FC:UpdateMoney() end
 end)

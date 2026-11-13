@@ -2,7 +2,7 @@ local _, KHQOL = ...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local FC, UI = KHQOL.modules.clock, KHQOL.UI
 local L = FC.L
-local targetNames = {common="공통",date="날짜",money="소지금",weekday="요일",performance="FPS / 지연시간",professions="전문기술"}
+local targetNames = {common="공통",date="날짜",money="소지금",weekday="요일",performance="FPS / 지연시간",guild="길드 접속"}
 local effects = {{value="NONE",text="없음"},{value="OUTLINE",text="외곽선"},{value="THICKOUTLINE",text="두꺼운 외곽선"},{value="SHADOW",text="그림자"}}
 
 function FC:GetSideFontSize(target)
@@ -10,13 +10,12 @@ function FC:GetSideFontSize(target)
 end
 function FC:SetSideFontSize(target, size)
   if target == "common" then self.db.moduleFontSize = size else self.db.modules[target].fontSize = size end
-  self:ApplyLayout(); self:UpdateDate(); self:UpdateWeekday(); self:UpdateMoney(); self:UpdatePerformance(); if self.ApplyProfessionFont then self:ApplyProfessionFont() end
+  self:ApplyLayout(); self:UpdateDate(); self:UpdateWeekday(); self:UpdateMoney(); self:UpdatePerformance()
 end
 function FC:ApplyTextStyleTarget(target)
   if target == "clock" then self:ApplyClock()
   else
     self:ApplyLayout(); self:UpdateDate(); self:UpdateWeekday(); self:UpdateMoney(); self:UpdatePerformance()
-    if self.ApplyProfessionFont then self:ApplyProfessionFont() end
   end
 end
 function FC:CreateSettings(parent)
@@ -54,6 +53,15 @@ function FC:CreateSettings(parent)
     local unit,title=item[1],item[2]
     b:Checkbox(title,function() return FC.db.modules.money.units[unit] end,function(v) FC.db.modules.money.units[unit]=v; FC:UpdateMoney() end,function() return FC.db.modules.money.enabled end)
   end
+  b:Section("길드 접속")
+  local function guild() return FC.db.modules.guild end
+  local function guildEnabled() return guild().enabled end
+  b:Checkbox("길드 접속 표시",guildEnabled,function(v) guild().enabled=v;FC:ConfigureGuildDisplay() end)
+  b:Checkbox("타이틀 표시",function() return guild().showTitle end,function(v) guild().showTitle=v;FC:UpdateGuildDisplay() end,guildEnabled)
+  b:Checkbox("배경 표시",function() return guild().background end,function(v) guild().background=v;FC:UpdateGuildDisplay() end,guildEnabled)
+  b:Slider("툴팁 명단 축약 기준",1,1000,1,function() return FC:GuildTooltipLimit() end,function(v)
+    guild().tooltipLimit=v;FC:UpdateGuildDisplay()
+  end,function(v) return v.."명" end,guildEnabled)
   b:Section("위치")
   b:Checkbox("위치 잠금",function() return FC.db.locked end,function(v) FC.db.locked=v; FC:ApplyClock(); FC:ApplyLayout() end)
 
@@ -63,20 +71,10 @@ function FC:CreateSettings(parent)
   b:Section("사이드 텍스트")
   f.sideTargetKey="common"
   local targets={}
-  for _,key in ipairs({"common","date","money","weekday","performance","professions"}) do targets[#targets+1]={value=key,text=targetNames[key]} end
+  for _,key in ipairs({"common","date","money","weekday","performance","guild"}) do targets[#targets+1]={value=key,text=targetNames[key]} end
   b:Dropdown("설정 대상",targets,function() return f.sideTargetKey end,function(v) f.sideTargetKey=v; FC:RefreshSettings() end)
   b:Slider("글자 크기",10,28,1,function() return FC:GetSideFontSize(f.sideTargetKey) end,function(v) FC:SetSideFontSize(f.sideTargetKey,v) end,function(v) return v.." px" end)
   style(function() return f.sideTargetKey end)
-  b:Section("전문기술")
-  b:Checkbox("전문기술 버튼 표시",function() return FC.db.modules.professions.enabled end,function(v) FC.db.modules.professions.enabled=v; FC:UpdateProfessionsVisibility() end)
-  local function professionsEnabled() return FC.db.modules.professions.enabled end
-  b:Dropdown("배치 방향",{{value="horizontal",text="가로형"},{value="vertical",text="세로형"}},function() return FC.db.modules.professions.layout end,function(v) FC.db.modules.professions.layout=v; FC:RenderProfessions() end,professionsEnabled)
-  b:Slider("아이콘 크기",24,56,1,function() return FC.db.modules.professions.iconSize end,function(v)
-    FC.db.modules.professions.iconSize=v; if FC.professionsPanel and FC.professionsPanel:IsShown() then FC:RenderProfessions() end
-  end,function(v) return v.." px" end,professionsEnabled)
-  b:Checkbox("숙련도 표시",function() return FC.db.modules.professions.showSkill end,function(v)
-    FC.db.modules.professions.showSkill=v; if FC.professionsPanel and FC.professionsPanel:IsShown() then FC:RenderProfessions() end
-  end,professionsEnabled)
   b:Section("알람·타이머·스톱워치")
   b:Description("도구는 각 창의 시작·정지·초기화 동작을 사용합니다. 설정창을 닫아도 실행 중인 도구는 계속됩니다. 알람 문구는 공용 내용이며 전체 프로필을 바꾸어도 유지합니다.",true)
   for _,entry in ipairs({{"알람 열기","alarm"},{"타이머 열기","timer"},{"스톱워치 열기","stopwatch"}}) do

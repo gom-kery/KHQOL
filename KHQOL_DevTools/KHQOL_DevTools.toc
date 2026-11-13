@@ -3,7 +3,7 @@
 ## Notes: Standalone frame inspector and chat output collector for WoW Forever.
 ## Notes-koKR: WoW Forever용 독립 프레임 검사 및 채팅 출력 수집 도구
 ## Author: KHQOL
-## Version: 1.11.7.1
+## Version: 1.11.7.4
 ## SavedVariables: KHQOL_DevToolsDB
 ## OptionalDeps: Blizzard_DebugTools
 

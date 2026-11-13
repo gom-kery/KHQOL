@@ -2,6 +2,7 @@ local _, KHQOL = ...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local QN=KHQOL.modules.questNavigator
 local N,UI=KHQOL.Navigation,KHQOL.NavigationUI
+local read=KHQOL.PublicCall
 -- Quest-list presentation is independent of the navigation/watch cache below.
 -- Verified against Gethe/wow-ui-source forever 15666a6 (1.60.1.70245).
 local trackerDefaults={groupByRegion=true,collapsibleRegions=true,showDungeonTag=true,
@@ -499,33 +500,38 @@ function QN:RenderTrackerQuest(row,watch,width)
   return math.max(32,y+6)
 end
 function QN:RestoreNativeTrackerPresentation()
-  for frame,alpha in pairs(self.trackerMasked or {}) do frame:SetAlpha(alpha) end
-  self.trackerMasked={}
-  for texture,shown in pairs(self.trackerHeaderDecorations or {}) do texture:SetShown(shown) end
-  self.trackerHeaderDecorations={}
-end
-function QN:HideTrackerHeaderDecorations()
-  if inCombat() then self.trackerPending=true; return end
-  self.trackerHeaderDecorations=self.trackerHeaderDecorations or {}
-  local function hide(texture)
-    if not texture or not texture:IsObjectType("Texture") then return end
-    if self.trackerHeaderDecorations[texture]==nil then
-      -- IsShown preserves the texture's own state even when its header is hidden.
-      self.trackerHeaderDecorations[texture]=texture:IsShown()
+  for frame,original in pairs(self.trackerMasked or {}) do
+    local alpha=read(frame.GetAlpha,frame)
+    if QN.IsNumber(alpha) and (alpha~=0 or KHQOL.ReadPublicAPI(frame.SetAlpha,frame,original)=="ok") then
+      self.trackerMasked[frame]=nil
     end
-    texture:Hide()
+  end
+end
+function QN:MaskTrackerHeaderDecorations()
+  local function mask(texture)
+    if texture and read(texture.IsObjectType,texture,"Texture")==true then self:MaskNativeTrackerRegion(texture) end
   end
   -- Explicit regions from the Forever container/module header templates. The
   -- primary Background atlas includes the gold border and end ornaments.
   -- Do not enumerate textures: buttons, quest icons and progress bars stay intact.
-  local header=ObjectiveTrackerFrame and ObjectiveTrackerFrame.Header
-  if header then hide(header.Background) end
+  local header=self.trackerNativeRoot.Header
+  if header then mask(header.Background) end
   header=self.objectiveModule and self.objectiveModule.Header
-  if header then hide(header.Background); hide(header.Shine); hide(header.Glow) end
+  if header then mask(header.Background); mask(header.Shine); mask(header.Glow) end
 end
-function QN:MaskNativeTrackerFrame(frame)
-  if self.trackerMasked[frame]==nil then self.trackerMasked[frame]=frame:GetAlpha() end
-  frame:SetAlpha(0)
+function QN:MaskNativeTrackerRegion(region)
+  local alpha=read(region.GetAlpha,region)
+  if not QN.IsNumber(alpha) then return false end
+  if alpha==0 then return true end
+  if KHQOL.ReadPublicAPI(region.SetAlpha,region,0)~="ok" then return false end
+  self.trackerMasked[region]=alpha
+  return true
+end
+local function screenPoint(frame,horizontal,vertical,scale)
+  scale=scale or read(frame.GetEffectiveScale,frame)
+  local x=read(frame[horizontal],frame)
+  local y=read(frame[vertical],frame)
+  if QN.IsNumber(x) and QN.IsNumber(y) and QN.IsNumber(scale) and scale>0 then return x*scale,y*scale end
 end
 function QN:ScrollTracker(delta)
   if not self.trackerEnabled or not self.trackerScroll or inCombat() then return end
@@ -536,26 +542,31 @@ function QN:InstallObjectiveTracker()
   if self.trackerScroll or not self.trackerEnabled or inCombat() then return end
   local root,native=ObjectiveTrackerFrame,QuestObjectiveTracker
   if not root or not native or not native.ContentsFrame or not ObjectiveTrackerLineFont then return end
-  self.objectiveModule=native -- Read-only reference; never call its Update/MarkDirty.
+  self.trackerNativeRoot,self.objectiveModule=root,native
   self.trackerMasked={}; self.trackerRows={}
-  local scroll=CreateFrame("ScrollFrame",nil,root)
+  -- A secure quest-item button extends combat restrictions to its parents
+  -- and anchor relatives. Keep the entire overlay on our own screen anchor.
+  local anchor=CreateFrame("Frame",nil,UIParent)
+  anchor:SetSize(1,1);anchor:SetPoint("BOTTOMLEFT",UIParent,"BOTTOMLEFT",0,0)
+  self.trackerAnchor=anchor
+  local scroll=CreateFrame("ScrollFrame",nil,anchor)
   local child=CreateFrame("Frame",nil,scroll)
   child:SetSize(235,1); scroll:SetScrollChild(child)
-  scroll:SetFrameLevel(native:GetFrameLevel()+20)
   scroll:EnableMouse(true); scroll:EnableMouseWheel(true)
   scroll:SetScript("OnMouseWheel",function(_,delta) self:ScrollTracker(delta) end)
   scroll:Hide(); self.trackerScroll=scroll; self.trackerScrollChild=child
-  self.trackerCountLabel=root:CreateFontString(nil,"OVERLAY","ObjectiveTrackerHeaderFont")
+  self.trackerCountLabel=anchor:CreateFontString(nil,"OVERLAY","ObjectiveTrackerHeaderFont")
   self.trackerCountLabel:Hide()
   -- These hooks only enqueue addon work. No native methods/data are changed in
   -- the hook; no native layout is requested by the eventual addon refresh.
-  hooksecurefunc(root,"UpdateHeaderPosition",function() self:RequestTrackerLayout() end)
-  native:HookScript("OnShow",function() self:RequestTrackerLayout() end)
-  native:HookScript("OnHide",function() self:RequestTrackerLayout() end)
-  root:HookScript("OnSizeChanged",function() self:RequestTrackerLayout() end)
-  native:HookScript("OnSizeChanged",function() self:RequestTrackerLayout() end)
-  native.ContentsFrame:HookScript("OnSizeChanged",function() self:RequestTrackerLayout() end)
-  if type(root.Update)=="function" then hooksecurefunc(root,"Update",function() self:RequestTrackerLayout() end) end
+  local function changed() self:RequestTrackerLayout() end
+  for _,method in ipairs({"UpdateHeaderPosition","Update","SetPoint","SetScale"}) do
+    if type(root[method])=="function" then hooksecurefunc(root,method,changed) end
+  end
+  for _,frame in ipairs({root,native}) do
+    for _,script in ipairs({"OnShow","OnHide","OnSizeChanged"}) do frame:HookScript(script,changed) end
+  end
+  native.ContentsFrame:HookScript("OnSizeChanged",changed)
   if EventRegistry then
     EventRegistry:RegisterCallback("EditMode.Enter",function() self.trackerNativeEditing=true; self:RequestTrackerLayout() end,self)
     EventRegistry:RegisterCallback("EditMode.Exit",function() self.trackerNativeEditing=false; self:TryApplyAutoRegion(); self:RequestTrackerLayout() end,self)
@@ -594,19 +605,22 @@ function QN:TrackerViewportHeight(root,native)
   end
   return math.max(0,(top-bottom)/scale)
 end
-function QN:RefreshObjectiveQuestCount()
-  local text=ObjectiveTrackerFrame and ObjectiveTrackerFrame.Header and ObjectiveTrackerFrame.Header.Text
+function QN:RefreshObjectiveQuestCount(root,originX,originY,scale)
+  local header=root.Header
+  local text=header and header.Text
   local label=self.trackerCountLabel
-  if not text or not label then return end
-  local base=ObjectiveTrackerFrame.headerText
-  if not QN.IsText(base) then base=text:GetText() end
-  local _,count=C_QuestLog.GetNumQuestLogEntries()
+  if not text then return end
+  local left,top=screenPoint(text,"GetLeft","GetTop",read(header.GetEffectiveScale,header))
+  local path,size,flags=read(text.GetFont,text)
+  local base=root.headerText
+  if not QN.IsText(base) then base=read(text.GetText,text) end
+  if not left or not QN.IsText(base) or not (QN.IsText(path) or QN.IsNumber(path)) or not QN.IsNumber(size) then return end
+  local _,count=read(C_QuestLog.GetNumQuestLogEntries)
   local max=Constants and Constants.QuestLogConsts and Constants.QuestLogConsts.MAXIMUM_NUM_QUESTS_LOG_CAN_ACCEPT
-  if not QN.IsText(base) then return end
-  label:ClearAllPoints(); label:SetPoint("TOPLEFT",text,"TOPLEFT")
-  local path,size,flags=text:GetFont(); label:SetFont(path,size,flags)
+  label:ClearAllPoints();label:SetPoint("TOPLEFT",self.trackerAnchor,"BOTTOMLEFT",(left-originX)/scale,(top-originY)/scale)
+  label:SetFont(path,size,flags or "")
   label:SetText(QN.IsNumber(count) and QN.IsID(max) and string.format("%s ( %d / %d )",base,count,max) or base)
-  self:MaskNativeTrackerFrame(text); label:Show()
+  if self:MaskNativeTrackerRegion(text) then label:Show();return true end
 end
 function QN:RenderObjectiveTracker()
   if inCombat() then self.trackerPending=true; return end
@@ -626,21 +640,37 @@ function QN:RenderObjectiveTracker()
   if not scroll then return end
   self:RestoreNativeTrackerPresentation()
   scroll:Hide(); self.trackerCountLabel:Hide()
-  local root=ObjectiveTrackerFrame
-  if self.trackerNativeEditing or (EditModeManagerFrame and EditModeManagerFrame:IsEditModeActive()) then return end
-  self:RefreshObjectiveQuestCount()
-  self:HideTrackerHeaderDecorations()
-  if root:IsCollapsed() or not native:IsShown() or (native.IsCollapsed and native:IsCollapsed()) then return end
-  self:GetTrackerDB()
-  local groups=self:BuildTrackerGroups(self:CollectTrackerWatches())
-  local width=self:GetTrackerWidth()
-  scroll:ClearAllPoints(); scroll:SetPoint("TOPRIGHT",native.ContentsFrame,"TOPRIGHT",0,0)
+  local root=self.trackerNativeRoot
+  if self:TrackerEditing() or read(root.IsVisible or root.IsShown,root)~=true then return end
+  local scale,parentScale=read(root.GetEffectiveScale,root),read(UIParent.GetEffectiveScale,UIParent)
+  local originX,originY=screenPoint(UIParent,"GetLeft","GetBottom",parentScale)
+  if not originX or not QN.IsNumber(scale) or scale<=0 or not QN.IsNumber(parentScale) or parentScale<=0 then
+    self.trackerPending=true;return
+  end
+  local anchor=self.trackerAnchor
+  local ratio=scale/parentScale
+  if anchor:GetScale()~=ratio then anchor:SetScale(ratio) end
+  local strata=read(root.GetFrameStrata,root)
+  if type(strata)=="string" and anchor:GetFrameStrata()~=strata then anchor:SetFrameStrata(strata) end
+  local level=read(native.GetFrameLevel,native)
+  if QN.IsNumber(level) then
+    if anchor:GetFrameLevel()~=level+20 then anchor:SetFrameLevel(level+20) end
+    if scroll:GetFrameLevel()~=level+20 then scroll:SetFrameLevel(level+20) end
+  end
+  if self:RefreshObjectiveQuestCount(root,originX,originY,scale) then self:MaskTrackerHeaderDecorations() end
+  if read(root.IsCollapsed,root)==true or read(native.IsShown,native)~=true or read(native.IsCollapsed,native)==true then return end
+  local body=native.ContentsFrame
+  local right,top=screenPoint(body,"GetRight","GetTop")
   -- Respect the native allocation: scenario and every other section keep their
   -- existing parents, anchors, heights, update methods and shared dirty driver.
   local viewport=self:TrackerViewportHeight(root,native)
-  if not QN.IsNumber(viewport) or viewport<=0 then
+  if not right or not QN.IsNumber(viewport) or viewport<=0 then
     self:RestoreNativeTrackerPresentation();self.trackerCountLabel:Hide();self.trackerPending=true;return
   end
+  scroll:ClearAllPoints();scroll:SetPoint("TOPRIGHT",anchor,"BOTTOMLEFT",(right-originX)/scale,(top-originY)/scale)
+  self:GetTrackerDB()
+  local groups=self:BuildTrackerGroups(self:CollectTrackerWatches())
+  local width=self:GetTrackerWidth()
   -- A native POI extends 33px left of the title. Keep that space inside the
   -- clipping viewport while preserving the title's right edge and text width.
   local nativeWidth=QN.Call(native.GetWidth,native)
@@ -693,8 +723,10 @@ function QN:RenderObjectiveTracker()
   end
   self.trackerScrollChild:SetHeight(math.max(1,y)); self.trackerScrollMax=math.max(0,y-viewport)
   scroll:SetVerticalScroll(math.min(self.trackerScrollMax,scroll:GetVerticalScroll()))
-  self:MaskNativeTrackerFrame(native.ContentsFrame)
-  scroll:Show(); self:RefreshObjectiveQuestCount()
+  if self:MaskNativeTrackerRegion(body) then scroll:Show()
+  else
+    self:RestoreNativeTrackerPresentation();self.trackerCountLabel:Hide();self.trackerPending=true
+  end
 end
 function QN:RequestTrackerLayout()
   if not self.trackerEnabled then return end

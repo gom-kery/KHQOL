@@ -14,9 +14,6 @@ do local spec=R.entries.clock
   spec.applyProfile=function(m,K)
   if not m.initialized then return end
   m.db=ForeverClockDB;m:ApplyAll()
-  if m.ApplyProfessionFont then m:ApplyProfessionFont() end
-  if m.professionsPanel and m.professionsPanel:IsShown() then m:RenderProfessions() end
-  if m.UpdateProfessionsVisibility then m:UpdateProfessionsVisibility() end
   if m.todoFrame then
     local p=m.db.todo.window
     m.todoFrame:ClearAllPoints();m.todoFrame:SetPoint(p.point,UIParent,p.relativePoint,p.x,p.y)
@@ -38,10 +35,6 @@ do local spec=R.entries.clock
     end
     for key,frame in pairs(fc.modules or {}) do
       if frame.dragStartX then frame:StopMovingOrSizing();fc:SetModulePosition(key,frame);frame.dragStartX,frame.dragStartY=nil,nil end
-    end
-    if fc.professionsButton and fc.professionsButton.dragX then
-      fc.professionsButton:StopMovingOrSizing();fc:SetModulePosition("professions",fc.professionsButton)
-      fc.professionsButton.dragX,fc.professionsButton.dragY=nil,nil
     end
   end
 

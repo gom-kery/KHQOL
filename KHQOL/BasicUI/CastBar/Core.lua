@@ -127,12 +127,13 @@ function CastBar:AttachResource()
     resource:HookScript(script,function() if self.frame then self:ApplyLayout(); self:RefreshControls() end end)
   end
 end
-function CastBar:AnchorText(text, config)
+function CastBar:AnchorText(text, config, bar)
+  bar=bar or self.bar
   local outside=config.position:find("outside",1,true) == 1
   local side=config.position:match("_(%a+)$"):upper()
   local anchor=side == "CENTER" and (outside and "BOTTOM" or "CENTER") or (outside and "BOTTOM"..side or side)
   local relative=outside and (side == "CENTER" and "TOP" or "TOP"..side) or side
-  text:ClearAllPoints(); text:SetPoint(anchor,self.bar,relative,side == "LEFT" and 4 or side == "RIGHT" and -4 or 0,outside and 3 or 0)
+  text:ClearAllPoints(); text:SetPoint(anchor,bar,relative,side == "LEFT" and 4 or side == "RIGHT" and -4 or 0,outside and 3 or 0)
   text:SetJustifyH(side); text:SetFont(KHQOL.FONT_PATH or STANDARD_TEXT_FONT,config.fontSize,"OUTLINE")
   text:SetShown(config.enabled)
 end
@@ -354,7 +355,10 @@ end
 function CastBar:OnEvent(event,unit,castID,spellID,arg4,arg5)
   if event == "PLAYER_REGEN_ENABLED" then self:ApplyBlizzard();self:ApplyTargetPosition(); return end
   if event == "PLAYER_ENTERING_WORLD" then self:AttachResource(); self:Sync(); self:ApplyBlizzard();self:ApplyTargetPosition(); return end
-  if event == "PLAYER_TARGET_CHANGED" or event == "ADDON_LOADED" or event == "UNIT_CLASSIFICATION_CHANGED" then self:ApplyTargetPosition();return end
+  if event == "PLAYER_TARGET_CHANGED" or event == "ADDON_LOADED" or event == "UNIT_CLASSIFICATION_CHANGED"
+    or event=="DISPLAY_SIZE_CHANGED" or event=="UI_SCALE_CHANGED" then
+    self:ApplyTargetPosition();return
+  end
   if not self:IsEnabled() or secret(unit) or unit ~= "player" then return end
   local channelStop=event == "UNIT_SPELLCAST_CHANNEL_STOP"
   local interrupted=event == "UNIT_SPELLCAST_INTERRUPTED"
@@ -425,7 +429,7 @@ function CastBar:Initialize()
     if not pcall(events.RegisterUnitEvent,events,event,"player") then self.unsupportedEvents[#self.unsupportedEvents+1]=event end
   end
   events:RegisterEvent("PLAYER_ENTERING_WORLD"); events:RegisterEvent("PLAYER_REGEN_ENABLED")
-  for _,event in ipairs({"PLAYER_TARGET_CHANGED","ADDON_LOADED","UNIT_CLASSIFICATION_CHANGED"}) do pcall(events.RegisterEvent,events,event) end
+  for _,event in ipairs({"PLAYER_TARGET_CHANGED","ADDON_LOADED","UNIT_CLASSIFICATION_CHANGED","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED"}) do pcall(events.RegisterEvent,events,event) end
   if EditModeManagerFrame then
     EditModeManagerFrame:HookScript("OnShow",function() self:ApplyTargetPosition() end)
     EditModeManagerFrame:HookScript("OnHide",function() self:ApplyTargetPosition() end)

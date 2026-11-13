@@ -18,12 +18,14 @@ StaticPopupDialogs.KHQOL_RESET_MODULE = {
   timeout=0,whileDead=1,hideOnEscape=1,
 }
 StaticPopupDialogs.KHQOL_RESET_ALL = {
-  text="KHQOL 전체 설정을 초기화하시겠습니까?\n모든 프로필, 캐릭터별 선택, 노트와 등록한 버프를 포함한 KHQOL 데이터가 삭제되고 UI가 다시 로드됩니다.",
+  text="KHQOL 전체 설정을 초기화하시겠습니까?\n모든 프로필, 캐릭터별 선택, 노트와 등록한 버프를 포함한 KHQOL 데이터가 삭제되고 UI가 다시 로드됩니다. 부캐 소지금 기록은 유지합니다.",
   button1=ACCEPT,button2=CANCEL,OnAccept=function(_,data)
     if not UI:IsCurrentConfirmation(data) then return end
     KHQOL.LabLock:RequestFullReset(function()
     KHQOL.profileResetting=true
-    KHQOLDB=nil; ForeverClockDB=nil; ForeverBuffReminderDB=nil; ForeverWeaponGuideDB=nil
+    local money=KHQOL.db.globalData and KHQOL.db.globalData.characterMoney
+    KHQOLDB=money and {globalData={characterMoney=money},resetSettings=true} or nil
+    ForeverClockDB=nil; ForeverBuffReminderDB=nil; ForeverWeaponGuideDB=nil
     KHQOLResourceSwingDB=nil; CampfireAlertDB=nil; FRangeDB=nil; KHQOLCursorTrailCharDB=nil
     KHQOLLabDB=nil; KHQOLPartyCharDB=nil
     if KHQOL.modules.minimap then KHQOLMapDB=nil;KHminimapDB=nil end
@@ -283,7 +285,7 @@ function KHQOL:CreateSettings()
       if self.headerBody~=body then headerViewport:SetScrollChild(body);headerViewport:SetVerticalScroll(0);self.headerBody=body end
       headerViewport:SetVerticalScroll(math.min(headerViewport:GetVerticalScroll(),math.max(0,body:GetHeight()-headerHeight)))
       for _,button in pairs(self.activeContent and self.activeContent.tabButtons or {}) do
-        if button:GetParent()==body and button.khqolSelected then
+        if button:GetParent()==body and button.khqolSelected and not button.settingsFamilyTab then
           local offset=body:GetTop()-button:GetTop();local current=headerViewport:GetVerticalScroll()
           if offset<current then headerViewport:SetVerticalScroll(offset)
           elseif offset+button:GetHeight()>current+headerHeight then headerViewport:SetVerticalScroll(math.max(0,offset+button:GetHeight()-headerHeight)) end
@@ -372,7 +374,7 @@ function KHQOL:CreateSettings()
     moduleHeader.tooltipTitle=meta and meta.title or "설정 안내";moduleHeader.tooltipDescription=meta and (meta.description.."\n"..status) or ""
     moduleHeaderHeight=math.max(42,moduleHeader.description:GetStringHeight()+14)
     moduleHeader:SetHeight(moduleHeaderHeight)
-    moduleHeader.toggle:SetShown(self.currentModuleKey~=nil)
+    moduleHeader.toggle:SetShown(self.currentModuleKey~=nil and not meta.hideToggle)
     UI:Refresh(moduleHeader)
   end
   function f:RefreshModuleState()

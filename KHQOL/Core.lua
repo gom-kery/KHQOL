@@ -138,6 +138,19 @@ events:SetScript("OnEvent", function()
     KHQOL:FinishProfileLogin()
     KHQOL:ApplyEditorPositions()
   end)
+  if KHQOL.modules.clock or KHQOL.modules.professions then
+    SLASH_FOREVERCLOCK1, SLASH_FOREVERCLOCK2 = "/fclock", "/fc"
+    SlashCmdList.FOREVERCLOCK = function(message)
+      local command=(message or ""):lower():match("^%s*(.-)%s*$")
+      local professions=KHQOL.modules.professions
+      if command=="professions" or command=="professions scan" then
+        if professions then professions:PrintProfessionDebug()
+        else KHQOL:ProfileMessage("전문기술을 사용하려면 KHQOL_Convenience를 설치하고 활성화하세요.") end
+      else
+        KHQOL:OpenModule(KHQOL.modules.clock and "clock" or "professions")
+      end
+    end
+  end
   SLASH_KHQOL1, SLASH_KHQOL2 = "/kh", "/khqol"
   SlashCmdList.KHQOL = function(message)
     local page = (message or ""):lower():match("^%s*(%S*)")

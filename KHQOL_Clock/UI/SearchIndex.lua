@@ -8,10 +8,6 @@ N:Register({module="clock",scope="현재 프로필",section="위치"},"위치 �
 N:Register({module="clock",scope="현재 프로필",section="시간 글자·모양"},"글자 크기")
 N:Register({module="clock",scope="현재 프로필",section="사이드 텍스트"},"설정 대상")
 N:Register({module="clock",scope="현재 프로필",section="사이드 텍스트"},"글자 크기")
-N:Register({module="clock",scope="현재 프로필",section="전문기술"},"전문기술 버튼 표시")
-N:Register({module="clock",scope="현재 프로필",section="전문기술"},"배치 방향")
-N:Register({module="clock",scope="현재 프로필",section="전문기술"},"아이콘 크기")
-N:Register({module="clock",scope="현재 프로필",section="전문기술"},"숙련도 표시")
 N:Register({module="clock",scope="현재 프로필",section="알람·타이머·스톱워치"},"도구 창 위치 잠금")
 N:Register({module="clock",scope="현재 프로필",section="알람·타이머·스톱워치"},"알람·타이머 창 크기")
 N:Register({module="clock",scope="현재 프로필",section="알람·타이머·스톱워치"},"타이머 바 위치 잠금")
@@ -48,3 +44,7 @@ N:Register({module="todo",scope="현재 접속",section="경로 안내"},"다음
 N:Register({module="todo",scope="현재 프로필",section="경로 안내"},"경유지 도착 반경")
 N:Register({module="todo",scope="현재 프로필",section="경로 안내"},"경로 이탈 알림")
 N:Register({module="todo",scope="현재 프로필",section="경로 안내"},"경로 이탈 거리")
+for _,title in ipairs({"길드 접속 표시","타이틀 표시","배경 표시","툴팁 명단 축약 기준"}) do
+  N:Register({module="clock",section="길드 접속"},title)
+end
+N:Register({module="clock",section="사이드 텍스트",sideTarget="guild"},"길드 접속 글자 크기","길드 접속 사이드 텍스트 설정 대상")

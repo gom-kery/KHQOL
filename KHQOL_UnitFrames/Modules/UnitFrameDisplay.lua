@@ -30,6 +30,56 @@ function M:SyncHealthDisplay(owner,p)
   end
   owner.displaySyncing=false
 end
+-- The native updater distributes healing and absorbs across independent
+-- segment textures and does not return the combined healing. Use its
+-- notification and read the unmodified total from the public API when readable.
+function M:SyncTargetHeal(owner)
+  local bar=owner and owner.healDisplay
+  if not bar then return end
+  local amount=0
+  if owner.compactActive and self:IsEnabled() and call(UnitExists,"target")==true
+    and call(UnitIsDeadOrGhost,"target")==false then
+    local native=owner.parts.health
+    local low,maximum=call(native.GetMinMaxValues,native)
+    local health=call(native.GetValue,native)
+    local incoming=call(UnitGetIncomingHeals,"target")
+    if KHQOL.IsPublicNumber(low) and KHQOL.IsPublicNumber(health) and KHQOL.IsPublicNumber(maximum)
+      and KHQOL.IsPublicNumber(incoming) and health>low and maximum>health and incoming>0 then
+      local missing=maximum-health
+      if pcall(bar.SetMinMaxValues,bar,0,missing) then amount=math.min(missing,incoming) end
+    end
+  end
+  bar:SetValue(amount)
+end
+
+function M:PrepareTargetHeal(owner,p)
+  local display=owner.healthDisplay
+  if not owner.healDisplay then
+    local fill=call(display.GetStatusBarTexture,display)
+    if not fill then return end
+    local bar=CreateFrame("StatusBar",nil,display)
+    bar:EnableMouse(false)
+    bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
+    bar:SetStatusBarColor(.15,.85,.57,.84)
+    bar:SetMinMaxValues(0,1);bar:SetValue(0)
+    local ok=pcall(function()
+      bar:SetPoint("TOPLEFT",fill,"TOPRIGHT")
+      bar:SetPoint("BOTTOMRIGHT",display,"BOTTOMRIGHT")
+    end)
+    if not ok then bar:Hide();return end
+    owner.healDisplay=bar
+    if type(UnitFrameHealPredictionBars_Update)=="function" then
+      hooksecurefunc("UnitFrameHealPredictionBars_Update",function(frame)
+        if frame==p.root then M:SyncTargetHeal(owner) end
+      end)
+    end
+  end
+  local native=p.root
+  self:HideNativeDecoration(owner,native.myHealPredictionBar or p.health.MyHealPredictionBar)
+  self:HideNativeDecoration(owner,native.otherHealPredictionBar or p.health.OtherHealPredictionBar)
+  self:SyncTargetHeal(owner)
+end
+
 function M:PrepareHealthDisplay(owner,p,unit,width,height,left,top)
   if unit~="player" and unit~="target" and unit~="focus" then return end
   if not owner.healthDisplay then
@@ -50,6 +100,7 @@ function M:PrepareHealthDisplay(owner,p,unit,width,height,left,top)
   if owner.background then owner.background:ClearAllPoints();owner.background:SetPoint("TOPLEFT",display,"TOPLEFT",0,0) end
   local texture=call(p.health.GetStatusBarTexture,p.health)
   self:HideNativeDecoration(owner,texture)
+  if unit=="target" then self:PrepareTargetHeal(owner,p) end
   self:SyncHealthDisplay(owner,p)
   self:SyncDisplayText(owner,p)
 end
