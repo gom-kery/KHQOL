@@ -206,6 +206,7 @@ function M:BeginRestoreTracking()
 end
 function M:ApplySettings()
   self:GetDB()
+  self.buffThanks:Configure()
   for _,kind in ipairs({"party","guild","duel"}) do
     if not self:InviteEnabled(kind) then KHQOL.modules.general:CancelInviteDecline(kind) end
   end
@@ -218,6 +219,8 @@ end
 function M:SetEnabled(on)
   on=true -- Internal lifecycle only; each feature owns its switch.
   self:Initialize()
+  self:InitializeBagProtection()
+  self:InitializeBagTrash()
   self:StopTracking()
   -- Login/profile reapplication must not replace an existing saved selection.
   self.trackingWasEnabled=on and self:GetDB().keepTracking and next(self:GetTrackingStates())~=nil
@@ -229,6 +232,7 @@ function M:SetEnabled(on)
     end
   end
   self:ApplySettings()
+  self:RefreshBagTrash()
   if not on and self.merchantPending then self.events:RegisterEvent("PLAYER_REGEN_ENABLED") end
   if self.trackingWasEnabled then self:BeginRestoreTracking() end
 end

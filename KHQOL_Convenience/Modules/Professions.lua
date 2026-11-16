@@ -11,13 +11,13 @@ end
 
 local BASIC = { [164]=true, [165]=true, [171]=true, [182]=true, [186]=true, [197]=true, [202]=true, [333]=true, [393]=true }
 local SECONDARY = { [129]=true, [185]=true, [356]=true }
+function M:IsSecondaryProfession(skillID) return SECONDARY[skillID]==true end
 local call=KHQOL.PublicCall
 local function aidAttributes(info)
   if not KHQOL.IsPublicValue(info) or type(info)~="table" then return end
   local name,rank,maxRank,id,header=call(function() return info.name,info.rank,info.maxRank,info.skillID,info.isHeader end)
   if id~=129 or header~=false or type(name)~="string" or name=="" then return end
-  if not KHQOL.IsPublicValue(rank) or type(rank)~="number" or rank~=rank or rank<0 then return end
-  if not KHQOL.IsPublicValue(maxRank) or type(maxRank)~="number" or maxRank~=maxRank or maxRank<=0 or maxRank==math.huge then return end
+  if not KHQOL.IsPublicNumber(rank) or not KHQOL.IsPublicNumber(maxRank) or rank<0 or maxRank<=0 or rank>maxRank then return end
   return {name=name,skill=rank,maxSkill=maxRank}
 end
 function M:FindFirstAid()
@@ -74,21 +74,33 @@ local function MakeCell(parent)
   return b
 end
 
-function M:ScanProfessions()
+function M:ScanProfessions(skillChange)
   local found, seen = {}, {}
+  local complete=false
   if type(GetProfessions) == "function" and type(GetProfessionInfo) == "function" then
-    local p1, p2, _, fishing, cooking, firstAid = GetProfessions()
+    local status,p1,p2,_,fishing,cooking,firstAid=KHQOL.ReadPublicAPI(GetProfessions)
+    complete=status=="ok"
     local slots = { {p1,"basic"}, {p2,"basic"}, {cooking,"secondary"}, {fishing,"secondary"}, {firstAid,"secondary"} }
     for _, slot in ipairs(slots) do
       if slot[1] then
-        local name, icon, skill, maxSkill, _, _, skillLineID = GetProfessionInfo(slot[1])
-        if name and skillLineID and not seen[skillLineID] and ((slot[2] == "basic" and BASIC[skillLineID]) or (slot[2] == "secondary" and SECONDARY[skillLineID])) then
+        local name,icon,skill,maxSkill,_,_,skillLineID=call(GetProfessionInfo,slot[1])
+        if type(name)~="string" or name=="" or not KHQOL.IsPublicNumber(skill) or skill<0
+          or not KHQOL.IsPublicNumber(maxSkill) or maxSkill<=0 or skill>maxSkill then complete=false
+        elseif (slot[2]=="basic" and BASIC[skillLineID] or slot[2]=="secondary" and SECONDARY[skillLineID]) and not seen[skillLineID] then
           seen[skillLineID] = true
           found[#found + 1] = { name=name, icon=icon or FALLBACK_ICONS[skillLineID] or "Interface\\Icons\\INV_Misc_QuestionMark", skill=skill, maxSkill=maxSkill, skillLineID=skillLineID, category=slot[2], openMode="C_TradeSkillUI.OpenTradeSkill", openID=skillLineID }
+        else complete=false
         end
       end
     end
   end
+  local aidReady=false
+  local skillCount=call(C_SkillInfo and C_SkillInfo.GetNumSkillLines)
+  if not seen[129] and C_SkillInfo then
+    local status,aid=KHQOL.ReadPublicAPI(C_SkillInfo.GetSkillLineInfoByID,129)
+    aidReady=status=="ok" and aid==nil and KHQOL.IsPublicNumber(skillCount) and skillCount>0
+  end
+  if #found==0 and not (KHQOL.IsPublicNumber(skillCount) and skillCount>0) then complete=false end
   -- Forever can omit First Aid from GetProfessions().  Its skill line still
   -- appears in the character skill list, so use that list as a safe fallback.
   if not seen[129] then
@@ -106,9 +118,11 @@ function M:ScanProfessions()
     if #target < (data.category == "basic" and 2 or 3) then target[#target + 1] = data end
   end
   self.professionData = { basic=basic, secondary=secondary }
+  local retry=self:RecordProfessions(found,complete,aidReady,skillChange)
   self:RememberProfessionOrder()
   if self.professionsPanel:IsShown() then self:RenderProfessions() end
   if self.settingsPanel and self.settingsPanel:IsVisible() then KHQOL.UI:Refresh(self.settingsPanel) end
+  return retry
 end
 
 function M:OpenProfession(data)
@@ -210,8 +224,10 @@ function M:RenderProfessions()
   for _,button in ipairs(panel.cells) do button:Hide();button.data=nil end
   panel:SetBackdropColor(.015,.015,.015,cfg.backgroundAlpha)
   panel:SetBackdropBorderColor(.95,.73,.15,.9*cfg.backgroundAlpha/.92)
-  panel.empty:SetShown(#items==0)
-  if #items==0 then panel:SetSize(180,48);self:AnchorPanel();return end
+  local alt=panel.alt
+  alt:Hide()
+  panel.empty:SetShown(#items==0 and not cfg.showAltProfessions)
+  if #items==0 and not cfg.showAltProfessions then panel:SetSize(180,48);self:AnchorPanel();return end
 
   for i,entry in ipairs(items) do
     local cell=panel.cells[i]
@@ -230,6 +246,7 @@ function M:RenderProfessions()
   local belowIcon=outside and cfg.showSkill and textHeight+3 or 0
   local cellHeight=size+2*inset+aboveIcon+belowIcon
   local cols,rows=0,0
+  local used={}
   for i,entry in ipairs(items) do
     local index=i-basic
     local row,col
@@ -245,6 +262,8 @@ function M:RenderProfessions()
       col=i<=basic and i or index
     end
     cols,rows=math.max(cols,math.ceil(col)),math.max(rows,row)
+    used[row]=used[row] or {}
+    used[row][math.floor(col)]=true;used[row][math.ceil(col)]=true
     local cell=panel.cells[i]
     cell:ClearAllPoints();cell:SetSize(cellWidth,cellHeight)
     cell:SetPoint("TOPLEFT",padding+(col-1)*(cellWidth+gap),-padding-(row-1)*(cellHeight+gap))
@@ -253,6 +272,21 @@ function M:RenderProfessions()
     cell.icon:ClearAllPoints();cell.icon:SetPoint("TOP",cell,"TOP",0,-inset-aboveIcon)
     cell.icon:SetSize(size,size);cell.icon:SetTexture(entry.icon)
     cell.data=entry;cell:Show()
+  end
+  if cfg.showAltProfessions then
+    local altRow,altCol=1,cols+1
+    for slot=rows*cols,1,-1 do
+      local row=math.floor((slot-1)/cols)+1
+      local col=(slot-1)%cols+1
+      if not (used[row] and used[row][col]) then altRow,altCol=row,col end
+    end
+    cols,rows=math.max(cols,altCol),math.max(rows,altRow)
+    alt:ClearAllPoints();alt:SetSize(cellWidth,cellHeight)
+    alt:SetPoint("TOPLEFT",padding+(altCol-1)*(cellWidth+gap),-padding-(altRow-1)*(cellHeight+gap))
+    alt.icon:SetSize(size,size)
+    alt:SetBackdropColor(.015,.015,.015,.90*cfg.backgroundAlpha/.92)
+    alt:SetBackdropBorderColor(.28,.28,.28,.90*cfg.backgroundAlpha/.92)
+    alt:Show()
   end
   panel:SetSize(cols*cellWidth+(cols-1)*gap+2*padding,rows*cellHeight+(rows-1)*gap+2*padding)
   self:AnchorPanel()
@@ -268,6 +302,12 @@ function M:ApplySettings()
   button:SetShown(cfg.enabled)
   local alpha=cfg.locked and 0 or .9
   button:SetBackdropColor(.015,.015,.015,alpha);button:SetBackdropBorderColor(.95,.73,.15,alpha)
+  if not cfg.enabled or not cfg.showAltProfessions then
+    panel.alt:Hide()
+    if self.altProfessionWindow then self.altProfessionWindow:Hide() end
+  elseif self.altProfessionWindow and self.altProfessionWindow:IsShown() then
+    self:RenderAltProfessionWindow()
+  end
   if not cfg.enabled then panel:Hide();return end
   if not self.professionData then self:ScanProfessions()
   else self:RememberProfessionOrder() end
@@ -312,6 +352,7 @@ function M:Initialize()
   HUD.MakeBackdrop(panel,.95,.73,.15,.92)
   KHQOL.WindowLayers:RegisterWindow(panel)
   panel.cells={};for i=1,5 do panel.cells[i]=MakeCell(panel) end
+  panel.alt=self:CreateAltProfessionButton(panel)
   panel.empty=panel:CreateFontString(nil,"OVERLAY");Font(panel.empty,12)
   panel.empty:SetPoint("CENTER");panel.empty:SetText("배운 전문기술이 없습니다.")
   panel:Hide()
@@ -342,6 +383,7 @@ function M:Initialize()
 
   local events=CreateFrame("Frame")
   events:RegisterEvent("SKILL_LINES_CHANGED")
+  events:RegisterEvent("PLAYER_LOGIN")
   events:RegisterEvent("PLAYER_ENTERING_WORLD")
   events:RegisterEvent("DISPLAY_SIZE_CHANGED")
   events:RegisterEvent("UI_SCALE_CHANGED")
@@ -352,13 +394,21 @@ function M:Initialize()
       return
     end
     if event=="DISPLAY_SIZE_CHANGED" or event=="UI_SCALE_CHANGED" then self:AnchorPanel();return end
+    if event=="SKILL_LINES_CHANGED" then self.professionsSkillChange=true end
     if self.scanQueued then return end
     self.scanQueued=true
     C_Timer.After(.15,function()
       self.scanQueued=nil
-      self:ScanProfessions()
+      local changed=self.professionsSkillChange
+      self.professionsSkillChange=nil
+      if self:ScanProfessions(changed) then
+        C_Timer.After(.5,function() self:ScanProfessions(true) end)
+      elseif not changed then
+        C_Timer.After(1,function() self:ScanProfessions() end)
+      end
     end)
   end)
+  self:ScanProfessions()
   self:ApplySettings()
 end
 

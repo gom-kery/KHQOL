@@ -50,12 +50,13 @@ local function canonical(value)
   end
   return value:lower()
 end
-local function unitName(unit)
+local function unitName(unit,requireSurname)
   if public(RegionalUniqueNamesEnabled)==true then
     local full=public(NameUtil and NameUtil.GetUnmodifiedUnitFullName,unit)
     if type(full)=="string" and full~="" then return plainName(full) end
     local first,surname=public(UnitName,unit)
     if type(first)~="string" then return end
+    if requireSurname and (type(surname)~="string" or surname=="") then return end
     if type(surname)=="string" and surname~="" then first=first.." "..surname end
     return plainName(first)
   end
@@ -63,6 +64,22 @@ local function unitName(unit)
   if type(name)~="string" then return end
   if type(realm)=="string" and realm~="" then name=name.."-"..realm end
   return plainName(name)
+end
+function Chat:ReadUnitWhisperName(unit)
+  return unitName(unit,true)
+end
+function Chat:OpenWhisperDraft(name,message)
+  name=plainName(name);if not name then return false end
+  local util=ChatFrameUtil
+  local function busy(box)
+    return box and public(box.GetText,box)~=""
+  end
+  if busy(public(util and util.GetActiveWindow or ChatEdit_GetActiveWindow))
+    or busy(public(util and util.ChooseBoxForSend or ChatEdit_ChooseBoxForSend)) then return false end
+  if util and type(util.SendTellWithMessage)=="function" then
+    return KHQOL.ReadPublicAPI(util.SendTellWithMessage,name,message)=="ok"
+  end
+  return KHQOL.ReadPublicAPI(ChatFrame_OpenChat,(SLASH_WHISPER1 or "/w").." "..name.." "..message)=="ok"
 end
 function Chat:OpenPartyWhisper(name,explicit)
   name=plainName(name);if not name then return false end

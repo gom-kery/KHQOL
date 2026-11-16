@@ -1,3 +1,83 @@
+# KHQOL 1.11.8.3 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.8.3-Full.zip`의 최상위 애드온 폴더를 WoW Forever의 `Interface/AddOns`에 복사합니다.
+
+[변경 이력](CHANGELOG.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.8.3.md)
+
+---
+
+# KHQOL 1.11.8.2 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.8.2-Full.zip`의 최상위 애드온 폴더를 WoW Forever의 `Interface/AddOns`에 복사합니다. 기존 프로필과 부캐 기록은 `WTF`의 SavedVariables에 저장됩니다.
+
+[변경 이력](CHANGELOG.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.8.2.md)
+
+---
+
+# KHQOL 1.11.8.1 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.8.1-Full.zip`의 최상위 애드온 폴더를 WoW Forever의 `Interface/AddOns`에 복사합니다. 기존 프로필과 부캐 기록은 `WTF`의 SavedVariables에 저장됩니다.
+
+[변경 이력](CHANGELOG.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.8.1.md)
+
+---
+
+# KHQOL 1.11.8.0 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.8.0-Full.zip`의 최상위 애드온 폴더를 WoW Forever의 `Interface/AddOns`에 복사합니다. 기존 프로필과 부캐 기록을 유지하려면 `WTF`와 SavedVariables를 보관합니다.
+
+[변경 이력](CHANGELOG.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.8.0.md)
+
+---
+
+# KHQOL 1.11.7.10 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.7.10-Full.zip`의 최상위 애드온 폴더를 Forever의 `Interface/AddOns`에 복사합니다. 기존 설정을 이어서 사용하려면 `WTF`와 SavedVariables를 보관합니다.
+
+[변경 이력](CHANGELOG.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.7.10.md)
+
+---
+
+# KHQOL 1.11.7.9 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.7.9-Full.zip`의 최상위 애드온 폴더를 Forever의 `Interface/AddOns`에 복사합니다. 기존 설정을 이어서 사용하려면 `WTF`와 SavedVariables를 보관합니다.
+
+[변경 이력](CHANGELOG.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.7.9.md)
+
+---
+
+# KHQOL 1.11.7.8 설치 안내
+
+게임을 종료하고 `KHQOL-1.11.7.8-Full.zip`의 최상위 애드온 폴더를 Forever의 `Interface/AddOns`에 복사합니다. 기존 설정을 이어서 사용하려면 `WTF`와 SavedVariables를 보관합니다.
+
+[변경 이력](CHANGELOG.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.7.8.md)
+
+---
+
+# KHQOL 1.11.7.7 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.7.7-Full.zip`의 최상위 애드온 폴더를 Forever의 `Interface/AddOns`에 복사합니다. 설정을 유지하려면 `WTF`와 SavedVariables를 보관합니다.
+
+[변경 이력](CHANGELOG.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.7.7.md)
+
+---
+
+# KHQOL 1.11.7.6 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.7.6-Full.zip`의 최상위 애드온 폴더를 Forever의 `Interface/AddOns`에 복사합니다. 기존 설정을 이어서 사용하려면 `WTF`와 SavedVariables를 보관합니다.
+
+[변경 이력](CHANGELOG.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.7.6.md)
+
+---
+
+# KHQOL 1.11.7.5 설치 안내
+
+게임을 종료한 뒤 `KHQOL-1.11.7.5-Full.zip`에 들어 있는 최상위 애드온 폴더를 Forever의 `Interface/AddOns`에 복사합니다. 전체 ZIP에는 기본 폴더 18개와 선택 설치용 `KHQOL_UnitFrames`가 포함됩니다. 선택 프레임을 사용하지 않으면 해당 애드온을 게임의 애드온 목록에서 끌 수 있습니다. 기존 프로필을 유지하려면 `WTF`와 SavedVariables를 보관합니다.
+
+[새 기능과 메뉴 위치](README.md) · [변경·검증 보고서](CHANGE-VALIDATION-1.11.7.5.md)
+
+---
+
 # KHQOL 1.11.7.4 설치 안내
 
 게임을 종료한 뒤 `KHQOL-1.11.7.4-Base.zip`의 기존 폴더 18개를 `Interface/AddOns`에 교체합니다. 개인·파티 프레임을 사용하는 경우 `KHQOL_UnitFrames-1.11.7.4.zip`의 `KHQOL_UnitFrames`도 교체합니다. `WTF`와 SavedVariables를 유지합니다.

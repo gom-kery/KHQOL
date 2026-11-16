@@ -37,6 +37,9 @@ function M:BuildSettings(parent,y)
   b:Slider("목록 배경 불투명도",0,100,1,function() return math.floor(self:GetDB().backgroundAlpha*100+.5) end,
     function(v) self:GetDB().backgroundAlpha=v/100;self:ApplySettings() end,function(v) return v.."%" end,enabled)
   b:Checkbox("숙련도 표시",get("showSkill"),set("showSkill"),enabled)
+  b:Checkbox("부캐 전문기술 표시",get("showAltProfessions"),set("showAltProfessions"),enabled)
+  b:Checkbox("목록에 보조 전문기술 표시",get("showAltSecondaryProfessions"),set("showAltSecondaryProfessions"),
+    function() return enabled() and self:GetDB().showAltProfessions end)
   b:Slider("숙련도 글자 크기",8,26,1,get("skillFontSize"),set("skillFontSize"),pixels,skillShown)
   b:Dropdown("숙련도 위치",{{value="inside",text="아이콘 안쪽 아래"},{value="outside",text="아이콘 바깥쪽 아래"}},
     get("skillPosition"),set("skillPosition"),skillShown)

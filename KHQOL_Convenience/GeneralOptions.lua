@@ -68,6 +68,10 @@ end
 local function ReadSaleCandidate(bag, slot)
   local info = GetBagItemInfo(bag, slot)
   if not info or info.quality ~= 0 or info.isLocked ~= false or info.hasNoValue ~= false then return end
+  local protection=KHQOL.modules.generalConvenience
+  if protection and next(protection:GetProtectedItems())
+    and (not validNumber(info.itemID) or info.itemID<1 or info.itemID%1~=0
+      or protection:IsProtectedBagItem(info.itemID)) then return end
   if not validNumber(info.stackCount) or info.stackCount < 1 or info.stackCount % 1 ~= 0 then return end
   if type(info.hyperlink) ~= "string" or info.hyperlink == "" then return end
   if not IsNonQuestItem(bag, slot) then return end
@@ -94,6 +98,22 @@ local function ForEachBagItem(callback)
       for slot = 1, count do callback(bag, slot) end
     end
   end
+end
+local function CanBatchSellJunk()
+  local protection=KHQOL.modules.generalConvenience
+  if not protection or not next(protection:GetProtectedItems()) then return true end
+  for bag=0,4 do
+    local count=publicCall(containerAPI("GetContainerNumSlots"),bag)
+    if not validNumber(count) or count%1~=0 or count>1000 then return false end
+    for slot=1,count do
+      local info,known=GetBagItemInfo(bag,slot)
+      -- The batch API owns the final selection. Any protected bag item or
+      -- unreadable slot makes the filtered, slot-by-slot path necessary.
+      if not known or info and (not validNumber(info.itemID) or info.itemID<1 or info.itemID%1~=0
+        or protection:IsProtectedBagItem(info.itemID)) then return false end
+    end
+  end
+  return true
 end
 local function MerchantIsOpen()
   local frame = _G.MerchantFrame
@@ -238,7 +258,7 @@ function General:ProcessJunkSale(state)
     local queued = state.queue[state.index]
     state.index = state.index + 1
     local item = GetSaleCandidate(queued.bag, queued.slot)
-    if item and item.hyperlink == queued.hyperlink and item.stackCount == queued.stackCount then
+    if item and item.itemID == queued.itemID and item.hyperlink == queued.hyperlink and item.stackCount == queued.stackCount then
       item.money, item.deadline = publicCall(GetMoney), GetTime()+.75
       state.pending = item
       -- Arm the fallback before the call: synchronous bag events can replace
@@ -276,7 +296,7 @@ function General:StartJunkSale()
   ScheduleSale(state, 0, function()
     local merchant=C_MerchantFrame
     if merchant and type(merchant.SellAllJunkItems)=="function" and type(merchant.GetNumJunkItems)=="function"
-      and publicCall(merchant.IsSellAllJunkEnabled)==true then
+      and publicCall(merchant.IsSellAllJunkEnabled)==true and CanBatchSellJunk() then
       local count=publicCall(merchant.GetNumJunkItems)
       if not validNumber(count) or count%1~=0 then General:CancelJunkSale();return end
       if count==0 then General:FinishJunkSale(state);return end

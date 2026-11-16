@@ -25,15 +25,19 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
   local greeting=check("파티 자동 인사",legacy("chatAutoGreeting"),legacySet("chatAutoGreeting"),"새 파티 구성·참여 시 한 번 전송합니다. 접속·재접속·지역 이동·파티원 변경에는 보내지 않습니다. 빈 인사말은 보내지 않습니다.",nil,{
     check("공격대 자동 인사",legacy("chatRaidGreeting"),legacySet("chatRaidGreeting"),"공격대 참여 시 RAID 채널로 인사합니다. 기본 OFF.")})
   greeting.fields={{title="인사말 (캐릭터별 저장 · 최대 255바이트)",get=function() return A:GetGreeting() end,set=function(v) A:SetGreeting(v) end}}
-  local sections={
+  local chatSections={
     {title="대화창",items={
       check("기본 대화창 편의",legacy("chatEnhancement"),legacySet("chatEnhancement"),"대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사를 개선합니다."),
       check("Alt+좌클릭 파티 초대",legacy("chatAltInvite"),legacySet("chatAltInvite"),"채팅 캐릭터 이름을 Alt+좌클릭하여 초대합니다. Forever 이름·성을 지원합니다. /초대진단으로 설정·훅·최근 처리 결과를 확인합니다. /파티요청 전체이름은 전송 전 귓속말 초안을 엽니다."),
-      prefixes,greeting}},
+      prefixes}},
+    {title="파티 자동 인사",items={greeting}},
+    {title="버프 감사 알림",items={}},
+  }
+  local sections=chat and chatSections or {
     {title="아이템",items={
       check("착용 아이템 레벨 표시",get("equipmentLevels"),set("equipmentLevels"),"캐릭터창의 착용 아이템 아이콘 안쪽 위 중앙에 아이템 레벨 숫자만 표시합니다. 빈 칸·탄약은 제외합니다.",function() return M:EquipmentLevelsSupported() end),
       check("아이템 파괴 자동 입력",legacy("autoConfirmDestroy"),legacySet("autoConfirmDestroy"),"파괴 확인 문구를 자동 입력합니다. 최종 확인은 직접 선택합니다."),
-      check("잡템 자동 판매",legacy("autoSellJunk"),legacySet("autoSellJunk"),"상점에서 잡템을 자동 판매합니다. 기본 일괄 판매 기능을 지원하면 우선 사용합니다."),
+      check("잡템 자동 판매",legacy("autoSellJunk"),legacySet("autoSellJunk"),"상점에서 잡템을 자동 판매합니다. 보호 목록의 아이템이 가방에 있거나 가방을 확인할 수 없으면 슬롯별로 검사합니다."),
       check("자동 수리",legacy("autoRepair"),legacySet("autoRepair"),"상점에서 수리 비용을 지불할 수 있을 때 수리합니다.",nil,{
         check("길드 자금 우선 사용",legacy("useGuildFunds"),function(v) G:GetDB().useGuildFunds=v end,"권한·잔액·한도가 충분하면 길드 자금으로, 부족하면 개인 골드로 수리합니다.")}),
       check("이미 습득한 아이템 표시",get("knownItems"),set("knownItems"),"습득 여부가 확인된 도안·탈것에 체크 표시합니다.",supportedItems,{
@@ -50,7 +54,6 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
     {title="채집",items={check("채집 추적 상태 유지",get("keepTracking"),set("keepTracking"),"직접 선택한 채광·약초 추적을 부활 후 복원합니다. 직접 끈 추적은 복원하지 않습니다.",supportedTracking,{
       check("복원 채팅 알림",get("trackingReport"),set("trackingReport"))})}},
   }
-  if chat then sections={sections[1]} else table.remove(sections,1) end
   local page=CreateFrame("Frame",nil,parent); page:SetPoint("TOPLEFT",0,y); page:SetWidth(parent:GetWidth())
   local step=T.RowHeight+T.RowGap
   local refresh
@@ -63,6 +66,7 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
     section.measure={}
     for _,item in ipairs(section.items) do
       local cell=CreateFrame("Frame",nil,section.body); cell:SetWidth(page:GetWidth()); item.cell=cell; item.controls={}
+      if section.title=="파티 자동 인사" then cell.khqolSection=section.title end
       section.measure[#section.measure+1]=item
       local c=UI:CreateCheckbox(cell,item.title,0,0,item.get,item.set,item.enabled)
       UI:AttachTooltip(c,item.title,item.tip); item.controls[1]=c
@@ -95,18 +99,46 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
       cell:SetHeight((item.title=="이미 습득한 아이템 표시" and 3 or #item.controls)*step)
       if section.title=="자동 거절" then cell:SetHeight(step) end
     end
+    if section.title=="아이템" then
+      section.extraSettings=CreateFrame("Frame",nil,section.body)
+      section.extraSettings.khqolSection="아이템"
+      section.layoutExtraSettings=M:BuildBagItemSettings(section.extraSettings)
+      table.insert(section.measure,section.extraSettings)
+    elseif section.title=="버프 감사 알림" then
+      local buff=CreateFrame("Frame",nil,section.body)
+      buff.khqolSection=section.title
+      section.extraSettings=buff
+      local b=UI:CreateBuilder(buff,0)
+      local function get(key) return function() return M:GetDB().buffThanks[key] end end
+      local function set(key) return function(value) M:GetDB().buffThanks[key]=value;M.buffThanks:Configure() end end
+      b:Checkbox("버프 감사 알림",get("enabled"),set("enabled"))
+      local move=b:Button("버프 알림 위치 편집",function() KHQOL.PositionEditor:Enter("buffThanks") end,nil,get("enabled"))
+      move.navigationOnly=true
+      b:Slider("버프 아이콘 크기",32,112,1,get("size"),set("size"),function(v) return v.." px" end,get("enabled"))
+      b:Dropdown("새 알림 표시 방향",{{value="right",text="오른쪽"},{value="left",text="왼쪽"}},
+        get("direction"),set("direction"),get("enabled"))
+      b:Slider("알림 유지 시간",10,30,1,get("duration"),set("duration"),function(v) return v.."초" end,get("enabled"))
+      b:Flush()
+      section.optionCount=#b.cells
+      section.layoutExtraSettings=function(width)
+        buff:SetWidth(width)
+        b:Reflow()
+        return buff:GetHeight()
+      end
+      table.insert(section.measure,buff)
+    end
   end
   local status=UI:CreateDescription(page,"",0,0)
   refresh=function()
     local top=0; local width=math.min(T.FormMaxWidth,parent:GetWidth());page:SetWidth(width)
     for _,section in ipairs(sections) do
       local f=section.frame;f:ClearAllPoints();f:SetPoint("TOPLEFT",0,top);f:SetWidth(width)
-      section.group.row:SetWidth(width);section.group:SetOptionCount(#section.measure)
+      section.group.row:SetWidth(width);section.group:SetOptionCount(section.optionCount or #section.measure)
       local headerHeight=T.SectionGap+section.group.row:GetHeight()+T.RowGap
       section.body:SetPoint("TOPLEFT",0,-headerHeight);section.body:SetWidth(width)
       local expanded=section.group:IsExpanded();section.body:SetShown(expanded)
       local columns=width<T.CheckTwoColumnWidth and 1 or 2
-      if section.title=="대화창" then columns=1 end
+      if chat then columns=1 end
       for _,item in ipairs(section.items) do for _,control in ipairs(item.controls) do
         control.text:SetWidth(width)
         if control.text:GetStringWidth()+T.CheckboxSize+T.CheckboxLabelGap+T.ContentPadding>(width-T.ColumnGap)/2 then columns=1 end
@@ -141,7 +173,13 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
         end
         item.cell:SetHeight(-childTop);rowHeight=math.max(rowHeight,-childTop)
       end
-      section.body:SetHeight(-rowTop+rowHeight)
+      local bodyHeight=-rowTop+rowHeight
+      if section.extraSettings then
+        local gap=bodyHeight>0 and T.SectionGap or 0
+        section.extraSettings:ClearAllPoints();section.extraSettings:SetPoint("TOPLEFT",0,-bodyHeight-gap)
+        bodyHeight=bodyHeight+gap+section.layoutExtraSettings(width)
+      end
+      section.body:SetHeight(bodyHeight)
       f:SetHeight(headerHeight+(expanded and section.body:GetHeight() or 0));top=top-f:GetHeight()
     end
     local text=not chat and (M.merchantPending and "상점 확장: 전투가 끝나면 적용합니다." or (M:GetDB().merchantExpanded and M.merchantUnavailable and "상점 확장 미적용: "..M.merchantUnavailable or "")) or ""

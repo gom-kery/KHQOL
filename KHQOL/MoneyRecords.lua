@@ -1,7 +1,7 @@
 local _,K=...
 local call=K.PublicCall
 
-local function identity()
+function K:GetCharacterRecordIdentity()
   local guid=call(UnitGUID,"player")
   local realm=call(GetRealmName)
   local faction=call(function() return (UnitFactionGroup("player")) end)
@@ -10,7 +10,7 @@ local function identity()
   return guid,realm,faction
 end
 
-local function name()
+function K:GetCharacterRecordName()
   if call(RegionalUniqueNamesEnabled)==true then
     local full=call(NameUtil and NameUtil.GetUnmodifiedUnitFullName,"player")
     if type(full)=="string" and full~="" then return full end
@@ -24,9 +24,9 @@ end
 
 function K:RecordCharacterMoney()
   if not self.db then return end
-  local guid,realm,faction=identity()
+  local guid,realm,faction=self:GetCharacterRecordIdentity()
   local amount=call(GetMoney)
-  local display=name()
+  local display=self:GetCharacterRecordName()
   if not guid or type(display)~="string" or display=="" or not self.IsPublicNumber(amount) or amount<0 then return end
   local class=call(function() return select(2,UnitClass("player")) end)
   self.db.globalData=self.db.globalData or {}
@@ -36,7 +36,7 @@ function K:RecordCharacterMoney()
 end
 
 function K:ShowCharacterMoney(frame)
-  local guid,realm,faction=identity()
+  local guid,realm,faction=self:GetCharacterRecordIdentity()
   local records=self.db and self.db.globalData and self.db.globalData.characterMoney
   local rows={}
   if guid and records then

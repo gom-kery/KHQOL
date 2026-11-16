@@ -23,6 +23,10 @@ function C:SyncTargetCastVisibility(owner)
     return
   end
   if not owner.valuesReady then return end
+  if owner.finished then
+    bar:Hide()
+    return
+  end
   if not copyValue(bar,"SetShown",source,"IsVisible") then
     self:SetTargetNativeAlpha(owner,false)
     bar:Hide()
@@ -114,9 +118,34 @@ function C:CreateTargetCastDisplay(source,root)
       if owner.active then bar:SetStatusBarColor(unpack(owner.normalColor)) end
     end)
   end
+  if type(source.HandleCastStart)=="function" then
+    hooksecurefunc(source,"HandleCastStart",function()
+      owner.finished=nil
+      owner.interrupt=nil
+      if owner.active then C:SyncTargetCastValues(owner) end
+    end)
+  end
+  if type(source.PlayFadeAnim)=="function" then
+    -- The stock fade can be skipped at alpha zero. The completion path still
+    -- calls PlayFadeAnim, even if the stock bar never fires OnHide.
+    hooksecurefunc(source,"PlayFadeAnim",function()
+      owner.finished=true
+      owner.interrupt=nil
+      bar:Hide()
+    end)
+  end
   if type(source.PlayInterruptAnims)=="function" then
     hooksecurefunc(source,"PlayInterruptAnims",function()
-      if owner.active then bar:SetStatusBarColor(unpack(owner.interruptedColor)) end
+      owner.finished=nil
+      if not owner.active then return end
+      bar:SetStatusBarColor(unpack(owner.interruptedColor))
+      local ticket={};owner.interrupt=ticket
+      C_Timer.After(.65,function()
+        if owner.interrupt~=ticket then return end
+        owner.interrupt=nil
+        owner.finished=true
+        bar:Hide()
+      end)
     end)
   end
   return owner

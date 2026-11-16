@@ -9,7 +9,7 @@ function FC:GuildTooltipLimit()
   return K.IsPublicNumber(value) and math.max(1,math.min(1000,math.floor(value))) or 15
 end
 
-function FC:ShowGuildTooltip(frame)
+function FC:ShowGuildTooltip(frame,newLevel)
   local roster=self.guildRoster
   if not roster or not frame:IsVisible() or K.PositionEditor.active or frame.dragStartX then return end
   local tip=self.guildTooltip
@@ -20,6 +20,8 @@ function FC:ShowGuildTooltip(frame)
   local count=0
   if #roster<self:GuildTooltipLimit() then
     count=#roster
+    local playerLevel=K.IsPublicNumber(newLevel) and newLevel or call(UnitLevel,"player")
+    if not K.IsPublicNumber(playerLevel) or playerLevel<1 then playerLevel=nil end
     for index,member in ipairs(roster) do
       local row=tip.rows[index]
       if not row then
@@ -32,7 +34,8 @@ function FC:ShowGuildTooltip(frame)
       local color=member.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[member.class]
       local r,g,b=.9,.9,.9
       if color then r,g,b=color.r,color.g,color.b end
-      row.level:SetText(tostring(member.level or "?"));row.level:SetTextColor(r,g,b)
+      local level=member.isSelf and playerLevel or member.level
+      row.level:SetText(tostring(level or "?"));row.level:SetTextColor(r,g,b)
       row.name:SetText(member.name);row.name:SetTextColor(r,g,b)
       levelWidth=math.max(levelWidth,row.level:GetStringWidth())
       nameWidth=math.max(nameWidth,row.name:GetStringWidth())
@@ -125,6 +128,7 @@ function FC:RefreshGuildRoster(eventClub)
     self.guildRoster=nil;self:UpdateGuildDisplay();return
   end
   local roster,seen={},{}
+  local playerGUID=call(UnitGUID,"player")
   local selfIncluded=false
   for _,id in ipairs(ids) do
     local info=call(C_Club.GetMemberInfo,club,id)
@@ -135,7 +139,7 @@ function FC:RefreshGuildRoster(eventClub)
     if presence==states.Online or presence==states.Away or presence==states.Busy then
       local guid=call(function() return info.guid end)
       if type(guid)~="string" or guid=="" then guid=id end
-      local isSelf=call(function() return info.isSelf end)==true
+      local isSelf=call(function() return info.isSelf end)==true or (type(playerGUID)=="string" and guid==playerGUID)
       if not seen[guid] and not (isSelf and selfIncluded) then
         seen[guid]=true
         selfIncluded=selfIncluded or isSelf
@@ -144,7 +148,7 @@ function FC:RefreshGuildRoster(eventClub)
         local classID=call(function() return info.classID end)
         local classInfo=classID and call(C_CreatureInfo and C_CreatureInfo.GetClassInfo,classID)
         local class=classInfo and call(function() return classInfo.classFile end)
-        roster[#roster+1]={name=type(name)=="string" and name or "이름 확인 중",level=level,class=class}
+        roster[#roster+1]={name=type(name)=="string" and name or "이름 확인 중",level=level,class=class,isSelf=isSelf}
       end
     end
   end
@@ -160,6 +164,8 @@ function FC:ConfigureGuildDisplay()
     self.guildEvents:UnregisterAllEvents()
     if watching then
       for _,event in ipairs(rosterEvents) do pcall(self.guildEvents.RegisterEvent,self.guildEvents,event) end
+      self.guildEvents:RegisterEvent("PLAYER_LEVEL_UP")
+      pcall(self.guildEvents.RegisterUnitEvent,self.guildEvents,"UNIT_LEVEL","player")
       self:RefreshGuildRoster()
       return
     end
@@ -181,6 +187,12 @@ function FC:SetupGuildDisplay(frame)
 
   self.guildEvents=CreateFrame("Frame")
   self.guildEvents:SetScript("OnEvent",function(_,event,first)
+    if event=="PLAYER_LEVEL_UP" or event=="UNIT_LEVEL" then
+      if tip:IsShown() and (event=="PLAYER_LEVEL_UP" or first=="player") then
+        self:ShowGuildTooltip(frame,event=="PLAYER_LEVEL_UP" and first or nil)
+      end
+      return
+    end
     local club
     if event:find("^CLUB_") and K.IsPublicValue(first) then club=first end
     if event=="CLUB_REMOVED" and club and club==self.guildClub then

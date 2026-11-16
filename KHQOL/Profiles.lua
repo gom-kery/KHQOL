@@ -11,7 +11,7 @@ local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=t
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID","hunterMeleeSpellName","meleeSpellID","meleeSpellName","rangedSpellID","rangedSpellName"}
 -- Also used by the transfer schema when the owning package is absent.
 KHQOL.professionProfileDefaults={
-  enabled=false,locked=true,layout="horizontal",iconSize=36,showSkill=true,
+  enabled=false,locked=true,layout="horizontal",iconSize=36,showSkill=true,showAltProfessions=false,showAltSecondaryProfessions=true,
   fontSize=14,skillFontSize=12,skillPosition="inside",backgroundAlpha=.92,direction="right",cellGap=4,
   position={point="CENTER",relativePoint="CENTER",x=160,y=0},order={},
   style={color={1,1,1,1},effect="OUTLINE"},
