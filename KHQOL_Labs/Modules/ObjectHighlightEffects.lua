@@ -3,7 +3,8 @@ local K=_G.KHQOL
 local E={entries={},options={},imageStyles={}}
 K.ObjectHighlightEffects=E
 function E:Register(key,title,draw)
-  self.entries[key]=draw;self.options[#self.options+1]={value=key,text=title}
+  self.entries[key]=draw
+  if key:sub(1,5)=="image" then self.options[#self.options+1]={value=key,text=title} end
 end
 local media="Interface\\AddOns\\KHQOL_Labs\\Media\\ObjectReticles\\"
 function E:Image(frame,path,size,color,alpha)
@@ -24,11 +25,11 @@ function E:Image(frame,path,size,color,alpha)
   return 0
 end
 for _,item in ipairs({
-  {"imageCross","이미지 01 · 십자선 (Cross)","ObjectReticle_01_Cross.tga"},
-  {"imageDiamond","이미지 02 · 마름모 (Diamond)","ObjectReticle_02_Diamond.tga"},
-  {"imageRing","이미지 03 · 분할 원형 (Segmented Ring)","ObjectReticle_03_SegmentedRing.tga"},
-  {"imageSwirl","이미지 04 · 납작한 회오리 (Flat Swirl)","ObjectReticle_04_FlatSwirl.tga"},
-  {"imageOrbit","이미지 05 · 궤도 별빛 (Orbit Star)","ObjectReticle_05_OrbitStar.tga"},
+  {"imageCross","십자선 (Cross)","ObjectReticle_01_Cross.tga"},
+  {"imageDiamond","마름모 (Diamond)","ObjectReticle_02_Diamond.tga"},
+  {"imageRing","분할 원형 (Segmented Ring)","ObjectReticle_03_SegmentedRing.tga"},
+  {"imageDownArrow","하단 화살표","ObjectReticle_06_DownArrow.tga"},
+  {"imageOrbit","궤도 별빛 (Orbit Star)","ObjectReticle_05_OrbitStar.tga"},
 }) do
   local key,title,path=item[1],item[2],media..item[3]
   E.imageStyles[key]=path
@@ -66,6 +67,7 @@ E:Register("brackets","기존 Brackets · 모서리",function(f,s,c,a)
   return index
 end)
 function E:Stop(frame,keepImage)
+  if not keepImage then self:Blink(frame,false) end
   if frame.reticleImage and not keepImage then frame.reticleImage:Hide() end
   for _,p in ipairs(frame.sparkles or {}) do
     if p.animating then p.animation:Stop();p.animating=false end
@@ -78,6 +80,31 @@ local function animate(group,kind,order,duration,delay,from,to)
   a:SetOrder(order);a:SetDuration(duration);a:SetStartDelay(delay);a:SetSmoothing("IN_OUT")
   if kind=="Alpha" then a:SetFromAlpha(from);a:SetToAlpha(to)
   else a:SetScaleFrom(from,from);a:SetScaleTo(to,to);a:SetOrigin("CENTER",0,0) end
+end
+-- Animate a separate alpha multiplier; the configured texture alpha/color stay intact.
+-- Render is called by the existing target ticker, so keep a running cycle alive.
+function E:Blink(frame,enabled,period)
+  if not enabled then
+    if frame.reticleBlink then frame.reticleBlink:Stop() end
+    frame.reticleBlinkPeriod=nil;frame:SetAlpha(1)
+    return
+  end
+  if not frame.reticleBlink then
+    local group=frame:CreateAnimationGroup();frame.reticleBlink=group
+    group:SetLooping("REPEAT")
+    frame.reticleFadeOut=group:CreateAnimation("Alpha")
+    frame.reticleFadeIn=group:CreateAnimation("Alpha")
+    for i,a in ipairs({frame.reticleFadeOut,frame.reticleFadeIn}) do
+      a:SetOrder(i);a:SetSmoothing("IN_OUT")
+      a:SetFromAlpha(i==1 and 1 or 0);a:SetToAlpha(i==1 and 0 or 1)
+    end
+  end
+  if frame.reticleBlinkPeriod~=period then
+    frame.reticleBlink:Stop();frame:SetAlpha(1)
+    frame.reticleFadeOut:SetDuration(period/2);frame.reticleFadeIn:SetDuration(period/2)
+    frame.reticleBlinkPeriod=period
+    frame.reticleBlink:Play()
+  end
 end
 E:Register("sparkle","기존 Sparkle · 작은 반짝임",function(frame,size,color,alpha)
   frame.sparkles=frame.sparkles or {}
@@ -100,12 +127,13 @@ E:Register("sparkle","기존 Sparkle · 작은 반짝임",function(frame,size,co
   end
   return 0
 end)
-function E:Render(frame,effect,size,color,alpha)
+function E:Render(frame,effect,size,color,alpha,blink,period)
   local draw=self.entries[effect];if not draw then return false end
   if effect~="sparkle" then self:Stop(frame,self.imageStyles[effect]~=nil)
   elseif frame.reticleImage then frame.reticleImage:Hide() end
   frame.lines=frame.lines or {}
   local n=draw(frame,size,color,alpha)
   for i=n+1,#frame.lines do frame.lines[i]:Hide() end
+  self:Blink(frame,blink==true and self.imageStyles[effect]~=nil,period)
   return true
 end

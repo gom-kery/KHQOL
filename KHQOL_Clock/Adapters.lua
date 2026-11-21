@@ -13,7 +13,7 @@ do local spec=R.entries.clock
   if not spec.positions then spec.positions=function(m,focus,K) local provider=K.PositionProviders.clock;return provider and provider(focus,K) or {} end end
   spec.applyProfile=function(m,K)
   if not m.initialized then return end
-  m.db=ForeverClockDB;m:ApplyAll()
+  m.db=ForeverClockDB;m:ApplyAll();m:ConfigureClockShortcut()
   if m.todoFrame then
     local p=m.db.todo.window
     m.todoFrame:ClearAllPoints();m.todoFrame:SetPoint(p.point,UIParent,p.relativePoint,p.x,p.y)

@@ -1,0 +1,271 @@
+[
+  {
+    "file": "KHQOL/Bootstrap.lua",
+    "change": "modified",
+    "beforeSHA256": "476ee9b8cb39554ee03a90c9640a7afb9cea3d07c62f971516de11f0f341bcef",
+    "afterSHA256": "412cf8a702a06b2a3c6750d1562d624b47ec7e79eba3befa2282d91c5a285e7b"
+  },
+  {
+    "file": "KHQOL/CHANGELOG.md",
+    "change": "modified",
+    "beforeSHA256": "5f2bacbfffd2335ea5153c3fc0abc0e4608d50630482150cfa2d8130eae0f833",
+    "afterSHA256": "ce11359572d5582ed45a83007fff7cadc9a7930c60e1cb8af4a08f79390e0651"
+  },
+  {
+    "file": "KHQOL/DESIGN.md",
+    "change": "modified",
+    "beforeSHA256": "94e3a5c06b2edd23987faeee74038876cc39a503206dddb7970cbe5208372283",
+    "afterSHA256": "a5a8eac8507070d11aae4598c9b5e724664596636946aac5291744e0a05659a3"
+  },
+  {
+    "file": "KHQOL/KHQOL.toc",
+    "change": "version-only",
+    "beforeSHA256": "636af0ab4e5608b8b6845c8221975aaf2d4437968c451e2629a438d6cafe7ec8",
+    "afterSHA256": "bef03f0e06bc26b282e73a8834f6fd4e780f6b1a28cdbfba31f453ae28876d41"
+  },
+  {
+    "file": "KHQOL/ProfileTransfer.lua",
+    "change": "modified",
+    "beforeSHA256": "3828a653d8ffe8b08d5c0fd47b6a806fefc29a95bd3873470cea487ba28d9905",
+    "afterSHA256": "b239a2238aaba780eea9dad2b2fe44cafd6ed6ca685f561b96fcecd784a60631"
+  },
+  {
+    "file": "KHQOL/README.md",
+    "change": "modified",
+    "beforeSHA256": "d46ee3651bb86eb7dda7fa9ae906f180941f841b6eefc886f93ee996383923be",
+    "afterSHA256": "8fa015c2c6496c5e279dedf90e22be458af29d78b9a70a0fb2b2b05c6b6f7f11"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/CONTROL-ID-COMPATIBILITY.json",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "d28f94a9ab3eb2073f5b69435af2c31693f18094973051b9353e456d66d13ff2"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/FEATURE-RESULTS.json",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "265d4ee1fabe45095cccb31049ce8e59bedf43b6064bbd419e39dff51569beb5"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/INSTALLATION-RESULTS.json",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "acb2dc9409ddf3a367d6c8c2a7942dc9f0b60fb9ce5abc13a36022788542c27c"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/LAYOUT-RESULTS.json",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "e8e9c8576ca561d05011d0ca8f7b340395568acfe35a6e1d5ce46a54c558ef84"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/MENU-ROUTES-UNCHANGED.md",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "0e3b492765f78f96168d471325f948db645fc63bc39c74322e80180b65ea43e0"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/NEW-CONTROLS.json",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "8e309f215fdf60fd9e61a3102c26999050b56f2e3f701f08c9b6f14fd980584a"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/REGRESSION-RESULTS.json",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "effbf34d6fb50d41ccb1bb553583b192d624c85db769437cb3d02666ced0f7a3"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/RELEASE-REPORT.md",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "c04734a52224c599e47b853753d465c1fab80494038cf6f0500fe0d8b2c9ec7d"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/SETTINGS-TEXT-REVIEW.md",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "f732699f8982bae70799a7ab384b42e6519165dbbfdc857625731a8f598762aa"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/UI-AFTER-SHAMAN.json",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "7bc185dcc4baf29eb63db81f5ef1be5adbb2a0a347c09333044ab94640478f19"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/UI-BEFORE-SHAMAN.json",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "f2137d9fdb0107f86d3761e651efae6647e43a78478a86adf396896ed4f482ac"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/VALIDATION-SUMMARY.json",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "c535c47b907402b527fca6194f63d9163798629b50f6c1bc9bafb65cd383ea11"
+  },
+  {
+    "file": "KHQOL_Campfire/KHQOL_Campfire.toc",
+    "change": "version-only",
+    "beforeSHA256": "b41495b1c08e9146e5671c4b80578159c55fee97f05937be8090be0bac846963",
+    "afterSHA256": "a30321795f7096a843f65e77730a1b318e7406946b496d035911f5db78c023d7"
+  },
+  {
+    "file": "KHQOL_Clock/KHQOL_Clock.toc",
+    "change": "version-only",
+    "beforeSHA256": "6cd9572dfe5bf0f6e8e9b53cf90ea14619968b382bc6a8433c9c0821ff40a219",
+    "afterSHA256": "6a61a23e2428a5fda2193bffad45158dfaea59e84e035916ccfabfb5fa5776b1"
+  },
+  {
+    "file": "KHQOL_CombatStatus/KHQOL_CombatStatus.toc",
+    "change": "version-only",
+    "beforeSHA256": "dd1849a698cb58eb428c3d9dd6d8ba75eb3bed5814aea6cf1a27671e688ab353",
+    "afterSHA256": "a4eb1eda87dfd8c2e4b2f24a53a9d9b1ddbef2fb6782d62a15bef5e863926ae1"
+  },
+  {
+    "file": "KHQOL_Convenience/BuffReminder/Adapters.lua",
+    "change": "modified",
+    "beforeSHA256": "24d6e09a6ab6f1267d53f8bdba74bf54b85f07e052b12ed16f179d7ad0196b33",
+    "afterSHA256": "1981807b2963492d934aead0b31718ed8ddb646d4c39c454d5c0a4a9b29ee800"
+  },
+  {
+    "file": "KHQOL_Convenience/BuffReminder/CommonBuffs.lua",
+    "change": "modified",
+    "beforeSHA256": "9d73c1aae0285464a64fedd4b15cb630f7b9105384eae5eba45dc419dffce12c",
+    "afterSHA256": "b2cf4ae092ff424de5d616a21db7894ca14a1cc1c769d20b0db099fbb2660d20"
+  },
+  {
+    "file": "KHQOL_Convenience/BuffReminder/Core.lua",
+    "change": "modified",
+    "beforeSHA256": "88ad39a8e375205b8ee5ceb39737044c79916b2191cc1da41e3093849dc709e5",
+    "afterSHA256": "a32e9d9b95c951cbf90759f030d9db5327e37fefe601c93cc80c91147a8f71a3"
+  },
+  {
+    "file": "KHQOL_Convenience/BuffReminder/SleepingBag.lua",
+    "change": "modified",
+    "beforeSHA256": "8589845eddb37f4d3140adf413d7f68fc18fc99e24e7d09ba344648386b36f10",
+    "afterSHA256": "26f5560dbd4638c6f7741bf951fcd69561e840eed3c046d6299d7becac342857"
+  },
+  {
+    "file": "KHQOL_Convenience/KHQOL_Convenience.toc",
+    "change": "version-only",
+    "beforeSHA256": "c6036bdb823dab35c65707aadf8e8732104874b90dedc33021122945c60ee159",
+    "afterSHA256": "612adca3316670306a772d74b139f4c5ab039761a181e39612b2d40d647dca74"
+  },
+  {
+    "file": "KHQOL_CursorTrail/KHQOL_CursorTrail.toc",
+    "change": "version-only",
+    "beforeSHA256": "7beef234bbcdcb1f5f6ed5f9044154d6ae80d2bb602ab11667dc7e8515d47a4c",
+    "afterSHA256": "c5858d8441ce7f91d50a9c8eabfd13050747a9a9e1a51935e02e43a6c63b30bd"
+  },
+  {
+    "file": "KHQOL_EnvironmentTimer/KHQOL_EnvironmentTimer.toc",
+    "change": "version-only",
+    "beforeSHA256": "b2ae092f73f2854ddf18a6f1a3a4a31d6da26b1695e7899220618530c352e53e",
+    "afterSHA256": "e2e7ae4af823dee34e55fb0f32b4f97ecb29f791547bf483f57a9f7026f88c02"
+  },
+  {
+    "file": "KHQOL_ExperienceBar/KHQOL_ExperienceBar.toc",
+    "change": "version-only",
+    "beforeSHA256": "626da5ac34f0ecb838b0dbc6c9ff2b3791cb581d3d3c54ff20a5d951923a6c11",
+    "afterSHA256": "85e27780ce678e637ff099840d9e413b35d763853aaddaae3ef325261d2956d4"
+  },
+  {
+    "file": "KHQOL_Labs/KHQOL_Labs.toc",
+    "change": "version-only",
+    "beforeSHA256": "7162ac2bb2c2bb747da498db4abbcc011bca9330ee77531abf91e88963fd096d",
+    "afterSHA256": "1975ce7fb8dfc3e08e08c5d69e0b1bd0de0d72f01a6d0d14acaca47386455087"
+  },
+  {
+    "file": "KHQOL_Labs/Media/ObjectReticles/ObjectReticle_04_FlatSwirl.tga",
+    "change": "removed",
+    "beforeSHA256": "5354a9bd923eb4a652fc4fbab17803d4746c9eb52bd76aca53a02cc79954c7cf",
+    "afterSHA256": null
+  },
+  {
+    "file": "KHQOL_Labs/Media/ObjectReticles/ObjectReticle_06_DownArrow.tga",
+    "change": "added",
+    "beforeSHA256": null,
+    "afterSHA256": "05b0a74b9cd1d6670b909cc5b1280cceed5cad0e249c4980518ce8ece9ffdf02"
+  },
+  {
+    "file": "KHQOL_Labs/Modules/GatheringHighlight.lua",
+    "change": "modified",
+    "beforeSHA256": "0f8217e5dd657b281f7e71058cf4a636ede74527a4f74f6839bad42768011248",
+    "afterSHA256": "f4e4fae1236bdbc6aeecb3533a09e71ba2191c6938a4f6e8325eba24db8c5fc0"
+  },
+  {
+    "file": "KHQOL_Labs/Modules/ObjectHighlightEffects.lua",
+    "change": "modified",
+    "beforeSHA256": "3677b0266072882fb3ae7b6289f73167fcb9aacc9247dd552c8ee82ec3d28abc",
+    "afterSHA256": "3c86cdee63879eccda70b6843dcd335b31c1877020275f8e43d4c582b43426cd"
+  },
+  {
+    "file": "KHQOL_Labs/UI/LabSettings.lua",
+    "change": "modified",
+    "beforeSHA256": "0e2633ecb35fefa382e8fd25c89ea302e06e0473bee5f1b85985552d778b7b54",
+    "afterSHA256": "6ebb0653baea20b5396545ad897144420e8fee4582cc890858a4c21645cee9ec"
+  },
+  {
+    "file": "KHQOL_Map/KHQOL_Map.toc",
+    "change": "version-only",
+    "beforeSHA256": "b716ac1d018c3108dca399df03502fb8df23b85afc11c25bb9697f613a72c69d",
+    "afterSHA256": "fd50a3c47fefab61c83fba14c30d755d636e69b15e15d995112c3ac98ba5b2a9"
+  },
+  {
+    "file": "KHQOL_NPCAlert/KHQOL_NPCAlert.toc",
+    "change": "version-only",
+    "beforeSHA256": "e5f71ca9ad81dd70a5bdfd9f8ddd7f1581ac6437d01fa698ee1ae475b09e4817",
+    "afterSHA256": "1e7db1fef8c7f1c2a9e595c74b35624049ef9bbbe695ceee8b8bc2c104a06970"
+  },
+  {
+    "file": "KHQOL_PvPAlert/KHQOL_PvPAlert.toc",
+    "change": "version-only",
+    "beforeSHA256": "a16f3e44b32b5201cc9e1f19358bf544ed71796e13ec5ddd45819274a31002bd",
+    "afterSHA256": "d6e935353ca24ea1999027d3dbd5568c2dee64558625554d3618a65f027d7a2a"
+  },
+  {
+    "file": "KHQOL_QuestNavigator/KHQOL_QuestNavigator.toc",
+    "change": "version-only",
+    "beforeSHA256": "5a433ca7341efdde85253b37f669cba4323ca57578db1727242db6f59705f145",
+    "afterSHA256": "185b633a1860be1643f1a46474dc50a1bb9937c869558e722322c50a76e176b5"
+  },
+  {
+    "file": "KHQOL_Range/KHQOL_Range.toc",
+    "change": "version-only",
+    "beforeSHA256": "4bed72f3991ac0a142d05e776f3705c842f07323320a9bfbf26f7d30955f2637",
+    "afterSHA256": "2ac9be222477e067f6aeee7924567bd6f182e949b6a24dc504b5bcd91618c917"
+  },
+  {
+    "file": "KHQOL_ResourceSwing/KHQOL_ResourceSwing.toc",
+    "change": "version-only",
+    "beforeSHA256": "320b88480bbacde3ad6799209a362d4117542c56131fb80e7d1ea59fcfb3b951",
+    "afterSHA256": "b0296747f5f5d6d7654630b24b6086f869d73faefd08aaf0ccde99cca8b86e2e"
+  },
+  {
+    "file": "KHQOL_Threat/KHQOL_Threat.toc",
+    "change": "version-only",
+    "beforeSHA256": "7bfbc869b16adeca651d60635ae6ca86c51340e5bdedb506aa08192af46dc028",
+    "afterSHA256": "590581b7c0c23ddd97093972a2645d73c3475670c219b4ee62e2376ed2ec0beb"
+  },
+  {
+    "file": "KHQOL_Tooltip/KHQOL_Tooltip.toc",
+    "change": "version-only",
+    "beforeSHA256": "75f6c2abf5697728edff2bae642594d5a406f1edfd9652a357dccf12004f2252",
+    "afterSHA256": "fda655f0c45fecbaf05f608575ee7b3b5754c8b3609c845791c7f23a5959c7f6"
+  },
+  {
+    "file": "KHQOL_UnitFrames/KHQOL_UnitFrames.toc",
+    "change": "version-only",
+    "beforeSHA256": "651215a481274910813f86595cc674ed870106e11cb3917436194b8f0cf203c1",
+    "afterSHA256": "25b93e62f7f61272182313ec108c8c0b31b2e84e8634512860039c7b3438d703"
+  },
+  {
+    "file": "KHQOL/Reports/1.12.0.2/CHANGED-FILES.json",
+    "change": "added",
+    "selfHashExcluded": true
+  }
+]

@@ -14,7 +14,7 @@ KHQOL.PositionProviders.resourceSwing=function(focus)
       local combo=m.resourceSwing.comboFrame
       if combo then
         local p={point=rs.comboPoint,relativePoint=rs.comboRelativePoint,x=rs.comboX,y=rs.comboY}
-        local preview=combo:IsShown() and combo or E:Virtual("resource.combo",p,combo:GetWidth(),combo:GetHeight())
+        local preview=combo:IsShown() and combo or PU:Preview("resource.combo",p,combo:GetWidth(),combo:GetHeight())
         add("resource.combo","resourceSwing","Resource Swing · 콤보 포인트",preview,pointWriter(rs,"comboX","comboY"),lock(rs,"comboLocked"),function() m.resourceSwing:ApplyPosition() end,{sample="콤보 포인트",sampleSize=12})
       end
     end

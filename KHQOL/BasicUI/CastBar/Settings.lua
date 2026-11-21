@@ -9,7 +9,8 @@ function CastBar:BuildPlayerSettings(content,y)
   local function add(control) controls[#controls+1]=control; return control end
   local function enabled() return self:IsEnabled() end
   local function checkbox(title,group,key,kind,available)
-    return add(b:Checkbox(title,function() return group[key] end,function(v) group[key]=v; self:Changed(kind) end,available or enabled))
+    local method=key=="locked" and b.PositionLock or b.Checkbox
+    return add(method(b,title,function() return group[key] end,function(v) group[key]=v; self:Changed(kind) end,available or enabled))
   end
   local function slider(title,group,key,min,max,available)
     return add(b:Slider(title,min,max,1,function() return group[key] end,function(v) group[key]=v; self:Changed() end,function(v) return tostring(math.floor(v+.5)) end,available or enabled))
@@ -34,7 +35,7 @@ function CastBar:BuildPlayerSettings(content,y)
   dropdown("진행 방향",db.behavior,"direction",{{value="left_to_right",text="왼쪽 → 오른쪽"},{value="right_to_left",text="오른쪽 → 왼쪽"}})
   checkbox("Blizzard 시전 바 숨김",db.behavior,"hideBlizzard")
   b:Section("위치")
-  dropdown("배치 기준",db.position,"mode",{{value="free",text="독립 배치"},{value="resource_above",text="ResourceSwing 위"},{value="resource_below",text="ResourceSwing 아래"}})
+  dropdown("배치 기준",db.position,"mode",{{value="free",text="독립 배치"},{value="resource_above",text="자원·스윙바 위"},{value="resource_below",text="자원·스윙바 아래"}})
   local function freeEnabled() return enabled() and not self.linked end
   checkbox("위치 잠금",db.position,"locked",nil,freeEnabled)
   slider("X 위치",db.position.free,"x",-3000,3000,freeEnabled)
@@ -42,12 +43,11 @@ function CastBar:BuildPlayerSettings(content,y)
   local function resourceEnabled() return enabled() and db.position.mode~="free" end
   checkbox("ResourceSwing 폭에 맞춤",db.position.resource,"matchWidth",nil,resourceEnabled)
   slider("간격",db.position.resource,"gap",0,20,resourceEnabled)
-  b:Description("ResourceSwing이 꺼지면 저장된 독립 위치를 사용합니다.")
+  b:Description("자원·스윙바가 꺼지면 저장된 독립 위치를 사용합니다.")
   add(b:Button("위치 초기화",function()
     local p=db.position; p.free.point,p.free.relativePoint,p.free.x,p.free.y="CENTER","CENTER",0,-120
     p.resource.gap=4; self:Changed()
   end,180,enabled))
-  add(b:Button("플레이어 시전바 드래그 이동",function() KHQOL.PositionEditor:Enter("cast") end,nil,freeEnabled))
   add(b:Button("미리보기 켜기 / 끄기",function() self:SetPreview(not self.preview) end,210,enabled))
   content:SetScript("OnHide",function()
     if KHQOL.PositionEditor and KHQOL.PositionEditor.active then return end
@@ -83,10 +83,10 @@ function CastBar:BuildTargetSettings(content,y)
   local function targetAvailable() return enabled() and self:TargetFrame()~=nil end
   local function targetEnabled() return targetAvailable() and self:GetDB().targetPosition.enabled end
   b:Checkbox("KHQOL 대상 시전바 사용",function() return self:GetDB().targetPosition.enabled end,function(v) self:GetDB().targetPosition.enabled=v;self:ApplyTargetPosition() end,targetAvailable)
+  b:PositionLock("대상 시전바 위치 잠금",function() return self:GetDB().targetPosition.locked end,function(v) self:GetDB().targetPosition.locked=v end,targetEnabled)
   for _,axis in ipairs({"x","y"}) do local a=axis
     b:Slider("대상 시전바 "..a:upper().." 위치 보정",-1000,1000,1,function() return self:GetDB().targetPosition[a] end,function(v) self:GetDB().targetPosition[a]=v;self:ApplyTargetPosition() end,function(v) return v.." px" end,targetEnabled)
   end
-  b:Button("대상 시전바 드래그 이동",function() KHQOL.PositionEditor:Enter("cast.target") end,nil,targetEnabled)
   b:Button("대상 시전바 위치 초기화",function() local p=self:GetDB().targetPosition;p.x=0;p.y=0;self:ApplyTargetPosition() end,nil,targetAvailable)
   local function style() return self:GetDB().targetStyle end
   local function changed() self:ApplyTargetPosition() end
@@ -154,7 +154,7 @@ function CastBar:BuildSettings(content,y)
     if settings and settings.activeContent and settings.activeContent.activePanel==self then
       settings:SetModuleHeader(UI.SettingsRegistry.modules.castBar)
       settings.currentRoute={module="castBar",castUnit=kind};settings.pageTitle:SetText(UI.SettingsNavigation:Path(settings.currentRoute))
-      settings:SetPageScrollLayout("bars");settings:UpdateContentHeight()
+      settings:RefreshPositionLocks();settings:SetPageScrollLayout("bars");settings:UpdateContentHeight()
       if changed then UI.SettingsNavigation:RestoreScroll(settings) end
     end
   end

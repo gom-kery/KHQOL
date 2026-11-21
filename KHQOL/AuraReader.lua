@@ -28,11 +28,13 @@ local function unpackAura(a)
 end
 local function observation(a)
   local d,e,icon=a.duration,a.expirationTime,a.icon
+  local stacks=a.applications
+  if not number(stacks) or stacks<0 or stacks%1~=0 then stacks=nil end
   if not number(d) or not number(e) or not public(icon) or d<0 or e<0 then return unknown() end
-  if d==0 and e==0 then return {state="ACTIVE",duration=0,expirationTime=0,icon=icon} end
+  if d==0 and e==0 then return {state="ACTIVE",duration=0,expirationTime=0,icon=icon,applications=stacks} end
   local status,now=KHQOL.ReadPublicAPI(GetTime)
   if status~="ok" or not number(now) or d<=0 or e<=now then return unknown() end
-  return {state="ACTIVE",duration=d,expirationTime=e,remaining=e-now,icon=icon}
+  return {state="ACTIVE",duration=d,expirationTime=e,remaining=e-now,icon=icon,applications=stacks}
 end
 -- A read occurs only on an existing aura event/deadline. Registered IDs are
 -- queried directly, with one bounded legacy traversal for unresolved names/IDs.
@@ -72,9 +74,9 @@ function A:Read(registered)
         if status~="ok" then error("aura index unavailable") end
         a=value
       elseif type(legacy)=="function" then
-        local status,name,icon,_,_,duration,expiration,_,_,_,id=KHQOL.ReadPublicAPI(legacy,"player",i,"HELPFUL")
+        local status,name,icon,stacks,_,duration,expiration,_,_,_,id=KHQOL.ReadPublicAPI(legacy,"player",i,"HELPFUL")
         if status~="ok" then error("legacy aura unavailable") end
-        if name~=nil then a={spellId=id,name=name,icon=icon,duration=duration,expirationTime=expiration} end
+        if name~=nil then a={spellId=id,name=name,icon=icon,duration=duration,expirationTime=expiration,applications=stacks} end
       else error("missing aura API") end
       if a==nil then complete=true;break end
       local id,name,helpful=unpackAura(a)
@@ -90,5 +92,32 @@ function A:Read(registered)
   for id in pairs(pending) do
     if not result[id] then result[id]=(ok and complete) and {state="MISSING"} or unknown() end
   end
+  return result
+end
+
+-- A named query isolates known public aura families from unrelated private
+-- entries. Never retry a rejected query through another API.
+function A:ReadNamed(registered)
+  local api=C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName
+  if type(api)~="function" then return self:Read(registered) end
+  local result,pending={},{}
+  for id,record in pairs(registered) do
+    if not self:IsReadable(id) then result[id]=unknown()
+    elseif type(record.name)~="string" or record.name=="" then pending[id]=record
+    else
+      local status,a=KHQOL.ReadPublicAPI(api,"player",record.name,"HELPFUL")
+      if status~="ok" then result[id]=unknown()
+      elseif a==nil then result[id]={state="MISSING"}
+      else
+        local ok,value=pcall(function()
+          local actual,name,helpful=unpackAura(a)
+          if not helpful or name~=record.name or not self:IsReadable(actual) then return unknown() end
+          return observation(a)
+        end)
+        result[id]=ok and value or unknown()
+      end
+    end
+  end
+  if next(pending) then for id,value in pairs(self:Read(pending)) do result[id]=value end end
   return result
 end

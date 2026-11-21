@@ -1,4 +1,4 @@
--- KHQOL DevTools v0.1.5.  Standalone: does not read or change KHQOL state.
+-- KHQOL DevTools v0.4.0. Standalone tools; optional Usage observation owns no KHQOL settings.
 local addonName = ...
 local DevTools = CreateFrame("Frame")
 _G.KHQOL_DevTools = DevTools
@@ -13,6 +13,7 @@ local selectedTab, elapsed, latestFrame, latestAPI, consoleLogs = "Console", 0, 
 local writingDevToolsMessage = false
 local positionSampling, positionElapsed, positionSamples = false, 0, {}
 local refreshConsole, refreshFrames, refreshPosition, showCopy, setTab, updateTracking
+local consoleRefreshQueued=false
 
 -- Independent reproduction of KHQOL's restrained settings palette; no KHQOL UI dependency.
 local function styleSurface(frame, alpha)
@@ -63,13 +64,25 @@ local function timestamp()
 end
 
 local function addLog(message)
+  if type(issecretvalue)=="function" then
+    local ok,secret=pcall(issecretvalue,message)
+    if not ok or secret then return end
+  end
   if not db.consoleEnabled or db.consolePaused or type(message) ~= "string" or message == "" then return end
   local last = consoleLogs[#consoleLogs]
   -- Some clients dispatch the same system line to more than one chat frame.
   if last and last.message == message and last.at == timestamp() then return end
   consoleLogs[#consoleLogs + 1] = { at = timestamp(), message = message }
   trimLogs()
-  if refreshConsole then refreshConsole() end
+  -- Native chat output can occur inside protected Blizzard loading/layout code.
+  -- Buffer only here; update our own text after that call stack has unwound.
+  if not consoleRefreshQueued and C_Timer and C_Timer.After then
+    consoleRefreshQueued=true
+    C_Timer.After(0,function()
+      consoleRefreshQueued=false
+      if refreshConsole then pcall(refreshConsole) end
+    end)
+  end
 end
 
 local function collectFocus()
@@ -173,6 +186,11 @@ end
 
 showCopy = function(snapshot)
   copyEdit:SetText(snapshot or "")
+  if copyEdit:GetText() ~= (snapshot or "") then
+    copyEdit:SetText("");copyFrame:Hide()
+    printChat("Copy unavailable (COPY_LENGTH). The complete report did not fit; no partial report was opened.")
+    return
+  end
   copyFrame:Show()
   copyEdit:SetFocus()
   copyEdit:HighlightText()
@@ -337,15 +355,20 @@ DevTools.CaptureFrame = function(self)
 end
 
 setTab = function(tab)
+  if tab == "Usage" and not main.usagePanel and DevTools.BuildUsagePanel then
+    DevTools:BuildUsagePanel(main,createButton,createScrollText,showCopy,setTab,styleSurface)
+  end
   selectedTab = tab
   main.consolePanel:SetShown(tab == "Console")
   main.framesPanel:SetShown(tab == "Frames")
   main.positionPanel:SetShown(tab == "Position")
+  if main.usagePanel then main.usagePanel:SetShown(tab == "Usage") end
   main.consoleTab:SetEnabled(tab ~= "Console")
   main.framesTab:SetEnabled(tab ~= "Frames")
   main.positionTab:SetEnabled(tab ~= "Position")
+  if main.usageTab then main.usageTab:SetEnabled(tab ~= "Usage") end
   updateTracking()
-  if tab == "Console" then refreshConsole() elseif tab == "Frames" then refreshFrames() else refreshPosition() end
+  if tab == "Console" then refreshConsole() elseif tab == "Frames" then refreshFrames() elseif tab == "Position" then refreshPosition() end
 end
 
 local function buildUI()
@@ -360,7 +383,7 @@ local function buildUI()
   main:SetScript("OnHide", function() updateTracking(); setPositionSampling(false) end)
   main.title = main:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   main.title:SetPoint("LEFT", main.TitleBg, "LEFT", 5, 0)
-  main.title:SetText("KHQOL DevTools v0.1.5")
+  main.title:SetText("KHQOL DevTools v0.4.0")
   main.title:SetTextColor(114/255, 173/255, 165/255, 1)
   main:Hide()
 
@@ -403,7 +426,8 @@ local function buildUI()
   capture:SetPoint("LEFT", tracking, "RIGHT", 5, 0)
   local stack = createButton(main.framesPanel, "Frame Stack", 100, 22, function()
     if InCombatLockdown and InCombatLockdown() then printChat("Frame Stack cannot be opened in combat."); return end
-    if type(FrameStackTooltip_Toggle) ~= "function" and LoadAddOn then pcall(LoadAddOn, "Blizzard_DebugTools") end
+    local loader=C_AddOns and C_AddOns.LoadAddOn or LoadAddOn
+    if type(FrameStackTooltip_Toggle) ~= "function" and type(loader)=="function" then pcall(loader, "Blizzard_DebugTools") end
     if type(FrameStackTooltip_Toggle) == "function" then pcall(FrameStackTooltip_Toggle, false, true, true) else printChat("Blizzard_DebugTools is unavailable on this client.") end
   end)
   stack:SetPoint("LEFT", capture, "RIGHT", 5, 0)
@@ -452,6 +476,12 @@ local function buildUI()
   scroll:SetScrollChild(copyEdit)
   copyFrame:Hide()
 
+  -- Keep Usage construction out of login and native load-on-demand call stacks.
+  if DevTools.BuildUsagePanel then
+    main.usageTab=createButton(main,"Usage",100,24,function() setTab("Usage") end)
+    main.usageTab:SetPoint("LEFT",main.positionTab,"RIGHT",4,0)
+  end
+  DevTools.main=main
   setTab("Console")
 end
 
@@ -464,12 +494,25 @@ SlashCmdList.KHQOLDEVTOOLS = function(msg)
   if msg == "console" then main:Show(); setTab("Console"); return end
   if msg == "position" or msg == "pos" then main:Show(); setTab("Position"); return end
   if msg == "position report" then showCopy(formatPositionReport()); return end
+  if msg == "usage" or msg == "사용 통계" then main:Show(); setTab("Usage"); return end
   if msg == "clear" then consoleLogs = {}; refreshConsole(); return end
   if main:IsShown() then main:Hide() else main:Show() end
 end
 
 DevTools:RegisterEvent("ADDON_LOADED")
-DevTools:SetScript("OnEvent", function(self, event, name)
+pcall(DevTools.RegisterEvent,DevTools,"ADDON_ACTION_BLOCKED")
+pcall(DevTools.RegisterEvent,DevTools,"ADDON_ACTION_FORBIDDEN")
+local function securityIdentifier(value)
+  if type(issecretvalue)=="function" then local ok,secret=pcall(issecretvalue,value);if not ok or secret then return "unavailable" end end
+  if type(value)~="string" or #value>128 then return "unavailable" end
+  if value=="*** ForceTaint_Strong ***" then return value end
+  return (value:match("^[%w_%.:%-]+$") or value:match("^[%w_%.:%-]+%(%)$")) and value or "unavailable"
+end
+DevTools:SetScript("OnEvent", function(self, event, name, action)
+  if event=="ADDON_ACTION_BLOCKED" or event=="ADDON_ACTION_FORBIDDEN" then
+    if db then pcall(addLog,event..": addon="..securityIdentifier(name)..", operation="..securityIdentifier(action)) end
+    return
+  end
   if event ~= "ADDON_LOADED" or name ~= addonName then return end
   KHQOL_DevToolsDB = KHQOL_DevToolsDB or {}
   db = KHQOL_DevToolsDB
@@ -477,13 +520,13 @@ DevTools:SetScript("OnEvent", function(self, event, name)
   buildUI()
   -- Some clients send print() through CHAT_MSG_SYSTEM; this is passive observation only.
   if ChatFrame_AddMessageEventFilter then
-    ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, message) addLog(message); return false end)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, message) pcall(addLog,message); return false end)
   end
   -- Forever's /run print() can call the visible chat frame directly instead of firing CHAT_MSG_SYSTEM.
   -- hooksecurefunc observes the call after normal delivery and cannot replace or suppress it.
   if DEFAULT_CHAT_FRAME and hooksecurefunc then
     hooksecurefunc(DEFAULT_CHAT_FRAME, "AddMessage", function(_, message)
-      if not writingDevToolsMessage then addLog(message) end
+      if not writingDevToolsMessage then pcall(addLog,message) end
     end)
   else
     printChat("Chat frame observation is unavailable; Console collection is not supported by this client.")

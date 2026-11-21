@@ -1,0 +1,51 @@
+[
+  {
+    "mode": "full",
+    "checks": 569,
+    "status": "PASS",
+    "method": "Lua 5.1 mock + shared-parent SetPoint anchor bounds (not rendered GetTop)",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_devtools",
+    "checks": 569,
+    "status": "PASS",
+    "method": "Lua 5.1 mock + shared-parent SetPoint anchor bounds (not rendered GetTop)",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "core_only",
+    "checks": 14,
+    "status": "PASS",
+    "method": "Lua 5.1 mock + shared-parent SetPoint anchor bounds (not rendered GetTop)",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_unitframes",
+    "checks": 433,
+    "status": "PASS",
+    "method": "Lua 5.1 mock + shared-parent SetPoint anchor bounds (not rendered GetTop)",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_convenience",
+    "checks": 245,
+    "status": "PASS",
+    "method": "Lua 5.1 mock + shared-parent SetPoint anchor bounds (not rendered GetTop)",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_clock",
+    "checks": 563,
+    "status": "PASS",
+    "method": "Lua 5.1 mock + shared-parent SetPoint anchor bounds (not rendered GetTop)",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_labs",
+    "checks": 563,
+    "status": "PASS",
+    "method": "Lua 5.1 mock + shared-parent SetPoint anchor bounds (not rendered GetTop)",
+    "inGame": "NOT TESTED"
+  }
+]

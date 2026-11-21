@@ -73,6 +73,7 @@ function FR:ValidateReferenceSpell(input)
 end
 function FR:SetReferenceSpell(slot,input)
   if slot~="melee" and slot~="ranged" then return false end
+  if self.db and self.db.displayMode~="skills" then return false,"스킬 유효 거리 모드에서 기준 주문을 등록하세요." end
   if not KHQOL.db or not KHQOL:GetEnabled("range") then return false,"사거리 모듈을 먼저 켜세요." end
   local empty=KHQOL.IsPublicValue(input) and tostring(input or ""):match("^%s*$")
   local item,message
@@ -148,9 +149,10 @@ function FR:SetOutlineThickness(value)
 end
 
 function FR:ToggleLock(force)
-  self.db.locked = force == nil and not self.db.locked or force
+  local cfg=self.db.displayMode=="distance" and self.db.distance or self.db
+  if force==nil then cfg.locked=not cfg.locked else cfg.locked=force end
   self:RefreshDisplay(true); self:UpdateSettings()
-  self:Print(self.db.locked and "Indicator locked." or "Indicator unlocked. Drag it to move.")
+  self:Print(cfg.locked and "Indicator locked." or "Indicator unlocked. Drag it to move.")
 end
 
 function FR:CycleTest()
@@ -166,6 +168,13 @@ function FR:RefreshDisplay(force)
   if self.Mouseover then self.Mouseover:Update() end
   if _G.KHQOL and _G.KHQOL.db and not _G.KHQOL:GetEnabled("range") then if self.Display.frame then self.Display:Hide() end; return end
   if not self.Display.frame then return end
+  if self.db.displayMode=="distance" then
+    self.testState=nil
+    self.distanceState=self.Distance:Measure()
+    self.Display:ShowDistance(self.distanceState,force)
+    if self.SyncUpdates then self:SyncUpdates() end
+    return
+  end
   if self.testState and GetTime() < self.testUntil then self.Display:ShowState(self.testState, force); return end
   self.testState = nil
   local state = self.Range:GetTargetState()
@@ -179,15 +188,24 @@ function FR:OnEvent(event, ...)
     self:RefreshDisplay(true)
     if self.TryAttachSpellBook then self:TryAttachSpellBook() end
   else
-    if event == "SPELLS_CHANGED" or event == "ACTIONBAR_SLOT_CHANGED" or event == "ACTIONBAR_PAGE_CHANGED" or event == "UPDATE_BONUS_ACTIONBAR" then
+    if event=="GET_ITEM_INFO_RECEIVED" or event=="ITEM_DATA_LOAD_RESULT" then self:QueueRangeItemEvent(...);return end
+    if event == "SPELLS_CHANGED" or event == "ACTIONBAR_SLOT_CHANGED" or event == "ACTIONBAR_PAGE_CHANGED" or event == "UPDATE_BONUS_ACTIONBAR"
+      or event=="PLAYER_TALENT_UPDATE" or event=="PLAYER_EQUIPMENT_CHANGED" then
       self.Range:ClearActionSlotCache()
       if self.RefreshSpellBookPanel then self:RefreshSpellBookPanel(true) end
+    end
+    if event=="SPELLS_CHANGED" or event=="PLAYER_TALENT_UPDATE" or event=="PLAYER_EQUIPMENT_CHANGED"
+      or event=="SPELL_DATA_LOAD_RESULT" then self.Distance:Invalidate() end
+    if event=="PLAYER_TARGET_CHANGED" or event=="PLAYER_REGEN_DISABLED" or event=="PLAYER_REGEN_ENABLED" then
+      self.distanceState=nil;self.Display:Hide()
     end
     if event=="ADDON_LOADED" or event=="PLAYER_REGEN_ENABLED" then
       if self.TryAttachSpellBook then self:TryAttachSpellBook() end
     end
     self:RefreshDisplay()
+    if event=="PLAYER_EQUIPMENT_CHANGED" then self:UpdateSettings() end
   end
+  self:SyncUpdates()
 end
 
 local eventFrame = CreateFrame("Frame")
@@ -202,16 +220,32 @@ eventFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
 eventFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+for _,name in ipairs({"PLAYER_REGEN_DISABLED","PLAYER_TALENT_UPDATE","GET_ITEM_INFO_RECEIVED","ITEM_DATA_LOAD_RESULT","SPELL_DATA_LOAD_RESULT"}) do
+  pcall(eventFrame.RegisterEvent,eventFrame,name)
+end
 eventFrame:SetScript("OnEvent", function(_, event, ...) FR:OnEvent(event, ...) end)
 
 local elapsed = 0
 local function updateRange(_, delta)
+  if FR.Mouseover then FR.Mouseover:FollowCursor() end
   elapsed = elapsed + delta
   if elapsed < 0.08 then return end
   elapsed = 0
   if FR.db then FR:RefreshDisplay() end
+  FR:SyncUpdates()
 end
-eventFrame:SetScript("OnUpdate", updateRange)
+
+function FR:SyncUpdates()
+  if not self.db then return end
+  local enabled=KHQOL.db and KHQOL:GetEnabled("range")
+  local target=KHQOL.PublicCall(UnitExists,"target")==true
+  local hover=self.db.mouseover.enabled and KHQOL.PublicCall(UnitExists,"mouseover")==true
+  local testing=self.testState and GetTime()<self.testUntil
+  local updating=enabled and (target or hover or testing)
+  local callback=updating and updateRange or nil
+  if eventFrame:GetScript("OnUpdate")~=callback then elapsed=0;eventFrame:SetScript("OnUpdate",callback) end
+end
+FR.updateFrame=eventFrame
 
 function FR:SetEnabled(enabled)
   if enabled and self.TryAttachSpellBook then self:TryAttachSpellBook() end
@@ -219,7 +253,7 @@ function FR:SetEnabled(enabled)
   if not enabled and self.Mouseover then self.Mouseover:Hide() end
   -- Retain cache-invalidation events while disabled, so re-enabling uses the
   -- current action bar. Only the idle polling callback is detached.
-  eventFrame:SetScript("OnUpdate", enabled and updateRange or nil)
+  self:SyncUpdates()
   if self.Display and self.Display.frame then
     self.Display.frame:SetShown(enabled)
     if enabled and self.RefreshDisplay then self:RefreshDisplay(true) end

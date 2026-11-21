@@ -3,13 +3,17 @@
 ## Notes: Requires KHQOL. Install and enable the KHQOL core addon.
 ## Notes-koKR: KHQOL 공통 기반을 반드시 함께 설치하고 활성화하세요.
 ## Author: KHQOL
-## Version: 1.11.8.3
+## Version: 1.12.0.2
 ## Dependencies: KHQOL
 ## IconTexture: Interface\AddOns\KHQOL\Media\kh-qol-minimap-button.tga
 
 Bootstrap.lua
 Range/Database.lua
 Range/Range.lua
+Range/DistanceData.lua
+Range/Distance.lua
+Range/ItemEvents.lua
+Range/ColorRanges.lua
 Range/Display.lua
 Range/Mouseover.lua
 Range/Settings.lua

@@ -22,6 +22,8 @@ for _,unit in ipairs(M.unitTokens) do
   M.defaults[unit].markerX=0;M.defaults[unit].markerY=0
   M.defaults[unit].statusX=0;M.defaults[unit].statusY=0
   M.defaults[unit].rootPosition={enabled=false,x=0,y=0}
+  M.defaults[unit].positionLocks={basic=true,labels=true,status=true,auras=true}
+  if unit~="player" and unit~="target" then M.defaults[unit].simpleAuras={enabled=false,x=0,y=0} end
 end
 M.defaults.player.restX=0;M.defaults.player.restY=0
 M.defaults.player.combatX=0;M.defaults.player.combatY=0
@@ -315,7 +317,7 @@ function M:ApplyUnitsNow(onlyUnit)
           if M:IsEnabled() then M:UpdateUnitValues(hookUnit); M:ApplyStateDecorations(owner,p,hookUnit) end
         end)
         p.root:HookScript("OnShow",function() if M:IsEnabled() then M:ApplyUnits(hookUnit) end end)
-        if unit=="target" then p.root:HookScript("OnHide",function() if M.monsterMarkFrame then M.monsterMarkFrame:Hide() end end) end
+        if unit=="target" then p.root:HookScript("OnHide",function() if M.monsterMarkFrame then M.monsterMarkFrame:Hide() end;M:ReleaseTargetSkull(owner) end) end
       end
     elseif (not onlyUnit or onlyUnit==unit) and self.units[unit] and (not self:IsEnabled() or not self:GetDB()[unit].compact or editing()) then
       self:ReleaseRootPosition(self.units[unit])
@@ -460,6 +462,8 @@ function M:ConfigureEvents()
   if not self.events then return end
   self.events:UnregisterAllEvents()
   if self:IsEnabled() then
+    self.events:RegisterEvent("PLAYER_LEVEL_UP")
+    self.events:RegisterUnitEvent("UNIT_LEVEL","player","target")
     for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_REGEN_DISABLED","PLAYER_ENTERING_WORLD","PLAYER_TARGET_CHANGED","PLAYER_FOCUS_CHANGED","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_HEAL_PREDICTION","UNIT_POWER_UPDATE","UNIT_MAXPOWER","UNIT_DISPLAYPOWER","UNIT_FLAGS","UNIT_FACTION","UNIT_CONNECTION","UNIT_NAME_UPDATE","UNIT_PET","UNIT_TARGET","UNIT_THREAT_LIST_UPDATE","UNIT_THREAT_SITUATION_UPDATE","RAID_TARGET_UPDATE","PLAYER_UPDATE_RESTING","PLAYER_TOTEM_UPDATE","PLAYER_ALIVE","PLAYER_UNGHOST","ADDON_LOADED","UNIT_CLASSIFICATION_CHANGED","QUEST_LOG_UPDATE","QUEST_WATCH_UPDATE","QUEST_TURNED_IN"}) do pcall(self.events.RegisterEvent,self.events,event) end
   elseif self.pending then
     for _,event in ipairs({"PLAYER_REGEN_ENABLED","PLAYER_ENTERING_WORLD","ADDON_LOADED"}) do self.events:RegisterEvent(event) end
@@ -470,13 +474,16 @@ function M:Initialize()
   self.events=CreateFrame("Frame")
   self:InitializePlayerLayoutHooks()
   self:ConfigureEvents()
+  -- Level differences can change while the same target remains selected.
   self.events:SetScript("OnEvent",function(_,event,unit)
     if event=="PLAYER_REGEN_ENABLED" then M:OnCombatEnd();return end
     if not M:IsEnabled() then
       if M.pending and (event=="PLAYER_ENTERING_WORLD" or event=="ADDON_LOADED") then M:ApplySettings();M:ConfigureEvents() end
       return
     end
-    if event=="UNIT_CLASSIFICATION_CHANGED" then
+    if event=="PLAYER_LEVEL_UP" or event=="UNIT_LEVEL" then
+      if event=="PLAYER_LEVEL_UP" or (public(unit) and (unit=="player" or unit=="target")) then M:UpdateUnitValues("target") end
+    elseif event=="UNIT_CLASSIFICATION_CHANGED" then
       if public(unit) and unit=="target" then M:RefreshMonsterMarks() end
     elseif event=="QUEST_LOG_UPDATE" or event=="QUEST_WATCH_UPDATE" or event=="QUEST_TURNED_IN" then M:RefreshMonsterMarks()
     elseif event=="UNIT_HEAL_PREDICTION" then

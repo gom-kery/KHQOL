@@ -1,4 +1,5 @@
 local _, KHQOL = ...
+local D=KHQOL.UsageDiagnostics
 KHQOL.UI = KHQOL.UI or {}
 local UI = KHQOL.UI
 
@@ -9,6 +10,7 @@ UI.Theme = {
   HeaderGap = 20, SectionGap = 14, RowGap = 8, RowHeight = 28,
   ControlHeight = 26, ButtonHeight = 26, DropdownHeight = 26, EditBoxHeight = 26,
   CheckboxSize = 26, CheckboxLabelGap = 8, SliderWidth = 110, DropdownWidth = 280, DropdownMinWidth = 140,
+  SliderArrowSize = 22, SliderArrowGap = 4, SliderValueGap = 8, SliderMinTrackWidth = 36,
   SliderRowHeight = 60, DropdownRowHeight = 60, ColorRowHeight = 60,
   ColumnGap = 20,
   TitleFontSize = 22, PageTitleSize = 18, StatusFontSize = 12, StateFontSize = 10,
@@ -85,7 +87,7 @@ end
 function UI:CreateLabel(parent, text, x, y, size)
   local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   fs:SetPoint("TOPLEFT", x or 0, y or 0); fs:SetFont(self:Font(), size or T.LabelFontSize, "")
-  fs:SetTextColor(unpack(T.TextPrimary)); fs:SetJustifyH("LEFT"); fs:SetWordWrap(true); fs:SetText(text or "")
+  fs:SetTextColor(unpack(T.TextPrimary)); fs:SetJustifyH("LEFT"); fs:SetWordWrap(true); fs:SetText(self.DisplayText and self:DisplayText(parent,text or "") or text or "")
   fs:SetWidth(math.max(40, (parent:GetWidth() > 0 and parent:GetWidth() or T.ContentWidth) - (x or 0)))
   self:RegisterCaption(parent,fs,size or T.LabelFontSize)
   return fs
@@ -107,6 +109,10 @@ function UI:CreateSection(parent, text, y)
 end
 function UI:LayoutPageIntro(parent)
   local intro=parent.khqolPageIntro;if not intro then return -34 end
+  local compact=intro.compactDescriptions==true
+  local empty=(intro.description:GetText() or "")=="" and not intro.toggle and not intro.info
+  intro.description:SetShown(not compact and not empty);intro.divider:SetShown(not compact and not empty)
+  if compact or empty then return 0 end
   local width=parent:GetWidth()>0 and parent:GetWidth() or T.ContentWidth
   intro.description:SetWidth(math.max(80,width-(intro.toggle and 124 or intro.info and T.ButtonHeight+T.RowGap or 0)))
   local height=math.max(34,intro.description:GetStringHeight()+14)
@@ -225,10 +231,10 @@ function UI:IsAvailable(control, predicate)
   local protected=control
   while protected do
     if (protected.labProtected or protected.moduleKey and KHQOL.LabLock:IsExperimental(protected.moduleKey)) and not KHQOL.LabLock:IsUnlocked() then return false end
-    protected=protected:GetParent()
+    protected=protected==control and control.availabilityParent or protected:GetParent()
   end
   if control.ignoreModuleEnabled then return true end
-  local parent = control:GetParent()
+  local parent = control.availabilityParent or control:GetParent()
   while parent do
     if parent.moduleKey then return KHQOL:GetEnabled(parent.moduleKey) end
     parent = parent:GetParent()
@@ -262,7 +268,7 @@ function UI:RegisterControl(parent, control)
       if p.moduleKey and not KHQOL:GetEnabled(p.moduleKey) then disabledModule=true end
       p=p:GetParent()
     end
-    GameTooltip:AddLine(labLocked and "실험실에서 접근 잠금을 먼저 해제하세요." or disabledModule and "상단의 모듈 사용을 먼저 켜세요." or "연결된 기능을 켜거나 해당 표시 모드를 선택하면 변경할 수 있습니다.",T.TextSecondary[1],T.TextSecondary[2],T.TextSecondary[3],true); GameTooltip:Show()
+    GameTooltip:AddLine(control.disabledReason or labLocked and "실험실에서 접근 잠금을 먼저 해제하세요." or disabledModule and "상단의 모듈 사용을 먼저 켜세요." or "연결된 기능을 켜거나 해당 표시 모드를 선택하면 변경할 수 있습니다.",T.TextSecondary[1],T.TextSecondary[2],T.TextSecondary[3],true); GameTooltip:Show()
   end)
   hint:SetScript("OnLeave",function() GameTooltip:Hide() end); control.disabledHint=hint
   return control
@@ -316,6 +322,8 @@ function UI:Changed(parent)
   if not contained then self:Refresh(parent) end
   if active then self:Refresh(active) end
   self:QueueDisplayRefresh(active or parent)
+  local settings=KHQOL.settings
+  if active and settings:IsShown() and settings.RefreshPositionLocks then settings:RefreshPositionLocks();settings:SetPageScrollLayout(settings.page) end
   if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
 end
 function UI:QueueDisplayRefresh(parent)
@@ -350,7 +358,7 @@ end
 function UI:AttachTooltip(control, title, description)
   if not description or description=="" then return end
   if control.tooltipRegion then control:EnableMouse(true) end
-  control.tooltipTitle=title
+  control.tooltipTitle=self.DisplayText and self:DisplayText(control,title) or title
   control.tooltipDescription=control.tooltipDescription and (control.tooltipDescription.."\n"..description) or description
   if control.tooltipAttached then return end
   control.tooltipAttached=true
@@ -417,17 +425,17 @@ function UI:CreateCheckbox(parent, text, x, y, getter, setter, enabled)
     UI:ApplyAvailability(b, enabled)
   end
   b:SetScript("OnClick", function()
-    if UI:IsAvailable(b, enabled) then UI:CommitSetting(parent,setter,b:GetChecked() and true or false) end
+    if UI:IsAvailable(b, enabled) then D:Begin(b,"click");UI:CommitSetting(parent,setter,b:GetChecked() and true or false);D:Finish(b) end
   end)
   function b:ToggleFromLabel()
-    if UI:IsAvailable(b,enabled) then UI:CommitSetting(parent,setter,not getter()) end
+    if UI:IsAvailable(b,enabled) then D:Begin(b,"click");UI:CommitSetting(parent,setter,not getter());D:Finish(b) end
   end
   self:RegisterControl(parent, b); b:Refresh(); return b
 end
 function UI:CreateButton(parent, text, x, y, width, click, enabled)
   local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
   b:SetSize(width or 150, T.ButtonHeight); b:SetPoint("TOPLEFT", x, y)
-  self:SkinButton(b); b:SetText(text)
+  self:SkinButton(b); text=self.DisplayText and self:DisplayText(parent,text) or text;b:SetText(text)
   hooksecurefunc(b,"SetText",function(_,value) text=value or "" end)
   -- Explicit widths are caps, not padding; sidebar buttons opt back into a fixed width.
   b:SetWidth(math.min(width or T.ContentWidth, math.ceil(b:GetFontString():GetStringWidth()) + 24))
@@ -450,36 +458,32 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   serial = serial + 1
   local name = "KHQOLSettingsSlider" .. serial
   local slider = CreateFrame("Slider", name, parent)
+  local validStep=KHQOL.IsPublicNumber(step) and step>0
   slider:SetOrientation("HORIZONTAL")
-  local track=slider:CreateTexture(nil,"BACKGROUND"); track:SetPoint("LEFT"); track:SetPoint("RIGHT"); track:SetHeight(4); track:SetColorTexture(unpack(T.SliderTrack))
-  local thumb=slider:CreateTexture(nil,"OVERLAY"); thumb:SetSize(10,16); thumb:SetColorTexture(unpack(T.FocusAccent)); slider:SetThumbTexture(thumb)
-  slider:SetPoint("TOPLEFT", x, y - 24); slider:SetSize(T.SliderWidth, 18)
-  slider:SetMinMaxValues(min, max); slider:SetValueStep(step)
+  local track=slider:CreateTexture(nil,"BACKGROUND");track:SetPoint("LEFT");track:SetPoint("RIGHT");track:SetHeight(4);track:SetColorTexture(unpack(T.SliderTrack))
+  local thumb=slider:CreateTexture(nil,"OVERLAY");thumb:SetSize(10,16);thumb:SetColorTexture(unpack(T.FocusAccent));slider:SetThumbTexture(thumb)
+  local inset=T.SliderArrowSize+T.SliderArrowGap
+  slider:SetPoint("TOPLEFT",x+inset,y-24);slider:SetSize(T.SliderWidth,18)
+  slider:SetMinMaxValues(min,max)
+  if validStep then slider:SetValueStep(step) end
   if slider.SetObeyStepOnDrag then slider:SetObeyStepOnDrag(true) end
-  for _, suffix in ipairs({"Low", "High", "Text"}) do
-    local fs = _G[name .. suffix]; if fs then fs:SetText("") end
-  end
-  format = format or tostring
+  for _,suffix in ipairs({"Low","High","Text"}) do local fs=_G[name..suffix];if fs then fs:SetText("") end end
+  format=format or tostring
   local rawFormat=format
   format=function(value)
-    if step>=1 and KHQOL.IsPublicNumber(value) then
-      value=value<0 and math.ceil(value-.5) or math.floor(value+.5)
-    end
+    if validStep and step>=1 and KHQOL.IsPublicNumber(value) then value=value<0 and math.ceil(value-.5) or math.floor(value+.5) end
     return rawFormat(value)
   end
-  local box = CreateFrame("EditBox", nil, parent, "InputBoxTemplate,BackdropTemplate")
-  box:SetPoint("TOPLEFT", x + T.SliderWidth + 14, y - 20); box:SetSize(86, T.EditBoxHeight)
+  local box=CreateFrame("EditBox",nil,parent,"InputBoxTemplate,BackdropTemplate")
+  box:SetSize(86,T.EditBoxHeight)
   for _,region in ipairs({box:GetRegions()}) do if region:GetObjectType()=="Texture" then region:SetAlpha(0) end end
   UI:Surface(box)
   box:HookScript("OnEditFocusGained",function() box:SetBackdropBorderColor(unpack(T.FocusAccent)) end)
   box:HookScript("OnEditFocusLost",function() box:SetBackdropBorderColor(unpack(T.Border)) end)
-  box:SetAutoFocus(false); box:SetFont(self:Font(), T.LabelFontSize, ""); box:SetTextInsets(6,6,0,0)
-  -- Numeric text must not depend on inherited input-template presentation.
-  box:SetTextColor(unpack(T.TextPrimary)); box:SetJustifyH("LEFT"); box:SetJustifyV("MIDDLE")
+  box:SetAutoFocus(false);box:SetFont(self:Font(),T.LabelFontSize,"");box:SetTextInsets(6,6,0,0)
+  box:SetTextColor(unpack(T.TextPrimary));box:SetJustifyH("LEFT");box:SetJustifyV("MIDDLE")
   box:SetText(format(getter()))
-  -- Cached EditBox glyphs can disappear after hidden rows are reparented.
-  -- Idle values are drawn by an owned FontString; the native editor handles
-  -- cursor/selection and typed drafts only while focused.
+  -- Retain the cached-row idle layer and the native focused editor.
   local valueLayer=CreateFrame("Frame",nil,box);valueLayer:SetAllPoints(box);valueLayer:EnableMouse(false)
   valueLayer:SetFrameLevel(box:GetFrameLevel()+2)
   local valueText=valueLayer:CreateFontString(nil,"OVERLAY",nil,7)
@@ -488,71 +492,128 @@ function UI:CreateSlider(parent, title, description, x, y, min, max, step, gette
   box.valueText=valueText;box.valueLayer=valueLayer
   local function paintValue()
     local focused=box:HasFocus()
-    valueLayer:SetFrameLevel(box:GetFrameLevel()+2)
-    valueText:SetText(box:GetText());valueLayer:SetShown(not focused)
+    valueLayer:SetFrameLevel(box:GetFrameLevel()+2);valueText:SetText(box:GetText());valueLayer:SetShown(not focused)
     box:SetTextColor(T.TextPrimary[1],T.TextPrimary[2],T.TextPrimary[3],focused and 1 or 0)
   end
-  slider.numberBox = box
+  slider.numberBox=box;box.usageOwner=slider
+  function box:AnchorToSlider()
+    self:ClearAllPoints();self:SetPoint("LEFT",slider,"RIGHT",inset+T.SliderValueGap,0)
+  end
+  -- Keep the public Slider/EditBox objects and their original parents. The input
+  -- follows the track, including owner-driven cell/compact-width reflows.
+  function slider:FitSlider(width,preferredTrack,preferredBox)
+    local fixed=2*T.SliderArrowSize+2*T.SliderArrowGap+T.SliderValueGap
+    width=math.max(fixed+2,width or fixed+T.SliderWidth+86)
+    local boxWidth=math.min(preferredBox or 86,math.max(1,width-fixed-T.SliderMinTrackWidth))
+    local trackWidth=math.max(1,math.min(preferredTrack or T.SliderWidth,width-fixed-boxWidth))
+    self:SetWidth(trackWidth);box:SetWidth(boxWidth);box:AnchorToSlider()
+    self.sliderRowWidth=fixed+trackWidth+boxWidth
+  end
+  -- Quantize on the existing min-based grid. Clean representational noise only
+  -- for the built-in normalizer; custom normalization keeps its own precision.
+  local precision,cleanGrid=0,true
+  if validStep then
+    for _,n in ipairs({min,step}) do
+      local text=string.format("%.15f",n)
+      if n~=0 and tonumber(text)==0 then cleanGrid=false end
+      local decimals=text:match("%.(.-)0*$") or ""
+      precision=math.max(precision,#decimals)
+    end
+  end
+  local scale=10^precision
   local function rounded(value)
-    if normalize then return normalize(value) end
-    return math.max(min, math.min(max, min + math.floor((value-min)/step+.5)*step))
+    if not KHQOL.IsPublicNumber(value) then return nil end
+    local result
+    if normalize then result=normalize(value)
+    elseif validStep then
+      result=min+math.floor((value-min)/step+.5+1e-10)*step
+      if cleanGrid and math.abs(result*scale)<4503599627370496 then
+        result=(result<0 and math.ceil(result*scale-.5) or math.floor(result*scale+.5))/scale
+      end
+    else result=value end
+    if not KHQOL.IsPublicNumber(result) then return nil end
+    return math.max(min,math.min(max,result))
   end
   local feedback=self:CreateDescription(parent,"",x,y-52)
   feedback.khqolInputFeedback=true;feedback:Hide();slider.inputFeedback=feedback
   local function report(message,invalid)
     feedback:SetText(message or "");feedback:SetShown(message~=nil)
-    feedback:SetTextColor(unpack(invalid and T.Warning or T.TextSecondary))
-    UI:ReflowInputFeedback(parent)
+    feedback:SetTextColor(unpack(invalid and T.Warning or T.TextSecondary));UI:ReflowInputFeedback(parent)
+  end
+  local function apply(value)
+    if not UI:IsAvailable(slider,enabled) then return nil end
+    local normalized=rounded(value)
+    if normalized==nil then return nil end
+    local current=getter()
+    if not KHQOL.IsPublicNumber(current) or current~=normalized then UI:CommitSetting(parent,setter,normalized) end
+    slider:Refresh();return normalized
   end
   local function commit()
-    if not UI:IsAvailable(slider, enabled) then box:SetText(format(getter())); return end
-    local raw = box:GetText():match("^%s*(.-)%s*$")
-    local numeric = raw:gsub("%%", ""):gsub("px", ""):gsub("초", "")
-    local value = tonumber(numeric)
-    if raw == "기본" and min <= 0 and max >= 0 and format(0) == "기본" then value = 0 end
+    if not UI:IsAvailable(slider,enabled) then box:SetText(format(getter()));return end
+    local raw=box:GetText():match("^%s*(.-)%s*$")
+    local numeric=raw:gsub("%%",""):gsub("px",""):gsub("초","")
+    local value=tonumber(numeric)
+    if raw=="기본" and min<=0 and max>=0 and format(0)=="기본" then value=0 end
     if KHQOL.IsPublicNumber(value) then
-      -- Fractional opacity controls display percentages; other ranges retain their units.
       if tostring(format(getter())):find("%",1,true) and tostring(format(1)):match("^100%%$") then value=value/100 end
-      local normalized=rounded(value)
-      UI:CommitSetting(parent,setter,normalized); slider:Refresh()
-      if math.abs(normalized-value)>.0000001 then
-        report("범위·간격에 맞춤: "..format(getter()),false)
+      local normalized=apply(value)
+      if normalized and math.abs(normalized-value)>.0000001 then report("범위·간격에 맞춤: "..format(getter()),false)
       else report(nil) end
-    else
-      -- Some existing display formats include units the original parser does
-      -- not accept (for example degrees). Merely leaving that unchanged
-      -- display must not produce a new error; parsing/setter rules stay intact.
-      if raw==tostring(format(getter())) then report(nil)
-      else report("숫자를 입력하세요 · 기존 값 유지: "..format(getter()),true) end
-    end
+    elseif raw==tostring(format(getter())) then report(nil)
+    else report("숫자를 입력하세요 · 기존 값 유지: "..format(getter()),true) end
     box:SetText(format(getter()))
   end
   UI:BindInput(box,parent,function() box:SetText(format(getter())) end,commit)
   box:HookScript("OnEditFocusGained",function() report(nil) end)
   box:HookScript("OnTextChanged",paintValue)
   box:HookScript("OnEditFocusGained",paintValue);box:HookScript("OnEditFocusLost",paintValue)
-  slider.Refresh = function()
-    slider.setting = true; slider:SetValue(getter()); slider.setting = false
-    -- A cached row can be shown at a different ScrollFrame position. Reset the
-    -- EditBox font after that layout so its numeric glyphs are rebuilt too.
+  local function arrow(direction)
+    local button=CreateFrame("Button",nil,slider,"BackdropTemplate")
+    button:SetSize(T.SliderArrowSize,T.SliderArrowSize);button.layoutGlyph=true
+    UI:SkinButton(button);button:SetText(direction<0 and "<" or ">")
+    button:SetPoint(direction<0 and "RIGHT" or "LEFT",slider,direction<0 and "LEFT" or "RIGHT",direction*T.SliderArrowGap,0)
+    button:RegisterForClicks("LeftButtonUp")
+    button:SetScript("OnClick",function(_,mouseButton)
+      if mouseButton~="LeftButton" or not validStep or not UI:IsAvailable(slider,enabled) then return end
+      -- Native focus loss may already have committed; ClearFocus is then inert.
+      if box:HasFocus() then box:ClearFocus() end
+      if not UI:IsAvailable(slider,enabled) then slider:Refresh();return end
+      local current=getter()
+      if not KHQOL.IsPublicNumber(current) then slider:Refresh();return end
+      if direction<0 and current<=min or direction>0 and current>=max then slider:Refresh();return end
+      D:Begin(slider,"arrow")
+      local ok,result=pcall(apply,current+direction*step)
+      if not ok then D:Cancel(slider);error(result,0) end
+      D:Finish(slider);report(nil)
+    end)
+    UI:AttachTooltip(button,title,(direction<0 and "한 단계 감소" or "한 단계 증가").." · 간격: "..tostring(step))
+    return button
+  end
+  slider.decreaseButton=arrow(-1);slider.increaseButton=arrow(1)
+  slider.Refresh=function()
+    slider.setting=true;slider:SetValue(getter());slider.setting=false
     box:SetFont(UI:Font(),T.LabelFontSize,"");valueText:SetFont(UI:Font(),T.LabelFontSize,"")
     box:SetJustifyH("LEFT");box:SetJustifyV("MIDDLE")
     if not box:HasFocus() then box:SetText(format(getter())) end
     paintValue()
-    UI:ApplyAvailability(slider, enabled, {titleLabel}); UI:ApplyAvailability(box, enabled)
+    local available=UI:ApplyAvailability(slider,enabled,{titleLabel});UI:ApplyAvailability(box,enabled)
+    local current=getter();local usable=available and validStep and KHQOL.IsPublicNumber(current)
+    slider.decreaseButton:SetEnabled(usable and current>min or false)
+    slider.increaseButton:SetEnabled(usable and current<max or false)
   end
-  slider:SetScript("OnValueChanged", function(_, value)
-    if slider.setting or not UI:IsAvailable(slider, enabled) then return end
-    UI:CommitSetting(parent,setter,rounded(value)); box:SetText(format(getter()))
+  slider:SetScript("OnMouseDown",function(_,button) if button=="LeftButton" then D:Begin(slider,"drag",true) end end)
+  slider:SetScript("OnMouseUp",function(_,button) if button=="LeftButton" then D:Finish(slider) end end)
+  slider:HookScript("OnHide",function() D:Cancel(slider) end)
+  slider:SetScript("OnValueChanged",function(_,value,userInput)
+    if slider.setting or not UI:IsAvailable(slider,enabled) then return end
+    D:SliderValue(slider,userInput);apply(value)
   end)
   slider.tooltipLabel=titleLabel
-  self:AttachTooltip(slider, title, description)
-  self:AttachTooltip(box, title, description)
-  self:AttachTooltip(box, title, "범위: "..format(min).." ~ "..format(max).." · 간격: "..tostring(step)..". Enter·포커스 이동으로 적용, ESC로 취소합니다.")
-  -- Nested settings panels may first appear after their controls were created.
-  -- Refresh on visibility changes too, while retaining a focused user draft.
-  box:HookScript("OnShow", function() slider:Refresh() end)
-  self:RegisterControl(parent, slider); slider:Refresh(); return slider,box
+  self:AttachTooltip(slider,title,description);self:AttachTooltip(box,title,description)
+  self:AttachTooltip(box,title,"범위: "..format(min).." ~ "..format(max).." · 간격: "..tostring(step)..". Enter·포커스 이동으로 적용, ESC로 취소합니다.")
+  box:HookScript("OnShow",function() slider:Refresh() end)
+  slider:FitSlider(parent:GetWidth()-(x or 0))
+  self:RegisterControl(parent,slider);slider:Refresh();return slider,box
 end
 -- Measure without a previous field width or wrapping affecting the next fit.
 function UI:MeasureButtonText(button,text)
@@ -578,10 +639,11 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
   b = self:CreateButton(parent, "", x, y, width, function()
     if b.menu and b.menu:IsShown() then UI:CloseDropdown(); return end
     UI:CloseDropdown()
+    if b.beforeOpen and b:beforeOpen()==false then return end
     if not b.menu then
       -- Popup belongs to the window, outside the clipped ScrollFrame.
       local editor=KHQOL.PositionEditor
-      local popupParent=editor and editor.active and editor.toolbar
+      local popupParent=b.popupParent or editor and editor.active and editor.toolbar
       local window
       if not popupParent then
         local frame=b:GetParent()
@@ -597,6 +659,16 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
       menu:SetClampedToScreen(true); menu:EnableMouse(true)
       UI:Surface(menu)
       menu:SetBackdropColor(.04,.04,.04,.98); b.menu = menu; b.rows = {}
+      if b.menuNavigation then
+        menu:SetScript("OnShow",function() KHQOL.PublicCall(menu.RegisterEvent,menu,"GLOBAL_MOUSE_DOWN") end)
+        menu:SetScript("OnHide",function()
+          menu:UnregisterEvent("GLOBAL_MOUSE_DOWN")
+          if UI.openDropdown==menu then UI.openDropdown=nil end
+        end)
+        menu:SetScript("OnEvent",function()
+          if menu:IsShown() and KHQOL.PublicCall(menu.IsMouseOver,menu)==false and KHQOL.PublicCall(b.IsMouseOver,b)==false then UI:CloseDropdown() end
+        end)
+      end
       local viewport=CreateFrame("ScrollFrame",nil,menu)
       viewport:SetPoint("TOPLEFT",4,-4)
       local list=CreateFrame("Frame",nil,viewport); viewport:SetScrollChild(list)
@@ -640,8 +712,11 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
           row.text=UI:CreateLabel(row,"",28,-5)
           row:SetScript("OnClick",function()
             if not row.option or unavailable(row.option) then return end
+            if b.menuNavigation then UI:CloseDropdown();setter(row.option.value);return end
+            D:Begin(b,"click")
             if b.profileCommand then setter(row.option.value);UI:Changed(parent)
             else UI:CommitSetting(parent,setter,row.option.value) end
+            D:Finish(b)
             UI:CloseDropdown()
           end)
           b.rows[i]=row
@@ -673,13 +748,13 @@ function UI:CreateDropdown(parent, x, y, width, options, getter, setter, enabled
       b.menu:SetSize(menuWidth,visibleHeight+8)
       b.menuViewport:SetVerticalScroll(math.min(b.menuViewport:GetVerticalScroll(),math.max(0,contentHeight-visibleHeight)))
     end
-    b:SetText(selected .. "  ▼")
+    b:SetText(b.dropdownLabel and b:dropdownLabel() or selected .. "  ▼")
     b.dropdownContentWidth=buttonWidth;b:FitDropdownWidth()
     UI:ApplyAvailability(b, enabled)
   end
   b:Refresh(); return b
 end
-function UI:OpenColorPicker(getter, setter, refresh, captureRestore, supportsOpacity)
+function UI:OpenColorPicker(getter, setter, refresh, captureRestore, supportsOpacity, usageControl)
   local picker = ColorPickerFrame; if not picker or not picker.GetColorRGB then return end
   local r, g, b, a = getter(); a = a or 1
   local restore = captureRestore and captureRestore(); local initializing = true
@@ -699,6 +774,7 @@ function UI:OpenColorPicker(getter, setter, refresh, captureRestore, supportsOpa
   end
   local function cancel()
     if token~=UI.colorGeneration or generation~=KHQOL.profileGeneration then return end
+    D:ColorCancel(usageControl)
     if restore then restore() elseif supportsOpacity then setter(r,g,b,a) else setter(r,g,b) end
     if refresh then refresh() end
   end
@@ -712,12 +788,13 @@ function UI:OpenColorPicker(getter, setter, refresh, captureRestore, supportsOpa
     picker.func=apply; picker.swatchFunc=apply; picker.opacityFunc=supportsOpacity and apply or nil; picker.cancelFunc=cancel; picker:Show()
   end
   initializing = false
+  D:ColorOpen(usageControl,picker)
 end
 function UI:CreateColorPicker(parent, title, x, y, getter, setter, enabled, captureRestore, supportsOpacity)
   local titleLabel = self:CreateLabel(parent, title, x, y)
   local b
   b = self:CreateButton(parent, "변경", x, y-24, 150, function()
-    UI:OpenColorPicker(getter, setter, function() UI:Changed(parent) end, captureRestore, supportsOpacity)
+    UI:OpenColorPicker(getter, setter, function() UI:Changed(parent) end, captureRestore, supportsOpacity, b)
   end, enabled)
   b.swatch = b:CreateTexture(nil, "OVERLAY"); b.swatch:SetSize(18, 18); b.swatch:SetPoint("LEFT", 8, 0)
   titleLabel:SetWidth((T.ContentWidth-T.ColumnGap)/2)
@@ -738,6 +815,7 @@ function UI:CancelDrafts()
   for _,cancel in pairs(self.draftEditors or {}) do cancel() end
 end
 function UI:CloseColorPicker()
+  D:CloseColor()
   self.colorGeneration=(self.colorGeneration or 0)+1
   if self.ownsColorPicker and ColorPickerFrame then ColorPickerFrame:Hide() end
   self.ownsColorPicker=nil
@@ -757,15 +835,17 @@ function UI:BindInput(box,parent,restore,commit)
   self.editInputs=self.editInputs or setmetatable({}, {__mode="k"})
   self.editInputs[box]=true
   function box:CancelEdit()
-    self.cancelFocus=true; self:ClearFocus(); restore(); self.cancelFocus=nil
+    D:Cancel(self.usageOwner or self)
+    self.editStarted=nil;self.cancelFocus=true; self:ClearFocus(); restore(); self.cancelFocus=nil
   end
   box:SetScript("OnEditFocusGained",function(self)
-    self.editGeneration=KHQOL.profileGeneration; self:HighlightText()
+    self.editGeneration=KHQOL.profileGeneration;self.editStarted=true; self:HighlightText();D:Begin(self.usageOwner or self,"input")
   end)
   local function apply()
     if box.cancelFocus then return end
-    if box.editGeneration~=nil and box.editGeneration~=KHQOL.profileGeneration then restore();return end
-    commit(); restore()
+    local editStarted=box.editStarted;box.editStarted=nil
+    if editStarted and box.editGeneration~=KHQOL.profileGeneration then D:Cancel(box.usageOwner or box);restore();return end
+    commit(); restore();D:Finish(box.usageOwner or box)
   end
   box:SetScript("OnEnterPressed",function(self) apply(); self.cancelFocus=true;self:ClearFocus();self.cancelFocus=nil end)
   box:SetScript("OnEscapePressed",function(self) self:CancelEdit() end)
@@ -833,6 +913,10 @@ function UI:CreateBuilder(parent, y)
     self:Flush(); self.y=UI:CreateSection(parent,title,self.y)
     local hint=CreateFrame("Frame",nil,parent); hint:SetPoint("TOPLEFT",0,self.y+36); hint:SetSize(parent:GetWidth(),24); hint:EnableMouse(false);hint.tooltipRegion=true
     self.lastControl,self.lastTitle=hint,title
+  end
+  function builder:PositionLock(title,getter,setter,enabled,name,show)
+    local c=UI:CreatePositionLock(parent,title,getter,setter,enabled,name,show)
+    self.lastControl,self.lastTitle=c,title;return c
   end
   function builder:Checkbox(title,getter,setter,enabled)
     local x,y,width=self:Cell("check",2,T.RowHeight+T.RowGap)

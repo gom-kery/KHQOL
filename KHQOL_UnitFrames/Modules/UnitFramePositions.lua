@@ -15,12 +15,15 @@ local function rect(frame)
 end
 function M:PositionPreviews(focus)
   if not self:IsEnabled() or call(InCombatLockdown)==true or call(EditModeManagerFrame and EditModeManagerFrame.IsShown,EditModeManagerFrame)==true then return {} end
-  local list={};self.editorProxies=self.editorProxies or {}
+  local list={};if not KHQOL.PositionUtils.describing then self.editorProxies=self.editorProxies or {} end
   local function add(id,name,x,y,w,h,ratio,cfg,xKey,yKey,limit,art)
-    local f=self.editorProxies[id]
-    if not f then f=CreateFrame("Frame",nil,UIParent);f:EnableMouse(false);f:Hide();self.editorProxies[id]=f end
-    f:ClearAllPoints();f:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x*ratio,y*ratio);f:SetSize(w*ratio,h*ratio)
-    local spec={id=id,name=name,frame=f,sample=name.." · 위치 미리보기",sampleY=-h*ratio/2-14,art=art,
+    local f=false
+    if not KHQOL.PositionUtils.describing then
+      f=self.editorProxies[id]
+      if not f then f=CreateFrame("Frame",nil,UIParent);f:EnableMouse(false);f:Hide();self.editorProxies[id]=f end
+      f:ClearAllPoints();f:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x*ratio,y*ratio);f:SetSize(w*ratio,h*ratio)
+    end
+    local spec={id=id,name=name,frame=f,sample="",sampleY=-h*ratio/2-14,art=art,
       write=function(dx,dy) cfg[xKey]=KHQOL.PositionStore:Round(offset((cfg[xKey] or 0)+dx/ratio,limit));cfg[yKey]=KHQOL.PositionStore:Round(offset((cfg[yKey] or 0)+dy/ratio,limit)) end,
       apply=function() M:ApplySettings() end,
       resetPoint={point="CENTER",relativePoint="BOTTOMLEFT",x=(x-offset(cfg[xKey],limit))*ratio,y=(y-offset(cfg[yKey],limit))*ratio},
@@ -81,6 +84,18 @@ function M:PositionPreviews(focus)
               d[kind.."Y"]=KHQOL.PositionStore:Round(offset(M:StatusOffset(unit,kind,"Y")+dy/ratio,400))-offset(d.statusY,200)
             end
             spec.resetWrite=function() d[kind.."X"]=-offset(d.statusX,200);d[kind.."Y"]=-offset(d.statusY,200) end
+          end
+        end
+        if unit=="player" or unit=="target" then
+          local marks=self:MarkParts(unit,p)
+          for _,entry in ipairs({{"faction",marks.circle or marks.badge or marks.flag,"진영·PvP 마크"},{"skull",marks.skull,"해골 마크"}}) do
+            local kind,mark,title=unpack(entry)
+            local mx,my,mw,mh,mr=rect(mark)
+            if mx and mw>0 and mh>0 then
+              local cfg=self:MarkSettings(unit,kind)
+              local spec=add("unitFrames."..unit.."."..kind,names[unit].." · "..title,mx,my,mw,mh,mr,cfg,"x","y",400)
+              spec.settingsRoute={module="unitFrames",unit=unit,part="status"}
+            end
           end
         end
         local left,right,bottom,top
@@ -240,10 +255,16 @@ function M:EditorTargets(focus)
     local root=unit and byUnit[unit]
     if root and root~=spec and not spec.parentID then
       spec.parentID=root.id
-      if spec.resetPoint and spec.resetPhysical then
+      if spec.resetPoint and spec.resetPhysical and not KHQOL.PositionUtils.describing then
         local x,y=call(root.frame.GetCenter,root.frame)
         if finite(x) and finite(y) then spec.resetPoint.x=spec.resetPoint.x-x;spec.resetPoint.y=spec.resetPoint.y-y end
       end
+    end
+  end
+  for _,t in ipairs(list) do
+    local route=KHQOL.UI.SettingsNavigation:EditorRoute(t)
+    if route.unit and route.part and self:GetDB()[route.unit].positionLocks[route.part]~=nil then
+      local locks=self:GetDB()[route.unit].positionLocks;local part=route.part;t.lock=function() locks[part]=true end
     end
   end
   return list

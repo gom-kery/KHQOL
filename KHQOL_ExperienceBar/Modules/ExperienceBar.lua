@@ -4,7 +4,8 @@ local X=KHQOL.modules.experienceBar
 local flat="Interface\\Buttons\\WHITE8X8"
 X.defaults={
   hideBlizzard=false,mode="horizontal",width=360,height=20,x=0,y=-220,scale=1,alpha=1,
-  showLevel=true,showText=true,textMode="currentMaxPercent",textPosition="center",
+  showLevel=true,levelPlacement="outside",levelSide="left",levelLabel="lv",
+  showText=true,textMode="currentMaxPercent",textPosition="center",
   showRested=true,tooltip=true,hideAtMaxLevel=true,followReputation=true,
   color={.58,0,.55,1},backgroundColor={.04,.04,.06,.85},restedColor={0,.39,.88,.7},textColor={1,1,1,1},
   wrapHorizontalLength=220,wrapVerticalLength=48,wrapThickness=6,wrapOffset=4,wrapX=0,wrapY=0,
@@ -27,6 +28,8 @@ function X:GetDB()
   local db=KHQOL.db.modules.experienceBar
   if type(db)~="table" then db={}; KHQOL.db.modules.experienceBar=db end
   KHQOL.MergeDefaults(db,self.defaults,"types")
+  db.mode="horizontal"
+  db.showQuestXPText=db.showQuestPreview==true
   local limits={width={120,1200},height={8,80},x={-3000,3000},y={-3000,3000},scale={.5,2},alpha={.1,1},
     wrapHorizontalLength={160,600},wrapVerticalLength={16,180},wrapThickness={2,16},wrapOffset={0,60},wrapX={-500,500},wrapY={-500,500}}
   for key,bounds in pairs(limits) do db[key]=clamp(number(db[key]) and db[key] or self.defaults[key],bounds[1],bounds[2]) end
@@ -37,9 +40,15 @@ function X:GetDB()
   local formats={percent=true,currentMax=true,remaining=true,remainingPercent=true,currentMaxPercent=true}
   if not formats[db.textMode] then db.textMode="currentMaxPercent" end
   if db.textPosition~="left" and db.textPosition~="right" and db.textPosition~="center" then db.textPosition="center" end
+  if db.levelPlacement~="inside" then db.levelPlacement="outside" end
+  if db.levelSide~="right" then db.levelSide="left" end
+  if db.levelLabel~="ko" then db.levelLabel="lv" end
   self.db=db; return db
 end
 function X:IsEnabled() return KHQOL.db and KHQOL:GetEnabled("experienceBar") end
+function X:FormatLevel(level)
+  return (self.db.levelLabel=="ko" and "레벨 " or "Lv ")..level
+end
 function X:FormatNumber(value)
   local s=tostring(math.floor(value+.5)); local k
   repeat s,k=s:gsub("^(%d+)(%d%d%d)","%1,%2") until k==0
@@ -123,7 +132,7 @@ function X:IsReplacingReputation()
     and self.frame and self.frame:IsShown() or false
 end
 function X:ShouldHideNative(kind)
-  if kind=="experience" then return self.db.hideBlizzard or self:IsReplacingReputation() end
+  if kind=="experience" then return self:IsEnabled() end
   if kind=="reputation" then return self:IsReplacingReputation() end
   return false
 end
@@ -142,7 +151,8 @@ function X:SyncNativeFrame(f)
         click=f.IsMouseClickEnabled and f:IsMouseClickEnabled(),motion=f.IsMouseMotionEnabled and f:IsMouseMotionEnabled()}
       self.native[f]=saved
     end
-    f:SetAlpha(0); if f.EnableMouse then f:EnableMouse(false) end
+    if read(f.GetAlpha,f)~=0 then f:SetAlpha(0) end
+    if f.EnableMouse and read(f.IsMouseEnabled,f)==true then f:EnableMouse(false) end
   elseif saved then
     self.native[f]=nil; f:SetAlpha(saved.alpha); if f.EnableMouse then f:EnableMouse(saved.mouse) end
     if f.SetMouseClickEnabled and saved.click~=nil then f:SetMouseClickEnabled(saved.click) end
@@ -284,9 +294,9 @@ function X:ShowTooltip(owner)
     if not d.capped then GameTooltip:AddDoubleLine("현재 평판",self:FormatNumber(d.value).." / "..self:FormatNumber(d.maximum)) end
     GameTooltip:AddDoubleLine("진행률",string.format("%.1f%%",d.percent))
     if not d.capped then GameTooltip:AddDoubleLine(d.highestStanding and "최대 평판까지" or "다음 단계까지",self:FormatNumber(d.remaining)) end
-  elseif d.atCap then GameTooltip:SetText("경험치 · Lv."..d.level); GameTooltip:AddLine("최대 레벨",1,1,1)
+  elseif d.atCap then GameTooltip:SetText("경험치 · "..self:FormatLevel(d.level)); GameTooltip:AddLine("최대 레벨",1,1,1)
   else
-    GameTooltip:SetText("경험치 · Lv."..d.level)
+    GameTooltip:SetText("경험치 · "..self:FormatLevel(d.level))
     GameTooltip:AddDoubleLine("현재 경험치",self:FormatNumber(d.value).." / "..self:FormatNumber(d.maximum))
     GameTooltip:AddDoubleLine("진행률",string.format("%.1f%%",d.percent))
     GameTooltip:AddDoubleLine("다음 레벨까지",self:FormatNumber(d.remaining))
@@ -374,6 +384,32 @@ function X:CreateFrames()
     PlayerFrame:HookScript("OnSizeChanged",function() if self.db and self.db.mode~="horizontal" then self:ApplyLayout(); self:Render() end end)
   end
 end
+function X:LayoutText(showLevel)
+  local db,f=self.db,self.frame
+  local level,xp=self.levelText,self.xpText
+  level:ClearAllPoints();xp:ClearAllPoints()
+  if db.mode~="horizontal" then
+    local second=self.segments[2]
+    local top=db.mode=="wrapTop"
+    local edge,opposite=top and "TOPLEFT" or "BOTTOMLEFT",top and "BOTTOMLEFT" or "TOPLEFT"
+    level:SetPoint(top and "BOTTOMRIGHT" or "TOPRIGHT",second,edge,-8,top and 4 or -4)
+    level:SetJustifyH("RIGHT")
+    xp:SetPoint(opposite,second,edge,0,top and 4 or -4)
+    xp:SetWidth(db.wrapHorizontalLength);xp:SetJustifyH("LEFT")
+    return
+  end
+  local inside=db.levelPlacement=="inside"
+  local right=db.levelSide=="right"
+  local edge=right and "RIGHT" or "LEFT"
+  local anchor=inside and edge or (right and "LEFT" or "RIGHT")
+  local offset=(right==inside) and -8 or 8
+  level:SetPoint(anchor,f,edge,offset,0);level:SetJustifyH(anchor)
+  local inset=inside and showLevel and math.ceil(level:GetStringWidth())+8 or 0
+  xp:SetWidth(0)
+  xp:SetPoint("LEFT",f,"LEFT",8+(right and 0 or inset),0)
+  xp:SetPoint("RIGHT",f,"RIGHT",-8-(right and inset or 0),0)
+  xp:SetJustifyH(db.textPosition:upper())
+end
 function X:ApplyLayout()
   if not self.frame then return end
   local db,f=self.db,self.frame
@@ -395,21 +431,12 @@ function X:ApplyLayout()
     first:SetSize(db.width,db.height); first:SetPoint("TOPLEFT",f,"TOPLEFT"); first:SetOrientation("HORIZONTAL"); first:SetReverseFill(false)
     first.length,first.vertical,first.reverse=db.width,false,false; second:Hide()
   end
-  self.levelText:ClearAllPoints(); self.xpText:ClearAllPoints(); self.levelText:SetWidth(52)
-  if wrap then
-    local edge,opposite=top and "TOPLEFT" or "BOTTOMLEFT",top and "BOTTOMLEFT" or "TOPLEFT"
-    self.levelText:SetPoint(top and "BOTTOMRIGHT" or "TOPRIGHT",second,edge,-8,top and 4 or -4)
-    self.xpText:SetPoint(opposite,second,edge,0,top and 4 or -4)
-    self.xpText:SetWidth(db.wrapHorizontalLength); self.xpText:SetJustifyH("LEFT")
-  else
-    self.levelText:SetPoint("RIGHT",f,"LEFT",-8,0)
-    self.xpText:SetPoint("LEFT",first,"LEFT",8,0); self.xpText:SetPoint("RIGHT",first,"RIGHT",-8,0)
-    self.xpText:SetJustifyH(db.textPosition:upper())
-  end
-  self.levelText:SetJustifyH("RIGHT"); self.levelText:SetTextColor(unpack(db.textColor)); self.xpText:SetTextColor(unpack(db.textColor))
+  self:LayoutText(db.showLevel and self.levelText:IsShown())
+  self.levelText:SetTextColor(unpack(db.textColor)); self.xpText:SetTextColor(unpack(db.textColor))
   f:EnableMouse(self.unlocked and not wrap or false); self.guide:SetShown(self.unlocked and not wrap or false)
   for _,s in ipairs(self.segments) do
-    s:SetStatusBarColor(unpack(db.color)); s.bg:SetVertexColor(unpack(db.backgroundColor)); s.rested:SetVertexColor(unpack(db.restedColor))
+    s:SetStatusBarColor(unpack(db.color)); s.renderedColor=nil
+    s.bg:SetVertexColor(unpack(db.backgroundColor)); s.rested:SetVertexColor(unpack(db.restedColor))
     s.questXP:SetVertexColor(unpack(db.questPreviewColor))
     if self.unlocked then
       s:EnableMouse(false)
@@ -441,40 +468,51 @@ function X:LayoutMarkers()
   end
 end
 -- Distribute a continuous interval over the vertical-then-horizontal path.
+local function setInterval(s,region,a,b)
+  if b<=a then
+    if region:IsShown() then region:Hide() end
+    return
+  end
+  local thickness=s.vertical and s:GetWidth() or s:GetHeight()
+  local edge=s.vertical and (s.reverse and "TOPLEFT" or "BOTTOMLEFT") or "LEFT"
+  local previous=region.interval
+  if not previous or previous.a~=a or previous.b~=b or previous.edge~=edge or previous.thickness~=thickness then
+    region.interval={a=a,b=b,edge=edge,thickness=thickness}
+    region:ClearAllPoints()
+    if s.vertical then
+      region:SetPoint(edge,s,edge,0,s.reverse and -a or a);region:SetSize(thickness,b-a)
+    else
+      region:SetPoint(edge,s,edge,a,0);region:SetSize(b-a,thickness)
+    end
+  end
+  if not region:IsShown() then region:Show() end
+end
 function X:SetSegment(s,offset,current,restEnd,questEnd)
   local length=s.length
-  s:SetMinMaxValues(0,length); s:SetValue(clamp(current-offset,0,length))
   local a,b=clamp(current-offset,0,length),clamp(restEnd-offset,0,length)
+  if s.renderedLength~=length then s:SetMinMaxValues(0,length);s.renderedLength=length end
+  if s.renderedXP~=a then s:SetValue(a);s.renderedXP=a end
   local endQuest=clamp((questEnd or current)-offset,0,length)
-  s.questXP:ClearAllPoints()
-  if endQuest>a then
-    if s.vertical then
-      local edge=s.reverse and "TOPLEFT" or "BOTTOMLEFT"
-      s.questXP:SetPoint(edge,s,edge,0,s.reverse and -a or a);s.questXP:SetSize(s:GetWidth(),endQuest-a)
-    else s.questXP:SetPoint("LEFT",s,"LEFT",a,0);s.questXP:SetSize(endQuest-a,s:GetHeight()) end
-    s.questXP:Show()
-  else s.questXP:Hide() end
+  setInterval(s,s.questXP,a,endQuest)
   -- The verified rested amount is a separate visual interval after quest XP.
   -- It never contributes to the predicted turn-in XP or level-up result.
-  a=math.max(a,endQuest)
-  s.rested:ClearAllPoints()
-  if b>a and self.db.showRested then
-    if s.vertical then
-      local edge=s.reverse and "TOPLEFT" or "BOTTOMLEFT"
-      s.rested:SetPoint(edge,s,edge,0,s.reverse and -a or a); s.rested:SetSize(s:GetWidth(),b-a)
-    else s.rested:SetPoint("LEFT",s,"LEFT",a,0); s.rested:SetSize(b-a,s:GetHeight()) end
-    s.rested:Show()
-  else s.rested:Hide() end
+  setInterval(s,s.rested,math.max(a,endQuest),self.db.showRested and b or 0)
 end
 function X:Render()
   if not self.frame then return end
   local db,d=self.db,self.data
   local visible=self:IsEnabled() and d and (not db.hideAtMaxLevel or not d.atCap)
-  self.frame:SetShown(visible and true or false)
+  if self.frame:IsShown()~=(visible==true) then self.frame:SetShown(visible==true) end
   if not visible and self.questPreview then self.questPreview:Hide() end
   if visible then
     local color=d.kind=="reputation" and self.reputationColors[d.reaction] or db.color
-    for _,segment in ipairs(self.segments) do segment:SetStatusBarColor(color[1],color[2],color[3],db.color[4]) end
+    for _,segment in ipairs(self.segments) do
+      local previous=segment.renderedColor
+      if not previous or previous[1]~=color[1] or previous[2]~=color[2] or previous[3]~=color[3] or previous[4]~=db.color[4] then
+        segment.renderedColor={color[1],color[2],color[3],db.color[4]}
+        segment:SetStatusBarColor(unpack(segment.renderedColor))
+      end
+    end
     local length=self.segments[1].length+(db.mode~="horizontal" and self.segments[2].length or 0)
     local fraction=d.maximum>0 and d.value/d.maximum or ((d.atCap or d.capped) and 1 or 0)
     local amount=self.questPreview and self.questPreview:Amount(d) or 0
@@ -482,8 +520,18 @@ function X:Render()
     local rest=d.maximum>0 and clamp(questFraction+d.rested/d.maximum,0,1) or fraction
     self:SetSegment(self.segments[1],0,length*fraction,length*rest,length*questFraction)
     if db.mode~="horizontal" then self:SetSegment(self.segments[2],self.segments[1].length,length*fraction,length*rest,length*questFraction) end
-    self.levelText:SetText(d.kind=="reputation" and "" or ("Lv."..d.level)); self.levelText:SetShown(db.showLevel and d.kind~="reputation")
-    self.xpText:SetText(self:Text()); self.xpText:SetShown(db.showText)
+    local showLevel=db.showLevel and d.kind~="reputation"
+    local level,body=showLevel and self:FormatLevel(d.level) or "",self:Text()
+    local levelChanged=self.levelText:GetText()~=level or self.levelText:IsShown()~=showLevel
+    if levelChanged then
+      self.levelText:SetText(level);self.levelText:SetShown(showLevel);self:LayoutText(showLevel)
+    end
+    if self.xpText:GetText()~=body then self.xpText:SetText(body) end
+    if not db.showText then
+      body=self.questPreview and self.questPreview:Text("",d) or ""
+      self.xpText:SetText(body)
+    end
+    self.xpText:SetShown(db.showText or body~="")
     if self.tooltipOwner then self:ShowTooltip(self.tooltipOwner) end
   end
 end

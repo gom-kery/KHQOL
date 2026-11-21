@@ -411,7 +411,7 @@ function Threat:UpdateHUD()
   end
   self:ResetAggroAlert()
   if not self.db.locked then
-    self:ShowInfo(self.testInfo,"위치 미리보기 (가상 데이터)","KHQOL Threat · 드래그로 이동","위치 미리보기 · 가상 데이터")
+    self:ShowInfo(self.testInfo,"가상 대상","KHQOL Threat · 드래그로 이동","가상 데이터")
   else self:HideHUD() end
 end
 function Threat:StopTicker()
@@ -541,9 +541,9 @@ function Threat:BuildSettings(content,y)
   b:Description("던전·레이드에서 체크한 역할일 때만 위협 수치·아이콘·음성을 사용합니다. 기본은 탱 OFF, 딜·힐 ON입니다.")
   b:Dropdown("역할 판정",{{value="AUTO",text="자동 (파티 역할 / 전문화)"},{value="TANK",text="탱"},{value="DAMAGER",text="딜"},{value="HEALER",text="힐"}},function() return db.instanceRole end,function(v) change("instanceRole",v) end)
   b:Description("자동 인식이 안 되면 역할을 직접 선택하세요. 역할 미확인 시에는 숨기며, 세 역할을 모두 체크하면 표시합니다.")
-  b:Description("필드의 기존 표시 조건은 유지합니다. 위치 미리보기와 가상 테스트는 역할 설정과 관계없이 사용할 수 있습니다.")
+  b:Description("필드의 기존 표시 조건은 유지합니다. 이동 앵커와 가상 테스트는 역할 설정과 관계없이 사용할 수 있습니다.")
   b:Section("위치")
-  b:Checkbox("위치 잠금",function() return db.locked end,function(v) change("locked",v) end)
+  b:PositionLock("위치 잠금",function() return db.locked end,function(v) change("locked",v) end)
   b:Description("잠금을 풀면 이동 영역이 표시됩니다. 원하는 곳으로 드래그한 뒤 다시 잠그세요.")
   local function setCoordinate(axis,v)
     v=tonumber(v)

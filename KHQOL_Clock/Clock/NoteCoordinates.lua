@@ -30,10 +30,17 @@ function FC:CommitTodoCoordinateChange()
   if self.todoFrame then self:RefreshTodo() else self:RefreshTodoNavigation() end
 end
 function FC:AddTodoCoordinate(mapID,x,y,label)
-  if not self:IsTodoCoordinateEnabled() then return nil,"편의 기능에서 노트 사용을 먼저 켜세요." end
+  if not self:IsTodoCoordinateEnabled() then return nil,"퀘스트·지도 > 포에버 노트에서 노트 사용을 먼저 켜세요." end
   if not N.ValidPoint(mapID,x,y) or not self:GetTodoMapInfo(mapID) then return nil,"지역 또는 좌표를 확인할 수 없습니다." end
   if not N.IsText(label) or #label>512 or label:find("[\r\n]") then return nil,"메모는 줄바꿈 없이 512바이트 이내로 입력하세요." end
   label=trim(label);if label=="" then label="노트 위치" end
+  local duplicate
+  self:EachTodoTask(function(item)
+    local p=item.waypoint
+    if not duplicate and type(p)=="table" and p.mapID==mapID and N.ValidPoint(p.mapID,p.x,p.y) and
+      decimal(p.x)==decimal(x) and decimal(p.y)==decimal(y) and p.label==label then duplicate=item end
+  end)
+  if duplicate then return duplicate,"duplicate" end
   -- Only our dedicated checklist is reused. Never convert/overwrite a user's
   -- text page merely because its title also happens to be '좌표'.
   local page
@@ -53,35 +60,27 @@ function FC:ParseNoteCoordinateCommand(message)
   if not N.IsText(message) or #message>2048 then return nil end
   local command,body=trim(message):match("^(%S+)%s+(.+)$")
   if not command or command:lower()~="way" then return nil end
-  -- Numeric mapID is accepted only when three leading numbers are supplied.
-  -- #mapID remains the unambiguous form when a memo itself starts with a number.
-  local map,x,y,label=body:match("^(%d+)%s+(%S+)%s+(%S+)%s*(.*)$")
-  if map and tonumber(x)~=nil and tonumber(y)~=nil then
-    map=tonumber(map)
-    if not self:GetTodoMapInfo(map) then return nil end
-    local px,py,text=self:ParseTodoWaypoint("/way #"..map.." "..x.." "..y.." "..label)
-    if not N.ValidPoint(map,px,py) then return nil end
-    return map,px,py,text
-  end
-  local px,py,text,explicit=self:ParseTodoWaypoint("/way "..body)
+  local px,py,text,explicit=self:ParseTodoWaypoint("/way "..body,true)
   local id=explicit or N.Call(C_Map and C_Map.GetBestMapForUnit,"player")
   if N.ValidPoint(id,px,py) and self:GetTodoMapInfo(id) then return id,px,py,text end
 end
 function FC:NoteCoordinateCommand(message)
   if not N.IsText(message) then return end
   if trim(message)=="" then
-    if self:IsTodoCoordinateEnabled() then self:ToggleTodo() else self:NoteCoordinateMessage("편의 기능에서 노트 사용을 먼저 켜세요.") end
+    if self:IsTodoCoordinateEnabled() then self:ToggleTodo() else self:NoteCoordinateMessage("퀘스트·지도 > 포에버 노트에서 노트 사용을 먼저 켜세요.") end
     return
   end
   local map,x,y,label=self:ParseNoteCoordinateCommand(message)
   if not map then
-    self:NoteCoordinateMessage("/nt way X Y 메모 · /노트 way mapID X Y 메모 · /nt way 지역명 X Y 메모 (좌표 0~100, 동명 지역은 #mapID)")
+    self.noteCoordinateInput=message
+    self:NoteCoordinateMessage("/nt way X Y 메모 또는 X,Y 메모 · 지역명/#mapID 사용 가능 (0~100, 숫자 메모 앞에는 #mapID 권장)")
     return
   end
   local item,why=self:AddTodoCoordinate(map,x,y,label)
-  if not item then self:NoteCoordinateMessage(why);return end
+  if not item then self.noteCoordinateInput=message;self:NoteCoordinateMessage(why);return end
+  self.noteCoordinateInput=nil
   local info=self:GetTodoMapInfo(map)
-  self:NoteCoordinateMessage("좌표 목록에 추가: "..info.name.." "..decimal(x)..", "..decimal(y).." · "..item.waypoint.label)
+  self:NoteCoordinateMessage((why=="duplicate" and "기존 좌표 유지: " or "좌표 목록에 추가: ")..info.name.." "..decimal(x)..", "..decimal(y).." · "..item.waypoint.label)
   if self.todoMapPinsReason then self:NoteCoordinateMessage(self.todoMapPinsReason) end
 end
 function FC:CreateTodoCoordinateTicket(id)

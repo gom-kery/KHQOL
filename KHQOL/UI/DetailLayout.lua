@@ -144,8 +144,8 @@ function UI:CreateDetailLayout(parent,y,key)
         if r.slider then
           local c=r.slider;c.tooltipLabel:SetWidth(available)
           local labelHeight=math.max(18,c.tooltipLabel:GetStringHeight())
-          c:ClearAllPoints();c:SetPoint("TOPLEFT",0,-labelHeight-6)
-          c.numberBox:ClearAllPoints();c.numberBox:SetPoint("TOPLEFT",T.SliderWidth+14,-labelHeight-2)
+          c:ClearAllPoints();c:SetPoint("TOPLEFT",T.SliderArrowSize+T.SliderArrowGap,-labelHeight-6)
+          c:FitSlider(available)
           c.inputFeedback:ClearAllPoints();c.inputFeedback:SetPoint("TOPLEFT",0,-labelHeight-34);c.inputFeedback:SetWidth(available)
           height=math.max(height,labelHeight+34+(c.inputFeedback:IsShown() and c.inputFeedback:GetStringHeight()+T.RowGap or 0))
         end

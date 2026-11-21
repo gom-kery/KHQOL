@@ -5,7 +5,8 @@ function QN:BuildSettings(content,y,part)
   local UI,T=KHQOL.UI,KHQOL.UI.Theme
   local db=self:GetDB(); local b=UI:CreateBuilder(content,y)
   local function check(title,key,available)
-    return b:Checkbox(title,function() return db[key] end,function(v) db[key]=v; self:Changed(key) end,available)
+    local method=key=="locked" and b.PositionLock or b.Checkbox
+    return method(b,title,function() return db[key] end,function(v) db[key]=v; self:Changed(key) end,available)
   end
   if part~="navigation" then
   b:Section("퀘스트 목록 표시")
@@ -29,14 +30,14 @@ function QN:BuildSettings(content,y,part)
   trackerCheck("[★] 정예 표시","showEliteTag")
   b:Slider("퀘스트 글씨 크기",10,20,1,function() return tracker.fontSize end,function(v) tracker.fontSize=v; self:RequestTrackerLayout() end,function(v) return v.." px" end)
   b:Slider("퀘스트 내용 표시 폭",200,500,1,function() return self:GetTrackerWidth() end,function(v) tracker.contentWidth=v; self:RequestTrackerLayout() end,function(v) return v.." px" end)
-  b:Description("전투 중 목록 배치 변경은 전투가 끝난 뒤 적용합니다.",true)
+  b:Status(function() return self.trackerPending and KHQOL.PublicCall(InCombatLockdown)==true and "전투 종료 후 적용" or "" end)
   end
   if part=="tracker" then b:Flush();return b.y end
   b:Section("자동 선택·길 안내")
-  b:Description("목록 그룹화는 퀘스트 목록 탭에서, 자동 길 안내는 이 탭에서 조정합니다. 아래 위치·크기는 화살표 HUD에만 적용합니다.",true)
+  b:Help("퀘스트 추적·길 안내 도움말","목록·진행도는 퀘스트 추적에서, 자동 선택·화살표 HUD는 퀘스트 길 안내에서 설정합니다.")
   check("자동 퀘스트 선택","autoTrack")
   b:Description("자동 선택 대상은 게임의 목표 추적창에 등록된 퀘스트만 사용합니다.")
-  b:Description("지역 자동 펼치기와 자동 퀘스트 선택을 함께 켜면, 지역 대기 후 해당 지역의 낮은 레벨 퀘스트부터 안내합니다. 같은 레벨이면 가까운 목표를 선택합니다. 이동 후 직접 선택한 퀘스트·사용자 핀·노트 수동 안내·반납 안내는 우선 유지합니다.",true)
+  b:Description("지역 자동 펼치기와 자동 퀘스트 선택을 함께 켜면, 지역 대기 후 해당 지역의 낮은 레벨 퀘스트부터 안내합니다. 같은 레벨이면 가까운 목표를 선택합니다. 이동 후 직접 선택한 퀘스트·사용자 핀·노트 수동 안내·반납 안내는 우선 유지합니다.")
   b:Dropdown("퀘스트 완료 후",{{value="turnin",text="반납 위치 안내"},{value="next",text="다음 추적 퀘스트 자동 선택"}},function() return db.completionBehavior end,function(v) db.completionBehavior=v; self:Changed("completionBehavior") end)
   b:Description("반납 안내는 현재 퀘스트를 유지하며, 실제 반납 후 자동 선택합니다. 자동 선택을 끄면 수동 안내만 유지합니다.")
   check("같은 지역 퀘스트 우선","preferSameRegion",function() return db.autoTrack end)

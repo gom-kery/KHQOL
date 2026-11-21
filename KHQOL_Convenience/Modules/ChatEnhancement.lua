@@ -97,6 +97,18 @@ function Chat:OpenPartyWhisper(name,explicit)
   else return false end
   return true -- Only a draft; never SendChatMessage.
 end
+function Chat:SubmitPartyInvite(name)
+  local invite=C_PartyInfo and C_PartyInfo.InviteUnit or InviteUnit
+  if type(invite)~="function" then return "missing" end
+  local now=public(GetTime)
+  if type(now)~="number" then return "unreadable" end
+  if self.lastInvite and now-self.lastInvite<2 then return "recent" end
+  self.lastInvite=now;self.pendingInvite={name=name,time=now}
+  local status=KHQOL.ReadPublicAPI(invite,name)
+  if status~="ok" then self.pendingInvite=nil end
+  return status
+end
+
 function Chat:TryInvite(name)
   name=plainName(name);local target=canonical(name)
   local function stop(reason) Chat.lastInviteResult=reason;return false end
@@ -137,12 +149,10 @@ function Chat:TryInvite(name)
   else canInvite=public(UnitIsGroupLeader,"player")==true or (raid and public(UnitIsGroupAssistant,"player")==true) end
   if not canInvite then return stop("현재 그룹에서 초대 권한이 없습니다.") end
   if grouped and count>=(raid and 40 or 5) then return stop("그룹 인원이 가득 찼습니다.") end
-  local invite=C_PartyInfo and C_PartyInfo.InviteUnit or InviteUnit
-  if type(invite)~="function" then return stop("파티 초대 API를 사용할 수 없습니다.") end
-  self.lastInvite=now;self.pendingInvite={name=name,time=now}
   -- A thrown call is not permission to retry via a different API.
-  local ok=pcall(invite,name)
-  if not ok then self.pendingInvite=nil end
+  local status=self:SubmitPartyInvite(name)
+  if status=="missing" then return stop("파티 초대 API를 사용할 수 없습니다.") end
+  local ok=status=="ok"
   self.lastInviteResult=ok and "초대 API 호출을 시도했습니다. 수락/성공은 서버 응답으로 확인하세요." or "클라이언트가 초대 API 호출을 거부했습니다."
   return ok
 end

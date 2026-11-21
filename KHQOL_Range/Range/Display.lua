@@ -14,11 +14,17 @@ function Display:Create()
   frame:EnableMouse(false)
   frame:RegisterForDrag("LeftButton")
   frame:SetMovable(true)
-  frame:SetScript("OnDragStart", function(f) if not FR.db.locked then f.positionMoving=true;f:StartMoving() end end)
+  frame:SetScript("OnDragStart", function(f)
+    local numeric=FR.db.displayMode=="distance"
+    local cfg=numeric and FR.db.distance or FR.db
+    if not cfg.locked and not KHQOL.PositionEditor.active then f.positionMoving=true;f:StartMoving() end
+  end)
   frame:SetScript("OnDragStop", function(f)
     f:StopMovingOrSizing();f.positionMoving=nil
     local _, _, _, x, y = f:GetPoint(1)
-    FR.db.x, FR.db.y = math.floor(x + 0.5), math.floor(y + 0.5)
+    local cfg=FR.db.displayMode=="distance" and FR.db.distance or FR.db
+    if not KHQOL.IsPublicNumber(x) or not KHQOL.IsPublicNumber(y) then return end
+    cfg.x,cfg.y=math.floor(x+.5),math.floor(y+.5)
     FR:RefreshDisplay(true)
     KHQOL.PositionStore:Committed()
     if FR.UpdateSettings then FR:UpdateSettings() end
@@ -49,7 +55,12 @@ end
 
 function Display:ApplyLayout(force)
   if not self.frame or not FR.db then return end
+  if FR.db.displayMode=="distance" then self:DistanceLayout(force);return end
+  self.frame.main:ClearAllPoints();self.frame.main:SetPoint("CENTER")
   local db, frame = FR.db, self.frame
+  self.lastDistanceLayout=nil;self.lastDistanceText=nil;self.lastDistanceColor=nil
+  frame:SetSize(260,72)
+  frame.main:ClearAllPoints();frame.main:SetPoint("CENTER")
   local text = self:GetStateText(self.state)
   local font = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
   -- The coloured copies provide the complete outline, including thickness 0.
@@ -77,6 +88,39 @@ function Display:ApplyLayout(force)
   self.lastLayoutKey = nil
 end
 
+function Display:DistanceLayout(force)
+  local cfg,frame=FR.db.distance,self.frame
+  local key=table.concat({cfg.size,cfg.x,cfg.y,tostring(cfg.locked)},"|")
+  if not force and self.lastDistanceLayout==key then return end
+  for _,shadow in ipairs(frame.shadows) do shadow:Hide() end
+  frame:SetSize(400,FR.Distance:FrameHeight(cfg.size))
+  frame.main:SetFont(KHQOL.UI:Font(),cfg.size,"OUTLINE")
+  frame.main:ClearAllPoints()
+  frame.main:SetPoint("CENTER");frame.main:SetJustifyH("CENTER")
+  frame:EnableMouse(not cfg.locked)
+  self.lastLayoutKey=nil
+  if not frame.positionMoving then
+    frame:ClearAllPoints();frame:SetPoint("CENTER",UIParent,"CENTER",cfg.x,cfg.y)
+  end
+  self.lastDistanceLayout=key
+end
+
+function Display:ShowDistance(result,force)
+  FR.Distance:UpdateMeasurementLabel(result)
+  local frame=self.frame
+  if not frame then return end
+  if not result then self:Hide();return end
+  self:DistanceLayout(force)
+  local text=FR.Distance:Format(result)
+  if text~=self.lastDistanceText then frame.main:SetText(text);self.lastDistanceText=text end
+  local color=FR.Distance:Color(result)
+  local previous=self.lastDistanceColor
+  if force or not previous or previous[1]~=color[1] or previous[2]~=color[2] or previous[3]~=color[3] or previous[4]~=color[4] then
+    frame.main:SetTextColor(unpack(color));self.lastDistanceColor={unpack(color)}
+  end
+  if not frame:IsShown() then frame:Show() end
+end
+
 function Display:ShowState(state, force)
   if not self.frame then return end
   local db, frame = FR.db, self.frame
@@ -99,4 +143,5 @@ end
 function Display:Hide()
   if self.frame then self.frame:Hide() end
   self.lastLayoutKey = nil
+  self.lastDistanceLayout=nil;self.lastDistanceText=nil;self.lastDistanceColor=nil
 end

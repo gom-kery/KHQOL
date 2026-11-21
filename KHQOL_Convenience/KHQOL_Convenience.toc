@@ -3,24 +3,43 @@
 ## Notes: Requires KHQOL. Install and enable the KHQOL core addon.
 ## Notes-koKR: KHQOL 공통 기반을 반드시 함께 설치하고 활성화하세요.
 ## Author: KHQOL
-## Version: 1.11.8.3
+## Version: 1.12.0.2
 ## Dependencies: KHQOL
 ## IconTexture: Interface\AddOns\KHQOL\Media\kh-qol-minimap-button.tga
 
 Bootstrap.lua
+BuffReminder/Core.lua
+BuffReminder/Food.lua
+BuffReminder/FoodEvidence.lua
+BuffReminder/CommonBuffs.lua
+BuffReminder/SleepingBag.lua
+BuffReminder/FoodUI.lua
+BuffReminder/Glow.lua
+BuffReminder/UI.lua
+BuffReminder/Settings.lua
+BuffReminder/Adapters.lua
+BuffReminder/Positions.lua
+BuffReminder/SearchIndex.lua
 ProfessionProfile.lua
 Modules/Professions.lua
 Data/ProfessionCatalog.lua
+Data/ProfessionRanks.lua
+Modules/ProfessionGuide.lua
+Data/ProfessionSites.lua
+Modules/ProfessionGuidePolicy.lua
+UI/ProfessionGuideUI.lua
 Modules/AltProfessions.lua
 UI/ProfessionSettings.lua
 Modules/ChatEnhancement.lua
 Modules/ChatAutomation.lua
 GeneralOptions.lua
 Modules/GeneralConvenience.lua
+Modules/PartyButton.lua
 Modules/BuffThanks.lua
 Modules/ConvenienceItems.lua
 Modules/BagProtection.lua
 Modules/BagTrash.lua
+Modules/QuestRewardPrices.lua
 Modules/EquipmentLevels.lua
 UI/BagItemSettings.lua
 UI/ConvenienceDetails.lua

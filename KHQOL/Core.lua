@@ -58,7 +58,7 @@ end
 function KHQOL:GetEnabled(key) return self.ModuleRegistry.entries[key]~=nil and self.db and self.db.enabled[key] ~= false or false end
 
 function KHQOL:SetEnabled(key, enabled, reapply)
-  if not reapply and not enabled and self.PositionEditor and self.PositionEditor.active then self.PositionEditor:Finish(false) end
+  if not reapply and not enabled and self.PositionEditor and self.PositionEditor.active then self.PositionEditor:Finish(false,false,"navigation") end
   local spec=self.ModuleRegistry.entries[key]
   if not spec then return false end
   if spec.always then

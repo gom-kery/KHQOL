@@ -10,7 +10,7 @@ end
 addPackage("KHQOL_UnitFrames","개인 유닛프레임 · 파티·공격대",{"unitFrames","partyFrames"})
 for _,id in ipairs({"basicUI","frameMover","castBar"}) do K.ModuleOwners[id]="KHQOL" end
 addPackage("KHQOL_Clock","시계 · 노트",{"clock","todo"})
-addPackage("KHQOL_Convenience","일반 편의 · 대화창",{"general","generalConvenience","chatEnhancement","chatAutomation","convenienceChat","professions"})
+addPackage("KHQOL_Convenience","일반 편의 · 대화창",{"general","generalConvenience","chatEnhancement","chatAutomation","convenienceChat","professions","buffReminder"})
 addPackage("KHQOL_Tooltip","툴팁 · 무기 안내",{"tooltip","weaponGuide"})
 addPackage("KHQOL_Range","사거리",{"range"})
 addPackage("KHQOL_CursorTrail","마우스 잔상",{"cursorTrail"})
@@ -23,7 +23,7 @@ addPackage("KHQOL_NPCAlert","NPC 알림",{"npcAlert"})
 addPackage("KHQOL_PvPAlert","PvP 알림",{"pvpAlert"})
 addPackage("KHQOL_Campfire","모닥불",{"campfire"})
 addPackage("KHQOL_QuestNavigator","퀘스트",{"questNavigator"})
-addPackage("KHQOL_Labs","실험실",{"buffReminder","procAlert","objectHighlight"})
+addPackage("KHQOL_Labs","실험실",{"procAlert","objectHighlight"})
 addPackage("KHQOL_Map","미니맵 · 버튼 정리",{"minimap"})
 -- Only KHQOL.toc owns these variables, even when their feature is absent.
 K.legacyProfileVariables={clock="ForeverClockDB",buffReminder="ForeverBuffReminderDB",range="FRangeDB",

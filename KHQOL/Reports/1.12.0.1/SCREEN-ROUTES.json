@@ -1,0 +1,694 @@
+[
+  {
+    "hideToggle": false,
+    "path": "캐릭터 > 유닛프레임",
+    "route": {
+      "module": "unitFrames",
+      "screen": "units"
+    },
+    "id": "units",
+    "owner": "unitFrames",
+    "aliases": "유닛 프레임 unitFrames 캐릭터·전투",
+    "resetScope": "현재 프로필의 개인 유닛 프레임과 직업 보조 표시를 초기화합니다. 공통 직업 색상과 파티·공격대 설정은 유지합니다.",
+    "group": "character",
+    "title": "유닛프레임",
+    "hideReset": false,
+    "legacyGroup": "unitFrames",
+    "legacyTab": "units",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "캐릭터 > 파티·공격대 프레임 > 공통 표시",
+    "route": {
+      "tab": "common",
+      "screen": "party_common",
+      "module": "partyFrames"
+    },
+    "id": "party_common",
+    "owner": "partyFrames",
+    "aliases": "파티·공격대 partyFrames 캐릭터·전투",
+    "resetScope": "현재 계정 공용 파티·공격대 역할 프로필의 표시·배치를 초기화합니다. 이 프로필을 사용하는 다른 캐릭터에도 반영됩니다. 다른 프로필과 캐릭터 휠 주문은 유지합니다.",
+    "group": "character",
+    "title": "공통 표시",
+    "hideReset": false,
+    "family": "파티·공격대 프레임",
+    "legacyGroup": "partyFrames",
+    "legacyTab": "common",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "캐릭터 > 파티·공격대 프레임 > 크기·배치",
+    "route": {
+      "tab": "frames",
+      "screen": "party_frames",
+      "module": "partyFrames"
+    },
+    "id": "party_frames",
+    "owner": "partyFrames",
+    "aliases": "파티·공격대 partyFrames 캐릭터·전투",
+    "resetScope": "현재 계정 공용 파티·공격대 역할 프로필의 표시·배치를 초기화합니다. 이 프로필을 사용하는 다른 캐릭터에도 반영됩니다. 다른 프로필과 캐릭터 휠 주문은 유지합니다.",
+    "group": "character",
+    "title": "크기·배치",
+    "hideReset": false,
+    "family": "파티·공격대 프레임",
+    "legacyGroup": "partyFrames",
+    "legacyTab": "frames",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "캐릭터 > 파티·공격대 프레임 > 버프·디버프",
+    "route": {
+      "tab": "auras",
+      "screen": "party_auras",
+      "module": "partyFrames"
+    },
+    "id": "party_auras",
+    "owner": "partyFrames",
+    "aliases": "버프·디버프 partyFrames 캐릭터·전투",
+    "resetScope": "현재 계정 공용 파티·공격대 역할 프로필의 표시·배치를 초기화합니다. 이 프로필을 사용하는 다른 캐릭터에도 반영됩니다. 다른 프로필과 캐릭터 휠 주문은 유지합니다.",
+    "group": "character",
+    "title": "버프·디버프",
+    "hideReset": false,
+    "family": "파티·공격대 프레임",
+    "legacyGroup": "partyFrames",
+    "legacyTab": "auras",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "캐릭터 > 파티·공격대 프레임 > 역할별 프레임 프로필",
+    "route": {
+      "tab": "roles",
+      "screen": "party_roles",
+      "module": "partyFrames"
+    },
+    "id": "party_roles",
+    "owner": "partyFrames",
+    "aliases": "프로필 partyFrames 캐릭터·전투",
+    "resetScope": "현재 계정 공용 파티·공격대 역할 프로필의 표시·배치를 초기화합니다. 이 프로필을 사용하는 다른 캐릭터에도 반영됩니다. 다른 프로필과 캐릭터 휠 주문은 유지합니다.",
+    "group": "character",
+    "title": "역할별 프레임 프로필",
+    "hideReset": false,
+    "family": "파티·공격대 프레임",
+    "legacyGroup": "partyFrames",
+    "legacyTab": "roles",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "캐릭터 > 경험치·평판",
+    "route": {
+      "module": "experienceBar",
+      "screen": "experience"
+    },
+    "id": "experience",
+    "owner": "experienceBar",
+    "aliases": "경험치 bars 캐릭터·전투",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "character",
+    "title": "경험치·평판",
+    "hideReset": false,
+    "legacyGroup": "bars",
+    "legacyTab": "experience",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "캐릭터 > 환경·보호막 타이머",
+    "route": {
+      "module": "environmentTimer",
+      "screen": "environment"
+    },
+    "id": "environment",
+    "owner": "environmentTimer",
+    "aliases": "환경타이머 bars 캐릭터·전투",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "character",
+    "title": "환경·보호막 타이머",
+    "hideReset": false,
+    "legacyGroup": "bars",
+    "legacyTab": "environment",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "캐릭터 > 버프·휴식 알림 > 버프 유지 알림",
+    "route": {
+      "module": "buffReminder",
+      "screen": "buff"
+    },
+    "id": "buff",
+    "owner": "buffReminder",
+    "aliases": "버프 리마인더 convenience 캐릭터·전투",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n직업별 등록 버프 목록은 유지합니다.",
+    "group": "character",
+    "title": "버프 유지 알림",
+    "hideReset": false,
+    "family": "버프·휴식 알림",
+    "legacyGroup": "convenience",
+    "legacyTab": "buff",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "캐릭터 > 버프·휴식 알림 > 모닥불 알림",
+    "route": {
+      "module": "campfire",
+      "screen": "campfire"
+    },
+    "id": "campfire",
+    "owner": "campfire",
+    "aliases": "모닥불 alerts 캐릭터·전투",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "character",
+    "title": "모닥불 알림",
+    "hideReset": false,
+    "family": "버프·휴식 알림",
+    "legacyGroup": "alerts",
+    "legacyTab": "campfire",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "전투 > 시전바",
+    "route": {
+      "module": "castBar",
+      "screen": "cast"
+    },
+    "id": "cast",
+    "owner": "castBar",
+    "aliases": "시전 bars 캐릭터·전투",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "battle",
+    "title": "시전바",
+    "hideReset": false,
+    "legacyGroup": "bars",
+    "legacyTab": "cast",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "전투 > 자원·스윙바",
+    "route": {
+      "module": "resourceSwing",
+      "screen": "resource"
+    },
+    "id": "resource",
+    "owner": "resourceSwing",
+    "aliases": "자원/스윙바 bars 캐릭터·전투",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "battle",
+    "title": "자원·스윙바",
+    "hideReset": false,
+    "legacyGroup": "bars",
+    "legacyTab": "resource",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "전투 > 거리·사거리",
+    "route": {
+      "module": "range",
+      "screen": "range"
+    },
+    "id": "range",
+    "owner": "range",
+    "aliases": "사거리 측정 interface 캐릭터·전투",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "battle",
+    "title": "거리·사거리",
+    "hideReset": false,
+    "legacyGroup": "interface",
+    "legacyTab": "range",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "전투 > 전투·위협 알림 > 전투 시작·종료",
+    "route": {
+      "module": "combatStatus",
+      "screen": "combat"
+    },
+    "id": "combat",
+    "owner": "combatStatus",
+    "aliases": "전투 상태 alerts 캐릭터·전투",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "battle",
+    "title": "전투 시작·종료",
+    "hideReset": false,
+    "family": "전투·위협 알림",
+    "legacyGroup": "alerts",
+    "legacyTab": "combat",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "전투 > 전투·위협 알림 > 위협 수치·어그로",
+    "route": {
+      "module": "threat",
+      "screen": "threat"
+    },
+    "id": "threat",
+    "owner": "threat",
+    "aliases": "위협 수치 alerts 캐릭터·전투",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "battle",
+    "title": "위협 수치·어그로",
+    "hideReset": false,
+    "family": "전투·위협 알림",
+    "legacyGroup": "alerts",
+    "legacyTab": "threat",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "퀘스트·지도 > 퀘스트 추적",
+    "route": {
+      "tab": "tracker",
+      "screen": "tracker",
+      "module": "questNavigator"
+    },
+    "id": "tracker",
+    "owner": "questNavigator",
+    "aliases": "퀘스트 목록 (목표 추적기) quest",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "exploration",
+    "title": "퀘스트 추적",
+    "hideReset": false,
+    "legacyGroup": "quest",
+    "legacyTab": "tracker",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "퀘스트·지도 > 퀘스트 길 안내",
+    "route": {
+      "tab": "navigation",
+      "screen": "navigation",
+      "module": "questNavigator"
+    },
+    "id": "navigation",
+    "owner": "questNavigator",
+    "aliases": "길 안내 quest",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "exploration",
+    "title": "퀘스트 길 안내",
+    "hideReset": false,
+    "legacyGroup": "quest",
+    "legacyTab": "navigation",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "퀘스트·지도 > 미니맵",
+    "route": {
+      "tab": "minimap",
+      "screen": "minimap",
+      "module": "minimap"
+    },
+    "id": "minimap",
+    "owner": "minimap",
+    "aliases": "미니맵 minimap",
+    "resetScope": "계정 공용 미니맵·버튼 정리 설정과 위치·보관 제외 목록을 기본값으로 복원합니다. 다른 모듈과 현재 프로필의 사용 ON/OFF는 유지합니다.",
+    "group": "exploration",
+    "title": "미니맵",
+    "hideReset": false,
+    "legacyGroup": "minimap",
+    "legacyTab": "minimap",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": false,
+    "path": "퀘스트·지도 > 미니맵 버튼",
+    "route": {
+      "tab": "minimapButtons",
+      "screen": "minimapButtons",
+      "module": "minimap"
+    },
+    "id": "minimapButtons",
+    "owner": "minimap",
+    "aliases": "버튼 정리 minimap",
+    "resetScope": "계정 공용 미니맵·버튼 정리 설정과 위치·보관 제외 목록을 기본값으로 복원합니다. 다른 모듈과 현재 프로필의 사용 ON/OFF는 유지합니다.",
+    "group": "exploration",
+    "title": "미니맵 버튼",
+    "hideReset": false,
+    "legacyGroup": "minimap",
+    "legacyTab": "minimapButtons",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": false,
+    "path": "퀘스트·지도 > 오브젝트 강조",
+    "route": {
+      "module": "objectHighlight",
+      "screen": "highlight"
+    },
+    "id": "highlight",
+    "owner": "objectHighlight",
+    "aliases": "오브젝트 강조 convenience",
+    "resetScope": "현재 프로필의 오브젝트 강조를 OFF로 초기화하고 KHQOL이 변경한 그래픽 설정을 안전하게 복원합니다.\n복원 실패 시 필요한 기록은 유지합니다. 효과 해제에는 게임 재시작이 필요할 수 있습니다.",
+    "group": "exploration",
+    "title": "오브젝트 강조",
+    "hideReset": false,
+    "legacyGroup": "convenience",
+    "legacyTab": "highlight",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "퀘스트·지도 > 포에버 노트",
+    "route": {
+      "module": "todo",
+      "screen": "note"
+    },
+    "id": "note",
+    "owner": "todo",
+    "aliases": "포에버 노트 convenience",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n노트 내용·체크리스트·완료 상태·알람 문구는 유지합니다.",
+    "group": "exploration",
+    "title": "포에버 노트",
+    "hideReset": false,
+    "legacyGroup": "convenience",
+    "legacyTab": "note",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": true,
+    "path": "생활·소통 > 가방·아이템",
+    "route": {
+      "module": "generalConvenience",
+      "screen": "bags"
+    },
+    "id": "bags",
+    "owner": "generalConvenience",
+    "aliases": "공통 convenience",
+    "resetScope": "현재 프로필의 가방·아이템, 상점·수리, 요청 자동 거절, 대화창 편의·버프 감사 알림 설정을 함께 복원합니다. 파티 버튼과 계정 공용 아이템 보호 목록은 유지합니다.",
+    "group": "social",
+    "title": "가방·아이템",
+    "hideReset": false,
+    "legacyGroup": "convenience",
+    "legacyTab": "general",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": true,
+    "path": "생활·소통 > 상점·수리",
+    "route": {
+      "module": "generalConvenience",
+      "screen": "merchant"
+    },
+    "id": "merchant",
+    "owner": "generalConvenience",
+    "aliases": "공통 convenience",
+    "resetScope": "현재 프로필의 가방·아이템, 상점·수리, 요청 자동 거절, 대화창 편의·버프 감사 알림 설정을 함께 복원합니다. 파티 버튼과 계정 공용 아이템 보호 목록은 유지합니다.",
+    "group": "social",
+    "title": "상점·수리",
+    "hideReset": false,
+    "legacyGroup": "convenience",
+    "legacyTab": "general",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": true,
+    "path": "생활·소통 > 채팅·말머리 > 대화창·버프 감사 알림",
+    "route": {
+      "module": "generalConvenience",
+      "screen": "communication"
+    },
+    "id": "communication",
+    "owner": "generalConvenience",
+    "aliases": "공통 convenience",
+    "resetScope": "현재 프로필의 가방·아이템, 상점·수리, 요청 자동 거절, 대화창 편의·버프 감사 알림 설정을 함께 복원합니다. 파티 버튼과 계정 공용 아이템 보호 목록은 유지합니다.",
+    "group": "social",
+    "title": "대화창·버프 감사 알림",
+    "hideReset": false,
+    "family": "채팅·말머리",
+    "legacyGroup": "convenience",
+    "legacyTab": "general",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": true,
+    "path": "생활·소통 > 채팅·말머리 > 말머리",
+    "route": {
+      "module": "convenienceChat",
+      "screen": "chat"
+    },
+    "id": "chat",
+    "owner": "convenienceChat",
+    "aliases": "말머리 convenience",
+    "resetScope": "현재 프로필의 말머리 사용 설정을 복원합니다. 캐릭터별 말머리 문구는 유지합니다.",
+    "group": "social",
+    "title": "말머리",
+    "hideReset": false,
+    "family": "채팅·말머리",
+    "legacyGroup": "convenience",
+    "legacyTab": "chat",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": true,
+    "path": "생활·소통 > 파티·초대",
+    "route": {
+      "module": "convenienceParty",
+      "screen": "party"
+    },
+    "id": "party",
+    "owner": "convenienceParty",
+    "aliases": "파티 convenience",
+    "resetScope": "현재 프로필의 파티 버튼 위치·메시지와 자동 인사 옵션을 복원합니다. 표시 설정과 캐릭터별 자동 인사 문구는 유지합니다.",
+    "group": "social",
+    "title": "파티·초대",
+    "hideReset": false,
+    "legacyGroup": "convenience",
+    "legacyTab": "party",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": true,
+    "path": "생활·소통 > 요청 자동 거절",
+    "route": {
+      "module": "generalConvenience",
+      "screen": "decline"
+    },
+    "id": "decline",
+    "owner": "generalConvenience",
+    "aliases": "공통 convenience",
+    "resetScope": "현재 프로필의 가방·아이템, 상점·수리, 요청 자동 거절, 대화창 편의·버프 감사 알림 설정을 함께 복원합니다. 파티 버튼과 계정 공용 아이템 보호 목록은 유지합니다.",
+    "group": "social",
+    "title": "요청 자동 거절",
+    "hideReset": false,
+    "legacyGroup": "convenience",
+    "legacyTab": "general",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": false,
+    "path": "생활·소통 > 숙련·전문기술 > 전문기술",
+    "route": {
+      "module": "professions",
+      "screen": "professions"
+    },
+    "id": "professions",
+    "owner": "professions",
+    "aliases": "전문기술 convenience",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "social",
+    "title": "전문기술",
+    "hideReset": false,
+    "family": "숙련·전문기술",
+    "legacyGroup": "convenience",
+    "legacyTab": "professions",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "생활·소통 > 숙련·전문기술 > 무기 전문가 안내",
+    "route": {
+      "module": "tooltip",
+      "screen": "weaponGuide"
+    },
+    "id": "weaponGuide",
+    "owner": "tooltip",
+    "aliases": "툴팁 설정 interface",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "social",
+    "title": "무기 전문가 안내",
+    "hideReset": false,
+    "family": "숙련·전문기술",
+    "legacyGroup": "interface",
+    "legacyTab": "tooltip",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": false,
+    "path": "화면·정보 > 기본 화면·창 배치",
+    "route": {
+      "module": "basicUI",
+      "screen": "basic"
+    },
+    "id": "basic",
+    "owner": "basicUI",
+    "aliases": "기본 UI interface",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "display",
+    "title": "기본 화면·창 배치",
+    "hideReset": false,
+    "legacyGroup": "interface",
+    "legacyTab": "basic",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": true,
+    "path": "화면·정보 > 기본 알림 외형",
+    "route": {
+      "module": "basicUI",
+      "screen": "nativeAlerts"
+    },
+    "id": "nativeAlerts",
+    "owner": "basicUI",
+    "aliases": "기본 UI interface",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "display",
+    "title": "기본 알림 외형",
+    "hideReset": true,
+    "legacyGroup": "interface",
+    "legacyTab": "basic",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "화면·정보 > 툴팁",
+    "route": {
+      "module": "tooltip",
+      "screen": "tooltip"
+    },
+    "id": "tooltip",
+    "owner": "tooltip",
+    "aliases": "툴팁 설정 interface",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "display",
+    "title": "툴팁",
+    "hideReset": false,
+    "legacyGroup": "interface",
+    "legacyTab": "tooltip",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "화면·정보 > 마우스 잔상",
+    "route": {
+      "module": "cursorTrail",
+      "screen": "cursor"
+    },
+    "id": "cursor",
+    "owner": "cursorTrail",
+    "aliases": "마우스 잔상 interface",
+    "resetScope": "현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다.\n다른 모듈 설정과 공용 등록 데이터는 유지합니다.",
+    "group": "display",
+    "title": "마우스 잔상",
+    "hideReset": false,
+    "legacyGroup": "interface",
+    "legacyTab": "cursor",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": false,
+    "path": "화면·정보 > 시계·정보",
+    "route": {
+      "module": "clock",
+      "screen": "clock"
+    },
+    "id": "clock",
+    "owner": "clock",
+    "aliases": "시계·정보 표시 interface",
+    "resetScope": "현재 프로필의 시계·정보와 알람·시간 도구 설정을 함께 초기화합니다. 사용 ON/OFF와 노트 설정·내용·체크리스트·알람 문구는 유지합니다.",
+    "group": "display",
+    "title": "시계·정보",
+    "hideReset": false,
+    "legacyGroup": "interface",
+    "legacyTab": "clock",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": false,
+    "path": "화면·정보 > 알람·시간 도구",
+    "route": {
+      "module": "clock",
+      "screen": "timeTools"
+    },
+    "id": "timeTools",
+    "owner": "clock",
+    "aliases": "시계·정보 표시 interface",
+    "resetScope": "현재 프로필의 시계·정보와 알람·시간 도구 설정을 함께 초기화합니다. 사용 ON/OFF와 노트 설정·내용·체크리스트·알람 문구는 유지합니다.",
+    "group": "display",
+    "title": "알람·시간 도구",
+    "hideReset": false,
+    "legacyGroup": "interface",
+    "legacyTab": "clock",
+    "sharedReset": true
+  },
+  {
+    "hideToggle": true,
+    "path": "설정·프로필 > 공통 설정",
+    "route": {
+      "module": "general",
+      "screen": "common"
+    },
+    "id": "common",
+    "hideReset": true,
+    "aliases": " ",
+    "resetScope": "",
+    "title": "공통 설정",
+    "group": "settings",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": true,
+    "path": "설정·프로필 > 기능 사용 관리",
+    "route": {
+      "module": "general",
+      "screen": "modules"
+    },
+    "id": "modules",
+    "hideReset": true,
+    "aliases": " ",
+    "resetScope": "",
+    "title": "기능 사용 관리",
+    "group": "settings",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": true,
+    "path": "설정·프로필 > 프로필·백업",
+    "route": {
+      "module": "profiles",
+      "screen": "profiles"
+    },
+    "id": "profiles",
+    "hideReset": true,
+    "aliases": " ",
+    "resetScope": "",
+    "title": "프로필·백업",
+    "group": "settings",
+    "sharedReset": false
+  },
+  {
+    "hideToggle": true,
+    "path": "설정·프로필 > 실험실",
+    "route": {
+      "module": "labs",
+      "screen": "labs"
+    },
+    "id": "labs",
+    "hideReset": true,
+    "aliases": " ",
+    "resetScope": "",
+    "title": "실험실",
+    "group": "settings",
+    "sharedReset": false
+  }
+]

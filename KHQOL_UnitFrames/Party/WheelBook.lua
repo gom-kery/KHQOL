@@ -34,11 +34,11 @@ function M:AttachStandaloneWheelBook()
     return
   end
   if not self.standaloneWheelButton then
-    local button=K.UI:CreateButton(UIParent,"KHQOL\n설정",0,0,100,function()
+    local button=K.UI:CreateButton(UIParent,"KHQOL 스킬 설정",0,0,144,function()
       if self.standaloneWheelBook and self.standaloneWheelBook:IsShown() then self:CloseStandaloneWheelBook()
       else self:OpenWheelSpellBook() end
     end)
-    button:SetSize(100,44);button:SetClampedToScreen(true);button:Hide()
+    button:SetSize(144,28);button:SetClampedToScreen(true);button:Hide()
     self.standaloneWheelButton=button
   end
   if self.standaloneWheelHost~=book or self.standaloneWheelRoot~=root then
@@ -63,17 +63,23 @@ function M:OpenWheelSpellBook()
   local panel=self.standaloneWheelBook
   if not panel then
     panel=CreateFrame("Frame","KHQOLPartyWheelBookPanel",UIParent,"BackdropTemplate")
-    panel.khqolSpellBookPanel=true;panel:SetSize(310,340);panel:SetClampedToScreen(true);panel:Hide()
+    panel.khqolSpellBookPanel=true;panel:SetSize(310,412);panel:SetClampedToScreen(true);panel:Hide()
     K.UI:Surface(panel,1)
-    self:BuildBookWheel(panel)
-    local close=K.UI:CreateButton(panel,"X",272,24,28,function() self:CloseStandaloneWheelBook() end)
+    panel.title=K.UI:CreateLabel(panel,"KHQOL 스킬 설정",12,-12);panel.title:SetWidth(245)
+    panel.wheelTab=K.UI:CreateButton(panel,"휠 클릭 시전",12,-42,286,function() end);K.UI:SetButtonSelected(panel.wheelTab,true)
+    local view=CreateFrame("ScrollFrame",nil,panel);view:SetPoint("TOPLEFT",0,-80);view:SetPoint("BOTTOMRIGHT",0,8);view:EnableMouseWheel(true)
+    local body=CreateFrame("Frame",nil,view);body:SetSize(310,326);body:SetPoint("TOPLEFT",0,0);view:SetScrollChild(body)
+    panel.wheelBody,panel.wheelViewport=body,view;self:BuildBookWheel(body)
+    view:SetScript("OnMouseWheel",function(_,delta) K.UI:CloseDropdown();view:SetVerticalScroll(math.max(0,math.min(math.max(0,body:GetHeight()-view:GetHeight()),view:GetVerticalScroll()-delta*34))) end)
+    local close=K.UI:CreateButton(panel,"X",272,-8,26,function() self:CloseStandaloneWheelBook() end)
     close.navigationOnly=true
+    panel:SetScript("OnHide",function() K.UI:CloseDropdown() end)
     self.standaloneWheelBook=panel
     if UISpecialFrames then UISpecialFrames[#UISpecialFrames+1]="KHQOLPartyWheelBookPanel" end
   end
   if not self:SyncStandaloneWheelBook() then return false end
   panel:ClearAllPoints();panel:SetPoint("TOPLEFT",self.standaloneWheelHost,"TOPRIGHT",8,-35)
-  self.wheelBookPanel=panel;self:RefreshBookWheel();panel:Show()
+  self.wheelBookPanel=panel.wheelBody;self:RefreshBookWheel();panel:Show()
   return true
 end
 

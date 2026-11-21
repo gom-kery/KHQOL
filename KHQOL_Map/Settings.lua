@@ -6,20 +6,13 @@ A.settingsPanels = {}
 local registry=UI.SettingsRegistry
 registry.groups.minimap={};registry.orders.minimap={}
 K.MinimapSettings=UI:NewSettingsGroup("minimap")
-for index,page in ipairs(registry.pages) do
-    if page[1]=="interface" then
-        table.insert(registry.pages,index+1,{"minimap","미니맵","미니맵과 버튼 정리를 설정합니다."});break
-    end
-end
-for index,group in ipairs(registry.moduleGroups) do
-    if group.title=="인터페이스" then table.insert(registry.moduleGroups,index+1,{title="미니맵",items={}});break end
-end
 
 local function commit(key)
     return function(value) A.db[key] = value; A:Request() end
 end
 local function checkbox(builder, title, key)
-    return builder:Checkbox(title, function() return A.db[key] end, commit(key))
+    local method=key=="locked" and builder.PositionLock or builder.Checkbox
+    return method(builder,title, function() return A.db[key] end, commit(key))
 end
 local function slider(builder, title, key, low, high, unit)
     return builder:Slider(title, low, high, 1, function() return A.db[key] end,
@@ -84,7 +77,6 @@ local function buildMinimap(content, y)
     content.settingsRoute.scope = "계정 공용 미니맵 설정"
     local b = UI:CreateBuilder(content, y)
     b:Section("미니맵")
-    checkbox(b, "외형 사용", "appearance")
     b:Flush()
     dropdown(b, "모양", "shape", {{value="ROUND",text="원형"},{value="SQUARE",text="사각형"}})
     slider(b, "미니맵 크기", "size", 180, 300, " px")
@@ -101,7 +93,6 @@ local function buildMinimap(content, y)
     color.layoutPreferredWidth = math.max(color:GetWidth()+24,140)
     color:SetWidth(color.layoutPreferredWidth)
     b:Section("지역명 표시")
-    checkbox(b, "표시", "zone")
     b:Flush()
     dropdown(b, "위치", "zoneLocation", {{value="ABOVE",text="지도 외부-위"},{value="INSIDE",text="지도 내부-위"}})
     slider(b, "지역명 크기", "zoneScale", 100, 200, "%")
@@ -163,12 +154,13 @@ local function buildButtons(content,y)
     b:Section("버튼 보관")
     checkbox(b,"사용","drawer")
     b:Flush()
-    b:Description("수납 버튼을 드래그해 화면 어디든 배치할 수 있습니다. 위치는 계정 공용으로 저장됩니다.",true)
+    b:Description("수납 버튼을 드래그해 화면 어디든 배치할 수 있습니다. 위치는 계정 공용으로 저장됩니다.")
     b:Button("수납 버튼 위치 초기화",function() A.Buttons:StopDrag();A.db.buttonPosition=nil;A:Request() end)
     b:Button("목록 새로고침",function() A.Buttons:Refresh() end)
     b:Flush()
     slider(b,"아이콘 크기","iconSize",20,30," px")
     dropdown(b,"방향","drawerDirection",{{value="UP",text="위"},{value="DOWN",text="아래"},{value="LEFT",text="왼쪽"},{value="RIGHT",text="오른쪽"}})
+    b:Description("아이콘 크기는 수납한 버튼에만 적용됩니다. 수납 버튼과 펼친 수납함의 크기는 그대로입니다.")
     b:Section("정렬")
     for _,item in ipairs({{"HORIZONTAL","가로형"},{"VERTICAL","세로형"}}) do
         local value=item[1]

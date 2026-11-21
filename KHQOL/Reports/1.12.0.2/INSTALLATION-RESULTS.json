@@ -1,0 +1,65 @@
+[
+  {
+    "mode": "without_devtools",
+    "checks": 302,
+    "status": "PASS",
+    "method": "Lua 5.1 mock",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "full",
+    "checks": 304,
+    "status": "PASS",
+    "method": "Lua 5.1 mock",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "core_only",
+    "checks": 110,
+    "status": "PASS",
+    "method": "Lua 5.1 mock",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_map",
+    "checks": 290,
+    "status": "PASS",
+    "method": "Lua 5.1 mock",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_clock",
+    "checks": 283,
+    "status": "PASS",
+    "method": "Lua 5.1 mock",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_convenience",
+    "checks": 255,
+    "status": "PASS",
+    "method": "Lua 5.1 mock",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_unitframes",
+    "checks": 278,
+    "status": "PASS",
+    "method": "Lua 5.1 mock",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_labs",
+    "checks": 299,
+    "status": "PASS",
+    "method": "Lua 5.1 mock",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "partial",
+    "checks": 208,
+    "status": "PASS",
+    "method": "Lua 5.1 mock",
+    "inGame": "NOT TESTED"
+  }
+]

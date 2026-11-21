@@ -32,6 +32,8 @@ function R:RegisterModule(key, spec)
   assert(not self.modules[key] and not self.groups[spec.group][spec.id],"Duplicate KHQOL settings connection")
   local meta=entry(spec.group,spec.id,key,spec.title,spec.description or "",spec.commands)
   meta.tabTitle=spec.tabTitle;meta.family=spec.family;meta.hideToggle=spec.hideToggle
+  meta.toggle=spec.toggle
+  meta.hideReset=spec.hideReset
   self.positionModules[key]=spec.positions and true or nil
   for _,group in ipairs(self.moduleGroups) do
     for _,page in ipairs(self.pages) do
@@ -74,10 +76,10 @@ entry("bars","experience","experienceBar","경험치","경험치와 휴식 경�
 entry("bars","cast","castBar","시전","시전 바의 배치·진행 방향·표시 정보를 설정합니다.",{"cast","castbar"})
 entry("bars","resource","resourceSwing","자원/스윙바","자원·스윙 바, 콤보 포인트와 변신 마나를 설정합니다.",{"resource"})
 entry("bars","environment","environmentTimer","환경타이머","호흡·피로도·죽은척 타이머의 표시와 경고를 설정합니다.")
-entry("alerts","npc","npcAlert","NPC","등록한 위험 NPC의 감지·배너·방향 경고를 설정합니다.")
+entry("labs","npc","npcAlert","NPC 알림","등록한 위험 NPC의 감지·배너·방향 경고를 설정합니다.")
 entry("alerts","combat","combatStatus","전투 상태","전투 시작과 종료 알림을 설정합니다.",{"combat","combatstatus"})
 entry("alerts","campfire","campfire","모닥불","근처 모닥불과 야영 효과 알림을 설정합니다.",{"campfire"})
-entry("alerts","pvp","pvpAlert","PvP","적 플레이어의 주시, 접근 및 시전 경고를 설정합니다.",{"pvp","pvpalert"})
+entry("labs","pvp","pvpAlert","PVP 알림","적 플레이어의 주시, 접근 및 시전 경고를 설정합니다.",{"pvp","pvpalert"})
 entry("interface","cursor","cursorTrail","마우스 잔상","마우스 이동 경로에 잔상을 표시합니다.",{"trail","cursortrail"})
 entry("interface","range","range","사거리 측정","선택한 대상의 사거리 상태를 표시합니다.",{"range"})
 entry("alerts","threat","threat","위협 수치","현재 선택한 적에 대한 내 어그로를 화면 원하는 위치에 표시합니다.")
@@ -91,15 +93,15 @@ entry("convenience","note","todo","포에버 노트","화면의 노트 창에서
 entry("quest","tracker",nil,"퀘스트 목록 (목표 추적기)","목표 추적기의 목록·지역 그룹·글자·폭을 설정합니다.")
 R.groups.quest.tracker.key="questNavigator";R.routes.questTracker=R.groups.quest.tracker
 entry("quest","navigation","questNavigator","길 안내","퀘스트 선택과 길 안내·화살표 HUD를 설정합니다.",{"quest","questnavigator"})
-entry("labs","buff","buffReminder","버프 리마인더","유지할 버프와 만료 전 알림을 설정합니다.",{"buff"})
+entry("convenience","buff","buffReminder","버프 리마인더","유지할 버프와 만료 전 알림을 설정합니다.",{"buff"})
 entry("labs","proc","procAlert","발동 버프","등록한 버프의 전투 중 발동 알림을 설정합니다.")
-entry("labs","highlight","objectHighlight","오브젝트 강조","퀘스트 반짝임과 현재 Soft Target의 약초·광맥·보물상자 강조를 설정합니다.",{"objecthighlight","sparkles"})
+entry("convenience","highlight","objectHighlight","오브젝트 강조","퀘스트 반짝임과 현재 Soft Target의 약초·광맥·보물상자 강조를 설정합니다.",{"objecthighlight","sparkles"})
 R.routes.frameMover=R.modules.basicUI
 R.commands.framemover="frameMover"; R.commands.threat="threat"
 -- Order, commands, general shortcuts and presenter all consume this registry.
 R.orders.interface={"basic","tooltip","cursor","range","clock"}
-R.orders.alerts={"combat","threat","npc","pvp","campfire"}
-R.groups.labs.buff.category="실험 기능"
+R.orders.alerts={"combat","threat","campfire"}
+R.orders.convenience={"general","buff","highlight","note"}
 R.routes.proc=R.modules.procAlert
 R.routes.highlight=R.modules.objectHighlight
 R.commands.lab="labs";R.commands.labs="labs";R.commands.proc="procAlert"
@@ -117,7 +119,7 @@ for _,page in ipairs(R.pages) do
     if page[1]=="convenience" then
       group.items[#group.items+1]={"generalConvenience","일반 편의 · 공통",navigationOnly=true}
       for index,item in ipairs({{"autoConfirmDestroy","아이템 파괴 자동 입력",true},
-        {"chatEnhancement","기본 대화창 편의",true,route="convenienceChat"},
+        {"chatEnhancement","기본 대화창 편의",true,route="generalConvenience"},
         {"autoSellJunk","잡템 자동 판매",true},{"autoRepair","자동 수리",true}}) do
         if index<=2 then table.insert(group.items,index,item) else group.items[#group.items+1]=item end
       end
@@ -130,19 +132,25 @@ function R:ResetScope(key)
   if spec and spec.resetScope then return spec.resetScope(KHQOL.modules[key],KHQOL) end
   if key=="objectHighlight" then return "현재 프로필의 오브젝트 강조를 OFF로 초기화하고 KHQOL이 변경한 그래픽 설정을 안전하게 복원합니다.\n복원 실패 시 필요한 기록은 유지합니다. 효과 해제에는 게임 재시작이 필요할 수 있습니다." end
   local scope="현재 프로필의 해당 모듈 설정을 기본값으로 복원합니다. 사용 ON/OFF는 유지합니다."
-  if key=="clock" or key=="todo" then return scope.."\n노트 내용·체크리스트·완료 상태·알람 문구는 유지합니다." end
+  if key=="clock" then return "현재 프로필의 시계·정보와 알람·시간 도구 설정을 함께 초기화합니다. 사용 ON/OFF와 노트 설정·내용·체크리스트·알람 문구는 유지합니다." end
+  if key=="todo" then return scope.."\n노트 내용·체크리스트·완료 상태·알람 문구는 유지합니다." end
   if key=="buffReminder" then return scope.."\n직업별 등록 버프 목록은 유지합니다." end
   if key=="npcAlert" then return scope.."\n계정 공용 NPC 등록 목록은 유지합니다." end
   if key=="procAlert" then return scope.."\n계정 공용 발동 버프 등록 목록은 유지합니다." end
   return scope.."\n다른 모듈 설정과 공용 등록 데이터는 유지합니다."
 end
 function R:Resolve(key)
+  if self.screens then
+    if type(key)=="string" and self.pageNames[key] then return key end
+    local screen=self:ScreenFor(type(key)=="table" and key or {module=key})
+    return screen.group,screen.id
+  end
   local meta=self.routes[key]
   if meta then return meta.group,meta.id end
   for _,page in ipairs(self.pages) do if page[1]==key then return key end end
   return "general"
 end
 
-R.positionModules={clock=true,todo=true,buffReminder=true,range=true,resourceSwing=true,campfire=true,
+R.positionModules={generalConvenience=true,convenienceParty=true,clock=true,todo=true,buffReminder=true,range=true,resourceSwing=true,campfire=true,
   castBar=true,combatStatus=true,questNavigator=true,threat=true,pvpAlert=true,experienceBar=true,
   environmentTimer=true,procAlert=true,tooltip=true,basicUI=true,unitFrames=true}

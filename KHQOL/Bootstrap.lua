@@ -1,6 +1,6 @@
 local _, KHQOL = ...
 KHQOL.modules = {}
-KHQOL.VERSION = "1.11.8.3"
+KHQOL.VERSION = "1.12.0.2"
 KHQOL.FONT_PATH = "Interface\\AddOns\\KHQOL\\Fonts\\IsamanruLight.ttf"
 KHQOL.PositionProviders = {}
 KHQOL.ProfileHooks = {}

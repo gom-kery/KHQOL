@@ -6,3 +6,5 @@ K.modules.general = K.modules.general or {}
 K.modules.generalConvenience = K.modules.generalConvenience or {}
 K.modules.chatEnhancement = K.modules.chatEnhancement or {}
 K.modules.chatAutomation = K.modules.chatAutomation or {}
+
+K.modules.buffReminder = K.modules.buffReminder or {}

@@ -8,10 +8,8 @@ N:Register({module="clock",scope="현재 프로필",section="위치"},"위치 �
 N:Register({module="clock",scope="현재 프로필",section="시간 글자·모양"},"글자 크기")
 N:Register({module="clock",scope="현재 프로필",section="사이드 텍스트"},"설정 대상")
 N:Register({module="clock",scope="현재 프로필",section="사이드 텍스트"},"글자 크기")
-N:Register({module="clock",scope="현재 프로필",section="알람·타이머·스톱워치"},"도구 창 위치 잠금")
 N:Register({module="clock",scope="현재 프로필",section="알람·타이머·스톱워치"},"알람·타이머 창 크기")
-N:Register({module="clock",scope="현재 프로필",section="알람·타이머·스톱워치"},"타이머 바 위치 잠금")
-N:Register({module="todo",scope="현재 프로필",section="노트 사용"},"노트 열기")
+
 N:Register({module="todo",scope="현재 프로필",section="위치"},"위치 잠금")
 N:Register({module="todo",scope="현재 프로필",section="창 크기·모양"},"글자 크기")
 N:Register({module="todo",scope="현재 프로필",section="창 크기·모양"},"배경 불투명도")
@@ -48,3 +46,9 @@ for _,title in ipairs({"길드 접속 표시","타이틀 표시","배경 표시"
   N:Register({module="clock",section="길드 접속"},title)
 end
 N:Register({module="clock",section="사이드 텍스트",sideTarget="guild"},"길드 접속 글자 크기","길드 접속 사이드 텍스트 설정 대상")
+for _,action in ipairs(K.modules.clock.clockActions) do
+  local route={module="clock",section="시계 단축키"}
+  local title=action[1]=="reload" and "리로드" or action[2]
+  N:Register(route,title.." 보조키")
+  N:Register(route,title.." 마우스 입력")
+end

@@ -163,10 +163,10 @@ function R:ApplyProfileConnections()
     if spec.applyProfile then spec.applyProfile(self:Module(id),K) end
   end
 end
-function R:PositionTargets(focus, add)
+function R:PositionTargets(focus, add, owner)
   for _,id in ipairs(self.order) do
     local spec=self.entries[id]
-    if spec.positions and self:CanRun(id,K:GetEnabled(id)) then
+    if (not owner or id==owner) and spec.positions and self:CanRun(id,K:GetEnabled(id)) then
       for _,target in ipairs(spec.positions(self:Module(id),focus,K) or {}) do
         target.key=id
         add(target.id,id,target.name,target.frame,target.write,target.lock,target.apply,target)

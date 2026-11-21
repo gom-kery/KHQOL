@@ -4,7 +4,7 @@ local CFA = KHQOL.modules.campfire
 
 CFA.NAME = ADDON_NAME or "CampfireAlert"
 CFA.PREFIX = "[CampfireAlert]"
-CFA.VERSION = "1.11.8.3"
+CFA.VERSION = "1.11.8.24"
 CFA.SPELLS = {
     NEARBY_CAMPFIRE = 1283391,
     REST_PROCESS = 1229739,
@@ -254,12 +254,14 @@ function CFA:DismissDiscovery()
     self:SetState(self.STATES.IDLE)
 end
 
-function CFA:ShowDiscovery()
+function CFA:ShowDiscovery(usageOrigin)
+    local usageWasShown=usageOrigin=="live" and self.ui.discovery:IsShown()
     if self:HasAnyCampBenefit() and not self.SHOW_DETECTION_WITH_BENEFIT then
         self:HideDiscovery()
         return
     end
     self.ui.discovery:Show()
+    if usageOrigin=="live" and not usageWasShown then KHQOL.UsageDiagnostics:Emit("feature.campfire.display","display","unknown") end
     self.ui.complete:Hide()
     self.ui.progress:Hide()
     self:StartDistanceScan()
@@ -296,10 +298,11 @@ function CFA:ScheduleRediscovery()
         self:ProcessAuras("rediscovery")
     end
 end
-function CFA:ShowComplete()
+function CFA:ShowComplete(usageOrigin)
     self:HideDiscovery()
     self:SetState(self.STATES.COMPLETE)
     self.ui.complete:Show()
+    if usageOrigin=="live" then KHQOL.UsageDiagnostics:Emit("feature.campfire.complete","display","unknown") end
     local serial,profile=self.completeSerial,KHQOL.profileGeneration
     if C_Timer and C_Timer.After then
         C_Timer.After(3, function()
@@ -338,7 +341,7 @@ function CFA:ProcessAuras(reason)
         -- the reliable signal that the 60-minute camp benefit was refreshed.
         if benefitRefreshed then self:Debug("Camp benefit duration refreshed to 60 minutes.") end
         self.benefitAcquiredAt=GetTime()
-        self:ShowComplete()
+        self:ShowComplete((reason=="event" or reason=="rediscovery") and "live" or nil)
         self:ScheduleRediscovery()
         return
     end
@@ -370,7 +373,7 @@ function CFA:ProcessAuras(reason)
         return
     end
     self:SetState(self.STATES.DETECTED)
-    self:ShowDiscovery()
+    self:ShowDiscovery((reason=="event" or reason=="rediscovery") and "live" or nil)
 end
 
 function CFA:ReportAuraTransition(kind, spellId, active, oldActive, message)

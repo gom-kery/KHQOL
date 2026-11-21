@@ -29,7 +29,6 @@ end
 
 function FC:EnableModuleDrag(name, frame)
   frame:SetScript("OnMouseDown", function(f, button)
-    f.didDrag=nil
     if button == "LeftButton" and not FC.db.locked and not KHQOL.PositionEditor.active then
       f.dragStartX, f.dragStartY = GetCursorPosition()
       f:StartMoving()
@@ -40,7 +39,6 @@ function FC:EnableModuleDrag(name, frame)
       local x, y = GetCursorPosition()
       local moved = math.abs(x - (f.dragStartX or x)) > 5 or math.abs(y - (f.dragStartY or y)) > 5
       f:StopMovingOrSizing()
-      f.didDrag=moved
       if moved then FC:SetModulePosition(name, f) else FC:ApplyLayout() end
       f.dragStartX,f.dragStartY=nil,nil
     end
@@ -54,8 +52,9 @@ function FC:CreateModules()
   self.modules.money = NewModule("Money")
   self.modules.money:SetWidth(175)
   self.modules.money:SetScript("OnEnter",function(frame) KHQOL:ShowCharacterMoney(frame) end)
-  self.modules.money:SetScript("OnLeave",function(frame) if GameTooltip:IsOwned(frame) then GameTooltip:Hide() end end)
-  self.modules.money:SetScript("OnHide",function(frame) if GameTooltip:IsOwned(frame) then GameTooltip:Hide() end end)
+  local function hideMoneyTooltip(frame) if GameTooltip:IsOwned(frame) then GameTooltip:Hide() end end
+  self.modules.money:SetScript("OnLeave",hideMoneyTooltip)
+  self.modules.money:SetScript("OnHide",hideMoneyTooltip)
   self.modules.guild = NewModule("Guild")
   self:SetupGuildDisplay(self.modules.guild)
   self.modules.performance = NewModule("Performance")
@@ -93,6 +92,7 @@ function FC:UpdateMoney()
   self:SyncStyledText(frame.text)
   -- Remove the former fixed-width blank space around short money values.
   self.modules.money:SetWidth(math.max(28, self.modules.money.text:GetStringWidth() + 16))
+  if GameTooltip:IsOwned(frame) and frame:IsVisible() then KHQOL:ShowCharacterMoney(frame) end
   self:UpdateHUDWidth()
   self:ApplyLayout()
 end

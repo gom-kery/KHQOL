@@ -21,7 +21,7 @@ CastBar.defaults = {
   castTime = { enabled=true, position="inside_right", fontSize=12, format="remaining" },
   behavior = { direction="left_to_right", hideBlizzard=true },
   position = { mode="free", locked=true, free={point="CENTER",relativePoint="CENTER",x=0,y=-120}, resource={gap=4,matchWidth=true} },
-  targetPosition = {enabled=false,x=0,y=0},
+  targetPosition = {enabled=false,locked=true,x=0,y=0},
 }
 CastBar.defaults.targetStyle=KHQOL.MergeDefaults({}, {appearance=CastBar.defaults.appearance,icon=CastBar.defaults.icon,spellName=CastBar.defaults.spellName},"types")
 local function oneOf(value, choices, default)

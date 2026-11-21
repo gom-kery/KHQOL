@@ -41,7 +41,13 @@ function M:BuildRoleSettings(content,y)
     b:Edit(direction=="up" and "휠 업 주문 이름 / ID" or "휠 다운 주문 이름 / ID",function() local id=M:GetCharacterDB()[which];return id>0 and tostring(id) or "" end,function(v) M:SetWheelSpell(which,v);content:RefreshTab() end)
     content[direction.."SpellLabel"]=b:Description(self:SpellLabel(direction),true)
   end
-  b:Description("마법책의 KHQOL 설정 → 휠 클릭 시전에서 스킬을 위·아래 등록칸으로 끌어 놓으세요. 주문은 캐릭터별로 저장하며 역할 프로필을 변경해도 유지합니다. 입력란을 비우면 해당 방향 등록을 해제합니다.",true)
+  for _,direction in ipairs({"up","down"}) do
+    local which=direction
+    b:Edit(which=="up" and "Shift 휠 업 주문 이름 / ID" or "Shift 휠 다운 주문 이름 / ID",function() local id=M:GetWheelSpell(which,"shift");return id>0 and tostring(id) or "" end,function(v) M:SetWheelSpell(which,v,"shift");content:RefreshTab() end)
+    local label=b:Description("",true)
+    content.uiControls[#content.uiControls+1]={Refresh=function() label:SetText(M:SpellLabel(which,"shift")) end}
+  end
+  b:Description("마법책의 KHQOL 스킬 설정 → 휠 클릭 시전에서 보조키 없음/Shift를 고르고 주문을 등록하세요. 네 조합은 캐릭터별로 저장하며 역할 프로필을 변경해도 유지합니다. 입력란을 비우면 해당 조합만 해제합니다.",true)
   b:Description("휠 시전은 이 모듈의 파티·공격대 프레임 전용입니다. 별도의 기본 플레이어 프레임에는 연결되지 않으며 게임의 마우스를 올려 시전 옵션과 별개입니다.",true)
   function content:RefreshTab()
     self.upSpellLabel:SetText(M:SpellLabel("up"));self.downSpellLabel:SetText(M:SpellLabel("down"));M:RefreshStatus()
@@ -80,12 +86,18 @@ function M:BuildSettings(content,y)
   content.settingsRoute={module="partyFrames",tab="frames",scope="계정 공용 프레임 프로필"}
   scopeNotice(content,b)
   b:Section("크기·위치·배치")
-  b:Description("계정 공용 프레임 프로필의 선택한 배치를 편집합니다. 미리보기 변경·드래그는 즉시 저장되며 종료해도 되돌리지 않습니다. 통합 위치 편집의 완료·취소와 구분하세요.",true)
+  for _,kind in ipairs({"party","raid"}) do local key=kind
+    b:PositionLock(key=="party" and "파티 위치 잠금" or "공격대 위치 잠금",function() return M:GetDB().positionLocks[key] end,function(v)
+      if K.PositionAnchors then K.PositionAnchors:FinishDrags("partyFrames") end
+      M:GetDB().positionLocks[key]=v
+    end,nil,key=="party" and "파티" or "공격대")
+  end
+  b:Description("역할별 프레임 프로필 · 변경은 즉시 저장됩니다. 미리보기를 종료해도 되돌리지 않습니다.",true)
   self.statusLabel=b:Description("",true)
   b:Dropdown("편집할 프레임",self.layoutOptions,function() return M.editedLayout or "party" end,function(v) M:SetEditedLayout(v) end)
   local preview=b:Button("미리보기",function() if M.livePreview then M:CloseLivePreview() else message(M:OpenLivePreview()) end end)
   preview.ignoreModuleEnabled=true;preview.navigationOnly=true;content.previewButton=preview
-  b:Description("설정창을 열어 둔 채 미리보기를 보며 조절하세요. 미리보기 프레임을 끌면 위치가 바로 저장됩니다.",true)
+
   local function get(key) return M:GetDB()[M.editedLayout or "party"][key] end
   local function write(key,value) M:GetDB()[M.editedLayout or "party"][key]=value;M:RequestApply() end
   local function raid() return (M.editedLayout or "party")~="party" end
@@ -97,13 +109,13 @@ function M:BuildSettings(content,y)
   b:Dropdown("1파티 정렬 기준",{{value="LEFT",text="왼쪽 · 1 2 3 →"},{value="RIGHT",text="오른쪽 · ← 3 2 1"}},function() return get("groupAnchor") end,function(v) write("groupAnchor",v) end)
   b:Slider("X 좌표",-3000,3000,1,function() return get("x") end,function(v) write("x",v) end,integer)
   b:Slider("Y 좌표",-3000,3000,1,function() return get("y") end,function(v) write("y",v) end,integer)
-  b:Description("좌표는 선택한 화면 기준점에서의 거리입니다. X는 오른쪽, Y는 위쪽이 +입니다. 기준점을 바꾸면 X·Y를 0으로 맞춥니다. 오른쪽 위 + 오른쪽 정렬 + X 0으로 화면 오른쪽 끝에 붙일 수 있습니다.",true)
+  b:Description("좌표는 선택한 화면 기준점에서의 거리입니다. X는 오른쪽, Y는 위쪽이 +입니다. 기준점을 바꾸면 X·Y를 0으로 맞춥니다. 오른쪽 위 + 오른쪽 정렬 + X 0으로 화면 오른쪽 끝에 붙일 수 있습니다.")
   b:Dropdown("한 줄의 하위 그룹 수",function()
     local options={};for i=1,M:MaxLayoutGroups(M.editedLayout or "party") do options[#options+1]={value=i,text=tostring(i)} end;return options
   end,function() return get("groupsPerRow") or 1 end,function(v) write("groupsPerRow",v) end,raid)
   b:Slider("파티 사이 가로 간격",0,100,1,function() return get("groupGapX") or 0 end,function(v) write("groupGapX",v) end,integer,raid)
   b:Slider("파티 사이 세로 간격",0,100,1,function() return get("groupGapY") or 0 end,function(v) write("groupGapY",v) end,integer,raid)
-  b:Description("공격대 인원에 따라 6~10인 → 10인, 11~20인 → 20인, 21~40인 → 40인 설정을 자동 적용합니다. 5인 이하의 공격대도 10인 설정을 사용합니다. 빈 파티 자리는 줄여 배치하며 실제 파티 번호는 유지합니다. 전투 중 배치 변경은 전투 종료 후 적용합니다.",true)
+  b:Description("공격대 인원에 따라 6~10인 → 10인, 11~20인 → 20인, 21~40인 → 40인 설정을 자동 적용합니다. 5인 이하의 공격대도 10인 설정을 사용합니다. 빈 파티 자리는 줄여 배치하며 실제 파티 번호는 유지합니다. 전투 중 배치 변경은 전투 종료 후 적용합니다.")
   self.settingsContent=content
   return b.y
 end
@@ -114,7 +126,7 @@ function M:BuildCommonSettings(content,y)
   local function set(key,value) M:GetDB()[key]=value;M:RequestApply() end
   self.commonStatusLabel=b:Description("",true)
   b:Section("공통 표시")
-  b:Description("아래 표시는 현재 역할 프로필의 파티와 10·20·40인 공격대에 공통으로 적용합니다. 프로필 탭에서 프로필을 선택하거나 복사할 수 있습니다.",true)
+  b:Description("선택한 역할별 프레임 프로필의 파티·공격대에 공통 적용합니다.",true)
   b:Checkbox("솔로에서도 표시",function() return M:GetDB().showSolo end,function(v) set("showSolo",v) end)
   b:Slider("글자 크기",10,24,1,function() return M:GetDB().fontSize end,function(v) set("fontSize",v) end,integer)
   b:Section("체력·자원 바")
@@ -122,13 +134,13 @@ function M:BuildCommonSettings(content,y)
   b:Checkbox("직업 색상 적용",function() return shared().enabled end,function(v) shared().enabled=v;K:RefreshClassHealthColors() end)
   b:Dropdown("색상 스타일",{{value="dark",text="어둡게 (-10%)"},{value="bright",text="밝게 (+10%)"}},
     function() return shared().style end,function(v) shared().style=v;K:RefreshClassHealthColors() end,function() return shared().enabled end)
-  b:Description("플레이어·대상·대상의 대상·주시와 같은 공통 색상 설정입니다. 켜면 파티/공격대에도 동일하게 적용하고 체력 그라데이션보다 우선합니다. 기존 그라데이션 설정은 보존됩니다.",true)
+  b:Description("플레이어·대상·대상의 대상·주시와 같은 공통 색상 설정입니다. 켜면 파티/공격대에도 동일하게 적용하고 체력 그라데이션보다 우선합니다. 기존 그라데이션 설정은 보존됩니다.")
   b:Color("체력 바 배경 색·투명도",function() local c=M:GetDB().background;return c.r,c.g,c.b,c.a end,function(r,g,blue,a)
     set("background",{r=r,g=g,b=blue,a=a})
   end,nil,nil,true)
   b:Checkbox("체력 수치 표시",function() return M:GetDB().showHealth end,function(v) set("showHealth",v) end)
   b:Checkbox("낮은 체력일수록 빨간색으로 표시",function() return M:GetDB().healthGradient end,function(v) set("healthGradient",v) end)
-  b:Description("체력은 직업 색에서 빨간색(#FF0000)으로 변하고, 사망 시 #353535로 표시합니다. 사망·자리 비움·오프라인 문구는 체력 수치를 꺼도 표시합니다.",true)
+  b:Description("체력은 직업 색에서 빨간색(#FF0000)으로 변하고, 사망 시 #353535로 표시합니다. 사망·자리 비움·오프라인 문구는 체력 수치를 꺼도 표시합니다.")
   b:Checkbox("자원 바 표시",function() return M:GetDB().showPower end,function(v) set("showPower",v) end)
   b:Slider("자원 바 높이",1,24,1,function() return M:GetDB().powerHeight end,function(v) set("powerHeight",v) end,integer)
   local function placement(title,key,sized)
@@ -155,9 +167,9 @@ K.ModuleRegistry:Register("partyFrames",{
   profileChanged=function(m) m:CancelPreview() end,applyProfile=function(m) m:GetDB() end,
   resetProfile=function(m) m:ResetFrameProfile() end,
   resetScope=function() return "현재 계정 공용 파티·공격대 역할 프로필의 표시·배치를 초기화합니다. 이 프로필을 사용하는 다른 캐릭터에도 반영됩니다. 다른 프로필과 캐릭터 휠 주문은 유지합니다." end,
-  positions=function(m) return m:PositionTargets() end,
+  positions=function(m,focus) return m:PositionTargets(focus) end,
   settings={group="partyFrames",id="common",title="파티·공격대",tabTitle="공통",description="파티·공격대의 체력·자원·이름·징표와 역할 표시를 설정합니다.",
-    commands={"party","raid"},positions=false,build=function(content,y) return M:BuildCommonSettings(content,y) end,
+    commands={"party","raid"},positions=true,build=function(content,y) return M:BuildCommonSettings(content,y) end,
     subtabs={{id="frames",title="파티·공격대",description="파티·공격대 크기·위치·배치를 설정합니다.",build=function(content,y) return M:BuildSettings(content,y) end},
       {id="auras",title="버프·디버프",description="디버프 아이콘·종류별 체력 색상·보호막 오버레이와 미리보기를 설정합니다.",build=function(content,y) return M:BuildAuraSettings(content,y) end},
       {id="roles",title="프로필",description="클릭 시전과 탱커·딜러·힐러별 프레임 프로필을 설정합니다.",build=function(content,y) return M:BuildRoleSettings(content,y) end}},

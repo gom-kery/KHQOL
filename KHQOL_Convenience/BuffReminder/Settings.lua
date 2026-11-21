@@ -17,9 +17,9 @@ function FBR:CreateSettingsUI(parent)
   panel:SetWidth(T.ContentWidth); self.settings=panel
   _G.ForeverBuffReminderSettings=panel
   local b=UI:CreateBuilder(panel)
-  b:Description("상태 확인 불가 시 버프 없음·만료 알림을 생략합니다. 등록한 버프만 확인하며 실험 기능으로 유지됩니다.",true)
+  b:Description("읽을 수 없는 버프는 없음·만료로 판정하지 않습니다.",true)
   b:Section("위치")
-  b:Checkbox("위치 잠금",function() return ForeverBuffReminderDB.locked end,function(value) FBR:SetLocked(value) end)
+  b:PositionLock("위치 잠금",function() return ForeverBuffReminderDB.locked end,function(value) FBR:SetLocked(value) end)
   b:Section("알림 모양")
   panel.directionNames={RIGHT="오른쪽",LEFT="왼쪽",UP="위로",DOWN="아래로"}
   local directions={}
@@ -30,35 +30,85 @@ function FBR:CreateSettingsUI(parent)
   panel.slider=b:Slider("아이콘 크기",60,100,1,function() return ForeverBuffReminderDB.iconSize end,function(value)
     ForeverBuffReminderDB.iconSize=value; FBR:RefreshAlerts()
   end,function(value) return value.." px" end)
-  b:Section("버프 설정")
+  b:Dropdown("미적용 강조 종류",{{value="NONE",text="없음"},{value="PIXEL",text="Pixel Glow"}},
+    function() return ForeverBuffReminderDB.glowType end,function(v) ForeverBuffReminderDB.glowType=v;FBR:RefreshAlerts() end)
+  b:Color("미적용 강조 색상",function() return unpack(ForeverBuffReminderDB.glowColor) end,function(r,g,b,a)
+    ForeverBuffReminderDB.glowColor={r,g,b,a};FBR:RefreshAlerts()
+  end)
+  b:Description("미적용 강조는 없는 버프에만 적용합니다. 만료 임박은 흰 테두리와 남은 시간으로 구분합니다.")
+  FBR.Food:Settings(b)
+  FBR:BuildBedSettings(b)
+  b:Section("버프 등록")
   local classes={}
   for _,token in ipairs(self.CLASS_TOKENS) do classes[#classes+1]={value=token,text=self.CLASS_NAMES[token]} end
-  panel.dropdown=b:Dropdown("직업 선택",classes,function() return ForeverBuffReminderDB.selectedClass end,function(token)
+  local register=CreateFrame("Frame",nil,panel);register:SetSize(T.ContentWidth,70)
+  local classTitle=UI:CreateLabel(register,"직업 선택",0,0)
+  local inputTitle=UI:CreateLabel(register,"버프 등록",0,0)
+  local function selectedClass() return ForeverBuffReminderDB.selectedClass end
+  local function setClass(token)
     ForeverBuffReminderDB.selectedClass=token; FBR:RefreshSettings()
+  end
+  panel.dropdown=UI:CreateDropdown(register,0,-24,150,classes,selectedClass,setClass)
+  UI.SettingsNavigation:Attach(register,panel.dropdown,"직업 선택",selectedClass,setClass)
+  panel.input=UI:CreateEditBox(register,0,-24,200)
+  UI:AttachTooltip(panel.input,"버프 등록","Spell ID 또는 주문 이름을 입력하거나, 마법책 주문을 끌어 놓아 선택한 직업에 바로 등록합니다. 이름 뒤의 레벨·등급 표기는 생략합니다.")
+  local add=UI:CreateButton(register,"버프 추가",0,-24,100,function()
+    if KHQOL.PublicCall(GetCursorInfo)=="spell" then FBR:ReceiveBuffSpell() else FBR:AddBuffFromInput() end
   end)
-  b:Section("버프 등록")
-  b:Description("Spell ID 또는 기존에 지원하는 주문 이름을 입력합니다. Spell ID를 권장합니다.")
-  local px,py,pw=b:Cell("buffRegistration",1,62)
-  panel.input=UI:CreateEditBox(panel,px,py,pw-126)
-  local add=UI:CreateButton(panel,"버프 추가",pw-110,py,110,function() FBR:AddBuffFromInput() end)
+  local function receive() return FBR:ReceiveBuffSpell() end
+  panel.input:SetScript("OnReceiveDrag",receive)
+  add:SetScript("OnReceiveDrag",receive)
+  register:EnableMouse(true);register:SetScript("OnReceiveDrag",receive)
   panel.input:SetScript("OnEnterPressed",function(box) FBR:AddBuffFromInput(); box:ClearFocus() end)
-  panel.addError=UI:CreateLabel(panel,"",0,py-34,T.DescriptionFontSize)
+  panel.addError=UI:CreateLabel(register,"",0,-60,T.DescriptionFontSize)
   panel.addError:SetTextColor(unpack(T.Warning)); panel.addError:Hide()
-  b:Flush()
+  panel.registrationBlock=register;panel.addBuffButton=add
+  b:Block(register,function()
+    local width=register:GetWidth()
+    register:SetWidth(width)
+    local classWidth=math.min(150,math.floor(width*.25));local fieldX=classWidth+16
+    panel.dropdown:ClearAllPoints();panel.dropdown:SetPoint("TOPLEFT",0,-24);panel.dropdown:SetWidth(classWidth)
+    inputTitle:ClearAllPoints();inputTitle:SetPoint("TOPLEFT",fieldX,0)
+    panel.input:ClearAllPoints();panel.input:SetPoint("TOPLEFT",fieldX,-24);panel.input:SetWidth(math.max(60,width-fieldX-112))
+    add:ClearAllPoints();add:SetPoint("TOPLEFT",width-100,-24)
+    panel.addError:SetWidth(width)
+    return panel.addError:IsShown() and 64+panel.addError:GetStringHeight() or 64
+  end)
+  FBR:BuildCommonSettings(b)
   function FBR:SetAddError(message)
     panel.addError:SetText(message or ""); panel.addError:SetShown(message and message~="")
+    if b.Reflow then b:Reflow() end
   end
-  function FBR:AddBuffFromInput()
-    if KHQOL.db and not KHQOL:GetEnabled("buffReminder") then return end
-    local item,err=FBR:ResolveSpellInput(panel.input:GetText())
-    if not item then FBR:SetAddError(err); return end
+  local function addResolvedBuff(item)
+    if KHQOL.db and not KHQOL:GetEnabled("buffReminder") then return false end
     local buffs=FBR:GetSelectedClassData().buffs
-    for _,saved in ipairs(buffs) do if saved.spellID==item.spellID then FBR:SetAddError("이미 등록된 Spell ID입니다."); return end end
+    for _,saved in ipairs(buffs) do if saved.spellID==item.spellID then FBR:SetAddError("이미 등록된 Spell ID입니다."); return false end end
     buffs[#buffs+1]={spellID=item.spellID,enabled=true,displayMode="ALWAYS"}
     panel.input:SetText(""); FBR:SetAddError(nil); FBR:RefreshSettings(); FBR:RefreshAlerts()
+    return true
   end
-  b:Section("등록한 버프")
-  b:Description("계정 공용 · 직업별 등록 목록입니다. 순서·사용·모드를 편집할 수 있으며 삭제는 확인 후 적용합니다.",true)
+  function FBR:AddBuffFromInput()
+    if KHQOL.db and not KHQOL:GetEnabled("buffReminder") then return false end
+    local item,err=FBR:ResolveSpellInput(panel.input:GetText())
+    if not item then FBR:SetAddError(err); return false end
+    return addResolvedBuff(item)
+  end
+  function FBR:ReceiveBuffSpell()
+    if not UI:IsAvailable(panel.input) then return false end
+    if KHQOL.PublicCall(InCombatLockdown)~=false then FBR:SetAddError("전투 종료 후 주문을 끌어 놓으세요.");return false end
+    -- The fourth cursor result is the SpellID; the second can be a book slot.
+    local status,kind,_,_,id=KHQOL.ReadPublicAPI(GetCursorInfo)
+    if status~="ok" or kind~="spell" or not KHQOL.IsPublicNumber(id) or id<=0 or id~=math.floor(id) then
+      FBR:SetAddError("마법책의 주문을 끌어 놓으세요. 주문 ID를 확인할 수 없는 커서는 등록하지 않습니다.");return false
+    end
+    local item,err=FBR:ResolveSpellInput(tostring(id))
+    if not item then FBR:SetAddError(err);return false end
+    local accepted=addResolvedBuff(item)
+    if accepted then KHQOL.PublicCall(ClearCursor) end
+    return accepted
+  end
+  b:Description("계정 공용 · 직업별 등록 목록",true)
+  UI:AttachTooltip(panel.dropdown,"등록 목록 도움말","계정 공용·직업별 목록입니다. ▲·▼로 순서, 체크로 사용, 선택값으로 알림 모드를 바꿉니다. 삭제는 대상 확인 후 적용합니다.")
   panel.listTop=0; panel.rows={}
   panel.buffListBody=CreateFrame("Frame",nil,panel);panel.buffListBody:SetSize(T.ContentWidth,1)
   b:Block(panel.buffListBody);b:EndSection()
@@ -79,7 +129,7 @@ function FBR:CreateSettingsUI(parent)
     row:EnableMouse(true)
     row:SetScript("OnEnter",function(self)
       if not self.buff then return end
-      local name=FBR:GetSpellDetails(self.buff.spellID)
+      local name=FBR:GetBuffDisplayName(self.buff.spellID)
       GameTooltip:SetOwner(self,"ANCHOR_RIGHT"); GameTooltip:SetText(name or "확인 불가 주문")
       GameTooltip:AddLine("Spell ID: "..self.buff.spellID,1,1,1); GameTooltip:Show()
     end)
@@ -92,7 +142,7 @@ function FBR:CreateSettingsUI(parent)
       local class=ForeverBuffReminderDB.selectedClass
       local records=FBR:GetSelectedClassData().buffs;local record=records[index]
       if not record then return end
-      local name=FBR:GetSpellDetails(record.spellID)
+      local name=FBR:GetBuffDisplayName(record.spellID)
       UI:ConfirmRecordDeletion((name or "확인 불가 주문").." ("..record.spellID..") · "..(FBR.CLASS_NAMES[class] or class),function()
         if ForeverBuffReminderDB.selectedClass==class and FBR:GetSelectedClassData().buffs==records then return records[index] end
       end,function()
@@ -102,7 +152,7 @@ function FBR:CreateSettingsUI(parent)
     row.delete.navigationOnly=true
     row:Hide(); panel.rows[index]=row;return row
   end
-  panel.empty=UI:CreateDescription(panel.buffListBody,"등록된 버프가 없습니다. 위의 입력란에 Spell ID를 입력하고 [버프 추가]를 누르세요.",0,panel.listTop)
+  panel.empty=UI:CreateDescription(panel.buffListBody,"등록된 버프가 없습니다. 마법책 주문을 등록란에 끌어 놓거나 Spell ID를 입력하고 [버프 추가]를 누르세요.",0,panel.listTop)
   local special=CreateFrame("Frame",nil,panel); special:SetSize(T.ContentWidth,138); panel.shamanSpecial=special
   local sb=UI:CreateBuilder(special); sb:Section("주술사 무기 / 토템"); special.buttons={}
   local specialBody=CreateFrame("Frame",nil,special);specialBody:SetWidth(T.ContentWidth)
@@ -125,7 +175,7 @@ function FBR:CreateSettingsUI(parent)
     end
     special.buttons[#special.buttons+1]=control
   end
-  special.hint=UI:CreateDescription(specialBody,"토템 버튼을 우클릭하면 기존 주문 선택 메뉴를 엽니다.",0,sb.y-40)
+  special.hint=UI:CreateDescription(specialBody,"토템 우클릭: 주문 선택",0,sb.y-40)
   local menu
   menu=UI:CreateDropdown(panel,0,0,300,function()
     local key=menu and menu.totemKey
@@ -188,7 +238,7 @@ function FBR:RefreshSettings()
   for i,row in ipairs(panel.rows) do
     row.buff=buffs[i]
     if row.buff then
-      local buff=row.buff; local name,icon=self:GetSpellDetails(buff.spellID)
+      local buff=row.buff; local name,icon=self:GetBuffDisplayName(buff.spellID)
       row.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
       row.name:SetText((name or "확인 불가 주문").."  |cff999999("..buff.spellID..")|r")
       buff.displayMode=buff.displayMode or "ALWAYS"
@@ -207,9 +257,19 @@ function FBR:RefreshSettings()
   if #buffs==0 then listBottom=listBottom-math.max(40,panel.empty:GetStringHeight()+T.RowGap) end
   panel.buffListBody:SetHeight(math.max(1,-listBottom))
   if panel.settingsBuilder then panel.settingsBuilder:Reflow() end
+  if panel.foodSummary then panel.foodSummary:SetText(self.Food:Summary()) end
   UI:Refresh(panel);self.refreshingSettings=nil
 end
 function FBR:ToggleSettings()
   ForeverBuffReminderDB.selectedClass=self:GetCurrentClass() or self.CLASS_TOKENS[1]
   KHQOL:ShowSettings("buffReminder")
 end
+
+KHQOL.ConvenienceSettings:RegisterTab("buff",nil,function(content,y)
+  local fbr=ForeverBuffReminder
+  fbr:CreateSettingsUI(content)
+  function content:RefreshTab() fbr:RefreshSettings() end
+  content:RefreshTab()
+  return -content:GetHeight()
+end)
+

@@ -1,7 +1,7 @@
 local _, KHQOL = ...
 KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local N=KHQOL.modules.npcAlert
-N.defaults={banner=true,bannerDuration=3,bannerScale=1,bannerAlpha=1,sound=true,reAlertCooldown=10,
+N.defaults={locked=true,bannerPosition={point="CENTER",relativePoint="CENTER",x=0,y=165},banner=true,bannerDuration=3,bannerScale=1,bannerAlpha=1,sound=true,reAlertCooldown=10,
   indicator={enabled=true,size=56,radius=180,alpha=1}}
 N.activeNPCs,N.unitGUIDs,N.cooldowns,N.queue,N.pending={},{},{},{},{}
 N.sequence=0; N.generation=0
@@ -100,6 +100,7 @@ function N:PlayWarning(r)
   if self.db.sound and r.sound and PlaySound then pcall(PlaySound,SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959,"Master") end
 end
 function N:ShowBanner(r)
+  self:ApplyBannerPosition()
   self.bannerSerial=(self.bannerSerial or 0)+1
   local serial=self.bannerSerial; local c=self.colors[r.dangerLevel]
   self.banner:SetScale(self.db.bannerScale); self.banner:SetAlpha(self.db.bannerAlpha)
@@ -289,8 +290,19 @@ function N:SetEnabled(on)
   if on then for _,event in ipairs(zoneEvents) do pcall(self.events.RegisterEvent,self.events,event) end end
   self:RefreshMap()
 end
+function N:ApplyBannerPosition()
+  if self.banner then self.banner:SetScale(self:GetDB().bannerScale);KHQOL.PositionUtils.ApplyPoint(self.banner,self:GetDB().bannerPosition) end
+end
+function N:PositionTargets()
+  local list={};local db=self:GetDB();if not self:IsEnabled() or not db.banner then return list end
+  local p=KHQOL.PositionUtils:Preview("npcAlert.banner",db.bannerPosition,380,78)
+  if p then p:SetScale(db.bannerScale) end
+  KHQOL.PositionUtils:Add(list,"npcAlert.banner","npcAlert","NPC 위험 알림 배너",p,KHQOL.PositionUtils:PointWriter(db.bannerPosition),KHQOL.PositionUtils:Lock(db),function() N:ApplyBannerPosition() end,{sample="NPC 위험 알림 · 위치 예시"})
+  KHQOL.PositionUtils:ConfigureResets(list,function(t,point) point(t,function() return db.bannerPosition end,N.defaults.bannerPosition) end)
+  return list
+end
 function N:Changed()
-  self:GetDB(); self:RefreshMap()
+  self:GetDB();self:ApplyBannerPosition(); self:RefreshMap()
   if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
 end
 function N:Test()

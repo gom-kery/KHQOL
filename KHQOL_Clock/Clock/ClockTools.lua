@@ -93,12 +93,45 @@ function FC:SaveClockTool(frame,key)
   local p=positions[key] or {}
   if KHQOL.PositionStore:Point(frame,p) then positions[key]=p;KHQOL.PositionStore:Committed() end
 end
+function FC:ClockToolsLocked() return self.db.clockTools.positionLocked~=false and self.db.clockTools.timerBarLocked~=false end
+function FC:SetClockToolsLocked(value)
+  for _,entry in ipairs({{"tools",self.clockToolsFrame},{"timerBar",self.timerBarFrame},{"alert",self.alertMessageFrame},{"stopwatch",self.stopwatchFrame}}) do self:SaveClockTool(entry[2],entry[1]) end
+  self.db.clockTools.positionLocked=value;self.db.clockTools.timerBarLocked=value
+end
+function FC:IsClockWindowLocked(key)
+  return self.clockWindowLocks and self.clockWindowLocks[key]==true or false
+end
+function FC:SetClockWindowLocked(key,value,observe)
+  if key~="tools" and key~="timerBar" then return false end
+  local old=self:IsClockWindowLocked(key)
+  self:SaveClockTool(key=="tools" and self.clockToolsFrame or self.timerBarFrame,key)
+  self.clockWindowLocks=self.clockWindowLocks or {}
+  self.clockWindowLocks[key]=value==true
+  local frame=key=="tools" and self.clockToolsFrame or self.timerBarFrame
+  if frame and frame.lockButton then frame.lockButton:Refresh() end
+  if observe and old~=(value==true) then KHQOL.UsageDiagnostics:Emit(key=="tools" and "setting.clock.toolsLocked" or "setting.clock.timerBarLocked","change","click",nil,true) end
+  return true
+end
+local function WindowLockButton(parent,key,frame)
+  local button=KHQOL.UI:CreateButton(parent,"",0,0,24,function() FC:SetClockWindowLocked(key,not FC:IsClockWindowLocked(key),true) end)
+  button:SetSize(24,24);button.navigationOnly=true
+  if type(button.SetPropagateMouseClicks)=="function" then KHQOL.PublicCall(button.SetPropagateMouseClicks,button,false) end
+  button.icon=button:CreateTexture(nil,"ARTWORK");button.icon:SetPoint("CENTER");button.icon:SetSize(20,20)
+  button.icon:SetTexCoord(.1875,.78125,.21875,.78125)
+  function button:Refresh()
+    self.icon:SetTexture("Interface\\Buttons\\LockButton-"..(FC:IsClockWindowLocked(key) and "Locked" or "Unlocked").."-Up")
+    self.tooltipTitle=FC:IsClockWindowLocked(key) and "창 잠금 해제" or "창 잠금"
+    self.tooltipDescription=FC:IsClockWindowLocked(key) and "창을 끌어서 옮길 수 있게 합니다." or "창을 끌어서 옮기지 못하게 합니다."
+  end
+  KHQOL.UI:AttachTooltip(button,"창 잠금","창을 끌어서 옮기지 못하게 합니다.")
+  button:Refresh();button:ClearAllPoints();frame.lockButton=button
+  return button
+end
 local function MakeMovable(frame,key)
   frame:SetMovable(true); frame:EnableMouse(true)
   frame:SetScript("OnMouseDown", function(self, button)
-    local d=FC.db.clockTools
-    local lockKey=key=="timerBar" and "timerBarLocked" or "positionLocked"
-    if button=="LeftButton" and not d[lockKey] then self.positionMoving=true;self:StartMoving() end
+    local locked=(key=="tools" or key=="timerBar") and FC:IsClockWindowLocked(key) or key~="tools" and key~="timerBar" and FC:ClockToolsLocked()
+    if button=="LeftButton" and not locked then self.positionMoving=true;self:StartMoving() end
   end)
   frame:SetScript("OnMouseUp", function(self, button) if button == "LeftButton" then FC:SaveClockTool(self,key) end end)
   frame:HookScript("OnHide",function(self) FC:SaveClockTool(self,key) end)
@@ -207,7 +240,8 @@ function FC:CreateClockTools()
   local body=CreateFrame("Frame",nil,f)
   body:SetSize(TOOL_WIDTH,TOOL_HEIGHT);body:SetPoint("CENTER",f,"CENTER");body:EnableMouse(false)
   f.toolsContent=body
-  local title = NewLabel(body, "알람 / 타이머", 17); title:SetPoint("TOPLEFT", 14, -12)
+  local title = NewLabel(body, "알람·타이머", 17); title:SetPoint("TOPLEFT", 14, -12)
+  WindowLockButton(body,"tools",f):SetPoint("TOPRIGHT",-144,-8)
   f.stopwatchButton = WatchIconButton(body, function() stopwatch:SetShown(not stopwatch:IsShown()) end); f.stopwatchButton:SetPoint("TOPRIGHT", -42, -8)
   f.close = PlainCloseButton(body, function() f:Hide() end); f.close:SetPoint("TOPRIGHT", -9, -7)
   f.timerTab = NewButton(body, "타이머", 88, function() f:SelectMode("timer") end); f.timerTab:SetPoint("TOPLEFT", 16, -40)
@@ -215,7 +249,7 @@ function FC:CreateClockTools()
   f.fold=NewButton(body,"접기",62,function() FC:SetClockTimerDisplay("bar") end);f.fold:SetPoint("TOPRIGHT",-73,-8)
 
   local bar=CreateFrame("Frame","ForeverClockTimerBar",UIParent,"BackdropTemplate")
-  bar:SetSize(314,42);bar:SetPoint("CENTER",UIParent,"CENTER",0,-120);bar:SetFrameStrata("DIALOG")
+  bar:SetSize(342,42);bar:SetPoint("CENTER",UIParent,"CENTER",0,-120);bar:SetFrameStrata("DIALOG")
   KHQOL.WindowLayers:RegisterWindow(bar)
   self.MakeBackdrop(bar,1,.78,.18,.95);MakeMovable(bar,"timerBar")
   bar.nameText=NewLabel(bar,"타이머",14);bar.nameText:SetPoint("LEFT",10,0);bar.nameText:SetWidth(54);bar.nameText:SetJustifyH("LEFT")
@@ -225,6 +259,7 @@ function FC:CreateClockTools()
   local track=bar.progress:CreateTexture(nil,"BACKGROUND");track:SetAllPoints();track:SetColorTexture(.17,.21,.22,1)
   bar.pause=IconButton(bar,"play",28,function() f:ToggleTimer(false) end);bar.pause:SetPoint("LEFT",201,0);bar.pause:SetEnabled(false)
   bar.expand=NewButton(bar,"펼치기",52,function() FC:SetClockTimerDisplay("full") end);bar.expand:SetPoint("LEFT",232,0)
+  WindowLockButton(bar,"timerBar",bar):SetPoint("LEFT",287,0)
   bar.close=PlainCloseButton(bar,function() bar:Hide() end);bar.close:SetPoint("RIGHT",-5,0)
 
   f.timerLabel = NewLabel(body, "타이머(분:초)", 14); f.timerLabel:SetPoint("TOPLEFT", 16, -82)

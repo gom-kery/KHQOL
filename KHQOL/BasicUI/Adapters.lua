@@ -8,6 +8,9 @@ R:Register("basicUI",{
 R:Register("frameMover",{
   always=true,initialize=function(m) m:Initialize() end,positions=function(m,focus) return providers.frameMover(focus) end,
 })
+R:Register("nativeAlerts",{
+  always=true,initialize=function(m) m:Initialize() end,positions=function(m) return m:PositionTargets() end,
+})
 R:Register("castBar",{
   profile=true,setEnabled=function(m,on) m:SetEnabled(on) end,defaults=function(m) return m.defaults end,
   migrateSettings=function(m,settings) m:MigrateSettings(settings) end,

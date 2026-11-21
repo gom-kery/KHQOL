@@ -154,8 +154,9 @@ function UI:CreateButton(parent,title,x,y,width,click,enabled)
 end
 function UI:CreateSlider(parent,title,description,x,y,min,max,step,get,set,format,enabled,normalize)
   local c,box=originals.CreateSlider(self,parent,title,description,x,y,min,max,step,get,set,format,enabled,normalize)
-  remember(parent,c,x,y-24)
-  remember(parent,box,x+T.SliderWidth+14,y-20,function(control,width,ox) control:SetWidth(math.max(56,math.min(86,width-ox))) end)
+  local inset=T.SliderArrowSize+T.SliderArrowGap
+  remember(parent,c,x+inset,y-24,function(control,width,ox) control:FitSlider(width-ox+inset) end)
+  remember(parent,box,x,y-20) -- visibility belongs to this cell; anchoring follows the track
   if UI.SettingsNavigation then UI.SettingsNavigation:Attach(parent,c,title,get,set,enabled,description) end
   return c,box
 end
@@ -253,7 +254,16 @@ function UI:CreateBuilder(parent,y)
     return item
   end
   function b:Description(text,important)
-    if not important and self.lastControl then return description(self,text,important) end
+    if not important and self.lastControl then
+      local control=self.lastControl
+      local result=description(self,text,important)
+      local N=UI.SettingsNavigation;local item=N and N.controls[control]
+      if item and type(text)=="string" then
+        item.helpText=(item.helpText or "").." "..text
+        N:Register(item.route,item.logicalTitle or item.title,(item.description or "").." "..text,item.baseAliases)
+      end
+      return result
+    end
     self:Flush();parent.uiBuilder=self;local top=self.y
     local item={builder=self,group=self.flowGroup,order=#self.cells+1,kind="description",columns=1,height=26,x=0,top=top,width=parent:GetWidth(),regions={},gap=0,full=true,disclosure=self.currentDisclosure}
     if self.lastCell then item.gap=math.max(0,self.lastCell.top-self.lastCell.height-top) end
@@ -261,6 +271,22 @@ function UI:CreateBuilder(parent,y)
     local f=UI:CreateDescription(parent,text,0,top);self.y=top-math.max(18,f:GetStringHeight())-T.RowGap
     item.height=top-self.y;item.description=f;self.activeCell=nil;self.originalBottom=self.y
     return f
+  end
+  function b:Status(get)
+    local label=self:Description(get(),true)
+    local cell=self.lastCell;cell.visible=function() return get()~="" end
+    local sentinel=CreateFrame("Frame",nil,parent)
+    sentinel.Refresh=function() label:SetText(get()) end
+    UI:RegisterControl(parent,sentinel)
+    return label
+  end
+  function b:Help(title,text)
+    local control=self:Button(title,function() end)
+    control.navigationOnly=true
+    UI:AttachTooltip(control,title,text)
+    local N=UI.SettingsNavigation;local item=N and N.controls[control]
+    if item then N:Register(item.route,item.logicalTitle or item.title,text,item.baseAliases) end
+    return control
   end
   for _,method in ipairs({"Dropdown","Edit"}) do
     local original=b[method]
@@ -357,7 +383,8 @@ function UI:CreateBuilder(parent,y)
         for _,r in ipairs(item.regions) do
           local c=r.region;local ox=r.x+(r.right and w-item.width or 0)
           local dy=r.y-(r.y<=-20 and extra or 0)
-          c:ClearAllPoints();c:SetPoint("TOPLEFT",parent,"TOPLEFT",x+ox,anchorTop+dy)
+          if c.AnchorToSlider then c:AnchorToSlider()
+          else c:ClearAllPoints();c:SetPoint("TOPLEFT",parent,"TOPLEFT",x+ox,anchorTop+dy) end
           if c.text then
             c.text:SetWordWrap(true);height=math.max(height,-dy+c.text:GetStringHeight()+12)
           end

@@ -6,6 +6,8 @@ local positions=KHQOL.PositionUtils
 function M:GetDB()
   local modules=KHQOL.db.modules
   modules.professions=KHQOL.MergeDefaults(modules.professions or {},self.defaults,"types")
+  modules.professions.layout="horizontal"
+  if modules.professions.rows~=1 then modules.professions.rows=2 end
   return modules.professions
 end
 
@@ -65,12 +67,19 @@ local function MakeCell(parent)
   b.skill = b:CreateFontString(nil, "OVERLAY"); b.skill:SetPoint("BOTTOM", 0, 3); Font(b.skill, 11)
   b:SetScript("OnEnter", function(self)
     if not self.data then return end
+    if M.guide and M.guide:ShowTooltip(self,self.data.skillLineID,true) then return end
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT"); GameTooltip:SetText(self.data.name, 1, .82, .18)
     GameTooltip:AddLine("숙련도: " .. (self.data.skillText or "-"), 1, 1, 1)
     GameTooltip:AddLine("좌클릭: 전문기술 열기", .8, .8, .8); GameTooltip:Show()
   end)
-  b:SetScript("OnLeave", function() GameTooltip:Hide() end)
-  b:SetScript("OnClick", function(self) if self.data then M:OpenProfession(self.data) end end)
+  b.guideID=function() return b.data and b.data.skillLineID end
+  b:RegisterForClicks("LeftButtonUp","RightButtonUp")
+  b:SetScript("OnLeave", function() if M.guide then M.guide:Leave(b) end;GameTooltip:Hide() end)
+  b:SetScript("OnClick", function(self,button)
+    if not self.data then return end
+    if button=="RightButton" then if M.guide and M.guide:Enabled() then M.guide:Request(self,self.data.skillLineID) end
+    else M:OpenProfession(self.data) end
+  end)
   return b
 end
 
@@ -122,6 +131,7 @@ function M:ScanProfessions(skillChange)
   self:RememberProfessionOrder()
   if self.professionsPanel:IsShown() then self:RenderProfessions() end
   if self.settingsPanel and self.settingsPanel:IsVisible() then KHQOL.UI:Refresh(self.settingsPanel) end
+  if self.guide then self.guide:Refresh() end
   return retry
 end
 
@@ -216,7 +226,7 @@ function M:RenderProfessions()
   local panel,cfg=self.professionsPanel,self:GetDB()
   local items,basic,secondary=self:OrderedProfessions()
   local size=cfg.iconSize
-  local gap=math.max(2,math.min(16,math.floor(cfg.cellGap)))
+  local gap=math.max(0,math.min(10,math.floor(cfg.cellGap)))
   local padding,inset=6,4
   local outside=cfg.skillPosition=="outside"
   local cellWidth=size+2*inset
@@ -252,11 +262,8 @@ function M:RenderProfessions()
     local row,col
     -- Keep the previous grid for the initial order. A changed order swaps
     -- entries between the same slots, including primary and secondary slots.
-    if cfg.layout=="vertical" then
-      row=i<=basic and 1 or ((basic>0 and 1 or 0)+(index==3 and 2 or 1))
-      if i<=basic then col=basic==1 and 1.5 or i
-      elseif index==3 or secondary==1 then col=1.5
-      else col=index end
+    if cfg.rows==1 then
+      row,col=1,i
     else
       row=(i<=basic or basic==0) and 1 or 2
       col=i<=basic and i or index
@@ -293,6 +300,7 @@ function M:RenderProfessions()
 end
 
 function M:ApplySettings()
+  if self.guide then self.guide:Configure() end
   local button,panel,cfg=self.professionsButton,self.professionsPanel,self:GetDB()
   HUD:ApplyTextStyle(button.label,cfg.fontSize,cfg.style)
   button.label:SetText("전문기술 ▶")
@@ -338,14 +346,18 @@ function M:Initialize()
   HUD.MakeBackdrop(button,.95,.73,.15,.90)
   button.label=button:CreateFontString(nil,"OVERLAY");button.label:SetPoint("CENTER")
   button:SetMovable(true);button:SetClampedToScreen(true);button:EnableMouse(true)
-  button:RegisterForClicks("LeftButtonUp");button:RegisterForDrag("LeftButton")
+  button:RegisterForClicks("LeftButtonUp","RightButtonUp");button:RegisterForDrag("LeftButton")
   button:SetScript("OnMouseDown",function(f) f.suppressClick=nil end)
   button:SetScript("OnDragStart",function(f)
     if M:GetDB().locked or KHQOL.PositionEditor.active then return end
     f.positionMoving=true;f:StartMoving()
   end)
   button:SetScript("OnDragStop",function() M:FinishDrag() end)
-  button:SetScript("OnClick",function(f) if not f.suppressClick then M:ToggleProfessions() end end)
+  button:SetScript("OnClick",function(f,mouseButton)
+    if f.suppressClick then return end
+    if mouseButton=="RightButton" then KHQOL.UI.SettingsNavigation:Open({module="professions"})
+    else M:ToggleProfessions() end
+  end)
 
   local panel=CreateFrame("Frame",panelName,UIParent,"BackdropTemplate")
   panel:SetClampedToScreen(true)
@@ -358,24 +370,8 @@ function M:Initialize()
   panel:Hide()
   -- Use the native special-window list without replacing any ESC binding.
   if UISpecialFrames then table.insert(UISpecialFrames,panelName) end
-  if panel.EnableKeyboard and panel.SetPropagateKeyboardInput then
-    panel:EnableKeyboard(true)
-    panel:SetPropagateKeyboardInput(true)
-    panel:SetScript("OnKeyDown",function(f,key)
-      if call(InCombatLockdown)~=false then return end
-      -- Let edit boxes keep their own cancel behavior. In combat the native
-      -- special-window list handles closing without protected keyboard calls.
-      local close=key=="ESCAPE" and not call(GetCurrentKeyBoardFocus)
-        and not KHQOL.WindowLayers:ModalShown() and not KHQOL.PositionEditor.active
-      f:SetPropagateKeyboardInput(not close)
-      if close then
-        f:Hide()
-        C_Timer.After(0,function()
-          if call(InCombatLockdown)==false then f:SetPropagateKeyboardInput(true) end
-        end)
-      end
-    end)
-  end
+  -- Native UISpecialFrames handles ESC. Do not observe/alter propagated keys:
+  -- chat Enter and protected bindings must stay on the native keyboard path.
   panel:SetScript("OnHide",function()
     for _,cell in ipairs(panel.cells) do if GameTooltip:IsOwned(cell) then GameTooltip:Hide() end end
   end)
@@ -390,7 +386,6 @@ function M:Initialize()
   events:RegisterEvent("PLAYER_REGEN_ENABLED")
   events:SetScript("OnEvent",function(_,event)
     if event=="PLAYER_REGEN_ENABLED" then
-      if panel.SetPropagateKeyboardInput then panel:SetPropagateKeyboardInput(true) end
       return
     end
     if event=="DISPLAY_SIZE_CHANGED" or event=="UI_SCALE_CHANGED" then self:AnchorPanel();return end

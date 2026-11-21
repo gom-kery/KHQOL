@@ -33,7 +33,7 @@ KHQOL.PositionProviders.clock=function(focus)
           positions[key]={point=point,relativePoint=relativePoint,x=x,y=y}
         end
         pointWriter(positions[key])(dx,dy)
-      end,lock(fc.db.clockTools,key=="timerBar" and "timerBarLocked" or "positionLocked"),function() self:ApplyEditorPositions() end,
+      end,function() if key=="tools" or key=="timerBar" then fc:SetClockWindowLocked(key,true) else fc:SetClockToolsLocked(true) end end,function() self:ApplyEditorPositions() end,
       {alwaysSave=true,exactBounds=key=="tools" or key=="timerBar"})
     end
   end
@@ -59,7 +59,7 @@ KHQOL.PositionProviders.todo=function(focus)
   local function lock(...) return PU:Lock(...) end
   if fc.db then
     local p=fc.db.todo.window
-    local note=fc.todoFrame or E:Virtual("note",p,p.width or 430,p.height or 310)
+    local note=fc.todoFrame or PU:Preview("note",p,p.width or 430,p.height or 310)
     add("note","todo","Forever Note",note,pointWriter(p),lock(p,"positionLocked"),function() if fc.todoFrame then applyPoint(fc.todoFrame,p) end end,{bounds=function(x,y,w,h)
       local children={}
       if fc.todoFrame then

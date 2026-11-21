@@ -28,49 +28,79 @@ function Info:ReadTalents(unit,inspect)
   local count=publicCall(GetNumTalentTabs,inspect==true,false)
   if not number(count) and good(classID) then count=publicCall(api and api.GetNumSpecializationsForClassID,classID) end
   if not number(count) then count=specNames[classToken] and #specNames[classToken] or 0 end
-  local talents,icons,names={0,0,0},{},{}
+  local talents,icons,names,byID={0,0,0},{},{},{}
+  local complete=true
   local readPoints=false
   for i=1,math.min(3,count) do
-    local _,name,_,icon,_,_,points=publicCall(api and api.GetSpecializationInfo,i,inspect==true,false,inspect and unit or nil,nil,group,classID)
-    if not number(points) then
+    local specID,name,_,icon,_,_,points=publicCall(api and api.GetSpecializationInfo,i,inspect==true,false,inspect and unit or nil,nil,group,classID)
+    if good(specID) and text(name) then byID[specID]={name=name,icon=texture(icon),source="specialization-id"} end
+    if not number(points) or points==0 then
       -- Current compatibility wrapper returns id/name/description/icon/points.
       -- Older clients return name/icon/points. The fourth argument is a numeric
       -- talent group, never a unit token.
       local a,b,c,d,e=publicCall(GetTalentTabInfo,i,inspect==true,false,group)
-      if number(a) then name,icon,points=b,d,e else name,icon,points=a,b,c end
-    end
-    if not number(points) and GetNumTalents and GetTalentInfo then
-      local n=publicCall(GetNumTalents,i,inspect==true,false)
-      if number(n) and n>=0 and n<=100 then
-        points=0
-        for talent=1,n do
-          local _,_,_,_,rank=publicCall(GetTalentInfo,i,talent,inspect==true,false,group)
-          if number(rank) then points=points+rank end
-        end
+      local legacyPoints=number(a) and e or c
+      if number(legacyPoints) and (not number(points) or legacyPoints>points) then
+        if number(a) then name,icon,points=b,d,e else name,icon,points=a,b,c end
       end
     end
-    if number(points) and points>=0 then talents[i]=math.floor(points);readPoints=true end
+    if (not number(points) or points==0) and GetNumTalents then
+      local n=publicCall(GetNumTalents,i,inspect==true,false)
+      if number(n) and n>=0 and n<=100 then
+        local sum,valid=0,true
+        for talent=1,n do
+          local _,_,_,_,rank=publicCall(GetTalentInfo,i,talent,inspect==true,false,group)
+          if not number(rank) and api and api.GetTalentInfo then
+            local result=publicCall(api.GetTalentInfo,{isInspect=inspect==true,isPet=false,target=inspect and unit or nil,
+              specializationIndex=i,talentIndex=talent,groupIndex=group})
+            rank=publicCall(function() return result and result.rank end)
+          end
+          if number(rank) and rank>=0 then sum=sum+rank else valid=false end
+        end
+        if valid and (not number(points) or sum>points) then points=sum end
+      end
+    end
+    if number(points) and points>=0 then talents[i]=math.floor(points);readPoints=true else complete=false end
     icons[i]=texture(icon); names[i]=text(name) and name or nil
   end
   local highest,index=0,nil
   for i=1,3 do if talents[i]>highest then highest,index=talents[i],i end end
-  if index then
+  complete=complete and count>=3
+  if index and complete then
     local name=(specNames[classToken] and specNames[classToken][index]) or names[index]
-    if name then return {name=name,icon=icons[index]},talents end
+    if name then self.lastTalentProbe="talent-points";return {name=name,icon=icons[index]},talents end
   end
   -- Clients using a selected specialization rather than invested talent trees.
-  local id=inspect and publicCall(api and api.GetInspectSpecialization,unit)
+  local id=inspect and publicCall(api and api.GetInspectSpecialization or GetInspectSpecialization,unit)
   if good(id) then
-    local _,name,_,icon=publicCall(GetSpecializationInfoForSpecID or GetSpecializationInfoByID,id)
-    if text(name) then return {name=name,icon=texture(icon)},readPoints and talents or nil end
-  elseif not inspect then
-    local selected=publicCall(api and api.GetSpecialization,false,false)
-    if good(selected) then
-      local _,name,_,icon=publicCall(api.GetSpecializationInfo,selected,false,false)
-      if text(name) then return {name=name,icon=texture(icon)},readPoints and talents or nil end
+    if byID[id] then self.lastTalentProbe="inspect-specialization-id";return byID[id],complete and highest>0 and talents or nil end
+    for _,fn in pairs({GetSpecializationInfoByID,GetSpecializationInfoForSpecID}) do
+      local _,name,_,icon=publicCall(fn,id,publicCall(UnitSex,unit))
+      if text(name) then self.lastTalentProbe="inspect-specialization-id";return {name=name,icon=texture(icon)},complete and highest>0 and talents or nil end
     end
   end
+  do
+    local selected=publicCall(api and api.GetSpecialization or GetSpecialization,inspect==true,false,group)
+    if good(selected) then
+      local _,name,_,icon=publicCall(api and api.GetSpecializationInfo or GetSpecializationInfo,selected,inspect==true,false,inspect and unit or nil,nil,group,classID)
+      if text(name) then self.lastTalentProbe=inspect and "inspect-selected-index" or "player-selected-index";return {name=name,icon=texture(icon)},complete and highest>0 and talents or nil end
+    end
+  end
+  self.lastTalentProbe="unavailable"
 end
+
+function Info:Diagnostic()
+  local api=C_SpecializationInfo
+  local parts={"[KHQOL 전문화] 최근 조회: "..(self.lastTalentProbe or "없음")}
+  for _,entry in ipairs({{"살펴보기 전문화",api and api.GetInspectSpecialization or GetInspectSpecialization},
+    {"전문화 정보",api and api.GetSpecializationInfo},{"특성별 조회",api and api.GetTalentInfo},
+    {"이름 조회",GetSpecializationInfoByID or GetSpecializationInfoForSpecID}}) do
+    parts[#parts+1]=entry[1]..": "..(type(entry[2])=="function" and "지원" or "미지원")
+  end
+  KHQOL:ProfileMessage(table.concat(parts," · "))
+end
+SLASH_KHQOLSPEC1="/khqolspec"
+SlashCmdList.KHQOLSPEC=function() Info:Diagnostic() end
 function Info:ReadItems(unit,inspect)
   -- Prefer the client's equipped inspection average when supplied. Classic
   -- variants may return zero, in which case retain the original slot average.

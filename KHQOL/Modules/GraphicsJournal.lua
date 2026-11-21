@@ -1,5 +1,5 @@
 local _, KHQOL = ...
-local H={experimental=true,defaults={},generation=0}
+local H={defaults={},generation=0}
 KHQOL.GraphicsJournal=H
 -- Functional inputs are independently implemented; no reference addon code is embedded.
 local settings={

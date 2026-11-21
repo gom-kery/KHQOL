@@ -21,7 +21,7 @@ function A:BuildSettings(parent,y,builder)
  b:Description("보조 표시 위치 잠금 ON · 비전투에서 아이콘 좌클릭으로 초과 조각 1개를 확인창 없이 파괴하고, 숫자 우클릭으로 최대 수량을 바꿉니다. 최대 수량은 일반·영혼 가방 전체 칸 수 이내입니다.",true)
  b:Section("보조 표시 위치")
  local function available() return A:CanShowAux() end
- b:Checkbox("보조 표시 위치 잠금",function() return db().ammoLocked end,function(v) change("ammoLocked",v) end,available)
+ b:PositionLock("보조 표시 위치 잠금",function() return db().ammoLocked end,function(v) change("ammoLocked",v) end,available)
  b:Button("보조 표시 위치 초기화",function()
   local d=db();d.ammoPoint,d.ammoRelativePoint,d.ammoX,d.ammoY="CENTER","CENTER",0,-120;A:ApplyPosition()
  end,nil,available)
@@ -30,6 +30,6 @@ function A:BuildSettings(parent,y,builder)
   b:Slider("보조 표시 "..a.." 좌표",-3000,3000,1,function() return db()["ammo"..a] end,function(v) change("ammo"..a,v) end,function(v) return v.." px" end,available)
  end
  b:Slider("보조 표시 글자 크기",8,24,1,function() return db().ammoTextSize end,function(v) change("ammoTextSize",v) end,function(v) return v.." px" end,available)
- b:Description("탄약과 영혼의 조각은 직업에 따라 같은 위치를 사용합니다. 위치 잠금 OFF에서 표시를 드래그합니다. 자원/스윙바 사용 여부와 독립적으로 동작합니다.",true)
+ b:Description("탄약과 영혼의 조각은 직업에 따라 같은 위치를 사용합니다. 위치 잠금 OFF에서 표시를 드래그합니다. 자원·스윙바 사용 여부와 독립적으로 동작합니다.",true)
  b:Flush();return -b.y
 end

@@ -11,60 +11,70 @@ function Settings:Create(parent)
   if not parent then panel:Hide() end
   self.panel=panel; _G.FRangeSettingsPanel=panel
   local b=UI:CreateBuilder(panel)
+  b:Section("표시 방식")
+  b:Dropdown("표시 방식",{{value="skills",text="스킬 유효 거리"},{value="distance",text="대상 거리"}},
+    function() return FR.db.displayMode end,function(mode) FR:SetDisplayMode(mode) end)
+  b:Flush()
+  local distance=CreateFrame("Frame",nil,panel)
+  distance:SetWidth(panel:GetWidth());distance.settingsRoute={module="range",section="대상 거리"}
+  FR.Distance:BuildSettings(distance)
+  b:Block(distance,function() distance.uiBuilder:Reflow();return distance:GetHeight() end,
+    function() return FR.db.displayMode=="distance" or FR.db.mouseover.mode=="distance" end)
+  local function skillsMode() return FR.db.displayMode=="skills" end
   b:Section("사거리 기준 주문")
-  local function hunter() return select(2,UnitClass("player"))=="HUNTER" end
-  b:Description("주문 ID 또는 스킬명을 입력하고 Enter 또는 적용 버튼을 누릅니다.")
   local function spellField(title,getter,setter)
     local x,y,width=b:Cell("spell",2,104)
     UI:CreateLabel(panel,title,x,y):SetWidth(width)
-    local input=UI:CreateEditBox(panel,x,y-24,width-88,getter,nil)
-    input:SetScript("OnEnterPressed",function(self) setter(self:GetText());self:ClearFocus();self:Refresh() end)
-    UI:CreateButton(panel,"적용",x+width-72,y-24,72,function() setter(input:GetText()); input:ClearFocus() end)
+    local input=UI:CreateEditBox(panel,x,y-24,width-88,getter,nil,skillsMode)
+    input:SetScript("OnEnterPressed",function(self) if skillsMode() then setter(self:GetText()) end;self:ClearFocus();self:Refresh() end)
+    local apply=UI:CreateButton(panel,"적용",x+width-72,y-24,72,function() if skillsMode() then setter(input:GetText()) end;input:ClearFocus() end,skillsMode)
+    input.applyButton=apply
     local info=UI:CreateDescription(panel,"",x,y-62); info:SetWidth(width)
     return input,info
   end
   self.meleeSpell,self.meleeInfo=spellField("근거리 판정 주문",function() return FR.db.meleeSpellID or FR.db.hunterMeleeSpellID or "" end,function(v) FR:SetMeleeSpell(v) end)
   self.rangeSpell,self.rangeInfo=spellField("원거리 판정 주문",function() return FR.db.rangedSpellID or FR.db.rangeSpellID or "" end,function(v) FR:SetRangeSpell(v) end)
   b:Flush()
-  b:Button("스킬북에서 등록",function() FR:OpenSpellBookPanel() end,180)
+  self.bookRegister=b:Button("스킬북에서 등록",function() FR:OpenSpellBookPanel() end,180,skillsMode)
   self.registrationResult=b:Description("",true)
-  b:Description("일반 직업: 하나라도 사거리 안이면 가능, 모두 밖이면 불가. 하나 이상 판정 불가이면 기존 미확인 처리. 빈 입력 적용은 해당 등록 해제입니다.")
-  if hunter() then
-    b:Section("사냥꾼 판정")
+  b.cells[#b.cells].visible=function() return FR.registrationMessage~=nil and FR.registrationMessage~="" end
+  local weaponStart=#b.cells+1
+  do
+    b:Section("원거리 무기 판정")
     b:Checkbox("근거리 공격도 가능으로 판정",function() return FR.db.hunterMeleeAsAttack end,function(v) FR.db.hunterMeleeAsAttack=v; FR:RefreshDisplay(true) end)
     b:Checkbox("데드존 감지 사용",function() return FR.db.deadZoneEnabled end,function(v) FR.db.deadZoneEnabled=v; FR:RefreshDisplay(true) end)
-    b:Description("켜면 원거리 또는 근거리 주문 중 하나라도 사거리 안일 때 초록색입니다. 두 주문 모두 밖이면 기존 보수적 데드존 판정을 사용합니다. 꺼두면 기존 원거리 기준 방식입니다.")
-    b:Description("랩터의 일격(2973 계열)은 습득한 날개 절단으로 확인합니다. 주문 검사가 불가능하면 별도의 5야드 검사를 사용합니다. 먼 거리에서는 빨강, 확인된 근거리에서는 초록입니다. 모든 검사가 불가능할 때만 판정 불가입니다.")
   end
+  for i=weaponStart,#b.cells do b.cells[i].visible=function() return FR.Range:UsesRangedWeapon()==true end end
   b:Section("마우스오버 거리 측정")
   local function mouseoverEnabled() return FR.db.mouseover.enabled end
-  local function refreshMouseover() FR.Mouseover:Update(); UI:Refresh(panel) end
-  b:Checkbox("적 툴팁에 표시",function() return FR.db.mouseover.enabled end,function(v) FR.db.mouseover.enabled=v; refreshMouseover() end)
+  local function refreshMouseover() FR:RefreshDisplay();FR:SyncUpdates();FR:UpdateSettings() end
+  b:Checkbox("마우스오버 거리 측정 사용",function() return FR.db.mouseover.enabled end,function(v) FR.db.mouseover.enabled=v; refreshMouseover() end)
+  b:Dropdown("마우스오버 표시 방식",{{value="skills",text="텍스트 표시"},{value="distance",text="숫자 표시"}},
+    function() return FR.db.mouseover.mode end,function(v) FR.db.mouseover.mode=v;refreshMouseover() end,mouseoverEnabled)
   b:Flush()
   local px,py,pw=b:Cell("dropdown",2,UI.Theme.DropdownRowHeight)
   local positionLabel=UI:CreateLabel(panel,"표시 위치",px,py);positionLabel:SetWidth(pw)
-  local position=UI:CreateDropdown(panel,px,py-24,pw,{{value="BELOW",text="툴팁 아래"},{value="LEFT",text="툴팁 왼쪽"}},function() return FR.db.mouseover.position end,function(v) FR.db.mouseover.position=v; refreshMouseover() end,mouseoverEnabled)
+  local position=UI:CreateDropdown(panel,px,py-24,pw,{{value="BELOW",text="툴팁 아래"},{value="LEFT",text="툴팁 왼쪽"},{value="CURSOR",text="커서 옆"}},function() return FR.db.mouseover.position end,function(v) FR.db.mouseover.position=v; refreshMouseover() end,mouseoverEnabled)
   position.uiLabels={positionLabel};position:Refresh()
   local rx,ry=b:Cell("dropdown",2,UI.Theme.DropdownRowHeight)
-  local reset=UI:CreateButton(panel,"메시지 위치 초기화",rx,ry-24,180,function() FR.db.mouseover.x,FR.db.mouseover.y=0,0;refreshMouseover() end,mouseoverEnabled)
+  local reset=UI:CreateButton(panel,"마우스오버 위치 초기화",rx,ry-24,180,function() FR.db.mouseover.x,FR.db.mouseover.y=0,0;refreshMouseover() end,mouseoverEnabled)
   local x=b:Slider("X 위치 보정",-100,200,1,function() return FR.db.mouseover.x end,function(v) FR.db.mouseover.x=v; refreshMouseover() end,nil,mouseoverEnabled)
   local y=b:Slider("Y 위치 보정",-100,100,1,function() return FR.db.mouseover.y end,function(v) FR.db.mouseover.y=v; refreshMouseover() end,nil,mouseoverEnabled)
-  b:Button("마우스오버 문구 위치 편집",function() KHQOL.PositionEditor:Enter("range.mouseover") end,nil,mouseoverEnabled)
+  local function textEnabled() return mouseoverEnabled() and FR.db.mouseover.mode~="distance" end
   local messages={}
   for index,entry in ipairs({{"availableText","공격가능 문구"},{"unavailableText","공격불가 문구"}}) do
     local key,title=entry[1],entry[2]
     local input=b:Edit(title,function() return FR.db.mouseover[key] end,function(v)
       v=v:gsub("^%s+",""):gsub("%s+$","")
       FR.db.mouseover[key]=FR:LimitMouseoverText(v~="" and v or FR.defaults.mouseover[key]);refreshMouseover()
-    end,mouseoverEnabled)
+    end,textEnabled)
     input:SetMaxLetters(8);messages[index]=input
   end
   local font=b:Slider("글자 크기",10,40,1,function() return FR.db.mouseover.fontSize end,function(v) FR.db.mouseover.fontSize=v;refreshMouseover() end,function(v) return v.." px" end,mouseoverEnabled)
   self.mouseoverControls={position=position,reset=reset,x=x,y=y,font=font,available=messages[1],unavailable=messages[2]}
-  b:Description("문구는 한글 포함 최대 8자입니다. Enter로 적용하며 빈 입력은 기본 문구로 복원합니다. X +는 오른쪽, Y +는 위쪽입니다. 사망한 대상은 표시하지 않습니다.")
-  b:Description("위에서 등록한 사거리 기준 주문을 사용합니다. 초록: 공격 가능 / 빨강: 공격 불가 / 노랑: 판정 불가. 재사용 대기시간, 자원, 시야는 확인하지 않습니다.")
+  local legacyStart=#b.cells+1
   b:Section("위치")
-  b:Checkbox("위치 잠금",function() return FR.db.locked end,function(v) FR:ToggleLock(v) end)
+  b:PositionLock("위치 잠금",function() return FR.db.locked end,function(v) FR:ToggleLock(v) end)
   b:Slider("X 위치",-1000,1000,1,function() return FR.db.x end,function(v) FR:SetNumber("x",v,-1000,1000) end)
   b:Slider("Y 위치",-1000,1000,1,function() return FR.db.y end,function(v) FR:SetNumber("y",v,-1000,1000) end)
   b:Section("표시 모양")
@@ -79,11 +89,9 @@ function Settings:Create(parent)
       FR:RefreshDisplay(true)
     end,stateTextEnabled)
   end
-  b:Description("스킬 사거리 별 문구 OFF 시 특수 문자를 사용합니다.",true)
   self.shape=b:Edit("특수 문자",function() return FR.db.shape end,function(v)
     FR.db.shape=v~="" and v or "\226\150\160"; FR:RefreshDisplay(true)
   end,function() return not stateTextEnabled() end)
-  UI:AttachTooltip(self.shape,"특수 문자","문자를 입력하고 Enter를 눌러 적용합니다.")
   b:Slider("크기",10,80,1,function() return FR.db.size end,function(v) FR:SetNumber("size",v,10,80) end,function(v) return v.." px" end)
   b:Section("외곽선")
   b:Checkbox("외곽선 표시",function() return FR.db.outline.enabled end,function(v) FR.db.outline.enabled=v; FR:RefreshDisplay(true) end)
@@ -97,10 +105,10 @@ function Settings:Create(parent)
     local key,title=definition[1],definition[2]
     b:Color(title,function() return unpack(FR.db.colors[key]) end,function(r,g,bl) FR:SetColor(key,r,g,bl,1) end)
   end
+  for i=legacyStart,#b.cells do b.cells[i].visible=function() return FR.db.displayMode=="skills" end end
   b:BeginDisclosure("고급 / 확인","range-diagnostics",2)
-  b:Button("표시 테스트",function() FR:CycleTest() end)
+  b:Button("표시 테스트",function() FR:CycleTest() end,nil,function() return FR.db.displayMode=="skills" end)
   local api=b:Button("API 상태",function() FR.Range:DescribeAPI() end)
-  UI:AttachTooltip(api,"API 상태","클라이언트의 기존 사거리 API 진단 정보를 채팅에 표시합니다.")
   b:EndDisclosure();b:Reflow()
   panel:SetHeight(-(b.reflowBottom or b.y)); panel:HookScript("OnShow",function() FR:UpdateSettings() end)
   FR:UpdateSettings()
@@ -113,10 +121,13 @@ function FR:UpdateSettings()
       local id=self.db[slot.."SpellID"]
       if not id then id=slot=="ranged" and self.db.rangeSpellID or self.db.hunterMeleeSpellID end
       local name=id and (self.Range:GetSpellInfo(id) or self.db[slot.."SpellName"])
-      label:SetText(id and ("등록됨: "..(name or "조회 불가").." ("..id..")") or "미등록")
+      label:SetText(id and ((name or "조회 불가").." ("..id..")") or "미등록")
     end
     if Settings.registrationResult then Settings.registrationResult:SetText(self.registrationMessage or "") end
+    self.Distance:UpdateMeasurementLabel(self.distanceState)
     UI:Refresh(Settings.panel)
+    local builder=Settings.panel.uiBuilder
+    if builder then builder:Reflow();Settings.panel:SetHeight(-(builder.reflowBottom or builder.y)) end
   end
   if self.RefreshSpellBookPanel then self:RefreshSpellBookPanel() end
 end
@@ -182,11 +193,13 @@ function FR:RefreshSpellBookPanel(rebuild)
   if p.wheelBody then KHQOL.modules.partyFrames:RefreshBookWheel() end
   if rebuild or not self.bookOptions then self.bookOptions=self:GetBookCandidates() end
   p.selection:Refresh()
+  p.meleeButton:Refresh();p.rangedButton:Refresh()
   local selected,message=self:ValidateReferenceSpell(self.bookSelected)
   p.selectedName:SetText(selected and selected.name or "스킬명 또는 SpellID 입력")
   p.icon:SetTexture(selected and selected.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
-  p.message:SetText(self.registrationMessage or (self.bookSelected and message) or (#self.bookOptions==0 and "학습한 주문 목록 조회 불가. 스킬명 또는 SpellID를 입력하세요." or "스킬을 아래 등록 버튼으로 끌어 놓으세요. 목록 선택·스킬명 입력도 가능합니다."))
-  if not KHQOL:GetEnabled("range") then p.message:SetText("사거리 모듈을 켠 후 기준 주문을 등록하세요.") end
+  p.message:SetText(self.registrationMessage or (self.bookSelected and message) or "")
+  if not KHQOL:GetEnabled("range") then p.message:SetText("사거리 모듈을 켠 후 기준 주문을 등록하세요.")
+  elseif self.db.displayMode~="skills" then p.message:SetText("스킬 유효 거리 모드에서 기준 주문을 등록하세요.") end
   for _,slot in ipairs({"melee","ranged"}) do
     local id=self.db and self.db[slot.."SpellID"]
     local name=id and (self.Range:GetSpellInfo(id) or self.db[slot.."SpellName"])
@@ -196,7 +209,8 @@ function FR:RefreshSpellBookPanel(rebuild)
 end
 function FR:CloseSpellBookPanel()
   if self.bookPanel then
-    if KHQOL.UI.openDropdown==self.bookPanel.selection.menu then KHQOL.UI:CloseDropdown() end
+    local menu=KHQOL.UI.openDropdown;local wheel=self.bookPanel.wheelBody
+    if menu and (menu==self.bookPanel.selection.menu or wheel and wheel.modifier and menu==wheel.modifier.menu) then KHQOL.UI:CloseDropdown() end
     self.bookPanel:Hide();self.bookPanel.input:ClearFocus()
   end
 end
@@ -214,24 +228,26 @@ function FR:TryAttachSpellBook()
   if not host then self:CloseSpellBookPanel();if self.bookButton then self.bookButton:Hide() end;return end
   local UI=KHQOL.UI
   if not self.bookButton then
-    local button=UI:CreateButton(UIParent,"KHQOL\n설정",0,0,100,function()
+    local button=UI:CreateButton(UIParent,"KHQOL 스킬 설정",0,0,144,function()
       if FR.bookPanel:IsShown() then FR:CloseSpellBookPanel()
       else FR:OpenSpellBookPanel() end
     end)
-    self.bookButton=button;button:SetSize(100,44);button:SetFrameStrata("DIALOG");button:SetClampedToScreen(true)
+    self.bookButton=button;button:SetSize(144,28);button:SetFrameStrata("DIALOG");button:SetClampedToScreen(true)
     local p=CreateFrame("Frame","KHQOLRangeBookRegistration",UIParent,"BackdropTemplate")
     self.bookPanel=p;p.uiControls={};p.khqolSpellBookPanel=true;p:SetSize(310,412);p:SetFrameStrata("DIALOG");p:SetClampedToScreen(true)
     p:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
     p:SetBackdropColor(unpack(UI.Theme.Background));p:SetBackdropBorderColor(unpack(UI.Theme.Border))
-    UI:CreateLabel(p,"KHQOL 설정",12,-12):SetWidth(245)
+    p.title=UI:CreateLabel(p,"KHQOL 스킬 설정",12,-12);p.title:SetWidth(245)
     UI:CreateButton(p,"X",272,-8,26,function() FR:CloseSpellBookPanel() end)
     p.rangeBody=CreateFrame("Frame",nil,p);p.rangeBody:SetSize(310,366)
     local party=KHQOL.modules.partyFrames
     local kinds={"range"}
     if KHQOL.ModuleRegistry.entries.partyFrames and party and party.BuildBookWheel then
       p.wheelBody=CreateFrame("Frame",nil,p);p.wheelBody:SetSize(310,326);p.wheelBody:Hide()
-      p.rangeTab=UI:CreateButton(p,"사거리 설정",12,-42,137,function() FR:SelectBookTab("range") end)
-      p.wheelTab=UI:CreateButton(p,"휠 클릭 시전",161,-42,137,function() FR:SelectBookTab("wheel") end)
+      p.rangeTab=UI:CreateButton(p,"사거리 설정",12,-42,143,function() FR:SelectBookTab("range") end)
+      p.wheelTab=UI:CreateButton(p,"휠 클릭 시전",155,-42,143,function() FR:SelectBookTab("wheel") end)
+      p.rangeTab:SetSize(143,UI.Theme.ButtonHeight);p.wheelTab:SetSize(143,UI.Theme.ButtonHeight)
+      p.wheelTab:ClearAllPoints();p.wheelTab:SetPoint("LEFT",p.rangeTab,"RIGHT",0,0)
       party:BuildBookWheel(p.wheelBody)
       kinds[2]="wheel"
     end
@@ -249,10 +265,9 @@ function FR:TryAttachSpellBook()
       local slot=entry[1]
       local button=UI:CreateButton(body,entry[2],entry[3],-171,137,function()
         if read(GetCursorInfo)~=nil then FR:ReceiveBookSpell(slot) else FR:RegisterBookSelection(slot) end
-      end,function() return KHQOL:GetEnabled("range") and outsideCombat() end)
+      end,function() return KHQOL:GetEnabled("range") and FR.db.displayMode=="skills" and outsideCombat() end)
       p[slot.."Button"]=button
       button:SetScript("OnReceiveDrag",function() FR:ReceiveBookSpell(slot) end)
-      UI:AttachTooltip(button,entry[2],"마법책의 스킬을 이 버튼으로 끌어 놓으면 등록됩니다.")
     end
     p.meleeInfo=UI:CreateDescription(body,"",12,-216);p.meleeInfo:SetWidth(286)
     p.rangedInfo=UI:CreateDescription(body,"",12,-253);p.rangedInfo:SetWidth(286)
@@ -282,7 +297,10 @@ function FR:TryAttachSpellBook()
       local view=self.rangeViewport
       view:SetVerticalScroll(math.min(view:GetVerticalScroll(),math.max(0,self.rangeBody:GetHeight()-view:GetHeight())))
     end
-    p:SetScript("OnHide",function() p.input:ClearFocus();if UI.openDropdown==p.selection.menu then UI:CloseDropdown() end end)
+    p:SetScript("OnHide",function()
+      p.input:ClearFocus();local menu=UI.openDropdown
+      if menu and (menu==p.selection.menu or p.wheelBody and menu==p.wheelBody.modifier.menu) then UI:CloseDropdown() end
+    end)
     p:Hide();button:Hide()
   end
   if self.bookHost~=host or self.bookRoot~=root then

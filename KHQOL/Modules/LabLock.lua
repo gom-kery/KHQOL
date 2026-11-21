@@ -16,20 +16,24 @@ function L:IsExperimental(key)
   return m and m.experimental==true or false
 end
 function KHQOL:CanRunModule(key)
+  if key=="objectHighlight" and self.LabLock.fullResetPending then return false end
   return self.db and self.ModuleRegistry.entries[key]~=nil and self.ModuleRegistry:CanRun(key,self:GetEnabled(key)) or false
 end
 function L:RefreshRuntime()
   if not KHQOL.db then return end
-  local p,h=KHQOL.modules.procAlert,KHQOL.modules.objectHighlight
-  if p and p.SetEnabled then KHQOL:SetEnabled("procAlert",KHQOL:GetEnabled("procAlert"),true) end
-  if h then h:Sync() end
+  for _,key in ipairs(KHQOL.ModuleRegistry.order) do
+    local p=KHQOL.modules[key]
+    if self:IsExperimental(key) and p and p.SetEnabled then KHQOL:SetEnabled(key,KHQOL:GetEnabled(key),true) end
+  end
 end
 function L:RefreshUI()
   local s=KHQOL.settings
   if KHQOL.UI then KHQOL.UI:CloseDropdown() end
   if KHQOL.UI then KHQOL.UI:CloseColorPicker() end
   if s then
-    if s.page=="labs" then s:ShowPage("labs") else s:RefreshActivePage() end
+    local panel=s.activeContent and s.activeContent.activePanel
+    if panel and panel.SelectLab then panel:RefreshTab();panel:ActivateHeader();s:RefreshActivePage()
+    elseif s.page=="labs" then s:ShowPage("labs") else s:RefreshActivePage() end
   end
 end
 function L:Unlock(value)
@@ -45,13 +49,9 @@ function L:Unlock(value)
   return true,"잠금을 해제했습니다."
 end
 function L:Relock()
-  if KHQOL.PositionEditor and KHQOL.PositionEditor.active then KHQOL.PositionEditor:Finish(false) end
+  if KHQOL.PositionEditor and KHQOL.PositionEditor.active then KHQOL.PositionEditor:Finish(false,false,"navigation") end
   local d=self:GetStorage();d.unlocked=false;d.unlockVerifier=nil
   self:RefreshRuntime();self:RefreshUI()
-  local h=KHQOL.modules.objectHighlight or KHQOL.GraphicsJournal
-  if h and h:GetState().mayNeedRestart and KHQOL.ProfileMessage then
-    KHQOL:ProfileMessage("실험실을 잠갔습니다. "..h:GetStatus().." 효과가 사라지려면 게임 재시작이 필요할 수 있습니다.")
-  end
 end
 function L:BuildLockedSettings(content,y)
   local UI=KHQOL.UI;local b=UI:CreateBuilder(content,y)
@@ -76,6 +76,8 @@ function L:BuildLockedSettings(content,y)
 end
 function L:RequestFullReset(complete)
   self.fullResetPending=true;self.resetComplete=complete;self.resetPreparing=true
+  local h=KHQOL.modules.objectHighlight or KHQOL.GraphicsJournal
+  if h then h:Sync() end
   self:RefreshRuntime();self:RefreshUI()
   self.resetPreparing=nil
   self:OnGraphicsSettled()

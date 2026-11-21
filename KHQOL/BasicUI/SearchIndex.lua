@@ -14,3 +14,9 @@ N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 �
 N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 프레임 이동"},"이동 키 (+ 드래그)")
 N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 프레임 이동"},"모든 프레임 위치 초기화")
 N:Register({module="basicUI",scope="현재 프로필",section="Blizzard 기본 프레임 이동"},"기본창 전체 위치 편집")
+for section,titles in pairs({["주사위 굴림"]={"주사위 굴림 외형 변경","창 크기","글자 크기","주사위 위치 편집","주사위 위치 초기화","주사위 굴림 설정 초기화"},
+  ["알림"]={"기본 알림 위치·크기 변경","공통 알림 위치","공통 알림 위치 초기화","도안 습득 알림 크기","알림 설정 초기화"}}) do
+  for _,title in ipairs(titles) do N:Register({module="basicUI",scope="계정 공용",section=section},title) end
+end
+
+N:Register({module="basicUI",scope="계정 공용",section="알림"},"도안·아이템 획득 알림","위치·크기·잠금 · 희귀 영웅 획득 배너","도안 습득 알림")

@@ -144,6 +144,7 @@ end
 function M:SelectFrameProfile(name)
   local ok,why=self:CanChangeFrameProfile();if not ok then return false,why end
   local store=self:FrameProfileStore();if type(store.frameProfiles[name])~="table" then return false,"프레임 프로필을 찾을 수 없습니다." end
+  if K.PositionAnchors then K.PositionAnchors:FinishDrags("partyFrames") end
   self:CloseLivePreview()
   local char=self:GetCharacterDB()
   if store==char then char.frameProfile=name else char.sharedFrameProfile=name end
@@ -171,6 +172,7 @@ function M:DeleteFrameProfile(name)
   local ok,why=self:CanChangeFrameProfile();if not ok then return false,why end
   local store=self:FrameProfileStore()
   if name=="기본" or type(store.frameProfiles[name])~="table" then return false,"삭제할 프레임 프로필을 확인하세요." end
+  if K.PositionAnchors then K.PositionAnchors:FinishDrags("partyFrames") end
   local active=self:ActiveFrameProfile()
   self:CloseLivePreview();store.frameProfiles[name]=nil
   local char=self:GetCharacterDB()
@@ -180,6 +182,7 @@ function M:DeleteFrameProfile(name)
   self:RequestApply();return true
 end
 function M:ResetFrameProfile()
+  if K.PositionAnchors then K.PositionAnchors:FinishDrags("partyFrames") end
   local store=self:FrameProfileStore();local name=self:ActiveFrameProfile();local old=store.frameProfiles[name]
   local fresh=self:NormalizeDB({});K.PreserveUnknownProfileValue(old,fresh,self:NormalizeDB({}))
   fresh.debuffs.excludeSpellIDs={} -- The dynamic ID map is a known setting.

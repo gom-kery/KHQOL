@@ -1,5 +1,5 @@
 local addonName, A = ...
-A.name, A.version = addonName, "1.11.8.3"
+A.name, A.version = addonName, "1.11.9.8"
 local K = assert(_G.KHQOL, "Install and enable KHQOL.")
 K.modules.minimap = A
 A.geometryEpsilon = 0.01

@@ -1,3 +1,11 @@
+# 1.11.9.0 연결 변경
+
+버프 리마인더의 소유 패키지는 KHQOL_Labs에서 KHQOL_Convenience로 변경되었습니다. 키 buffReminder, ForeverBuffReminderDB 및 Core의 단일 SavedVariables 선언, 기존 position/diagnostic ID는 그대로입니다. 편의 기능 탭은 일반 편의(기존 세부 탭 포함) / 버프 리마인더 / 오브젝트 강조 / 포에버 노트입니다. Labs ProcAlert는 Core SpellDetails를 사용하며 리마인더 유무와 독립입니다.
+
+선택 설치 모의: Full, DevTools OFF, Labs 없음, Convenience 없음, UnitFrames 없음, Core+Labs PASS. 미설치 패키지의 메뉴/검색/위치는 기존 설치 정리 경로로 제외하고 저장 데이터는 유지합니다. 실제 클라이언트 조합은 NOT TESTED.
+
+---
+
 # KHQOL 1.11.6.0 — 최종 안정화 연결
 
 배포 `KHQOL-1.11.6.0-최종안정화.zip` · 기준 1.11.5.11. 19개 폴더 · 논리 모듈 27개 · 287파일 · Lua 207개 · XML 6개 · 미디어 32개 · 저장 변수 11개.

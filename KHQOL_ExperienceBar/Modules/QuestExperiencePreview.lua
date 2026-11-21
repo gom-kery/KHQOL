@@ -87,7 +87,7 @@ function P:Collect(allowSync)
   self.valid=not failed
   if failed and allowSync and self.queued then self.allowSync=true end
   if allowSync and not failed then
-    self.awaitLog=false;self.syncedXP=endXP;self.syncedLevel=endLevel
+    self.awaitLog=false;self.ambiguous=nil;self.syncedXP=endXP;self.syncedLevel=endLevel
   end
   self.status=failed and "퀘스트 로그가 변경되어 경험치 미리보기를 다시 확인합니다."
     or self.awaitLog and "경험치 변경 후 퀘스트 로그 동기화를 기다립니다."
@@ -113,11 +113,19 @@ function P:ObserveXP(data,newLevel)
     self.awaitLog=true;self.valid=false;self.status="레벨 변경 후 퀘스트 보상을 다시 확인합니다.";self:Hide()
     self:QueueXPRefresh()
   elseif self.lastXP and data.value~=self.lastXP then
-    -- XP can arrive BEFORE the turn-in/log event. Do not render old quest XP
-    -- on top of newly awarded XP. Re-read the current quest state even if a
-    -- kill or discovery did not produce a subsequent quest log event.
     if self.syncedXP~=data.value or self.syncedLevel~=data.level then
-      self.awaitLog=true;self.status="경험치 변경 후 퀘스트 로그 동기화를 기다립니다.";self:Hide()
+      -- XP arrives before the turn-in event on some paths. Quarantine a
+      -- matching reward while leaving unrelated completed quests visible.
+      local gain=data.value-self.lastXP
+      if self.dialog then self.awaitLog=true
+      elseif gain>0 then
+        for questID,reward in pairs(self.entries) do
+          if reward==gain then
+            self.ambiguous=self.ambiguous or {}
+            self.ambiguous[questID]=true
+          end
+        end
+      end
       self:QueueXPRefresh()
     end
   end
@@ -129,7 +137,7 @@ function P:QueueXPRefresh()
   C_Timer.After(.25,function()
     if P.xpRefresh~=ticket or not P.active then return end
     P.xpRefresh=nil
-    if P.awaitLog then P:Queue(true) end
+    P:Queue(true)
   end)
 end
 function P:Amount(data)
@@ -138,12 +146,14 @@ function P:Amount(data)
     or (self.dialog and call(rewardPanel and rewardPanel.IsVisible,rewardPanel)~=false)
     or not data or data.kind~="experience"
     or data.atCap or not number(data.maximum) or data.maximum<=0 then return 0 end
-  return self.total or 0
+  local amount=self.total or 0
+  for questID in pairs(self.ambiguous or {}) do amount=amount-(self.entries[questID] or 0) end
+  return amount
 end
 function P:Text(base,data)
   local amount=self:Amount(data)
   if amount<=0 then return base end
-  if X.db.showQuestXPText then base=base.." (+"..X:FormatNumber(amount).." 예상)" end
+  if X.db.showQuestPreview then base=base..(base~="" and " " or "").."(+"..X:FormatNumber(amount).." 예상)" end
   if X.db.showQuestLevelPrediction and amount>=data.remaining then base=base.." · 레벨업 예상" end
   return base
 end
@@ -151,11 +161,10 @@ function P:OnEvent(event,questID,second)
   if not self.active then return end
   self.revision=self.revision+1
   if event=="QUEST_TURNED_IN" or event=="QUEST_REMOVED" then
-    self.awaitLog=true
     if id(questID) then
       self.blocked[questID]=true;self.entries[questID]=nil;self.known[questID]=nil;self.requested[questID]=nil;self:Sum()
     end
-    self:Hide();self.status="퀘스트 반납/제거 후 로그 동기화 대기"
+    self.status="퀘스트 반납/제거 후 로그 동기화 대기"
     self:QueueXPRefresh();X:Render()
   elseif event=="QUEST_COMPLETE" then
     self.dialog=true;self.dialogXP=call(UnitXP,"player");self.dialogLevel=call(UnitLevel,"player")
@@ -181,7 +190,7 @@ function P:Configure()
   self.active=false;self.queued=nil;self.allowSync=nil;self:Hide()
   self.xpRefresh=nil;self.known={};self.requested={}
   if self.events then self.events:UnregisterAllEvents() end
-  self.entries={};self.total=0;self.count=0;self.valid=false;self.awaitLog=false;self.dialog=nil
+  self.entries={};self.total=0;self.count=0;self.valid=false;self.awaitLog=false;self.dialog=nil;self.ambiguous=nil
   self.lastXP,self.lastLevel=nil,nil;self.syncedXP,self.syncedLevel=nil,nil
   self.configDB=db;self.generation=K.profileGeneration
   if not wanted then self.status="완료 퀘스트 경험치 미리보기 OFF";return end

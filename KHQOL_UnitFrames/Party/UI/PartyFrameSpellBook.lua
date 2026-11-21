@@ -10,7 +10,7 @@ function M:ReceiveWheelSpell(direction)
   if kind~="spell" or not K.IsPublicNumber(id) or id<=0 or id~=math.floor(id) then
     self.wheelBookMessage="마법책에서 배운 스킬을 끌어 놓으세요.";self:RefreshBookWheel();return false
   end
-  local ok=self:SetWheelSpell(direction,id)
+  local ok=self:SetWheelSpell(direction,id,self:GetWheelEditModifier(),true)
   self.wheelBookMessage=ok and "등록했습니다. 프레임 안 휠 시전 사용을 켜세요." or self.inputReason
   if ok and type(ClearCursor)=="function" then ClearCursor() end
   self:RefreshBookWheel();return ok
@@ -18,13 +18,14 @@ end
 function M:RefreshBookWheel()
   local p=self.wheelBookPanel;if not p then return end
   for _,direction in ipairs({"up","down"}) do
-    p[direction.."Info"]:SetText(self:SpellLabel(direction))
-    local id=self:GetCharacterDB()[direction];local info=call(C_Spell and C_Spell.GetSpellInfo,id)
+    p[direction.."Info"]:SetText(self:SpellLabel(direction,self:GetWheelEditModifier()))
+    local id=self:GetWheelSpell(direction,self:GetWheelEditModifier());local info=call(C_Spell and C_Spell.GetSpellInfo,id)
     local icon=type(info)=="table" and call(function() return info.iconID end)
     p[direction.."Icon"]:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
   end
   p.message:SetText(self.wheelBookMessage or self.inputReason or "등록칸에 마법책 스킬을 끌어 놓으세요. 주문과 등급은 캐릭터별로 저장합니다.")
   if p.enabled then p.enabled:Refresh() end
+  if p.modifier then p.modifier:Refresh() end
   if p.ReflowWheel then p:ReflowWheel() end
 end
 function M:BuildBookWheel(p)
@@ -32,7 +33,16 @@ function M:BuildBookWheel(p)
   local class=call(UnitClass,"player")
   p.caption=UI:CreateDescription(p,(type(class)=="string" and class or "현재 직업").." · 현재 캐릭터의 휠 주문",12,-4);p.caption:SetWidth(286)
   local function editable() return call(InCombatLockdown)~=true end
-  p.enabled=UI:CreateCheckbox(p,"프레임 안 휠 시전 사용",12,-34,function() return M:GetCharacterDB().wheelEnabled end,function(v) M:GetCharacterDB().wheelEnabled=v;M:RequestApply() end,editable)
+  p.clickSettings=UI:CreateButton(p,"클릭 시전 열기",12,-30,286,function()
+    local ok,why=M:OpenClickSettings();M.wheelBookMessage=not ok and why or nil;M:RefreshBookWheel()
+  end,editable);p.clickSettings.navigationOnly=true
+  p.modifierLabel=UI:CreateLabel(p,"보조키",12,-66)
+  p.modifier=UI:CreateDropdown(p,76,-60,222,M.wheelModifiers,function() return M:GetWheelEditModifier() end,function(v) M:SetWheelEditModifier(v) end)
+  p.modifier.navigationOnly=true;p.modifier.menuNavigation=true
+  p.enabled=UI:CreateCheckbox(p,"프레임 안 휠 시전 사용",12,-34,function() return M:GetCharacterDB().wheelEnabled end,function(v)
+    local char=M:GetCharacterDB();local changed=char.wheelEnabled~=v;char.wheelEnabled=v;M:RequestApply()
+    if changed then K.UsageDiagnostics:Emit("setting.partyFrames.roles.control061","change","click",nil,true) end
+  end,editable)
   UI:AttachTooltip(p.enabled,"파티·공격대 프레임 전용","이 모듈이 만든 파티·공격대 프레임에만 적용합니다. 별도의 기본 플레이어·대상 프레임과 일반 휠 단축키에는 적용하지 않습니다. 게임의 마우스를 올려 시전 옵션과 별개입니다.")
   for i,direction in ipairs({"up","down"}) do
     local which=direction;local top=-78-(i-1)*96
@@ -42,7 +52,7 @@ function M:BuildBookWheel(p)
     UI:AttachTooltip(button,title,"마법책에서 배운 주문을 이 칸에 끌어 놓으면 해당 등급을 등록합니다.")
     p[direction.."Button"]=button
     p[direction.."Clear"]=UI:CreateButton(p,"해제",230,top,68,function()
-      M:SetWheelSpell(which,0);M.wheelBookMessage="해당 방향의 주문을 해제했습니다.";M:RefreshBookWheel()
+      M:SetWheelSpell(which,0,M:GetWheelEditModifier(),true);M.wheelBookMessage="선택한 보조키의 해당 방향 주문을 해제했습니다.";M:RefreshBookWheel()
     end,editable)
     local icon=p:CreateTexture(nil,"ARTWORK");icon:SetSize(24,24);icon:SetPoint("TOPLEFT",12,top-36);p[direction.."Icon"]=icon
     local label=UI:CreateDescription(p,"",44,top-36);label:SetWidth(254);p[direction.."Info"]=label
@@ -50,6 +60,9 @@ function M:BuildBookWheel(p)
   p.message=UI:CreateDescription(p,"",12,-274);p.message:SetWidth(286)
   function p:ReflowWheel()
     local top=-4-self.caption:GetStringHeight()-12
+    self.clickSettings:ClearAllPoints();self.clickSettings:SetPoint("TOPLEFT",12,top);top=top-self.clickSettings:GetHeight()-14
+    self.modifier:ClearAllPoints();self.modifier:SetPoint("TOPLEFT",76,top)
+    self.modifierLabel:ClearAllPoints();self.modifierLabel:SetPoint("TOPLEFT",12,top-5);top=top-self.modifier:GetHeight()-12
     self.enabled:ClearAllPoints();self.enabled:SetPoint("TOPLEFT",12,top);self.enabled.text:SetWidth(252)
     top=top-math.max(34,self.enabled.text:GetStringHeight()+12)-10
     for _,direction in ipairs({"up","down"}) do

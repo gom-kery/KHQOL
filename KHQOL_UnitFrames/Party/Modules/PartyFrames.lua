@@ -8,7 +8,7 @@ local R=K.ModuleRegistry
 local call,number=K.PublicCall,K.IsPublicNumber
 local function combat() return call(InCombatLockdown)==true end
 local function bounded(v,d,lo,hi) return number(v) and math.max(lo,math.min(hi,v)) or d end
-M.defaults={showSolo=true,showPower=true,showHealth=true,showRole=true,showMarker=true,fontSize=12,
+M.defaults={positionLocks={party=true,raid=true},showSolo=true,showPower=true,showHealth=true,showRole=true,showMarker=true,fontSize=12,
   powerHeight=5,healthGradient=false,background={r=.06,g=.07,b=.09,a=1},
   namePosition={point="TOPLEFT",x=4,y=-2},healthPosition={point="BOTTOMRIGHT",x=-4,y=2},
   markerPosition={point="TOPRIGHT",x=-19,y=-2,size=14},rolePosition={point="BOTTOMLEFT",x=4,y=2,size=14},
@@ -64,7 +64,7 @@ function M:GetDB()
   return K.db.modules.partyFrames
 end
 function M:GetCharacterDB()
-  KHQOLPartyCharDB=K.MergeDefaults(type(KHQOLPartyCharDB)=="table" and KHQOLPartyCharDB or {},{wheelEnabled=false,up=0,down=0},"types")
+  KHQOLPartyCharDB=K.MergeDefaults(type(KHQOLPartyCharDB)=="table" and KHQOLPartyCharDB or {},{wheelEnabled=false,up=0,down=0,shiftUp=0,shiftDown=0},"types")
   return KHQOLPartyCharDB
 end
 function M:Initialize()
@@ -218,7 +218,8 @@ function M:CheckNativeOwnership()
   end
 end
 function M:ClearWheel()
-  for _,button in ipairs(self.buttons) do ClearOverrideBindings(button) end
+  for _,button in ipairs(self.buttons) do ClearOverrideBindings(button);button:SetAttribute("kh-wheel",false) end
+  if self.wheelController then UnregisterStateDriver(self.wheelController,"khwheelmod") end
 end
 function M:ApplyLatest()
   if combat() then self:RequestApply();return end
@@ -260,6 +261,7 @@ function M:ApplyLatest()
   self:RefreshStatus()
 end
 function M:RefreshStatus()
+  if K.PositionAnchors then K.PositionAnchors:Queue() end
   local feature
   for _,value in pairs(self.featureReasons or {}) do feature=value;break end
   local notice=self.inputReason or self.failure or (self.pending and "전투 종료 후 변경을 적용합니다.") or self.wheelReason or feature or ""
@@ -288,16 +290,28 @@ function M:CancelPreview()
   for _,f in pairs(self.previews or {}) do f:Hide() end
   if not combat() and #self.buttons>0 then self:ClearWheel() end
 end
-function M:PositionTargets()
+function M:AnchorRaidLayout()
+  local key=self.editedLayout
+  return (key=="raid10" or key=="raid20" or key=="raid40") and key or self:RaidLayoutKey()
+end
+function M:PositionTargets(focus)
   if not self.applied or combat() then return {} end
-  local targets={};self.previews=self.previews or {}
+  local anchorKey=type(focus)=="string" and focus:match("^partyFrames%.anchor%.(.+)$")
+  if anchorKey and anchorKey~="party" and anchorKey~="raid10" and anchorKey~="raid20" and anchorKey~="raid40" then return {} end
+  local profile=self:GetDB()
+  local targets={};local describing=K.PositionUtils.describing
+  if not describing then self.previews=self.previews or {} end
   for _,kind in ipairs({"party","raid"}) do
-    local layoutKey=kind=="raid" and self:RaidLayoutKey() or "party"
-    local d=self:GetDB()[layoutKey];local f=self.previews[kind]
-    if not f then f=CreateFrame("Frame",nil,UIParent);f:EnableMouse(false);f:Hide();self.previews[kind]=f end
+    if not anchorKey or (anchorKey=="party")==(kind=="party") then
+    local layoutKey=kind=="raid" and (anchorKey or self:RaidLayoutKey()) or "party"
+    local d=self:GetDB()[layoutKey];local f=false
+    if not describing then
+      f=self.previews[kind]
+      if not f then f=CreateFrame("Frame",nil,UIParent);f:EnableMouse(false);f:Hide();self.previews[kind]=f end
+    end
     local groups=self:MaxLayoutGroups(layoutKey)
     local width,height=self:Extent(layoutKey,d,groups)
-    self:PlaceLayoutRoot(f,layoutKey,d,groups)
+    if not describing then self:PlaceLayoutRoot(f,layoutKey,d,groups) end
     -- Editor art uses only public maximum-size samples for the selected tier.
     local art={}
     for group=1,groups do for member=1,5 do
@@ -310,14 +324,18 @@ function M:PositionTargets()
       art[#art+1]={texture="Interface\\Buttons\\WHITE8X8",width=d.width-2,height=d.height-2,x=gx+mx+d.width/2-width/2,y=height/2+gy-my-d.height/2}
     end end
     local which=layoutKey
+    local groupKind=kind
     local defaultPosition=self.defaults[kind]
     targets[#targets+1]={id="partyFrames."..kind,name=kind=="party" and "파티·솔로 프레임" or (groups*5).."인 공격대",frame=f,settingsRoute={module="partyFrames",tab="frames"},
       sample=kind=="party" and "플레이어 포함 최대 5인 미리보기" or "최대 "..(groups*5).."인 영역 미리보기",sampleY=-height/2-14,art=art,
-      write=function(dx,dy) local p=M:GetDB()[which];p.x=K.PositionStore:Round(p.x+dx);p.y=K.PositionStore:Round(p.y+dy) end,
+      current=function() return M:GetDB()==profile and (not anchorKey or anchorKey=="party" or M:AnchorRaidLayout()==which) end,
+      lock=function() profile.positionLocks[groupKind]=true end,
+      write=function(dx,dy) local p=profile[which];p.x=K.PositionStore:Round(p.x+dx);p.y=K.PositionStore:Round(p.y+dy) end,
       apply=function() M:RequestApply() end,
       resetPoint={point="TOPLEFT",relativePoint="TOPLEFT",x=defaultPosition.x,y=defaultPosition.y},resetPhysical=true,
       resetWrite=function() local p=M:GetDB()[which];p.point="TOPLEFT";p.x=defaultPosition.x;p.y=defaultPosition.y end}
+    end
   end
-  R:Own("partyFrames",self.previews,function() M:CancelPreview() end)
+  if not describing then R:Own("partyFrames",self.previews,function() M:CancelPreview() end) end
   return targets
 end

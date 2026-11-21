@@ -1,0 +1,254 @@
+[
+  {
+    "test": "run.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 31.08,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\run.py.log"
+  },
+  {
+    "test": "regression.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 4.09,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\regression.py.log"
+  },
+  {
+    "test": "coordinate_formats.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 1.29,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\coordinate_formats.py.log"
+  },
+  {
+    "test": "wheel_skills.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 3.76,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\wheel_skills.py.log"
+  },
+  {
+    "test": "tool_locks.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 2.39,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\tool_locks.py.log"
+  },
+  {
+    "test": "anchors.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 30.36,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\anchors.py.log"
+  },
+  {
+    "test": "tooltip_policy.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 2.69,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\tooltip_policy.py.log"
+  },
+  {
+    "test": "locks_guide.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 18.35,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\locks_guide.py.log"
+  },
+  {
+    "test": "lock_ui.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 22.52,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\lock_ui.py.log"
+  },
+  {
+    "test": "global_editor.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 22.84,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\global_editor.py.log"
+  },
+  {
+    "test": "party_anchors.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 5.12,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\party_anchors.py.log"
+  },
+  {
+    "test": "sliders_run.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 18.34,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\sliders_run.py.log"
+  },
+  {
+    "test": "common_levels.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 1.22,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\common_levels.py.log"
+  },
+  {
+    "test": "skill_ui.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 1.74,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\skill_ui.py.log"
+  },
+  {
+    "test": "profile_roundtrip.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 3.9,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\profile_roundtrip.py.log"
+  },
+  {
+    "test": "recipe_positions.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 1.14,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\recipe_positions.py.log"
+  },
+  {
+    "test": "upgrade24.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 2.45,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\upgrade24.py.log"
+  },
+  {
+    "test": "compatibility.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 7.08,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\compatibility.py.log"
+  },
+  {
+    "test": "improvements.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 6.38,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\improvements.py.log"
+  },
+  {
+    "test": "upgrade90.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 1.45,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\upgrade90.py.log"
+  },
+  {
+    "test": "range_hud.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 4.43,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\range_hud.py.log"
+  },
+  {
+    "test": "upgrade91.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 1.46,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\upgrade91.py.log"
+  },
+  {
+    "test": "hotfixes.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 6.05,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\hotfixes.py.log"
+  },
+  {
+    "test": "upgrade92.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 1.45,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\upgrade92.py.log"
+  },
+  {
+    "test": "fixes93.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 5.23,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\fixes93.py.log"
+  },
+  {
+    "test": "changes94.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 2.03,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\changes94.py.log"
+  },
+  {
+    "test": "changes95.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 8.09,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\changes95.py.log"
+  },
+  {
+    "test": "changes96.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 3.19,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\changes96.py.log"
+  },
+  {
+    "test": "changes98.py",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 6.39,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\changes98.py.log"
+  },
+  {
+    "test": "stage-1",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 1.32,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\stage-1.log"
+  },
+  {
+    "test": "stage-2",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 5.87,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\stage-2.log"
+  },
+  {
+    "test": "stage-3",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 2.96,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\stage-3.log"
+  },
+  {
+    "test": "stage-4",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 2.85,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\stage-4.log"
+  },
+  {
+    "test": "stage-5",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 2.47,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\stage-5.log"
+  },
+  {
+    "test": "stage-6",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 1.18,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\stage-6.log"
+  },
+  {
+    "test": "stage-7",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 4.92,
+    "log": "C:\\Users\\kugom\\.codex\\.chatgpt-projects\\g-p-6a95def112388191bed29bbd6412f61b\\work-1.12.0.1-category6\\audit\\test-runs\\stage-7.log"
+  }
+]

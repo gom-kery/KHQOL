@@ -1,5 +1,6 @@
 local _, KHQOL = ...
 local UI=KHQOL.UI
+local D=KHQOL.UsageDiagnostics
 local N=UI.SettingsNavigation
 local E={pool={},active=false}
 KHQOL.PositionEditor=E
@@ -26,7 +27,7 @@ function E:CreateToolbar()
   UI:Surface(f,1)
   f.title=UI:CreateLabel(f,"KHQOL · 위치 편집",14,-12,UI.Theme.PageTitleSize);f.title:SetWidth(622);f.title:SetJustifyH("CENTER")
   f.info=UI:CreateDescription(f,"테두리를 드래그하세요. ESC는 취소합니다.",14,-38); f.info:SetWidth(622);f.info:SetHeight(28);f.info:SetJustifyH("CENTER")
-  self.doneButton=UI:CreateButton(f,"완료 / 잠금",84,-78,146,function() E:Finish(true) end)
+  self.doneButton=UI:CreateButton(f,"완료·잠금",84,-78,146,function() E:Finish(true) end)
   self.cancelButton=UI:CreateButton(f,"취소",246,-78,100,function() E:Finish(false) end)
   self.resetButton=UI:CreateButton(f,"선택 위치 초기화",362,-78,204,function() E:ResetSelection() end,function() return E.selected and not E.selected.target.linked end)
   self.doneButton:SetWidth(146);self.cancelButton:SetWidth(100);self.resetButton:SetWidth(204)
@@ -73,18 +74,19 @@ function E:CreateToolbar()
     self.nudgeButtons=self.nudgeButtons or {};self.nudgeButtons[#self.nudgeButtons+1]=button
   end
   KHQOL.PositionGrid:CreateControls(self,f)
-  f:EnableKeyboard(true); f:SetPropagateKeyboardInput(true)
+  f:EnableKeyboard(true);f:SetPropagateKeyboardInput(true)
   f:SetScript("OnKeyDown",function(self,key)
-    self:SetPropagateKeyboardInput(key~="ESCAPE")
-    if key=="ESCAPE" then E:Finish(false) end
+    if key~="ESCAPE" then return end
+    self:SetPropagateKeyboardInput(false)
+    E:Finish(false,false,"escape")
   end)
-  f:SetScript("OnHide",function() if E.active then E:Finish(false) end end)
+  f:SetScript("OnHide",function() if E.active then E:Finish(false,false,"hidden") end end)
   f:RegisterEvent("PLAYER_REGEN_DISABLED"); f:RegisterEvent("PLAYER_REGEN_ENABLED"); f:RegisterEvent("PLAYER_LOGOUT")
   f:RegisterEvent("PLAYER_ENTERING_WORLD");f:RegisterEvent("PLAYER_LEAVING_WORLD")
   f:RegisterEvent("UPDATE_SHAPESHIFT_FORM");f:RegisterEvent("UI_SCALE_CHANGED");f:RegisterEvent("DISPLAY_SIZE_CHANGED")
   f:SetScript("OnEvent",function(_,event)
     if event=="PLAYER_REGEN_ENABLED" then E:RestorePendingAlphas();return end
-    if E.active then E:Finish(false,event=="PLAYER_REGEN_DISABLED") end
+    if E.active then E:Finish(false,event=="PLAYER_REGEN_DISABLED","world") end
   end)
   if UISpecialFrames then table.insert(UISpecialFrames,"KHQOLPositionEditorToolbar") end
   f:Hide(); self.toolbar=f
@@ -362,7 +364,7 @@ function E:Mirror(h,frame)
       texture:ClearAllPoints(); texture:SetPoint("CENTER",h,"CENTER",spec.x or 0,spec.y or 0)
       texture:SetSize(spec.width,spec.height)
       if spec.atlas then texture:SetTexture(nil);pcall(texture.SetAtlas,texture,spec.atlas,false) else texture:SetTexture(spec.texture) end
-      texture:SetTexCoord(unpack(spec.texCoord or {0,1,0,spec.crop or 1})); texture:SetAlpha(1); texture:Show()
+      texture:SetTexCoord(unpack(spec.texCoord or {0,1,0,spec.crop or 1})); texture:SetAlpha(spec.alpha or 1); texture:Show()
     end
   end
   h.mirrorCount=used
@@ -371,16 +373,25 @@ function E:Mirror(h,frame)
   h.sample:SetJustifyH(h.target.sampleJustify or "CENTER")
   h.sample:ClearAllPoints(); h.sample:SetPoint("CENTER",h,"CENTER",0,h.target.sampleY or 0)
 end
-function E:Enter(focus,entryMode)
+function E:Enter(focus,entryMode,exact)
   if self.active then return true end
   self:RestorePendingAlphas()
   if EditModeManagerFrame and KHQOL.PublicCall(EditModeManagerFrame.IsShown,EditModeManagerFrame)==true then self:Message("기본 게임 편집 모드를 닫은 후 KHQOL 위치 편집을 열어 주세요.");return false end
   if combat() then self:Message("전투 중에는 위치를 편집할 수 없습니다."); return false end
+  KHQOL.PositionStore:FinishDrags()
+  local scope=entryMode=="unitRoots" and "unitRoots" or nil
+  local targets
+  if exact then
+    targets=KHQOL:BuildPositionTargets(focus,scope)
+    local found
+    for _,t in ipairs(targets) do if t.id==focus and t.write and not t.linked and not t.readOnly and safe(t.frame) and KHQOL.PositionStore:Center(t.frame) then found=true;break end end
+    if not found then self:Message("현재 설정에서 선택한 위치를 편집할 수 없습니다. 설정을 확인해 주세요.");return false end
+  end
   if KHQOL.AlertLayout then KHQOL.AlertLayout:Suspend(true) end
   self:CreateToolbar(); UI:CancelDrafts(); UI:CloseDropdown(); GameTooltip:Hide()
   self.returnSettings=KHQOL.settings and KHQOL.settings:IsShown()
-  self.scope=entryMode=="unitRoots" and "unitRoots" or nil
-  self.targets=KHQOL:BuildPositionTargets(focus,self.scope);
+  self.scope=scope
+  self.targets=targets or KHQOL:BuildPositionTargets(focus,self.scope);
   for _,t in ipairs(self.targets) do N:EditorMeta(t) end
   self.mode=self.scope=="unitRoots" and "all" or entryMode=="group" and "group" or focus and "part" or N:Preferences().editorMode or "representative";self.onlySelected=self.mode=="part"
   N:RememberScroll(KHQOL.settings)
@@ -410,6 +421,12 @@ function E:Enter(focus,entryMode)
       end
       end
     end
+  end
+  if exact and not self.byID[focus] then
+    for _,h in ipairs(self.handles) do h:Hide();h.target=nil end
+    self.targets=nil;self.handles=nil;self.byID=nil;self.sources=nil;self.suppressed=nil;self.scope=nil;self.enabled=nil;self.returnSettings=nil;self.returnRoute=nil
+    if KHQOL.AlertLayout then KHQOL.AlertLayout:Suspend(false) end
+    self:Message("선택한 위치의 미리보기를 표시할 수 없습니다.");return false
   end
   for _,h in ipairs(self.handles) do
     local parent=self.byID[h.target.parentID]
@@ -473,20 +490,22 @@ function E:Enter(focus,entryMode)
   self:Select(selected)
   -- Exists only during editing; live HUD animations may write their own alpha.
   self.toolbar:SetScript("OnUpdate",function()
-    if combat() or not self:IsCurrent() or KHQOL.PublicCall(EditModeManagerFrame and EditModeManagerFrame.IsShown,EditModeManagerFrame)==true then self:Finish(false,combat()); return end
+    if combat() or not self:IsCurrent() or KHQOL.PublicCall(EditModeManagerFrame and EditModeManagerFrame.IsShown,EditModeManagerFrame)==true then self:Finish(false,combat(),self.generation~=KHQOL.profileGeneration and "profile" or "validation"); return end
     self:UpdateSuppression()
     if self.dragging then self:RefreshCoordinates() end
   end)
+  D:PositionStart(self)
   return true
 end
-function E:Finish(save,combatExit)
+function E:Finish(save,combatExit,usageReason)
   if not self.active then return end
-  if save and (combat() or not self:IsCurrent()) then save=false end
+  local reason=combatExit and "combat" or usageReason or "explicit"
+  if save and (combat() or not self:IsCurrent()) then reason=combat() and "combat" or self.generation~=KHQOL.profileGeneration and "profile" or "validation";save=false end
   self:StopDrag(self.dragging)
   -- Validate the entire draft before any writer or reset callback runs.
   if save then
     for _,h in ipairs(self.handles) do
-      if not center(h) or (h.parentHandle and not center(h.parentHandle)) then save=false;break end
+      if not center(h) or (h.parentHandle and not center(h.parentHandle)) then save=false;reason="validation";break end
     end
   end
   UI:CloseDropdown()
@@ -503,16 +522,16 @@ function E:Finish(save,combatExit)
   if save then
     for _,h in ipairs(self.handles) do
       local t=h.target; local x,y=center(h); local dx,dy=x-(h.resetting and h.resetX or h.originX),y-(h.resetting and h.resetY or h.originY)
-      if h.resetting and t.resetWrite then t.resetWrite() end
+      if h.resetting and t.resetWrite then D:PositionCall(self,"reset",t,t.resetWrite) end
       if h.parentHandle then
         local px,py=center(h.parentHandle)
         dx,dy=x-px-(h.resetting and h.resetRelativeX or h.relativeX),y-py-(h.resetting and h.resetRelativeY or h.relativeY)
       end
-      if t.write and (t.alwaysSave or math.abs(dx)>.01 or math.abs(dy)>.01) then t.write(dx/t.scale,dy/t.scale) end
+      if t.write and (t.alwaysSave or math.abs(dx)>.01 or math.abs(dy)>.01) then D:PositionCall(self,"write",t,t.write,dx/t.scale,dy/t.scale) end
       if t.lock then t.lock() end
     end
-    for _,h in ipairs(self.handles) do if h.target.apply then h.target.apply() end end
-    if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
+    for _,h in ipairs(self.handles) do if h.target.apply then D:PositionCall(self,"apply",h.target,h.target.apply) end end
+    if KHQOL.SaveCurrentProfile then D:PositionCall(self,"profile",nil,KHQOL.SaveCurrentProfile,KHQOL) end
   end
   for _,h in ipairs(self.handles) do
     if h.nativeBlocker then h.nativeBlocker:Hide();h.nativeBlocker:EnableMouse(false) end
@@ -527,5 +546,6 @@ function E:Finish(save,combatExit)
   end
   self.returnSettings=nil;self.returnRoute=nil
   if KHQOL.AlertLayout then KHQOL.AlertLayout:Suspend(false) end
+  D:PositionEnd(self,save,reason)
   return save and true or false
 end

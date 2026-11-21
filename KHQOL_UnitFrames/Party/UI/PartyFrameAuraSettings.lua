@@ -164,7 +164,7 @@ function M:BuildAuraSettings(content,y)
  local slider=b:Slider("예시 보호막 비율",0,100,5,function() return M.effectPreviewShield or 25 end,function(v) M.effectPreviewShield=v;M:RefreshEffectPreview();M:RefreshLivePreview() end,function(v) return integer(v).."%" end)
  slider.ignoreModuleEnabled=true;slider.navigationOnly=true
  slider.numberBox.ignoreModuleEnabled=true;slider:Refresh()
- b:Description("실제 캐릭터에게 효과를 걸지 않는 예시입니다. 정상과 다섯 디버프 색, 보호막 텍스처를 함께 확인합니다. 색·아이콘·보호막의 사용 스위치와 현재 설정을 반영합니다.",true)
+ b:Description("실제 캐릭터에게 효과를 걸지 않는 예시입니다. 정상과 다섯 디버프 색, 보호막 텍스처를 함께 확인합니다. 색·아이콘·보호막의 사용 스위치와 현재 설정을 반영합니다.")
  local x,top,width=b:Cell("effectPreview",1,232)
  local preview=CreateFrame("Frame",nil,content);preview:SetPoint("TOPLEFT",x,top);preview:SetWidth(width);preview:SetHeight(228);preview:EnableMouse(false)
  content.effectPreview=preview

@@ -14,14 +14,22 @@ end
 function Group:RegisterTab(id,title,build)
   local meta=assert(R.groups[self.id][id],"Unknown KHQOL settings tab: "..id)
   self.selected=self.selected or id
-  self.tabs[#self.tabs+1]={id=id,title=meta.tabTitle or meta.title,build=build,meta=meta}
+  self.tabs[#self.tabs+1]={id=id,title=meta.tabTitle or meta.title,build=build,meta=meta,registration=#self.tabs+1}
 end
 function Group:BuildSettings(content,y,host,tabY)
   if self.id=="labs" and not KHQOL.LabLock:IsUnlocked() then return KHQOL.LabLock:BuildLockedSettings(content,y) end
   host=host or content;tabY=tabY or y
+  if #self.tabs==0 then
+    local b=UI:CreateBuilder(content,y);b:Description("이 카테고리에 설치된 기능이 없습니다.",true)
+    content.contentHeight=-b.y+T.ContentPadding;host:SetHeight(1);return b.y
+  end
+  local order=R.orders[self.id] or {};local rank={}
+  for i,id in ipairs(order) do if not rank[id] then rank[id]=i end end
   table.sort(self.tabs,function(a,b)
-    local order=R.orders[self.id]; local ai,bi
-    for i,id in ipairs(order) do if id==a.id then ai=i end; if id==b.id then bi=i end end
+    -- Extensions and partial installations can register valid tabs that are
+    -- absent from the preferred order. Keep them in registration order.
+    local ai=rank[a.id] or #order+a.registration
+    local bi=rank[b.id] or #order+b.registration
     return ai<bi
   end)
   local positions,height={},0
@@ -32,6 +40,14 @@ function Group:BuildSettings(content,y,host,tabY)
       familyTabs[family]=familyTabs[family] or {}
       table.insert(familyTabs[family],tab)
     end
+  end
+  -- Display families are a separate navigation depth below the category rule.
+  -- Keep their buttons out of the top-level tab header and its scroll budget.
+  local familyHost
+  if next(familyTabs) and R.pageNames and R.pageNames[self.id] and KHQOL.settings.familyHeaderViewport then
+    familyHost=CreateFrame("Frame",nil,KHQOL.settings.familyHeaderViewport)
+    familyHost:SetWidth(host:GetWidth());familyHost:SetHeight(1);familyHost:Hide()
+    content.familyHeader=familyHost
   end
   local function topTab(tab)
     return not tab.meta.family or familyTabs[tab.meta.family][1]==tab
@@ -76,7 +92,11 @@ function Group:BuildSettings(content,y,host,tabY)
     end
     local panel=panels[id];if not panel then return end
     if KHQOL.settings and KHQOL.settings.activeContent==content then UI.SettingsNavigation:RememberScroll(KHQOL.settings) end
-    UI:CloseDropdown();self.selected=id
+    UI:CloseDropdown();UI:CloseColorPicker()
+    if content.activePanel and content.activePanel~=panel then UI:CancelInputs(content.activePanel) end
+    self.selected=id
+    local selectedMeta=R.groups[self.id][id]
+    if selectedMeta.logicalGroup and UI.SettingsGroups[selectedMeta.logicalGroup] then UI.SettingsGroups[selectedMeta.logicalGroup].selected=selectedMeta.logicalTab end
     local meta=R.groups[self.id][id]
     local family=meta.family
     if family then familySelection[family]=id end
@@ -96,11 +116,12 @@ function Group:BuildSettings(content,y,host,tabY)
     if panel.RefreshTab then panel:RefreshTab() end
     updateHeight(panel);UI:Refresh(panel)
     if KHQOL.settings then
+      if KHQOL.settings.SetSettingsFamilyHeader then KHQOL.settings:SetSettingsFamilyHeader(family and familyHost or nil) end
       KHQOL.settings:SetModuleSubHeader(panel.fixedHeader)
       KHQOL.settings:SetPageScrollLayout(self.id)
       KHQOL.settings:SetModuleHeader(meta)
       if family then KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path({module=meta.key})) end
-      if meta.sharedTabs then
+      if meta.sharedTabs and not meta.screen then
         local p={module=meta.key,tab=id}
         KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
       end
@@ -112,10 +133,18 @@ function Group:BuildSettings(content,y,host,tabY)
         local p=UI.SettingsNavigation:UnitRoute(panel.selectedUnit,panel.selectedPart,panel.selectedAuraCategory)
         KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
       end
-      if self.id=="bars" and meta.key=="castBar" then
+      if meta.key=="castBar" then
         local p={module="castBar",castUnit=panel.selectedCastUnit}
         KHQOL.settings.currentRoute=p;KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(p))
       end
+      if meta.screen then
+        local route=KHQOL.settings.currentRoute or {}
+        route.screen=meta.screen
+        KHQOL.settings.currentRoute=route
+        KHQOL.settings.pageTitle:SetText(UI.SettingsNavigation:Path(route))
+      end
+      if panel.ActivateHeader then panel:ActivateHeader() end
+      KHQOL.settings:RefreshPositionLocks();KHQOL.settings:SetPageScrollLayout(self.id)
       if KHQOL.settings.activeContent==content then UI.SettingsNavigation:RestoreScroll(KHQOL.settings) end
     end
   end
@@ -131,12 +160,12 @@ function Group:BuildSettings(content,y,host,tabY)
       buttons[id].settingsFamilyTab=family
     end
     if family then
-      familyButtons[id]=UI:CreateButton(host,tab.title,0,tabY,tab.subWidth,function() selectTab(id) end)
+      familyButtons[id]=UI:CreateButton(familyHost or host,tab.title,0,tabY,tab.subWidth,function() selectTab(id) end)
       familyButtons[id].navigationOnly=true;familyButtons[id]:Hide()
       content.tabButtons["family:"..id]=familyButtons[id]
     end
     local panel=CreateFrame("Frame",nil,content);panel:SetPoint("TOPLEFT",0,bodyY);panel:SetWidth(content:GetWidth());panel:Hide()
-    panel.settingsModuleKey=tab.meta.key;panel.settingsRoute={module=tab.meta.key or tab.meta.id=="general" and "generalConvenience" or self.id,tab=(self.id=="quest" or tab.meta.sharedTabs) and id or nil}; panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
+    panel.settingsModuleKey=tab.meta.key;panel.settingsRoute=tab.meta.screen and R:ScreenRoute(tab.meta) or {module=tab.meta.key or tab.meta.id=="general" and "generalConvenience" or self.id,tab=(self.id=="quest" or tab.meta.sharedTabs) and id or nil}; panel.moduleKey=tab.meta.key;panel.uiControls={};panels[id]=panel
     panel:HookScript("OnSizeChanged",function() if self.selected==id then updateHeight(panel) end end)
   end
   -- Allocate every tab before a builder can trigger a refresh or selection.
@@ -145,6 +174,22 @@ function Group:BuildSettings(content,y,host,tabY)
     local bottom=tab.build(panel,0);panel:SetHeight(math.max(1,-bottom))
   end
   local selfGroup=self
+  if familyHost then
+    function familyHost:ReflowTabs()
+      local selected=R.groups[selfGroup.id][selfGroup.selected]
+      local family=selected and selected.family
+      local left,top=0,-T.RowGap
+      if not family then self:SetHeight(1);return end
+      for _,tab in ipairs(familyTabs[family]) do
+        local width=tab.subWidth
+        if left>0 and left+width>self:GetWidth() then left=0;top=top-T.ButtonHeight-T.RowGap end
+        local button=familyButtons[tab.id]
+        button:ClearAllPoints();button:SetPoint("TOPLEFT",left,top)
+        left=left+width+T.RowGap
+      end
+      self:SetHeight(-top+T.ButtonHeight+T.RowGap)
+    end
+  end
   function host:ReflowTabs()
     if host.khqolPageIntro then tabY=UI:LayoutPageIntro(host)-T.RowGap end
     local left,top=0,tabY
@@ -163,7 +208,7 @@ function Group:BuildSettings(content,y,host,tabY)
     end
     local selected=R.groups[selfGroup.id][selfGroup.selected]
     local family=selected and selected.family
-    if family then
+    if family and not familyHost then
       left=0;top=top-T.ButtonHeight-T.RowGap
       for _,tab in ipairs(familyTabs[family]) do
         local width=tab.subWidth
@@ -174,6 +219,7 @@ function Group:BuildSettings(content,y,host,tabY)
       end
     end
     host:SetHeight(-top+T.ButtonHeight+T.SectionGap)
+    if familyHost then familyHost:SetWidth(host:GetWidth());familyHost:ReflowTabs() end
   end
   content.tabsBuilding=nil
   selectTab(self.selected)
@@ -218,21 +264,22 @@ function UI:RefreshSettingsViews()
   -- Reflow/refresh only the page which is actually visible.
   if s.activeContent then self:Refresh(s.activeContent) end
   local fc=KHQOL.modules.clock;local fbr=ForeverBuffReminder;local fr=KHQOL.modules.range
-  if s.page=="interface" then
+  do
     local panel=s.activeContent and s.activeContent.activePanel
     if panel and panel.moduleKey=="clock" and fc and fc.RefreshSettings then fc:RefreshSettings() end
     if panel and panel.moduleKey=="range" and fr and fr.UpdateSettings then fr:UpdateSettings() end
-  elseif s.page=="labs" and fbr and s.activeContent and s.activeContent.activePanel
+  end
+  if fbr and s.activeContent and s.activeContent.activePanel
     and s.activeContent.activePanel.moduleKey=="buffReminder" and fbr.RefreshSettings then fbr:RefreshSettings() end
   if UI.SettingsNavigation then UI.SettingsNavigation:CancelSearch(s) end
   local route=s.currentRoute
-  s:ShowPage(s.page or "general")
+  if route and s:IsShown() then UI.SettingsNavigation:Open(route,nil,true) else s:ShowPage(route or "general") end
   if route and route.tab and s.activeContent and s.activeContent.tabPanels and s.activeContent.tabPanels[route.tab] then s.activeContent.SelectSettingsTab(route.tab) end
 end
 function UI:RequestModuleReset(key)
   if KHQOL.LabLock:IsExperimental(key) and not KHQOL.LabLock:IsUnlocked() then return end
-  local meta=R.modules[key];if not meta then return end
-  StaticPopup_Show("KHQOL_RESET_MODULE",meta.title.." 모듈\n"..R:ResetScope(key),nil,
+  local meta=KHQOL.settings and KHQOL.settings.currentModuleKey==key and KHQOL.settings.currentModuleMeta or R.screens and R.screens[R.defaultScreens[key]] or R.modules[key];if not meta then return end
+  StaticPopup_Show("KHQOL_RESET_MODULE",meta.title..(meta.screen and " 설정\n" or " 모듈\n")..R:ResetScope(key),nil,
     {key=key,profile=KHQOL:GetCurrentProfileName(),generation=KHQOL.profileGeneration})
 end
 function UI:AcceptModuleReset(data)

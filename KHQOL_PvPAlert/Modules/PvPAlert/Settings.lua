@@ -31,7 +31,7 @@ function PA:BuildSettings(content,y)
   b:Slider("투명도",10,100,5,function() return db.alpha*100 end,function(v) db.alpha=v/100; self:Changed() end,function(v) return string.format("%d%%",v) end,available)
   slider("X 위치","x",-3000,3000,1,function(v) return string.format("%.0f",v) end)
   slider("Y 위치","y",-2000,2000,1,function(v) return string.format("%.0f",v) end)
-  b:Checkbox("위치 잠금",function() return not self.moving end,function(v) self:SetMoving(not v) end,available)
+  b:PositionLock("위치 잠금",function() return not self.moving end,function(v) self:SetMoving(not v) end,available)
 
   b:Button("위치 초기화",function() self:ResetPosition() end,180,available)
   b:Description("기본 위치는 화면 중앙 위 +165입니다. 이동 모드는 현재 접속에서만 유지되며 전투 시작·모듈 OFF 시 잠깁니다.")

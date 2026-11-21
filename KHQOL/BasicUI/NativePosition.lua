@@ -51,4 +51,36 @@ function Native:Release(state)
   end
   return not state.positionOwned
 end
+local function samePoints(a,b)
+  if not a or not b or #a~=#b then return false end
+  for i=1,#a do
+    for j=1,5 do if a[i][j]~=b[i][j] then return false end end
+  end
+  return true
+end
+
+-- Managed roots can receive a batch of anchors from a native layout. Sample
+-- after that layout finishes and leave a later external change in place.
+function Native:WriteTracked(state,desired)
+  local current=nativePoints(state.frame)
+  if not current or #current==0 then return false end
+  if samePoints(current,state.lastPoints) then
+    if samePoints(desired,state.requestedPoints) then return true end
+  else
+    state.originalPoints=current
+  end
+  if not self:Write(state,desired) then return false end
+  state.lastPoints=nativePoints(state.frame)
+  state.requestedPoints=desired
+  return state.lastPoints~=nil
+end
+
+function Native:ReleaseTracked(state)
+  local current=nativePoints(state.frame)
+  if not current then return false end
+  if state.lastPoints and #current>0 and not samePoints(current,state.lastPoints) then state.positionOwned=nil end
+  if not self:Release(state) then return false end
+  state.lastPoints,state.requestedPoints=nil,nil
+  return true
+end
 Native.Read=nativePoints

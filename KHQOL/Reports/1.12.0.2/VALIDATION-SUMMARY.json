@@ -1,0 +1,27 @@
+{
+  "version": "1.12.0.2",
+  "baselineVersion": "1.12.0.1",
+  "baselineSHA256": "9e71a4144da68e683035522fcced48fdccc0f6e4b64486f1b575770b5e60977e",
+  "devtoolsVersion": "0.4.0",
+  "devtoolsChanged": false,
+  "regressionSuites": 36,
+  "featureInstallCombinations": 6,
+  "routeInstallCombinations": 9,
+  "layoutInstallCombinations": 7,
+  "uiMockClass": "SHAMAN (all nine buff-list class selections plus full existing unit/role branches)",
+  "beforeBranches": 113,
+  "afterBranches": 113,
+  "beforeRegisteredItems": 1387,
+  "afterRegisteredItems": 1390,
+  "unchangedExistingControlIdentities": 1037,
+  "newControls": 3,
+  "staticAndMock": "PASS",
+  "inGame": "NOT TESTED",
+  "assetSHA256": "05b0a74b9cd1d6670b909cc5b1280cceed5cad0e249c4980518ce8ece9ffdf02",
+  "limits": [
+    "Actual game texture/alpha animation rendering and combat events not run",
+    "80/100/120 percent and window layout are mock anchor checks only; no engine screenshot",
+    "New three controls have search IDs but no new individual DevTools metrics in unchanged catalog",
+    "Aura expiry alert needs readable current aura expirationTime; no estimate on UNKNOWN"
+  ]
+}

@@ -3,6 +3,7 @@ KHQOL = assert(_G.KHQOL, "Install and enable the KHQOL core addon.")
 local E = KHQOL.modules.environmentTimer
 local order = {"BREATH", "EXHAUSTION", "FEIGNDEATH"}
 local names = {BREATH="호흡", EXHAUSTION="피로도", FEIGNDEATH="죽은척 하기"}
+E.order,E.names=order,names
 local warnings = {BREATH="호흡 부족!", EXHAUSTION="피로도 위험!", FEIGNDEATH="죽은척 하기"}
 local colors = {NORMAL={.1,.75,.9}, CAUTION={1,.85,.15}, DANGER={1,.45,.08}, CRITICAL={1,.12,.12}}
 local flat = "Interface\\Buttons\\WHITE8X8"
@@ -30,6 +31,12 @@ function E:GetDB()
   db.danger=math.min(db.danger,db.caution-1)
   if db.style~="horizontal" and db.style~="vertical" and db.style~="hud" then db.style="horizontal" end
   if db.direction~="up" and db.direction~="down" then db.direction="up" end
+  if db.shieldHUDSide~="right" then db.shieldHUDSide="left" end
+  for timer,c in pairs(db.hudTextColors) do
+    local valid=names[timer] and type(c)=="table"
+    if valid then for i=1,4 do if not numeric(c[i]) or c[i]<0 or c[i]>1 then valid=false;break end end end
+    if not valid then db.hudTextColors[timer]=nil end
+  end
   local formats={custom=true,name_time=true,time=true,name_percent=true,percent=true,name_time_percent=true}
   if not formats[db.textFormat] then db.textFormat="custom" end
   for timer,p in pairs(db.hudTextPositions) do
@@ -40,7 +47,7 @@ function E:GetDB()
   self.db=db; return db
 end
 function E:IsEnabled() return KHQOL.db and KHQOL:GetEnabled("environmentTimer") end
-function E:Handles(timer) return self:IsEnabled() and names[timer] and self.db.timers[timer] and self.active[timer]~=nil end
+function E:Handles(timer) return self:IsEnabled() and names[timer] and self:TimerEnabled(timer) and self.active[timer]~=nil end
 function E:GetState(value, maximum)
   if value/1000<=self.db.critical then return "CRITICAL" end
   local percent=value/maximum*100
@@ -56,12 +63,14 @@ function E:Text(timer, data)
     time=db.textFormat:find("time",1,true)~=nil
     percent=db.textFormat:find("percent",1,true)~=nil
   end
-  local result=name and names[timer] or ""
+  local label=data.source=="aura" and data.label or names[timer]
+  local result=name and label or ""
   if time then result=result..(result~="" and " " or "")..math.ceil(data.value/1000).."초" end
   if percent then
     local p=math.floor(data.value/data.maximum*100+.5).."%"
     result=result..(time and " ("..p..")" or ((result~="" and " " or "")..p))
   end
+  if data.absorbText then result=result..(result~="" and " · " or "")..data.absorbText end
   return result
 end
 function E:Start(timer,value,maximum,rate,isPaused,label)
@@ -75,6 +84,7 @@ function E:Start(timer,value,maximum,rate,isPaused,label)
 end
 function E:Rescan()
   local previous=self.active; self.active={}
+  if self.RefreshShields then self:RefreshShields() end
   if not self:IsEnabled() or not GetMirrorTimerInfo then return end
   for i=1,(MIRRORTIMER_NUMTIMERS or 3) do
     local ok,t,v,m,r,p,l=pcall(GetMirrorTimerInfo,i)
@@ -117,9 +127,9 @@ function E:CreateFrames()
   local f=CreateFrame("Frame","KHQOLEnvironmentTimerFrame",UIParent)
   self.frame=f; self.rows={}; self.hooked={}
   f:SetFrameStrata("MEDIUM"); f:SetMovable(true); f:SetClampedToScreen(true); f:RegisterForDrag("LeftButton")
-  f:SetScript("OnDragStart",function(frame) if self.unlocked then self.dragging=true; frame:StartMoving() end end)
+  f:SetScript("OnDragStart",function(frame) if self:CanEdit() then self.dragging=true; frame:StartMoving() end end)
   f:SetScript("OnDragStop",function() self:SavePosition() end)
-  for i=1,3 do
+  for i=1,#order do
     local row=CreateFrame("Frame",nil,f); row:EnableMouse(false)
     row.bar=CreateFrame("StatusBar",nil,row); row.bar:SetStatusBarTexture(flat); row.bar:EnableMouse(false)
     row.bg=row.bar:CreateTexture(nil,"BACKGROUND"); row.bg:SetAllPoints(); row.bg:SetTexture(flat); row.bg:SetVertexColor(.03,.04,.05,.8)
@@ -132,7 +142,7 @@ function E:CreateFrames()
     row.textLayer.editBG=row.textLayer:CreateTexture(nil,"BACKGROUND")
     row.textLayer.editBG:SetAllPoints(); row.textLayer.editBG:SetColorTexture(.1,.6,.65,.18); row.textLayer.editBG:Hide()
     row.textLayer:SetScript("OnDragStart",function(frame)
-      if self.unlocked and self.db.style=="hud" and row.hudTimer then row.textDragging=true; frame:StartMoving() end
+      if self:CanEdit() and self.db.style=="hud" and row.hudTimer then row.textDragging=true; frame:StartMoving() end
     end)
     row.textLayer:SetScript("OnDragStop",function() if self:SaveTextPosition(row) then self:Changed();KHQOL.PositionStore:Committed() end end)
     row.text=row.textLayer:CreateFontString(nil,"OVERLAY","GameFontHighlight"); row.text:SetFont(KHQOL.UI:Font(),13,"OUTLINE")
@@ -152,7 +162,7 @@ function E:CreateFrames()
   warning:SetSize(560,180); warning:SetPoint("CENTER",UIParent,"CENTER",0,80); warning:SetFrameStrata("HIGH"); warning:EnableMouse(false)
   warning.text=warning:CreateFontString(nil,"OVERLAY","GameFontHighlight"); warning.text:SetAllPoints(); warning.text:SetFont(KHQOL.UI:Font(),24,"OUTLINE"); warning.text:SetTextColor(1,.15,.1)
   warning:Hide(); self.warning=warning
-  self.moveText=f:CreateFontString(nil,"OVERLAY","GameFontHighlight"); self.moveText:SetPoint("TOP",0,22); self.moveText:SetText("환경 타이머 · 그룹을 드래그하여 이동")
+  self.moveText=f:CreateFontString(nil,"OVERLAY","GameFontHighlight"); self.moveText:SetPoint("TOP",0,22); self.moveText:SetText("환경·보호막 타이머 · 그룹을 드래그하여 이동")
   self.update=function(_,elapsed)
     self.elapsed=(self.elapsed or 0)+elapsed
     if self.elapsed>=.05 then local dt=self.elapsed; self.elapsed=0; self:Render(dt) end
@@ -185,14 +195,14 @@ function E:LayoutHUDText(row,timer,index)
   row.hudTimer=timer
   if row.textSize~=size then row.text:SetFont(KHQOL.UI:Font(),size,"OUTLINE"); row.textSize=size end
   row.text:ClearAllPoints(); row.text:SetWidth(0)
-  local width=math.max(80,row.text:GetStringWidth()+16)
-  h:ClearAllPoints(); h:SetSize(width,size+16)
+  local width=math.min(math.max(80,db.hudGap*.8),math.max(80,row.text:GetStringWidth()+16))
+  row.text:SetWidth(width-12);row.text:SetWordWrap(true)
+  h:ClearAllPoints(); h:SetSize(width,math.max(size+16,row.text:GetStringHeight()+12))
   local p=db.hudTextPositions[timer]
-  local x=index<=2 and (index==1 and -1 or 1)*(db.hudGap/2+db.hudThickness+db.hudSize*.12) or 0
-  local y=-db.hudSize/2-(index<=2 and 24 or 56)
+  local x,y=self:HUDTextDefault(timer)
   h:SetPoint("CENTER",self.frame,"CENTER",p and p.x or x,p and p.y or y)
   row.text:SetAllPoints(h); row.text:SetJustifyH("CENTER")
-  h:EnableMouse(self.unlocked==true); h.editBG:SetShown(self.unlocked==true)
+  h:EnableMouse(self:CanEdit()); h.editBG:SetShown(self:CanEdit())
 end
 function E:SavePosition()
   local textSaved=self:SaveTextPositions()
@@ -210,9 +220,10 @@ function E:Layout(count)
   f:ClearAllPoints(); f:SetPoint("CENTER",UIParent,"CENTER",db.x/(hud and 1 or db.scale),db.y/(hud and 1 or db.scale))
   if hud then
     local arcWidth=db.hudSize*128/420*(db.hudThickness/8)
-    f:SetSize(math.max(480,db.hudGap+2*arcWidth*104/128+32),db.hudSize*464/420+100)
+    local lane=0;for _,slot in pairs(self.hudSlots or {}) do lane=math.max(lane,slot.lane) end
+    f:SetSize(math.max(480,db.hudGap+2*arcWidth*104/128+2*lane*self:HUDSpacing()+32),db.hudSize*464/420+100+lane*(db.hudTextSize*3+24))
   else f:SetSize(db.width,db.height*count+32*(count-1)) end
-  f:EnableMouse(self.unlocked==true); self.moveText:SetShown(self.unlocked==true)
+  f:EnableMouse(self:CanEdit()); self.moveText:SetShown(self:CanEdit())
   for i,row in ipairs(self.rows) do
     row:ClearAllPoints(); row.text:ClearAllPoints()
     if not hud then
@@ -220,22 +231,24 @@ function E:Layout(count)
       row.textLayer:EnableMouse(false); row.textLayer.editBG:Hide()
       row.text:SetFont(KHQOL.UI:Font(),13,"OUTLINE"); row.textSize=13
     end
-    local arc=hud and i<=2
+    local slot=hud and self.hudRows and self.hudRows[i]
+    local arc=slot~=nil and slot~=false
     row.bar:SetShown(not hud); row.glow:SetShown(false)
     if arc then
-      local sign=i==1 and -1 or 1
+      local left=slot.side=="left"
+      local sign=left and -1 or 1
       row:SetAllPoints(f)
-      row.text:SetPoint(i==1 and "RIGHT" or "LEFT",f,"CENTER",sign*(db.hudGap/2+db.hudThickness),-db.hudSize/2-16); row.text:SetWidth(240)
-      row.text:SetJustifyH(i==1 and "RIGHT" or "LEFT")
+      row.text:SetPoint(left and "RIGHT" or "LEFT",f,"CENTER",sign*(db.hudGap/2+db.hudThickness),-db.hudSize/2-16); row.text:SetWidth(240)
+      row.text:SetJustifyH(left and "RIGHT" or "LEFT")
       local h=row.hud
-      local side=i==1 and "left" or "right"
+      local side=slot.side
       -- Assets use a 512px canvas; the actual fill spans y=46..466.
       -- Trim transparent padding without altering the original files.
-      h.u0=(i==1 and 96 or 288)/512; h.u1=(i==1 and 224 or 416)/512
+      h.u0=(left and 96 or 288)/512; h.u1=(left and 224 or 416)/512
       h.width=db.hudSize*128/420*(db.hudThickness/8)
       h.fillHeight=db.hudSize
       h:ClearAllPoints(); h:SetSize(h.width,db.hudSize*464/420)
-      h:SetPoint("CENTER",f,"CENTER",sign*(db.hudGap/2+h.width*40/128),0)
+      h:SetPoint("CENTER",f,"CENTER",sign*(db.hudGap/2+h.width*40/128+slot.lane*self:HUDSpacing()),0)
       for _,key in ipairs({"empty","frame","caps","glow","critical"}) do
         h[key]:ClearAllPoints(); h[key]:SetAllPoints(h)
         h[key]:SetTexCoord(h.u0,h.u1,24/512,488/512)
@@ -245,7 +258,7 @@ function E:Layout(count)
       h.fill:SetTexture(hudMedia.."khqol_envhud_"..side.."_fill.tga")
       -- The asset set supplies one frame: mirror it for the left arc.
       h.frame:SetTexture(hudMedia.."khqol_envhud_right_frame.tga")
-      if i==1 then h.frame:SetTexCoord(416/512,288/512,24/512,488/512) end
+      if left then h.frame:SetTexCoord(416/512,288/512,24/512,488/512) end
       h.caps:SetTexture(hudMedia.."khqol_envhud_"..side.."_endcaps.tga")
       h.glow:SetTexture(hudMedia.."khqol_envhud_"..side.."_glow.tga")
       h.critical:SetTexture(hudMedia.."khqol_envhud_critical_overlay_"..side..".tga")
@@ -254,7 +267,7 @@ function E:Layout(count)
 
     else
       row:SetSize(hud and f:GetWidth() or db.width,hud and 28 or db.height)
-      if hud then row:SetPoint("CENTER",f,"CENTER",0,-db.hudSize/2-48)
+      if hud then row:SetPoint("CENTER",f,"CENTER",0,-db.hudSize/2-48-(i-3)*(db.hudTextSize+24))
       else row:SetPoint("TOPLEFT",f,"TOPLEFT",0,-(i-1)*(db.height+32)) end
       row.bar:SetAllPoints(row); row.bar:SetOrientation(db.style=="vertical" and "VERTICAL" or "HORIZONTAL")
       row.bar:SetReverseFill(db.style=="vertical" and db.direction=="down")
@@ -273,12 +286,13 @@ function E:Visual(row,timer,data,index)
     row.state=state
   end
   if row.textDragging and row.hudTimer~=timer then self:SaveTextPosition(row) end
-  row.text:SetText(self:Text(timer,data)); row.text:SetTextColor(unpack(color))
+  local textColor=self.db.hudTextColors[timer]
+  row.text:SetText(self:Text(timer,data)); row.text:SetTextColor(unpack(self.db.style=="hud" and textColor or color))
   if self.db.style=="hud" then self:LayoutHUDText(row,timer,index) end
   row.bar:SetMinMaxValues(0,data.maximum); row.bar:SetValue(data.value); row.bar:SetStatusBarColor(unpack(color))
   row.glow:SetVertexColor(color[1],color[2],color[3],.3)
   row.glow:SetShown(state=="CAUTION" and self.db.style~="hud")
-  if self.db.style=="hud" and index<=2 then
+  if self.db.style=="hud" and row.hud:IsShown() then
     local h=row.hud
     local fraction=clamp(data.value/data.maximum,0,1)
     h.fill:ClearAllPoints(); h.fill:SetPoint("BOTTOM",h,"CENTER",0,-h.fillHeight/2)
@@ -294,6 +308,11 @@ end
 -- The progress API can still report its initial zero while START already
 -- contains the real remaining time. Keep that event value during initialization.
 function E:UpdateProgress(timer,data,elapsed)
+  if data.source=="aura" then
+    local now=KHQOL.PublicCall(GetTime)
+    if not numeric(now) or not numeric(data.expires) or data.expires<=now then self.active[timer]=nil;data.ready=false;if self.ShieldAmounts then self:ShieldAmounts() end;return end
+    data.value=math.max(0,(data.expires-now)*1000);return
+  end
   data.startAge=math.min(.25,(data.startAge or 0)+(elapsed or 0))
   if data.paused then return end
   local ok,value=false,nil
@@ -311,11 +330,11 @@ function E:Render(elapsed)
   if self:IsEnabled() then
     for priority,timer in ipairs(order) do
       local data=self.active[timer]
-      if data and self.db.timers[timer] then
+      if data and self:TimerEnabled(timer) then
         self:UpdateProgress(timer,data,elapsed)
         if data.ready then
           data.state=self:GetState(data.value,data.maximum)
-          if data.state=="CRITICAL" then
+          if data.state=="CRITICAL" and not data.noWarnings then
             if not data.sounded then
               data.sounded=true
               if self.db.sound and PlaySoundFile then PlaySoundFile("Interface\\AddOns\\KHQOL\\Media\\aggro.wav","Master") end
@@ -323,7 +342,7 @@ function E:Render(elapsed)
             if self.db.centerWarning then warning[#warning+1]=warnings[timer].."\n"..math.ceil(data.value/1000).."초" end
           end
           visible[#visible+1]={timer=timer,data=data,priority=priority}
-        else initializing=true end
+        elseif self.active[timer]==data then initializing=true end
       end
     end
   end
@@ -332,18 +351,27 @@ function E:Render(elapsed)
     return a.priority<b.priority
   end)
   local count=#visible
-  if self.unlocked and self:IsEnabled() and self.db.style=="hud" then
+  if self:CanEdit() and self:IsEnabled() and self.db.style=="hud" then
     local present={}; for _,item in ipairs(visible) do present[item.timer]=true end
     for _,timer in ipairs(order) do
-      if self.db.timers[timer] and not present[timer] then
+      if self:TimerEnabled(timer) and not present[timer] then
         visible[#visible+1]={timer=timer,data={value=42000,maximum=60000,state="NORMAL",preview=true}}
       end
     end
     count=#visible
-  elseif count==0 and self.unlocked and self:IsEnabled() then
+  elseif count==0 and self:CanEdit() and self:IsEnabled() then
     visible[1]={timer="BREATH",data={value=1,maximum=1,state="NORMAL"}}; count=1
   end
-  if self.layoutCount~=count then self.layoutCount=count; self:Layout(math.max(1,count)) end
+  self.hudSlots=self:HUDSlots(visible);self.hudRows={}
+  local key={self.db.style,tostring(self:CanEdit())}
+  for i,item in ipairs(visible) do
+    local slot=self.hudSlots[item.timer];self.hudRows[i]=slot
+    key[#key+1]=item.timer..":"..slot.side..":"..slot.lane
+  end
+  key=table.concat(key,"|")
+  if self.layoutCount~=count or self.hudLayoutKey~=key then
+    self.layoutCount=count;self.hudLayoutKey=key;self:Layout(math.max(1,count))
+  end
   for i,row in ipairs(self.rows) do
     local item=visible[i]
     if item then self:Visual(row,item.timer,item.data,i)
@@ -368,11 +396,17 @@ function E:SetEnabled(enabled)
   if not enabled then self.unlocked=false end
   self:Rescan(); self.layoutCount=nil; self:Render(0)
 end
-local events=CreateFrame("Frame")
-for _,event in ipairs({"PLAYER_ENTERING_WORLD","MIRROR_TIMER_START","MIRROR_TIMER_STOP","MIRROR_TIMER_PAUSE","ADDON_LOADED"}) do events:RegisterEvent(event) end
+local events=CreateFrame("Frame");E.events=events
+for _,event in ipairs({"PLAYER_ENTERING_WORLD","MIRROR_TIMER_START","MIRROR_TIMER_STOP","MIRROR_TIMER_PAUSE","ADDON_LOADED","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED"}) do events:RegisterEvent(event) end
 events:SetScript("OnEvent",function(_,event,...)
   if not KHQOL.db or not E.frame then return end
-  if event=="MIRROR_TIMER_START" then E:Start(...)
+  if event=="PLAYER_REGEN_DISABLED" or event=="PLAYER_REGEN_ENABLED" then
+    E:SavePosition();E:RefreshShields();E.layoutCount=nil
+  elseif event=="UNIT_AURA" or event=="UNIT_ABSORB_AMOUNT_CHANGED" then
+    local unit=...;if unit~="player" then return end
+    if event=="UNIT_ABSORB_AMOUNT_CHANGED" then E:ShieldAmounts() else E:RefreshShields() end
+  elseif event=="PLAYER_DEAD" or event=="PLAYER_ALIVE" or event=="SPELL_DATA_LOAD_RESULT" then E:RefreshShields()
+  elseif event=="MIRROR_TIMER_START" then E:Start(...)
   elseif event=="MIRROR_TIMER_STOP" then local timer=...; E.active[timer]=nil
   elseif event=="MIRROR_TIMER_PAUSE" then
     local timer,p=...

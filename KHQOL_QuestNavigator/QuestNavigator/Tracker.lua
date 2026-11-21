@@ -311,7 +311,9 @@ function QN:TrackerQuestClick(button,mouseButton)
       menu:CreateTitle(C_QuestLog.GetTitleForQuestID(id) or "퀘스트")
       local selected=C_SuperTrack.GetSuperTrackedQuestID()==id
       menu:CreateButton(selected and (STOP_SUPER_TRACK_QUEST or "안내 중지") or (SUPER_TRACK_QUEST or "길 안내"),function()
+        local usageBefore=KHQOL.UsageDiagnostics:Listening() and self:GetTrackedQuest()
         C_SuperTrack.SetSuperTrackedQuestID(selected and 0 or id)
+        if KHQOL.UsageDiagnostics:Listening() and usageBefore~=self:GetTrackedQuest() then KHQOL.UsageDiagnostics:Emit("feature.quest.manual","change","click",nil,true) end
       end)
       menu:CreateButton(OBJECTIVES_VIEW_IN_QUESTLOG or "퀘스트 보기",function() QuestMapFrame_OpenToQuestDetails(id) end)
       if not QuestUtil or not QuestUtil.CanRemoveQuestWatch or QuestUtil.CanRemoveQuestWatch() then
@@ -373,7 +375,9 @@ function QN:UpdateTrackerStatus(row,id,complete,popupType)
       if mouseButton=="RightButton" or (IsModifiedClick and IsModifiedClick("QUESTWATCHTOGGLE")) then
         self:TrackerQuestClick(b,mouseButton)
       elseif not (ChatFrameUtil and ChatFrameUtil.TryInsertQuestLinkForQuestID(b.questID)) then
+        local usageBefore=KHQOL.UsageDiagnostics:Listening() and self:GetTrackedQuest()
         C_SuperTrack.SetSuperTrackedQuestID(b.questID)
+        if KHQOL.UsageDiagnostics:Listening() and usageBefore~=self:GetTrackedQuest() then KHQOL.UsageDiagnostics:Emit("feature.quest.manual","change","click",nil,true) end
       end
     end)
     row.Status=button

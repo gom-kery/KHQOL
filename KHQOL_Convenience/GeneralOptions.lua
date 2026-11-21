@@ -157,6 +157,7 @@ function General:TryAutoRepair(visit)
   -- This API has no success return. Never follow a guild attempt with a
   -- second personal repair: a missing response is not proof of failure.
   pcall(RepairAllItems, guild)
+  KHQOL.UsageDiagnostics:Emit("feature.repair.request","request","unknown")
 end
 
 function General:CloseMerchantWork()
@@ -228,7 +229,9 @@ function General:ProcessJunkSale(state)
   if state.native then
     local remaining=publicCall(C_MerchantFrame and C_MerchantFrame.GetNumJunkItems)
     if not validNumber(remaining) or remaining%1~=0 then self:CancelJunkSale();return end
-    if remaining==0 then self:FinishJunkSale(state)
+    if remaining==0 then
+      if KHQOL.UsageDiagnostics:Matches(state.usageTicket) and state.usageHadItems then state.usageProcessed=true end
+      self:FinishJunkSale(state)
     elseif GetTime()>=state.pending.deadline then self:CancelJunkSale()
     else ScheduleSale(state,.05,function() General:ProcessJunkSale(state) end) end
     return
@@ -251,6 +254,9 @@ function General:ProcessJunkSale(state)
     if not validNumber(money) or not validNumber(pending.money) or money - pending.money ~= amount then
       state.reportReliable = false
     end
+    if KHQOL.UsageDiagnostics:Matches(state.usageTicket) then
+      if validNumber(money) and validNumber(pending.money) and money-pending.money==amount then state.usageProcessed=true else state.usageUnconfirmed=true end
+    end
     state.total = state.total + amount
     state.pending = nil
   end
@@ -272,6 +278,11 @@ function General:ProcessJunkSale(state)
 end
 function General:FinishJunkSale(state)
   if not SaleIsActive(state) then return end
+  if KHQOL.UsageDiagnostics:Matches(state.usageTicket) and not state.usageReported then
+    state.usageReported=true
+    if state.usageProcessed then KHQOL.UsageDiagnostics:Emit("feature.sell.processed","processed","unknown")
+    elseif state.usageUnconfirmed then KHQOL.UsageDiagnostics:Emit("feature.sell.unconfirmed","unconfirmed","unknown","unavailable") end
+  end
   self:CancelJunkSale()
   -- Let the final bag/money updates settle before the one repair decision.
   local visit=self.merchantVisit
@@ -291,6 +302,7 @@ function General:StartJunkSale()
     return
   end
   local state = { queue={}, index=1, total=0, reportReliable=true }
+  state.usageTicket=KHQOL.UsageDiagnostics:Ticket()
   self.junkSale = state
   -- Merchant UI can process MERCHANT_SHOW after this frame; defer one turn.
   ScheduleSale(state, 0, function()
@@ -301,6 +313,7 @@ function General:StartJunkSale()
       if not validNumber(count) or count%1~=0 then General:CancelJunkSale();return end
       if count==0 then General:FinishJunkSale(state);return end
       state.native=true;state.pending={deadline=GetTime()+2}
+      if KHQOL.UsageDiagnostics:Matches(state.usageTicket) then state.usageHadItems=true end
       -- One native batch request per visit. Never fall through to per-slot
       -- selling after submission, even if the API throws or times out.
       ScheduleSale(state,.05,function() General:ProcessJunkSale(state) end)
@@ -344,7 +357,9 @@ function General:Initialize()
   events:RegisterEvent("MERCHANT_SHOW")
   events:RegisterEvent("MERCHANT_CLOSED")
   events:RegisterEvent("BAG_UPDATE_DELAYED")
-  for _, event in ipairs({"PARTY_INVITE_REQUEST", "PARTY_INVITE_CANCEL", "GUILD_INVITE_REQUEST", "GUILD_INVITE_CANCEL"}) do
+  -- GUILD_INVITE_CANCEL has no invitation identity. Let Blizzard close the
+  -- native frame; pending work checks its live state before doing anything.
+  for _, event in ipairs({"PARTY_INVITE_REQUEST", "PARTY_INVITE_CANCEL", "GUILD_INVITE_REQUEST"}) do
     -- Some older builds do not expose all invite events.
     if not C_EventUtils or type(C_EventUtils.IsEventValid) ~= "function" or publicCall(C_EventUtils.IsEventValid, event) == true then
       pcall(events.RegisterEvent, events, event)
@@ -359,7 +374,6 @@ function General:Initialize()
     elseif event == "PARTY_INVITE_REQUEST" then General:QueueInviteDecline("party", inviter)
     elseif event == "GUILD_INVITE_REQUEST" then General:QueueInviteDecline("guild", inviter, guildName)
     elseif event == "PARTY_INVITE_CANCEL" then General:CancelInviteDecline("party")
-    elseif event == "GUILD_INVITE_CANCEL" then General:CancelInviteDecline("guild")
     elseif event == "PLAYER_ENTERING_WORLD" then
       General:CloseMerchantWork(); General:CancelInviteDecline("party"); General:CancelInviteDecline("guild"); General:ApplyCenterTextScale()
     end

@@ -9,7 +9,9 @@ M.layoutOptions={{value="party",text="파티 · 1~5인"},{value="raid10",text="1
 local titles={party="파티",raid10="10인 공격대",raid20="20인 공격대",raid40="40인 공격대"}
 function M:SetEditedLayout(key)
   if not titles[key] then return end
+  if K.PositionAnchors then K.PositionAnchors:FinishDrags("partyFrames") end
   self.editedLayout=key;self:RefreshLivePreview()
+  if K.PositionAnchors then K.PositionAnchors:Queue() end
   if self.settingsContent then K.UI:Refresh(self.settingsContent) end
 end
 function M:CloseLivePreview()

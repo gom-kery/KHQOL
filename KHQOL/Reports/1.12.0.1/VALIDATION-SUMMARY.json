@@ -1,0 +1,45 @@
+{
+  "version": "1.12.0.1",
+  "baselineVersion": "1.12.0",
+  "baselineFullZIP_SHA256": "c4d4fcd86f0831cbc3976581db06a4133d7a3d424d12691e5162eb73b04f236a",
+  "topCategories": [
+    "캐릭터",
+    "전투",
+    "퀘스트·지도",
+    "생활·소통",
+    "화면·정보",
+    "설정·프로필"
+  ],
+  "depth2Counts": [
+    5,
+    4,
+    6,
+    6,
+    6,
+    4
+  ],
+  "displayScreens": 38,
+  "mappedControls": 1037,
+  "logicalIDChanges": 0,
+  "diagnosticIDChanges": 0,
+  "majorFeatures": 60,
+  "regressionSuites": 36,
+  "regressionResult": "PASS",
+  "installationCombinations": 9,
+  "layoutCombinations": 7,
+  "renderedGame": "NOT TESTED",
+  "layoutMethod": "Shared-parent SetPoint offsets in Lua 5.1 mock; fixture GetTop is a placeholder and is not used as rendered geometry",
+  "DevToolsVersion": "0.4.0",
+  "DevToolsAllFilesUnchanged": true,
+  "frozenDiagnosticCatalogs": true,
+  "newRuntimeFiles": [],
+  "newReportFiles": "KHQOL/Reports/1.12.0.1/*.md and *.json, not in TOC",
+  "changedRuntimeFiles": [
+    "KHQOL/Bootstrap.lua",
+    "KHQOL/SettingsUI.lua",
+    "KHQOL_ResourceSwing/ResourceSwing/KHQOLResourceSwing.lua",
+    "KHQOL/UI/SettingsPresenter.lua",
+    "KHQOL/UI/SettingsScreens.lua"
+  ],
+  "baselineFullTreePreserved": true
+}

@@ -10,6 +10,10 @@ FC.FONT_PATH = "Interface\\AddOns\\KHQOL\\Fonts\\IsamanruLight.ttf"
 FC.DEFAULTS = {
   version = 3, enabled = true, locked = true, fontSize = 48, moduleFontSize = 14,
   position = { point = "CENTER", relativePoint = "CENTER", x = 0, y = 0 },
+  shortcuts = {
+    calendar={modifier="alt",input="LeftButton"},note={modifier="none",input="RightButton"},
+    tools={modifier="none",input="LeftButton"},reload={modifier="alt",input="RightButton"},
+  },
   modules = {
     date = { enabled = true, position = { x = 0, y = 62 }, format = "YMD", weekday = "off" },
     weekday = { enabled = false, position = { x = 0, y = 35 }, language = "ko" },

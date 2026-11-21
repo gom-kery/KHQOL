@@ -90,12 +90,16 @@ function HUD:ApplyTextStyle(fontString, size, style)
   self:SyncStyledText(fontString)
 end
 
+function HUD.MoneyParts(amount)
+  return math.floor(amount / 10000).." "..ICON,math.floor((amount % 10000) / 100).." "..SILVER,(amount % 100).." "..COPPER
+end
+
 function HUD.FormatMoney(amount,units)
-  local gold, silver, copper = math.floor(amount / 10000), math.floor((amount % 10000) / 100), amount % 100
+  local gold,silver,copper=HUD.MoneyParts(amount)
   units = units or HUD.moneyUnits
   local pieces = {}
-  if units.gold then pieces[#pieces + 1] = gold .. " " .. ICON end
-  if units.silver then pieces[#pieces + 1] = silver .. " " .. SILVER end
-  if units.copper then pieces[#pieces + 1] = copper .. " " .. COPPER end
+  if units.gold then pieces[#pieces + 1] = gold end
+  if units.silver then pieces[#pieces + 1] = silver end
+  if units.copper then pieces[#pieces + 1] = copper end
   return table.concat(pieces,"  ")
 end

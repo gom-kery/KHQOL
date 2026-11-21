@@ -44,7 +44,8 @@ function FC:CreateSettings(parent)
       FC.db.modules[key].enabled=v; FC:ApplyLayout()
       if key=="performance" then FC:UpdateTimers()
       elseif key=="date" then FC:UpdateDate()
-      elseif key=="weekday" then FC:UpdateWeekday() end
+      elseif key=="weekday" then FC:UpdateWeekday()
+      elseif key=="money" then FC:UpdateMoney() end
     end)
   end
   b:Dropdown("날짜 형식",{{value="YMD",text="년 / 월 / 일"},{value="MD",text="월 / 일"}},function() return FC.db.modules.date.format end,function(v) FC.db.modules.date.format=v; FC:UpdateDate() end,function() return FC.db.modules.date.enabled end)
@@ -52,6 +53,39 @@ function FC:CreateSettings(parent)
   for _,item in ipairs({{"gold",L.GOLD},{"silver",L.SILVER},{"copper",L.COPPER}}) do
     local unit,title=item[1],item[2]
     b:Checkbox(title,function() return FC.db.modules.money.units[unit] end,function(v) FC.db.modules.money.units[unit]=v; FC:UpdateMoney() end,function() return FC.db.modules.money.enabled end)
+  end
+  b:Section("시계 단축키")
+  b:Description("시간 숫자 위에서 사용합니다. 이미 지정한 조합을 고르면 두 기능의 조합이 서로 바뀝니다.")
+  self.clockShortcutRows={}
+  for _,action in ipairs(FC.clockActions) do
+    local id,title=action[1],action[2]
+    if id=="reload" then title="리로드" end
+    local row=CreateFrame("Frame",nil,f)
+    row:SetSize(f:GetWidth(),66)
+    local label=UI:CreateLabel(row,title,0,0)
+    local helper=UI:CreateLabel(row,"보조",0,-32)
+    local plus=UI:CreateLabel(row,"+",0,-32)
+    local mouse=UI:CreateLabel(row,"마우스",0,-32)
+    local modifier=UI:CreateDropdown(row,0,-26,150,FC.clockModifiers,function() return FC:GetClockShortcuts()[id].modifier end,
+      function(v) FC:SetClockShortcut(id,"modifier",v);UI:Refresh(f) end)
+    local input=UI:CreateDropdown(row,0,-26,150,FC.clockInputs,function() return FC:GetClockShortcuts()[id].input end,
+      function(v) FC:SetClockShortcut(id,"input",v);UI:Refresh(f) end)
+    UI.SettingsNavigation:Attach(row,modifier,title.." 보조키",function() return FC:GetClockShortcuts()[id].modifier end)
+    UI.SettingsNavigation:Attach(row,input,title.." 마우스 입력",function() return FC:GetClockShortcuts()[id].input end)
+    local function fit()
+      local width=row:GetWidth()
+      local reserve=helper:GetStringWidth()+plus:GetStringWidth()+mouse:GetStringWidth()+32
+      local field=math.max(80,math.min(180,(width-reserve)/2))
+      label:SetWidth(width)
+      local x=helper:GetStringWidth()+8
+      modifier:ClearAllPoints();modifier:SetPoint("TOPLEFT",x,-26);modifier:FitDropdownWidth(field)
+      x=x+field+8;plus:ClearAllPoints();plus:SetPoint("TOPLEFT",x,-32)
+      x=x+plus:GetStringWidth()+8;mouse:ClearAllPoints();mouse:SetPoint("TOPLEFT",x,-32)
+      x=x+mouse:GetStringWidth()+8;input:ClearAllPoints();input:SetPoint("TOPLEFT",x,-26);input:FitDropdownWidth(field)
+      return 26+math.max(modifier:GetHeight(),input:GetHeight())+12
+    end
+    self.clockShortcutRows[id]={frame=row,label=label,modifier=modifier,plus=plus,mouse=mouse,input=input}
+    b:Block(row,fit);b:Flush()
   end
   b:Section("길드 접속")
   local function guild() return FC.db.modules.guild end
@@ -63,7 +97,7 @@ function FC:CreateSettings(parent)
     guild().tooltipLimit=v;FC:UpdateGuildDisplay()
   end,function(v) return v.."명" end,guildEnabled)
   b:Section("위치")
-  b:Checkbox("위치 잠금",function() return FC.db.locked end,function(v) FC.db.locked=v; FC:ApplyClock(); FC:ApplyLayout() end)
+  b:PositionLock("위치 잠금",function() return FC.db.locked end,function(v) FC.db.locked=v; FC:ApplyClock(); FC:ApplyLayout() end)
 
   b:Section("시간 글자·모양")
   b:Slider("글자 크기",24,80,1,function() return FC.db.fontSize end,function(v) FC.db.fontSize=v; FC:ApplyClock() end,function(v) return v.." px" end)
@@ -75,8 +109,14 @@ function FC:CreateSettings(parent)
   b:Dropdown("설정 대상",targets,function() return f.sideTargetKey end,function(v) f.sideTargetKey=v; FC:RefreshSettings() end)
   b:Slider("글자 크기",10,28,1,function() return FC:GetSideFontSize(f.sideTargetKey) end,function(v) FC:SetSideFontSize(f.sideTargetKey,v) end,function(v) return v.." px" end)
   style(function() return f.sideTargetKey end)
+  f:SetHeight(-b.y); self:RefreshSettings()
+  return f
+end
+function FC:BuildTimeToolSettings(f,y)
+  self.toolsSettingsFrame=f
+  local b=UI:CreateBuilder(f,y)
   b:Section("알람·타이머·스톱워치")
-  b:Description("도구는 각 창의 시작·정지·초기화 동작을 사용합니다. 설정창을 닫아도 실행 중인 도구는 계속됩니다. 알람 문구는 공용 내용이며 전체 프로필을 바꾸어도 유지합니다.",true)
+  b:Description("설정창을 닫아도 도구는 계속 실행됩니다. 알람 문구는 계정 공용입니다.",true)
   for _,entry in ipairs({{"알람 열기","alarm"},{"타이머 열기","timer"},{"스톱워치 열기","stopwatch"}}) do
     local mode=entry[2]
     b:Button(entry[1],function()
@@ -87,18 +127,13 @@ function FC:CreateSettings(parent)
   b:Slider("알람·타이머 창 크기",80,100,5,function() return FC.db.clockTools.toolsScale end,function(v)
     FC.db.clockTools.toolsScale=v;FC:ApplyClockToolsSize()
   end,function(v) return v.."%" end)
-  b:Checkbox("도구 창 위치 잠금",function() return FC.db.clockTools.positionLocked end,function(v)
-    FC:SaveClockTool(FC.clockToolsFrame,"tools");FC.db.clockTools.positionLocked=v
-  end)
-  b:Checkbox("타이머 바 위치 잠금",function() return FC.db.clockTools.timerBarLocked end,function(v)
-    FC:SaveClockTool(FC.timerBarFrame,"timerBar");FC.db.clockTools.timerBarLocked=v
-  end)
+  b:Description("각 창의 자물쇠로 잠급니다. 잠금은 현재 접속 중 유지됩니다.",true)
   b:Button("알람·타이머 위치 초기화",function() FC:ResetClockToolPosition("tools") end)
   b:Button("타이머 바 위치 초기화",function() FC:ResetClockToolPosition("timerBar") end)
-  b:Description("타이머의 접기/펼치기는 실행 상태를 유지합니다. ‘음식 15분’은 수동 타이머이며, 다른 타이머가 남아 있으면 초기화 후 시작하세요.",true)
-  b:Description("시간 HUD와 도구 창은 독립 위치입니다. 직접 드래그와 통합 편집 모두 현재 프로필에 저장합니다. 중앙 테스트 알림은 Alt+드래그로 이동합니다.",true)
-  f:SetHeight(-b.y); self:RefreshSettings()
-  return f
+  b:Description("타이머의 접기/펼치기는 실행 상태를 유지합니다. ‘음식 15분’은 수동 타이머이며, 다른 타이머가 남아 있으면 초기화 후 시작하세요.")
+  b:Description("시간 HUD와 도구 창은 독립 위치입니다. 직접 드래그와 통합 편집 모두 현재 프로필에 저장합니다. 중앙 테스트 알림은 Alt+드래그로 이동합니다.")
+  function f:RefreshTab() UI:Refresh(self) end
+  return b.y
 end
 function FC:RefreshSettings()
   if not self.settingsFrame or self.refreshingSettings then return end

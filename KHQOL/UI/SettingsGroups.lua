@@ -18,6 +18,13 @@ local function pruneSettingsGroup(registry,id,group,active)
   for index=#group.tabs,1,-1 do
     if not registry.groups[id][group.tabs[index].id] then table.remove(group.tabs,index) end
   end
+  local seen={}
+  for _,tab in ipairs(registry.orders[id]) do seen[tab]=true end
+  for _,tab in ipairs(group.tabs) do
+    if not seen[tab.id] then
+      table.insert(registry.orders[id],tab.id);seen[tab.id]=true
+    end
+  end
   if not registry.groups[id][group.selected] then group.selected=registry.orders[id][1] end
 end
 local function prunePagesAndCommands(registry)
@@ -46,14 +53,16 @@ local function prunePositionAndSearch(registry)
   for id,item in pairs(navigation.items) do
     local key=item.route.module
     if K.ModuleOwners[key] and not K.ModuleRegistry.entries[key] then navigation.items[id]=nil
-    else navigation:Register(item.route,item.title,item.description,item.aliases) end
+    else navigation:Register(item.route,item.logicalTitle or item.title,item.description,item.baseAliases or item.aliases) end
   end
 end
 function R:FinalizeInstallation()
   if self.installationFinalized then return end
   self:ConnectModules()
   if self.groups.convenience.chat and self.groups.convenience.professions then
-    self.orders.convenience={"general","chat","professions","note"}
+    self.orders.convenience={"general","chat","party","professions","buff","highlight","note"}
+  else
+    self.orders.convenience={"general","buff","highlight","note"}
   end
   local active={}
   for id,group in pairs(UI.SettingsGroups) do pruneSettingsGroup(self,id,group,active) end
@@ -61,6 +70,7 @@ function R:FinalizeInstallation()
   for key,meta in pairs(self.routes) do if not active[meta] then self.routes[key]=nil end end
   prunePagesAndCommands(self)
   pruneModuleGroups(self)
+  self:BuildScreens()
   prunePositionAndSearch(self)
   self.installationFinalized=true
 end

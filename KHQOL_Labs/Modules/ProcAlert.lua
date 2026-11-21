@@ -45,7 +45,7 @@ function P:Normalize(buff,id)
 end
 function P:GetSpellDetails(id)
   -- Existing safe helper supports C_Spell and the legacy spell API.
-  return ForeverBuffReminder:GetSpellDetails(id)
+  return KHQOL:GetSpellDetails(id)
 end
 function P:ReadAuras(buffs)
   local registered={}
@@ -152,7 +152,16 @@ function P:Layout()
     end
   end
 end
-function P:Visual(row,a,now)
+function P:Visual(row,a,now,usageSuppressed)
+  local usageDisplay=false
+  if KHQOL.UsageDiagnostics:Listening() then
+    local real=self.inCombat and not self.testUntil and not self.unlocked and self:IsEnabled()
+    if not real then row.usagePreview=true
+    else
+      usageDisplay=not usageSuppressed and not row.usagePreview and (row.current~=a.id or row.fading) and not KHQOL.profileApplying
+      row.usagePreview=nil
+    end
+  end
   local b,c=a.buff,a.buff.color
   local remaining=a.expirationTime>0 and math.max(0,a.expirationTime-now) or nil
   local fraction=remaining and a.duration>0 and clamp(remaining/a.duration,0,1) or 1
@@ -169,6 +178,7 @@ function P:Visual(row,a,now)
   row.time:SetTextColor(c.r,c.g,c.b)
   if row.current~=a.id or row.fading then
     row.fadeOut:Stop(); row.fadeIn:Stop(); row.fading=nil; row.current=a.id; row:SetAlpha(1); row:Show()
+    if usageDisplay then KHQOL.UsageDiagnostics:Emit("feature.buff.display","display","unknown") end
     if self.db.animation then row.fadeIn:Play() end
   else row:Show() end
 end
@@ -189,7 +199,7 @@ function P:Preview(now)
   end
   return result
 end
-function P:Render()
+function P:Render(usageSuppressed)
   if not self.frame then return end
   local now=GetTime(); local enabled=self:IsEnabled()
   if self.testUntil and now>=self.testUntil then self.testUntil=nil end
@@ -200,9 +210,12 @@ function P:Render()
     for slot,row in ipairs(self.slots[side]) do
       local a=enabled and winners[side][slot]
       if a then
-        self:Visual(row,a,now); visible=true
+        self:Visual(row,a,now,usageSuppressed); visible=true
         if a.expirationTime>0 then updating=true end
-      else self:HideRow(row,self.apiUnavailable or not enabled or not self.inCombat and not preview) end
+      else
+        if KHQOL.UsageDiagnostics:Listening() and not preview then row.usagePreview=nil end
+        self:HideRow(row,self.apiUnavailable or not enabled or not self.inCombat and not preview)
+      end
       if row:IsShown() then visible=true end
     end
   end
@@ -221,7 +234,7 @@ function P:SavePosition()
 end
 function P:Changed()
   if not KHQOL.LabLock:IsUnlocked() then return end
-  self:GetDB(); self:CreateFrames(); self:Layout(); self:Scan(); self:Render()
+  self:GetDB(); self:CreateFrames(); self:Layout(); self:Scan(); self:Render(true)
   if KHQOL.SaveCurrentProfile then KHQOL:SaveCurrentProfile() end
 end
 function P:Test()
@@ -229,7 +242,7 @@ function P:Test()
   self.testUntil=GetTime()+8; self:Render()
 end
 function P:SetUnlocked(on)
-  self:SavePosition(); self.unlocked=on and self:IsEnabled() or false; self:Layout(); self:Render()
+  self:SavePosition(); self.unlocked=on and self:IsEnabled() or false; self:Layout(); self:Render(true)
 end
 function P:SetEnabled(on)
   on=on and self:IsEnabled()
@@ -244,7 +257,7 @@ function P:SetEnabled(on)
     self.events:RegisterEvent("PLAYER_ENTERING_WORLD")
     if self.inCombat then self.events:RegisterUnitEvent("UNIT_AURA","player") end
   end
-  self:Layout(); self:Scan(); self:Render()
+  self:Layout(); self:Scan(); self:Render(true)
 end
 P.events=CreateFrame("Frame")
 P.events:SetScript("OnEvent",function(_,event,unit)

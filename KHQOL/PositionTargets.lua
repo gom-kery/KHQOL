@@ -3,6 +3,8 @@ local E=K.PositionEditor
 local call=K.PublicCall
 local function finite(v) return K.IsPublicNumber(v) end
 local PU={}
+local D=K.UsageDiagnostics
+local writerReads=setmetatable({}, {__mode="k"})
 K.PositionUtils=PU
 function PU.ApplyPoint(frame,p)
   if not frame or not p then return end
@@ -17,31 +19,39 @@ function PU.Rect(f)
 end
 function PU:Add(list,id,key,name,frame,write,lock,apply,extra)
   if key and not K:CanRunModule(key) then return end
-  if key=="buffReminder" and not K.LabLock:IsUnlocked() then return end
-  if not frame or key and not K:GetEnabled(key) then return end
+  if (not frame and not (self.describing and frame==false)) or key and not K:GetEnabled(key) then return end
   local t=extra or {};t.id=id;t.key=key;t.name=name;t.frame=frame;t.write=write;t.lock=lock;t.apply=apply
+  if not PU.describing and D:Listening() and not t.usageRead then t.usageRead=writerReads[write] end
   list[#list+1]=t;return t
 end
 function PU:PointWriter(p,xKey,yKey)
   xKey=xKey or "x";yKey=yKey or "y"
-  return function(dx,dy) p[xKey]=K.PositionStore:Round((p[xKey] or 0)+dx);p[yKey]=K.PositionStore:Round((p[yKey] or 0)+dy) end
+  local write=function(dx,dy) p[xKey]=K.PositionStore:Round((p[xKey] or 0)+dx);p[yKey]=K.PositionStore:Round((p[yKey] or 0)+dy) end
+  if not PU.describing and D:Listening() then writerReads[write]=function() return p.point or "CENTER",p.relativePoint or p.point or "CENTER",p[xKey] or 0,p[yKey] or 0 end end
+  return write
 end
 function PU:Lock(db,key) return function() db[key or "locked"]=true end end
 function PU:Sample(list,id,key,name,x,y,w,h,write,apply,extra)
   if key and not K:CanRunModule(key) then return end
-  local f=E:Virtual(id,{point="CENTER",relativePoint="BOTTOMLEFT",x=x,y=y},w,h)
+  local f=self:Preview(id,{point="CENTER",relativePoint="BOTTOMLEFT",x=x,y=y},w,h)
   local t=extra or {};t.sample=t.sample or name.." · 위치 예시"
   return self:Add(list,id,key,name,f,write,nil,apply,t)
 end
 function PU:ConfigureResets(list,configure)
+  if self.describing then return end
   local function point(t,getDB,defaults,fields)
     if not defaults then return end
     fields=fields or {point="point",relativePoint="relativePoint",x="x",y="y"}
     local p={point=defaults.point or "CENTER",relativePoint=defaults.relativePoint or defaults.point or "CENTER",x=defaults.x or 0,y=defaults.y or 0}
     t.resetPoint=p
+    if not PU.describing and D:Listening() then t.usageRead=function() local db=getDB();return db[fields.point] or p.point,db[fields.relativePoint] or db[fields.point] or p.relativePoint,db[fields.x] or 0,db[fields.y] or 0 end end
     t.resetWrite=function() local db=getDB();for k,field in pairs(fields) do if field then db[field]=p[k] end end end
   end
   for _,t in ipairs(list) do configure(t,point) end
+end
+function PU:Preview(...)
+  if self.describing then return false end
+  return E:Virtual(...)
 end
 function E:Virtual(id,p,width,height)
   self.virtuals=self.virtuals or {};local frame=self.virtuals[id]
@@ -61,15 +71,7 @@ function K:BuildPositionTargets(focus,scope)
   end
   local list={}
   self.ModuleRegistry:PositionTargets(focus,function(...) PU:Add(list,...) end)
-  -- Navigation is a shared core service used by both Quest and ForeverNote.
-  local nav=self.NavigationUI
-  local key=self:CanRunModule("questNavigator") and "questNavigator" or self:CanRunModule("todo") and "todo"
-  if key and nav.root and nav.db then
-    local db=nav.db
-    local t=PU:Add(list,"quest",key,"퀘스트 / 노트 · 공용 안내 HUD",nav.root,PU:PointWriter(db,"positionX","positionY"),PU:Lock(db),function() nav:ApplyLayout() end,
-      {sample="퀘스트 방향 · 120 m",sampleY=-30,art={{texture="Interface\\AddOns\\KHQOL\\Media\\QuestNavigator\\Arrow.tga",width=db.arrowSize,height=db.arrowSize,y=30}}})
-    if t then PU:ConfigureResets({t},function(target,point) point(target,function() return nav.db end,{x=0,y=180},{x="positionX",y="positionY"}) end) end
-  end
+  self:AddNavigationPositionTarget(list)
   local settings=self.settings;local x,y,w,h=PU.Rect(settings)
   local cx,cy=call(UIParent.GetCenter,UIParent)
   if x and finite(cx) and finite(cy) then
@@ -78,8 +80,35 @@ function K:BuildPositionTargets(focus,scope)
       local p=positions.settings or {x=x-cx,y=y-cy};positions.settings=p
       p.x=self.PositionStore:Round(p.x+dx);p.y=self.PositionStore:Round(p.y+dy)
     end,function() self.PositionStore:ApplySettingsWindow(settings) end,
-    {sample="KHQOL 설정창 · 위치 예시",resetPhysical=true,resetPoint={point="CENTER",relativePoint="BOTTOMLEFT",x=cx,y=cy},
+    {usageRead=D:Listening() and function() local p=self.db.toolWindows and self.db.toolWindows.settings;return p and p.x or x-cx,p and p.y or y-cy end or nil,
+      sample="KHQOL 설정창 · 위치 예시",resetPhysical=true,resetPoint={point="CENTER",relativePoint="BOTTOMLEFT",x=cx,y=cy},
       resetWrite=function() self.db.toolWindows=self.db.toolWindows or {};self.db.toolWindows.settings={x=0,y=0} end})
   end
+  return list
+end
+
+function K:AddNavigationPositionTarget(list,owner)
+  -- Navigation is a shared core service used by both Quest and ForeverNote.
+  local nav=self.NavigationUI
+  local key=owner or self:CanRunModule("questNavigator") and "questNavigator" or self:CanRunModule("todo") and "todo"
+  if key and nav.root and nav.db then
+    local db=nav.db
+    local t=PU:Add(list,"quest",key,"퀘스트·노트 공용 안내 HUD",nav.root,PU:PointWriter(db,"positionX","positionY"),PU:Lock(db),function() nav:ApplyLayout() end,
+      {sample="퀘스트 방향 · 120 m",sampleY=-30,art={{texture="Interface\\AddOns\\KHQOL\\Media\\QuestNavigator\\Arrow.tga",width=db.arrowSize,height=db.arrowSize,y=30}}})
+    if t then PU:ConfigureResets({t},function(target,point) point(target,function() return nav.db end,{x=0,y=180},{x="positionX",y="positionY"}) end) end
+  end
+end
+
+-- Providers never start editing here. Restore the flag even if an optional
+-- provider fails; subsequent normal editor entry must not inherit query mode.
+function K:DescribePositionTargets(owner,focus)
+  local previous=PU.describing;PU.describing=true
+  local list={}
+  local ok,reason=pcall(function()
+    self.ModuleRegistry:PositionTargets(focus,function(...) PU:Add(list,...) end,owner)
+    if (owner=="questNavigator" or owner=="todo") and self:CanRunModule(owner) then self:AddNavigationPositionTarget(list,owner) end
+  end)
+  PU.describing=previous
+  if not ok then return {},reason end
   return list
 end

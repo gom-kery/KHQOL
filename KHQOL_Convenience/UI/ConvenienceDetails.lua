@@ -2,13 +2,12 @@ local KHQOL = _G.KHQOL
 local UI,T=KHQOL.UI,KHQOL.UI.Theme
 -- Stable cells keep subordinate controls in place when switches change.
 -- Availability changes, never row visibility, so neighboring labels cannot shift.
-function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
+function KHQOL.modules.generalConvenience:BuildSettings(parent,y,panelKey)
   local M=self; local G=KHQOL.modules.general
   local function get(k) return function() return M:GetDB()[k] end end
   local function set(k) return function(v) M:GetDB()[k]=v; M:ApplySettings() end end
   local function legacy(k) return function() return G:GetDB()[k] end end
   local function legacySet(k) return function(v) G:SetConvenienceEnabled(k,v) end end
-  local function supportedTracking() return C_Minimap and type(C_Minimap.GetTrackingInfo)=="function" and type(C_Minimap.SetTracking)=="function" end
   local function supportedItems() return C_TooltipInfo and type(C_TooltipInfo.GetItemByID)=="function" and type(ITEM_SPELL_KNOWN)=="string" end
   local function check(title,getter,setter,tip,enabled,children)
     return {title=title,get=getter,set=setter,tip=tip,enabled=enabled,children=children or {}}
@@ -22,28 +21,32 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
     prefixes.fields[#prefixes.fields+1]={title=title.." (최대 10글자)",get=function() return A:GetPrefix(channel) end,set=function(v) A:SetPrefix(channel,v) end}
   end
   prefixes.button={title="말머리 초기화",click=function() A:ResetPrefixes() end}
-  local greeting=check("파티 자동 인사",legacy("chatAutoGreeting"),legacySet("chatAutoGreeting"),"새 파티 구성·참여 시 한 번 전송합니다. 접속·재접속·지역 이동·파티원 변경에는 보내지 않습니다. 빈 인사말은 보내지 않습니다.",nil,{
+  local greeting=check("파티 자동 인사",legacy("chatAutoGreeting"),legacySet("chatAutoGreeting"),"새 파티 구성·참여 후 1.5초 뒤 한 번 전송합니다. 접속·재접속·지역 이동·파티원 변경에는 보내지 않습니다. 기본값은 OFF입니다.",nil,{
     check("공격대 자동 인사",legacy("chatRaidGreeting"),legacySet("chatRaidGreeting"),"공격대 참여 시 RAID 채널로 인사합니다. 기본 OFF.")})
   greeting.fields={{title="인사말 (캐릭터별 저장 · 최대 255바이트)",get=function() return A:GetGreeting() end,set=function(v) A:SetGreeting(v) end}}
-  local chatSections={
-    {title="대화창",items={
-      check("기본 대화창 편의",legacy("chatEnhancement"),legacySet("chatEnhancement"),"대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사를 개선합니다."),
+  local prefixSections={{title="말머리",items={prefixes}}}
+  local partySections={
+    {title="파티 버튼",items={}},
+    {title="파티 초대",items={
       check("Alt+좌클릭 파티 초대",legacy("chatAltInvite"),legacySet("chatAltInvite"),"채팅 캐릭터 이름을 Alt+좌클릭하여 초대합니다. Forever 이름·성을 지원합니다. /초대진단으로 설정·훅·최근 처리 결과를 확인합니다. /파티요청 전체이름은 전송 전 귓속말 초안을 엽니다."),
-      prefixes}},
+    }},
     {title="파티 자동 인사",items={greeting}},
-    {title="버프 감사 알림",items={}},
   }
-  local sections=chat and chatSections or {
+  local commonSections={
+    {title="기본 설정",items={check("기본 대화창 편의",legacy("chatEnhancement"),legacySet("chatEnhancement"),
+      "대화 입력 커서 이동, 이전 대화 호출, 링크 툴팁 및 URL 복사를 개선합니다."),
+      check("상인 판매목록 확장",get("merchantExpanded"),set("merchantExpanded"),"기본 순서대로 4열 × 5행으로 확장합니다. 상점 변경 애드온과 충돌하면 적용하지 않습니다.")}},
     {title="아이템",items={
       check("착용 아이템 레벨 표시",get("equipmentLevels"),set("equipmentLevels"),"캐릭터창의 착용 아이템 아이콘 안쪽 위 중앙에 아이템 레벨 숫자만 표시합니다. 빈 칸·탄약은 제외합니다.",function() return M:EquipmentLevelsSupported() end),
+      check("퀘스트 보상 최고 판매가 표시",get("questRewardBestPrice"),set("questRewardBestPrice"),"선택 보상 중 상점 판매가에 수량을 곱한 금액이 가장 높은 아이템에 동전을 표시합니다."),
       check("아이템 파괴 자동 입력",legacy("autoConfirmDestroy"),legacySet("autoConfirmDestroy"),"파괴 확인 문구를 자동 입력합니다. 최종 확인은 직접 선택합니다."),
       check("잡템 자동 판매",legacy("autoSellJunk"),legacySet("autoSellJunk"),"상점에서 잡템을 자동 판매합니다. 보호 목록의 아이템이 가방에 있거나 가방을 확인할 수 없으면 슬롯별로 검사합니다."),
       check("자동 수리",legacy("autoRepair"),legacySet("autoRepair"),"상점에서 수리 비용을 지불할 수 있을 때 수리합니다.",nil,{
         check("길드 자금 우선 사용",legacy("useGuildFunds"),function(v) G:GetDB().useGuildFunds=v end,"권한·잔액·한도가 충분하면 길드 자금으로, 부족하면 개인 골드로 수리합니다.")}),
       check("이미 습득한 아이템 표시",get("knownItems"),set("knownItems"),"습득 여부가 확인된 도안·탈것에 체크 표시합니다.",supportedItems,{
         check("도안",get("recipes"),set("recipes")),check("탈것",get("mounts"),set("mounts")),
-        check("가방",get("bags"),set("bags")),check("상점",get("merchant"),set("merchant"))}),
-      check("상인 판매목록 확장",get("merchantExpanded"),set("merchantExpanded"),"기본 순서대로 4열 × 5행으로 확장합니다. 상점 변경 애드온과 충돌하면 적용하지 않습니다.")}},
+        check("가방",get("bags"),set("bags")),check("상점",get("merchant"),set("merchant"))})}},
+    {title="가방 휴지통",items={}},
     {title="자동 거절",items={
       check("결투 요청",get("declineDuel"),set("declineDuel"),"결투 요청을 자동 거절합니다. 펫 대전·대기열은 제외합니다.",function() return type(CancelDuel)=="function" and type(StaticPopup_FindVisible)=="function" end),
       check("거절 채팅 알림",get("declineReport"),set("declineReport"),"결투 요청·파티 초대·길드 초대의 거절 결과를 공통으로 대화창에 표시합니다."),
@@ -51,9 +54,28 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
       check("파티 초대",party,legacySet("declinePartyInvites"),"파티 초대를 자동 거절합니다. 명단을 확인할 수 없으면 초대를 유지합니다. 그룹 찾기·대기열은 제외합니다.",function() return type(DeclineGroup)=="function" and type(StaticPopup_FindVisible)=="function" end,{
         check("친구 허용",get("allowFriends"),set("allowFriends"),"게임 내 캐릭터 친구 목록 기준입니다. Battle.net 친구는 포함하지 않습니다."),
         check("길드원 허용",get("allowGuild"),set("allowGuild"))})}},
-    {title="채집",items={check("채집 추적 상태 유지",get("keepTracking"),set("keepTracking"),"직접 선택한 채광·약초 추적을 부활 후 복원합니다. 직접 끈 추적은 복원하지 않습니다.",supportedTracking,{
-      check("복원 채팅 알림",get("trackingReport"),set("trackingReport"))})}},
+    {title="버프 알림",items={}},
   }
+  local sections={}
+  local function append(section) sections[#sections+1]=section end
+  local function selectItems(section,predicate)
+    local result={title=section.title,items={}}
+    for _,item in ipairs(section.items) do if predicate(item.title) then result.items[#result.items+1]=item end end
+    if #result.items>0 then append(result) end
+  end
+  if panelKey=="chat" then sections=prefixSections
+  elseif panelKey=="party" then sections=partySections
+  elseif panelKey=="bags" then
+    selectItems(commonSections[2],function(title) return title~="잡템 자동 판매" and title~="자동 수리" end)
+    append(commonSections[3])
+  elseif panelKey=="merchant" then
+    selectItems(commonSections[1],function(title) return title=="상인 판매목록 확장" end)
+    selectItems(commonSections[2],function(title) return title=="잡템 자동 판매" or title=="자동 수리" end)
+  elseif panelKey=="communication" then
+    selectItems(commonSections[1],function(title) return title=="기본 대화창 편의" end)
+    append(commonSections[5])
+  elseif panelKey=="decline" then append(commonSections[4])
+  else sections=commonSections end
   local page=CreateFrame("Frame",nil,parent); page:SetPoint("TOPLEFT",0,y); page:SetWidth(parent:GetWidth())
   local step=T.RowHeight+T.RowGap
   local refresh
@@ -99,21 +121,54 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
       cell:SetHeight((item.title=="이미 습득한 아이템 표시" and 3 or #item.controls)*step)
       if section.title=="자동 거절" then cell:SetHeight(step) end
     end
-    if section.title=="아이템" then
+    if section.title=="가방 휴지통" then
       section.extraSettings=CreateFrame("Frame",nil,section.body)
-      section.extraSettings.khqolSection="아이템"
-      section.layoutExtraSettings=M:BuildBagItemSettings(section.extraSettings)
+      section.extraSettings.khqolSection=section.title
+      section.layoutExtraSettings,section.optionCount=M:BuildBagTrashSettings(section.extraSettings)
       table.insert(section.measure,section.extraSettings)
-    elseif section.title=="버프 감사 알림" then
+    elseif section.title=="파티 버튼" then
+      local settings=CreateFrame("Frame",nil,section.body)
+      settings.khqolSection=section.title
+      section.extraSettings=settings
+      local p=M.partyControl
+      local b=UI:CreateBuilder(settings,0)
+      local function enabled() return p:GetDB().enabled end
+      b:Checkbox("파티 버튼 표시",enabled,function(value) p:GetDB().enabled=value;p:Configure() end)
+      b:Slider("파티 버튼 크기",24,96,1,function() return p:GetDB().size end,
+        function(value) p:GetDB().size=value;p:Configure() end,function(value) return value.." px" end,enabled)
+      b:Slider("파티 버튼 투명도",0,90,1,function() return 100-p:GetDB().opacity end,
+        function(value) p:GetDB().opacity=100-value;p:Configure() end,function(value) return value.."%" end,enabled)
+      for _,entry in ipairs({{"greeting","파티 인사 메시지"},{"farewell","파티 작별 인사 메시지"}}) do
+        local key,title=unpack(entry)
+        local box=b:Edit(title,function() return p:GetMessage(key) end,function(value) p:SetMessage(key,value) end)
+        box:SetMaxLetters(1024)
+        UI:AttachTooltip(box,title,key=="greeting" and "최대 255바이트. 빈칸이면 인사를 보내지 않습니다."
+          or "최대 255바이트. 빈칸이면 우클릭 시 작별 인사 없이 탈퇴를 요청합니다.")
+      end
+      b:Button("파티 버튼 위치 초기화",function() p:ResetPosition() end)
+      b:Flush()
+      section.optionCount=#b.cells
+      section.layoutExtraSettings=function(width)
+        settings:SetWidth(width);b:Reflow();return settings:GetHeight()
+      end
+      table.insert(section.measure,settings)
+    elseif section.title=="버프 알림" then
       local buff=CreateFrame("Frame",nil,section.body)
       buff.khqolSection=section.title
       section.extraSettings=buff
       local b=UI:CreateBuilder(buff,0)
       local function get(key) return function() return M:GetDB().buffThanks[key] end end
       local function set(key) return function(value) M:GetDB().buffThanks[key]=value;M.buffThanks:Configure() end end
-      b:Checkbox("버프 감사 알림",get("enabled"),set("enabled"))
-      local move=b:Button("버프 알림 위치 편집",function() KHQOL.PositionEditor:Enter("buffThanks") end,nil,get("enabled"))
-      move.navigationOnly=true
+      local use=b:Checkbox("버프 알림",get("enabled"),set("enabled"))
+      -- Keep the existing navigation/metric identity while clarifying its role.
+      use.text:SetText("버프 감사 알림 사용")
+      for _,caption in ipairs(use.uiCaptions or {}) do if caption.region==use.text then caption.text="버프 감사 알림 사용" end end
+      local lock=b:PositionLock("버프 알림 위치 잠금",get("locked"),function(value) M.buffThanks:SetLocked(value) end,get("enabled"),"버프 알림")
+      UI:AttachTooltip(lock,"버프 알림 위치 잠금","잠금을 풀고 설정창을 닫은 뒤 비전투 중에 알림 또는 ‘버프 감사 알림 · 이동’ 예시를 드래그하세요. 이동 후 잠그면 위치를 고정합니다.")
+      local message=b:Edit("버프 감사 메시지",function() return M.buffThanks:GetMessage() end,
+        function(value) M.buffThanks:SetMessage(value) end,get("enabled"))
+      message:SetMaxLetters(1024)
+      UI:AttachTooltip(message,"버프 감사 메시지","최대 255바이트. 빈칸은 기본 문구를 사용합니다.")
       b:Slider("버프 아이콘 크기",32,112,1,get("size"),set("size"),function(v) return v.." px" end,get("enabled"))
       b:Dropdown("새 알림 표시 방향",{{value="right",text="오른쪽"},{value="left",text="왼쪽"}},
         get("direction"),set("direction"),get("enabled"))
@@ -133,12 +188,12 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
     local top=0; local width=math.min(T.FormMaxWidth,parent:GetWidth());page:SetWidth(width)
     for _,section in ipairs(sections) do
       local f=section.frame;f:ClearAllPoints();f:SetPoint("TOPLEFT",0,top);f:SetWidth(width)
-      section.group.row:SetWidth(width);section.group:SetOptionCount(section.optionCount or #section.measure)
+      section.group.row:SetWidth(width);section.group:SetOptionCount(math.max(section.focusFoldable and 2 or 0,section.optionCount or #section.measure))
       local headerHeight=T.SectionGap+section.group.row:GetHeight()+T.RowGap
       section.body:SetPoint("TOPLEFT",0,-headerHeight);section.body:SetWidth(width)
       local expanded=section.group:IsExpanded();section.body:SetShown(expanded)
       local columns=width<T.CheckTwoColumnWidth and 1 or 2
-      if chat then columns=1 end
+      if panelKey then columns=1 end
       for _,item in ipairs(section.items) do for _,control in ipairs(item.controls) do
         control.text:SetWidth(width)
         if control.text:GetStringWidth()+T.CheckboxSize+T.CheckboxLabelGap+T.ContentPadding>(width-T.ColumnGap)/2 then columns=1 end
@@ -182,13 +237,26 @@ function KHQOL.modules.generalConvenience:BuildSettings(parent,y,chat)
       section.body:SetHeight(bodyHeight)
       f:SetHeight(headerHeight+(expanded and section.body:GetHeight() or 0));top=top-f:GetHeight()
     end
-    local text=not chat and (M.merchantPending and "상점 확장: 전투가 끝나면 적용합니다." or (M:GetDB().merchantExpanded and M.merchantUnavailable and "상점 확장 미적용: "..M.merchantUnavailable or "")) or ""
+    local text=(not panelKey or panelKey=="merchant") and (M.merchantPending and "상점 확장: 전투가 끝나면 적용합니다." or (M:GetDB().merchantExpanded and M.merchantUnavailable and "상점 확장 미적용: "..M.merchantUnavailable or "")) or ""
     status:ClearAllPoints();status:SetPoint("TOPLEFT",0,top-6); status:SetWidth(width); status:SetText(text)
-    if not chat then top=top-step*2 end -- Reserve merchant status space.
+    status:SetShown(text~="")
+    if text~="" then top=top-math.max(step,status:GetStringHeight()+12) end
     page:SetHeight(-top); parent:SetHeight(-y-top)
   end
   local sentinel=CreateFrame("Frame",nil,page); sentinel.Refresh=refresh; sentinel.layoutRefresh=true
   UI:RegisterControl(page,sentinel); refresh()
   parent.generalSections=sections
+  if not panelKey or panelKey=="bags" then M.commonSections=sections end
   return y-page:GetHeight()
+end
+
+function KHQOL.modules.generalConvenience:OpenTrashSettings()
+  local N=UI.SettingsNavigation
+  if not N:Open({module="generalConvenience",section="가방 휴지통"}) then return end
+  for _,section in ipairs(self.commonSections or {}) do
+    section.focusFoldable=true
+    UI.disclosureStates[section.group.id]=section.title=="가방 휴지통"
+    section.group:Refresh()
+  end
+  KHQOL.settings:RefreshActivePage();KHQOL.settings:Reflow()
 end

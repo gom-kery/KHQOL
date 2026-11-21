@@ -119,12 +119,13 @@ function C:TargetPositionPreview()
   local width=math.max(1,style.appearance.width-(style.icon.enabled and style.icon.size+2 or 0))*scale
   local height=style.appearance.height*scale
   local cx,cy=left+width/2,top-height/2
-  if not self.targetProxy then self.targetProxy=CreateFrame("Frame",nil,UIParent);self.targetProxy:EnableMouse(false);self.targetProxy:Hide() end
-  local p=self.targetProxy;p:ClearAllPoints();p:SetPoint("CENTER",UIParent,"BOTTOMLEFT",cx,cy);p:SetSize(width,height)
+  if not KHQOL.PositionUtils.describing and not self.targetProxy then self.targetProxy=CreateFrame("Frame",nil,UIParent);self.targetProxy:EnableMouse(false);self.targetProxy:Hide() end
+  local p=false
+  if not KHQOL.PositionUtils.describing then p=self.targetProxy;p:ClearAllPoints();p:SetPoint("CENTER",UIParent,"BOTTOMLEFT",cx,cy);p:SetSize(width,height) end
   local cfg=self:GetDB().targetPosition
-  return {id="cast.target",name="대상 시전바",key="castBar",frame=p,sample="대상 시전바 · 위치 예시",sampleSize=12,
+  return {id="cast.target",name="대상 시전바",key="castBar",settingsRoute={module="castBar",castUnit="target"},frame=p,sample="대상 시전바 · 위치 예시",sampleSize=12,
     write=function(a,b) cfg.x=math.max(-1000,math.min(1000,KHQOL.PositionStore:Round(cfg.x+a/ratio)));cfg.y=math.max(-1000,math.min(1000,KHQOL.PositionStore:Round(cfg.y+b/ratio))) end,
-    apply=function() C:ApplyTargetPosition() end,
+    lock=function() cfg.locked=true end,apply=function() C:ApplyTargetPosition() end,
     resetPoint={point="CENTER",relativePoint="BOTTOMLEFT",x=cx-cfg.x*ratio,y=cy-cfg.y*ratio},resetPhysical=true,
     resetWrite=function() cfg.x=0;cfg.y=0 end}
 end

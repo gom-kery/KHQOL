@@ -125,7 +125,12 @@ function A:ClipMessage(value,budget)
         finish=b and b+2
       elseif tag=="T" or tag=="A" then
         local e=value:find(tag=="T" and "|t" or "|a",i+2,true);finish=e and e+2
-      elseif tag=="c" and value:sub(i+2,i+9):match("^%x%x%x%x%x%x%x%x$") then finish=i+10;newColor=true
+      elseif tag=="c" then
+        local named=value:match("^|cn[%w_]+:",i)
+        if named then finish=i+#named
+        elseif value:sub(i+2,i+9):match("^%x%x%x%x%x%x%x%x$") then finish=i+10
+        else return end
+        newColor=true
       elseif tag=="r" then finish=i+2;newColor=false
       elseif tag=="|" then finish=i+2
       else return end -- Unknown/malformed control syntax: do not rewrite it.
@@ -144,10 +149,13 @@ function A:PrepareMessage(value,channel)
   local prefix=self:GetDB().chatPrefixes and self:GetPrefix(channel) or ""
   if prefix~="" and value~=prefix and value:sub(1,#prefix+1)~=prefix.." " then
     local body=self:ClipMessage(value,255-#prefix-1)
+    if value:find("|H",1,true) and body~=value then
+      return value,"링크 전체를 보존하기 위해 이번 메시지의 말머리를 생략했습니다."
+    end
     if body and body~="" then return prefix.." "..body end
     return value,"링크·제어 문자열을 보존하기 위해 이번 메시지의 말머리를 생략했습니다."
   end
-  return self:ClipMessage(value,255) or value
+  return value:find("|H",1,true) and value or self:ClipMessage(value,255) or value
 end
 function A:PreSend(box)
   if not (K.db and K.db.general and K.db.general.chatPrefixes==true) or not box or call(box.IsForbidden,box)==true then return end
@@ -160,29 +168,72 @@ function A:PreSend(box)
   if notice then self:Message(notice) end
   if prepared~=value then call(box.SetText,box,prepared) end
 end
+function A:ReadRoster(channel)
+  local category=channel=="INSTANCE_CHAT" and INSTANCE or HOME
+  local raid=call(IsInRaid,category)
+  if type(raid)~="boolean" then return end
+  local n=call(GetNumGroupMembers,category)
+  if type(n)~="number" or n%1~=0 or n<2 or n>40 then return end
+  local members={}
+  for index=0,n-1 do
+    local unit=raid and "raid"..(index+1) or (index==0 and "player" or "party"..index)
+    local guid=call(UnitGUID,unit)
+    if not text(guid) or guid=="" or members[guid] then return end
+    members[guid]=true
+  end
+  return members
+end
 function A:ReadGroup()
   local grouped,raid=call(IsInGroup,HOME),call(IsInRaid,HOME)
   if grouped==false and raid==false then return "solo" end
-  if grouped~=true or type(raid)~="boolean" then return end
-  -- Instance groups have distinct routing; never guess that PARTY is usable.
-  if call(IsInGroup,INSTANCE)~=false then return end
-  local n=call(GetNumGroupMembers,HOME)
-  if type(n)~="number" or n%1~=0 or n<2 or n>40 then return end
-  for index=0,n-1 do
-    local unit=index==0 and "player" or (raid and "raid"..index or "party"..index)
-    -- Raid indexes include the player, so validate all raid1..raidN separately.
-    if raid then unit="raid"..(index+1) end
-    local guid=call(UnitGUID,unit)
-    if not text(guid) or guid=="" then return end
-  end
-  return raid and "raid" or "party"
+  if grouped~=true or type(raid)~="boolean" or call(IsInGroup,INSTANCE)~=false then return end
+  if self:ReadRoster(raid and "RAID" or "PARTY") then return raid and "raid" or "party" end
 end
 function A:Baseline()
-  self.pendingJoin=nil;self.pendingLeave=nil
+  self.pendingJoin=nil;self.pendingLeave=nil;self.pendingGreeting=nil
   local state=self:ReadGroup()
   self.groupActive=state=="party" or state=="raid"
   self.soloArmed=state=="solo"
 end
+function A:SendGroupMessage(message,channel,greetingOrigin)
+  local sender=C_ChatInfo and C_ChatInfo.SendChatMessage
+  if type(sender)~="function" then return "missing" end
+  if call(C_ChatInfo.InChatMessagingLockdown)~=false then return "restricted" end
+  local body=self:PrepareMessage(message,channel)
+  local previous,record
+  if greetingOrigin then
+    self.greetingsSent=self.greetingsSent or {}
+    previous=self.greetingsSent[channel]
+    local members,now=self:ReadRoster(channel),call(GetTime)
+    if previous and previous.body==body then
+      if members and previous.members then
+        local newcomer=false
+        for guid in pairs(members) do if not previous.members[guid] then newcomer=true;break end end
+        if not newcomer then return "duplicate" end
+      elseif type(now)=="number" and type(previous.at)=="number" and now-previous.at<2 then return "recent" end
+    end
+    record={body=body,members=members,at=now}
+    self.greetingsSent[channel]=record
+  end
+  local status,result=K.ReadPublicAPI(sender,body,channel)
+  if status=="ok" and result==false then
+    if record and self.greetingsSent[channel]==record then self.greetingsSent[channel]=previous end
+    return "error"
+  end
+  return status
+end
+
+function A:OpenGroupDraft(message,channel)
+  local util=ChatFrameUtil
+  if not util or type(util.OpenChat)~="function" then return false end
+  for _,getBox in ipairs({"GetActiveWindow","ChooseBoxForSend"}) do
+    local status,box=K.ReadPublicAPI(util[getBox])
+    if status~="ok" or (box and call(box.GetText,box)~="") then return false end
+  end
+  local commands={PARTY=SLASH_PARTY1 or "/p",RAID=SLASH_RAID1 or "/raid",INSTANCE_CHAT=SLASH_INSTANCE_CHAT1 or "/instance"}
+  return commands[channel] and K.ReadPublicAPI(util.OpenChat,commands[channel].." "..message)=="ok"
+end
+
 function A:ObserveGroup()
   if not self.inWorld then return end
   local state=self:ReadGroup()
@@ -201,17 +252,22 @@ function A:ObserveGroup()
   if started and (type(now)~="number" or now-started>10) then return end
   local db=self:GetDB()
   if not db.chatAutoGreeting or (state=="raid" and not db.chatRaidGreeting) then return end
-  local greeting=self:GetGreeting()
-  if greeting=="" then return end
   local channel=state=="raid" and "RAID" or "PARTY"
-  local sender=C_ChatInfo and C_ChatInfo.SendChatMessage or SendChatMessage
-  -- Mark the join consumed BEFORE calling the API, even on error. No retries.
-  if self:ReadGroup()~=state or type(sender)~="function" then return end
-  pcall(sender,self:PrepareMessage(greeting,channel),channel)
+  local ticket={}
+  self.pendingGreeting=ticket
+  C_Timer.After(1.5,function()
+    if self.pendingGreeting~=ticket then return end
+    self.pendingGreeting=nil
+    local options=self:GetDB()
+    if not self.inWorld or not options.chatAutoGreeting or (state=="raid" and not options.chatRaidGreeting)
+      or self:ReadGroup()~=state then return end
+    local greeting=self:GetGreeting()
+    if greeting~="" then self:SendGroupMessage(greeting,channel,"automatic") end
+  end)
 end
 function A:OnEvent(event,category)
   if event=="ADDON_LOADED" then self:RegisterPreSend();return end
-  if event=="PLAYER_LEAVING_WORLD" then self.inWorld=false;self.worldTicket=nil;self.pendingJoin=nil;return end
+  if event=="PLAYER_LEAVING_WORLD" then self.inWorld=false;self.worldTicket=nil;self.pendingJoin=nil;self.pendingGreeting=nil;return end
   if event=="PLAYER_ENTERING_WORLD" then
     self.inWorld=false;self:Baseline()
     if self:GetDB().chatAutoGreeting~=true then self.inWorld=true;self.worldTicket=nil;return end
@@ -226,10 +282,18 @@ function A:OnEvent(event,category)
     end
     return -- Without a timer, fail closed rather than greet during restoration.
   end
+  if self.greetingsSent then
+    if (event=="GROUP_LEFT" and not secret(category) and category==HOME) or call(IsInGroup,HOME)==false then
+      self.greetingsSent.PARTY=nil;self.greetingsSent.RAID=nil
+    end
+    if (event=="GROUP_LEFT" and not secret(category) and category==INSTANCE) or call(IsInGroup,INSTANCE)==false then
+      self.greetingsSent.INSTANCE_CHAT=nil
+    end
+  end
   if not self.inWorld then return end
   if event=="GROUP_LEFT" then
     if secret(category) or category~=HOME then return end
-    self.pendingLeave=true;self.pendingJoin=nil
+    self.pendingLeave=true;self.pendingJoin=nil;self.pendingGreeting=nil
   elseif event=="GROUP_JOINED" then
     if secret(category) or category~=HOME then return end
     if self.groupActive then self.pendingLeave=nil end
@@ -239,12 +303,6 @@ function A:OnEvent(event,category)
 end
 function A:ApplySettings()
   self:Baseline() -- Turning ON / changing profile while grouped is never a join.
-  if not self.events then return end
-  local enabled=self:GetDB().chatAutoGreeting==true
-  for _,event in ipairs({"GROUP_ROSTER_UPDATE","GROUP_JOINED","GROUP_LEFT"}) do
-    if enabled then pcall(self.events.RegisterEvent,self.events,event)
-    else self.events:UnregisterEvent(event) end
-  end
 end
 function A:RegisterPreSend()
   if self.preSendSupported then return end
@@ -263,6 +321,9 @@ function A:Initialize()
   self.events=CreateFrame("Frame")
   self.events:RegisterEvent("PLAYER_ENTERING_WORLD");self.events:RegisterEvent("PLAYER_LEAVING_WORLD")
   self.events:RegisterEvent("ADDON_LOADED");self:RegisterPreSend()
+  for _,event in ipairs({"GROUP_ROSTER_UPDATE","GROUP_JOINED","GROUP_LEFT"}) do
+    pcall(self.events.RegisterEvent,self.events,event)
+  end
   self.events:SetScript("OnEvent",function(_,event,...) A:OnEvent(event,...) end)
   self:ApplySettings()
 end

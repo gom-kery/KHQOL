@@ -20,6 +20,15 @@ function M:Initialize()
         type(MinimapCluster.UpdateMinimapConfig) == "function" and type(Minimap.SetMaskTexture) == "function"
     if not self.supported then return end
     self.container = MinimapCluster.MinimapContainer
+    -- Blizzard uses the native cluster bounds to size the right action bars.
+    -- Move the visible map through our own anchor, keeping those bounds native.
+    self.positionAnchor=CreateFrame("Frame",nil,UIParent)
+    self.positionAnchor:SetSize(1,1);self.positionAnchor:EnableMouse(false)
+    self.positionAnchor:SetFrameStrata(MinimapCluster:GetFrameStrata())
+    self.positionAnchor:SetFrameLevel(MinimapCluster:GetFrameLevel())
+    self.positionAnchor:SetShown(MinimapCluster:IsShown())
+    MinimapCluster:HookScript("OnShow",function() self.positionAnchor:Show() end)
+    MinimapCluster:HookScript("OnHide",function() self.positionAnchor:Hide() end)
     -- Forever exposes SetMaskTexture, but no GetMaskTexture. Observe writes and
     -- ask the verified native config function to establish a public baseline.
     hooksecurefunc(Minimap, "SetMaskTexture", function(_, asset)
@@ -167,7 +176,7 @@ end
 
 function M:UpdateZone()
     if not self.zoneLabel then return end
-    local enabled=self.active and A.db.zone and not A.editing
+    local enabled=self.active and not A.editing
     local text=type(GetMinimapZoneText)=="function" and GetMinimapZoneText() or MinimapZoneText and MinimapZoneText:GetText()
     if A:IsSecret(text) or type(text)~="string" then text="" end
     self.zoneLabel:SetText(text)
@@ -292,8 +301,8 @@ function M:CreateDecor()
         if InCombatLockdown() or A.editing or A.db.locked or not self.active then return end
         local x, y = GetCursorPosition()
         local scale = UIParent:GetEffectiveScale()
-        local cx, cy = MinimapCluster:GetCenter()
-        local cs = MinimapCluster:GetEffectiveScale()
+        local cx, cy = Minimap:GetCenter()
+        local cs = Minimap:GetEffectiveScale()
         if not (A:Number(x) and A:Number(y) and A:Number(scale) and scale > 0 and
             A:Number(cx) and A:Number(cy) and A:Number(cs)) then return end
         self.drag = {x = x / scale, y = y / scale, cx = cx * cs / scale, cy = cy * cs / scale}
@@ -322,13 +331,13 @@ end
 
 function M:MoveTo(x, y, save)
     local w, h = self:Bounds()
-    if not w or not self.journal then return false end
+    if not w or not self.journal or not self.positionAnchor then return false end
     local margin = self.displaySize / 2
     x, y = A:Clamp(x, margin, math.max(margin, w - margin)), A:Clamp(y, margin, math.max(margin, h - margin))
-    local cs, us = MinimapCluster:GetEffectiveScale(), UIParent:GetEffectiveScale()
+    local cs, us = self.positionAnchor:GetEffectiveScale(), UIParent:GetEffectiveScale()
     if not A:Number(cs) or not A:Number(us) or cs <= 0 or us <= 0 then return false end
     local scale = cs / us
-    local ok = self.journal:Set(MinimapCluster, "points", 1, "CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+    local ok = self.journal:Set(self.positionAnchor, "points", 1, "CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
     if ok then self.centerUI={x=x,y=y} end
     if save and ok then A.db.position = {x = x / w, y = y / h} end
     return ok
@@ -372,7 +381,7 @@ end
 
 function M:Apply()
     A.messages.appearance = nil
-    if not A.enabled or not A.db.appearance then
+    if not A.enabled then
         self.yielded = nil
         if not self:Release() then A.messages.appearance = "외형 복원 대기: 프레임 접근·앵커 제한을 확인하세요." end
         self.foreignMask = nil
@@ -438,10 +447,19 @@ function M:Apply()
     local function Set(frame, key, ...)
         if frame and A:Accessible(frame, true) and not j:Set(frame, key, ...) then ok = false end
     end
-    Set(MinimapCluster,"clamped",false)
+    -- These pieces must also leave the cluster's ResizeLayoutFrame children;
+    -- merely changing their anchors would expand its bounds down to the map.
+    for _,frame in pairs({self.container,MinimapCluster.Tracking,MinimapCluster.DielFrame,
+        MinimapCluster.IndicatorFrame}) do
+        if frame and A:Accessible(frame,true) then
+            local level=A:Read(frame,A.get.level)
+            if not level or not j:Capture(frame,"level") then ok=false
+            else Set(frame,"parent",self.positionAnchor);Set(frame,"level",level[1]) end
+        end
+    end
     Set(self.container, "scale", 1)
     Set(self.container, "size", size, size)
-    Set(self.container, "points", 1, "CENTER", MinimapCluster, "CENTER", 0, 0)
+    Set(self.container, "points", 1, "CENTER", self.positionAnchor, "CENTER", 0, 0)
     Set(Minimap, "size", size, size)
     Set(Minimap, "scale", 1)
     Set(Minimap, "points", 1, "CENTER", self.container, "CENTER", 0, 0)

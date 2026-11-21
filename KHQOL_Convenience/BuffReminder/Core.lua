@@ -58,12 +58,20 @@ function FBR:InitializeDatabase()
         thresholdSeconds = self.DEFAULT_THRESHOLD, locked = true,
         position = { point = "CENTER", x = 0, y = 0 },
         settingsPosition = { point = "CENTER", x = 0, y = 0 },
-        layoutDirection = "RIGHT",
+        layoutDirection = "RIGHT", glowType = "PIXEL", glowColor = {1,.8,.15,1},
         classes = {}, selectedClass = nil, debug = false,
+        food = {enabled=false,mode="MANUAL",itemID=0,direction="VERTICAL",placement="ABOVE"},
+        sleepingBag={enabled=true,placement="BELOW",expiryAlert=true},
     }
     self.profileDefaults = defaults
     ForeverBuffReminderDB = ForeverBuffReminderDB or {}
     KHQOL.MergeDefaults(ForeverBuffReminderDB, defaults)
+    if type(ForeverBuffReminderDB.food)~="table" then ForeverBuffReminderDB.food={} end
+    KHQOL.MergeDefaults(ForeverBuffReminderDB.food,defaults.food,"types")
+    local food=ForeverBuffReminderDB.food
+    if food.mode~="AUTO" then food.mode="MANUAL" end
+    if food.direction~="HORIZONTAL" then food.direction="VERTICAL" end
+    if not KHQOL.IsPublicNumber(food.itemID) or food.itemID<=0 or food.itemID~=math.floor(food.itemID) then food.itemID=0 end
     for _, classToken in ipairs(self.CLASS_TOKENS) do
         ForeverBuffReminderDB.classes[classToken] = ForeverBuffReminderDB.classes[classToken] or { buffs = {} }
         ForeverBuffReminderDB.classes[classToken].buffs = ForeverBuffReminderDB.classes[classToken].buffs or {}
@@ -88,6 +96,11 @@ function FBR:InitializeDatabase()
     for key in pairs(self.SHAMAN_TOTEM_SLOTS) do
         shaman.specials.totems[key] = shaman.specials.totems[key] or { enabled = false }
     end
+    if ForeverBuffReminderDB.glowType~="NONE" then ForeverBuffReminderDB.glowType="PIXEL" end
+    local c=ForeverBuffReminderDB.glowColor
+    if type(c)~="table" then c={1,.8,.15,1};ForeverBuffReminderDB.glowColor=c end
+    for i,v in ipairs({1,.8,.15,1}) do c[i]=KHQOL.IsPublicNumber(c[i]) and math.max(0,math.min(1,c[i])) or v end
+    self:InitCommonDefaults()
     local currentClass = self:GetCurrentClass()
     -- The account-wide last selection may belong to another character.
     -- Start each login/reload on this character; keep all class presets intact.
@@ -102,6 +115,8 @@ function FBR:GetShamanSpecialSettings()
 end
 
 function FBR:IsKnownSpell(spellID)
+    local native=KHQOL.PublicCall(C_SpellBook and C_SpellBook.IsSpellKnown,spellID)
+    if type(native)=="boolean" then return native end
     local known
     if IsPlayerSpell then
         local ok, value = pcall(IsPlayerSpell, spellID)
@@ -111,6 +126,48 @@ function FBR:IsKnownSpell(spellID)
         if ok and not isSecret(value) then known = value end
     end
     return known == true
+end
+
+function FBR:ResolveBuffCast(spellID)
+    local call=KHQOL.PublicCall
+    local spells=C_Spell
+    if not spells then return end
+    local book=C_SpellBook
+    local bank=Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player
+    local name,icon=self:GetSpellDetails(spellID)
+    if not name or not icon then return end
+    self.castRanks=self.castRanks or {}
+    local key=name.."/"..tostring(icon)
+    local candidate=self.castRanks[key]
+    if candidate==nil then
+        local count=call(book and book.GetNumSpellBookSkillLines)
+        local ambiguous=false
+        if KHQOL.IsPublicNumber(count) and bank then
+            for line=1,count do
+                local info=call(book.GetSpellBookSkillLineInfo,line)
+                local base,size=call(function() return info.itemIndexOffset,info.numSpellBookItems end)
+                if KHQOL.IsPublicNumber(base) and KHQOL.IsPublicNumber(size) then
+                    for index=base+1,base+size do
+                        local entry=call(book.GetSpellBookItemInfo,index,bank)
+                        local id,entryName,entryIcon,passive,offSpec=call(function()
+                            return entry.spellID,entry.name,entry.iconID,entry.isPassive,entry.isOffSpec
+                        end)
+                        if entryName==name and entryIcon==icon and KHQOL.IsPublicNumber(id) and passive==false and offSpec==false
+                            and call(book.IsSpellBookItemLowRank,index,bank)==false and self:IsKnownSpell(id) then
+                            if candidate and candidate~=id then ambiguous=true;break end
+                            candidate=id
+                        end
+                    end
+                end
+                if ambiguous then break end
+            end
+        end
+        candidate=(not ambiguous and candidate) or (self:IsKnownSpell(spellID) and spellID)
+        self.castRanks[key]=candidate or false
+    end
+    if candidate and (call(spells.IsSpellHelpful,candidate)==true or call(spells.IsSelfBuff,candidate)==true)
+        and call(spells.IsSpellPassive,candidate)==false
+        and (self:GetCurrentClass()~="SHAMAN" or not self:IsShamanWeaponAuraName(name)) then return candidate end
 end
 
 function FBR:IsShamanWeaponAuraName(name)
@@ -138,40 +195,46 @@ end
 -- All game API calls and values which may be protected are contained here.
 -- A failure deliberately returns UNKNOWN; it is never converted into MISSING.
 function FBR:GetSpellDetails(spellID)
-    local ok, name, icon
-    if C_Spell and C_Spell.GetSpellInfo then
-        ok, name = pcall(C_Spell.GetSpellInfo, spellID)
-        if ok and type(name) == "table" then
-            local info = name
-            ok, name, icon = pcall(function()
-                local spellName, spellIcon = info.name, info.iconID
-                if isSecret(spellName) or isSecret(spellIcon) then return nil, nil end
-                return spellName, spellIcon
-            end)
-        end
-    elseif GetSpellInfo then
-        ok, name, _, icon = pcall(GetSpellInfo, spellID)
+    local name,icon=KHQOL:GetSpellDetails(spellID)
+    self.pendingSpellIDs=self.pendingSpellIDs or {}
+    if KHQOL.IsPublicNumber(spellID) and spellID>0 then
+      if name then self.pendingSpellIDs[spellID]=nil else self.pendingSpellIDs[spellID]=true end
     end
-    if not ok or isSecret(name) or isSecret(icon) or type(name) ~= "string" or name == "" then
-        if C_Spell and C_Spell.RequestLoadSpellData then pcall(C_Spell.RequestLoadSpellData, spellID) end
-        return nil
-    end
-    return name, icon
+    return name,icon
 end
 
+-- Display/input normalization only. Keep the original SpellID and aura lookup name.
+function FBR:BuffName(name)
+    if not KHQOL.IsPublicValue(name) or type(name)~="string" then return nil end
+    name=name:match("^%s*(.-)%s*$")
+    for _,pattern in ipairs({
+        "%s*%(%s*%d+%s*레벨%s*%)$", "%s*%(%s*레벨%s*%d+%s*%)$",
+        "%s*%(%s*%d+%s*등급%s*%)$", "%s*%(%s*등급%s*%d+%s*%)$",
+        "%s*%(%s*[Rr]ank%s+%d+%s*%)$",
+    }) do name=name:gsub(pattern,"") end
+    return name~="" and name or nil
+end
+function FBR:GetBuffDisplayName(spellID)
+    local name,icon=self:GetSpellDetails(spellID)
+    return self:BuffName(name),icon
+end
 function FBR:ResolveSpellInput(input)
-    input = (input or ""):match("^%s*(.-)%s*$")
+    input = self:BuffName(input) or ""
     if input == "" then return nil, "주문 ID 또는 버프 이름을 입력하세요." end
     local numericID = tonumber(input)
-    if numericID and numericID > 0 and numericID == math.floor(numericID) then
-        local name, icon = self:GetSpellDetails(numericID)
+    if KHQOL.IsPublicNumber(numericID) and numericID > 0 and numericID == math.floor(numericID) then
+        local name, icon = self:GetBuffDisplayName(numericID)
         if not name then return nil, "클라이언트에서 확인할 수 없는 Spell ID입니다." end
         return { spellID = numericID, name = name, icon = icon }
     end
     if C_Spell and C_Spell.GetSpellInfo then
-        local ok, info = pcall(C_Spell.GetSpellInfo, input)
-        if ok and type(info) == "table" and type(info.spellID) == "number" and info.name == input then
-            return { spellID = info.spellID, name = info.name, icon = info.iconID }
+        local status,info=KHQOL.ReadPublicAPI(C_Spell.GetSpellInfo,input)
+        if status=="ok" and type(info)=="table" then
+            local fields,id,name=KHQOL.ReadPublicAPI(function() return info.spellID,info.name end)
+            if fields=="ok" and KHQOL.IsPublicNumber(id) and id>0 and id==math.floor(id) and self:BuffName(name)==input then
+                local canonical,icon=self:GetBuffDisplayName(id)
+                if canonical==input then return {spellID=id,name=canonical,icon=icon} end
+            end
         end
     end
     return nil, "이름만으로는 안전하게 Spell ID를 확인할 수 없습니다. Spell ID를 입력하세요."
@@ -304,7 +367,7 @@ function FBR:GetTotemState(slot)
     if timeStatus~="ok" or not KHQOL.PositionStore:Number(now) then return nil end
     local remaining=startTime+duration-now
     if remaining<=0 then return nil end
-    if remaining<=self:GetThreshold() then return "EXPIRING",remaining,icon end
+    if remaining<=self:GetThreshold() then return "EXPIRING",remaining,icon,name end
     return "NORMAL",remaining,icon
 end
 
@@ -330,15 +393,20 @@ function FBR:GetShamanSpecialAlerts()
     for _, key in ipairs({ "EARTH", "FIRE", "WATER", "AIR" }) do
         local slot = self.SHAMAN_TOTEM_SLOTS[key]
         if specials.totems[key].enabled then
-            local state, remaining, icon = self:GetTotemState(slot)
+            local state, remaining, icon, activeName = self:GetTotemState(slot)
             if state == false or state == "EXPIRING" then
                 local selectedSpellID = specials.totems[key].spellID
-                local selectedIcon
+                local selectedIcon,cast
                 if selectedSpellID then
-                    local _, resolvedIcon = self:GetSpellDetails(selectedSpellID)
+                    local selectedName, resolvedIcon = self:GetSpellDetails(selectedSpellID)
                     selectedIcon = resolvedIcon
+                    if selectedName and self:IsKnownSpell(selectedSpellID) and (state==false or selectedName==activeName) then
+                        for _,id in ipairs(self.SHAMAN_TOTEM_SPELLS[key]) do
+                            if id==selectedSpellID then cast=id;break end
+                        end
+                    end
                 end
-                alerts[#alerts + 1] = { key = "shaman-totem-" .. key, state = state == false and "MISSING" or "EXPIRING", remaining = remaining, name = self.SHAMAN_TOTEM_LABELS[key] .. " 토템", icon = icon or selectedIcon or "Interface\\Icons\\INV_Misc_QuestionMark" }
+                alerts[#alerts + 1] = { key = "shaman-totem-" .. key, state = state == false and "MISSING" or "EXPIRING", remaining = remaining, name = self.SHAMAN_TOTEM_LABELS[key] .. " 토템", icon = icon or selectedIcon or "Interface\\Icons\\INV_Misc_QuestionMark",cast=cast }
             end
         end
     end
@@ -358,10 +426,13 @@ end
 function FBR:RefreshAlerts()
     if _G.KHQOL and _G.KHQOL.db and not _G.KHQOL:GetEnabled("buffReminder") then
         self:StopCountdown()
+        if self.Food then self.Food:Stop() end
+        self:StopCommon()
         if self.HideAlerts then self:HideAlerts() end
         return
     end
     if not self.initialized then return end
+    self:SyncCommon()
     local alerts = {}
     local nextRefreshDelay
     local function scheduleAt(delay)
@@ -375,14 +446,18 @@ function FBR:RefreshAlerts()
     else
         local registered={}
         for _,buff in ipairs(self:GetCurrentClassBuffs()) do
-            if buff.enabled then local name=self:GetSpellDetails(buff.spellID);registered[buff.spellID]={name=name} end
+            if buff.enabled and not self:IsCommonDuplicate(buff.spellID) then local name=self:GetSpellDetails(buff.spellID);registered[buff.spellID]={name=name} end
         end
+        if self:CommonConfig().rested then registered[429959]={name=self:GetSpellDetails(429959) or "충분한 휴식"} end
+        if self.Sleep and self.Sleep:Enabled() then registered[1331671]={};registered[429959]=registered[429959] or {} end
+        self.Food:RegisterAuras(registered)
         self.auraBatch=KHQOL.AuraReader:Read(registered)
         for index, buff in ipairs(self:GetCurrentClassBuffs()) do
-            if buff.enabled then
+            if buff.enabled and not self:IsCommonDuplicate(buff.spellID) then
                 local state, remaining, name, icon = self:GetBuffState(buff)
                 if self:IsDisplayModeActive(buff) and (state == "MISSING" or state == "EXPIRING") then
-                    alerts[#alerts + 1] = { key = buff.spellID, index = index, state = state, remaining = remaining, name = name, icon = icon }
+                    alerts[#alerts + 1] = { key = buff.spellID, index = index, state = state, remaining = remaining, name = name, icon = icon,
+                        cast=self:ResolveBuffCast(buff.spellID),castUnit="player" }
                 end
                 if state == "EXPIRING" then
                     scheduleAt(0.5)
@@ -391,6 +466,9 @@ function FBR:RefreshAlerts()
                 end
             end
         end
+        local food=self.Food:Alert(self.auraBatch)
+        self:AppendCommonAlerts(alerts,food,self.auraBatch,scheduleAt)
+        if self.Sleep then self.Sleep:Update(self.auraBatch,scheduleAt) end
         self.auraBatch=nil
         if self:GetCurrentClass() == "SHAMAN" then
             for _, alert in ipairs(self:GetShamanSpecialAlerts()) do alerts[#alerts + 1] = alert end
@@ -437,6 +515,7 @@ FBR:RegisterEvent("PLAYER_LOGIN")
 FBR:RegisterEvent("PLAYER_ENTERING_WORLD")
 FBR:RegisterEvent("UNIT_AURA")
 FBR:RegisterEvent("SPELL_DATA_LOAD_RESULT")
+FBR:RegisterEvent("SPELLS_CHANGED")
 FBR:RegisterEvent("PLAYER_REGEN_DISABLED")
 FBR:RegisterEvent("PLAYER_REGEN_ENABLED")
 FBR:RegisterEvent("PLAYER_DEAD")
@@ -452,12 +531,17 @@ FBR:SetScript("OnEvent", function(self, event, unit)
         self.initialized = true
         self:RefreshAlerts()
     elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_DEAD" or event == "PLAYER_ALIVE" or event == "PLAYER_TOTEM_UPDATE" or event == "WEAPON_ENCHANT_CHANGED" then
+        if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_REGEN_ENABLED" or event=="PLAYER_REGEN_DISABLED" then self.bedStock=nil end
+        self.Food.observation=nil
+        if event=="PLAYER_REGEN_DISABLED" then self.Food:CancelProgress() end
+        if event=="PLAYER_REGEN_ENABLED" or event=="PLAYER_ENTERING_WORLD" then self.castRanks=nil end
         self:RefreshAlerts()
     elseif event == "UNIT_AURA" and unit == "player" then
+        self.Food.observation=nil
         self:RefreshAlerts()
-    elseif event == "SPELL_DATA_LOAD_RESULT" then
-        self:RefreshSettings()
-        self:RefreshAlerts()
+    elseif event == "SPELL_DATA_LOAD_RESULT" or event=="SPELLS_CHANGED" then
+        if event=="SPELL_DATA_LOAD_RESULT" and not self:RelevantSpellData(unit) then return end
+        self:QueueSpellRefresh()
     end
 end)
 

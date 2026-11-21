@@ -11,7 +11,8 @@ local noteUI = {navigation=true,transparent=true,backgroundAlpha=true,fontSize=t
 local rangePersonal = {"rangeSpellID","rangeSpellName","hunterMeleeSpellID","hunterMeleeSpellName","meleeSpellID","meleeSpellName","rangedSpellID","rangedSpellName"}
 -- Also used by the transfer schema when the owning package is absent.
 KHQOL.professionProfileDefaults={
-  enabled=false,locked=true,layout="horizontal",iconSize=36,showSkill=true,showAltProfessions=false,showAltSecondaryProfessions=true,
+  enabled=false,locked=true,layout="horizontal",rows=2,iconSize=36,showSkill=true,showAltProfessions=false,showAltSecondaryProfessions=true,
+  rankGuide={enabled=false,locations=true,notes=true},
   fontSize=14,skillFontSize=12,skillPosition="inside",backgroundAlpha=.92,direction="right",cellGap=4,
   position={point="CENTER",relativePoint="CENTER",x=160,y=0},order={},
   style={color={1,1,1,1},effect="OUTLINE"},
@@ -25,8 +26,9 @@ local installDefaults = {
       cursorTrail=true,range=true,threat=true,tooltip=true,clock=false,todo=false,
       questNavigator=true,procAlert=false,objectHighlight=false},
     general = {autoConfirmDestroy=true,chatEnhancement=true,autoSellJunk=true,
-      autoRepair=true,declinePartyInvites=false,declineGuildInvites=false},
+      autoRepair=true,declinePartyInvites=false,declineGuildInvites=false,chatAutoGreeting=false},
     modules = {
+      generalConvenience = {partyButton={enabled=true}},
       castBar = {behavior={hideBlizzard=true},icon={enabled=true},
         spellName={enabled=true},castTime={enabled=true}},
       environmentTimer = {style="hud",timers={BREATH=true}},

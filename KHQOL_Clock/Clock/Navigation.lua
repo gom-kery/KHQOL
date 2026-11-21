@@ -64,47 +64,70 @@ function FC:ResolveTodoMapName(name)
   for id in pairs(self.todoMapNames[mapName(name)] or {}) do if found then return nil,"ambiguous" end; found=id end
   return found and self:GetTodoMapInfo(found) and found or nil
 end
-function FC:ParseTodoWaypoint(text)
-  if not N.IsText(text) then return nil end
-  local x,y,label,map,selector
-  local body=text:match("^%s*/way%s+(.-)%s*$")
-  if body then
-    local tokens={}; local offset=1
-    while true do
-      local first,last=body:find("%S+",offset); if not first then break end
-      tokens[#tokens+1]={value=body:sub(first,last),first=first,last=last}; offset=last+1
-    end
-    local first=tokens[1] and tokens[1].value
-    if not first then return nil end
-    local nextToken
-    if first:sub(1,1)=="#" then
-      local id=first:match("^#(%d+)$")
-      map=id and tonumber(id) or nil
-      if not self:GetTodoMapInfo(map) then return nil end
-      selector="#"..map; nextToken=2
-    elseif tonumber(first)~=nil and tokens[2] and tonumber(tokens[2].value)~=nil then nextToken=1
-    else
-      -- The name may contain spaces. Coordinates terminate the region prefix.
-      for i=#tokens-1,2,-1 do
-        if coordinate(tokens[i].value)~=nil and coordinate(tokens[i+1].value)~=nil then
-          local name=mapName(body:sub(1,tokens[i].first-1))
-          local resolved,reason=self:ResolveTodoMapName(name)
-          if reason=="ambiguous" then return nil end
-          if resolved then selector,map,nextToken=name,resolved,i; break end
-        end
-      end
-    end
-    if not nextToken or not tokens[nextToken+1] then return nil end
-    x,y=coordinate(tokens[nextToken].value),coordinate(tokens[nextToken+1].value)
-    label=body:sub(tokens[nextToken+1].last+1)
-  else
-    label,x,y=text:match("^%s*(.-)%s*@([^,%s]+)%s*,%s*([^,%s]+)%s*$")
-    x,y=coordinate(x),coordinate(y)
-  end
+local function coordinateTokens(body)
+  -- Touch only the X/Y separator. Everything after Y remains the user's memo.
+  local x,y,label=body:match("^([%+%-]?[%d%.]+)%s*,%s*([%+%-]?[%d%.]+)(.*)$")
+  if not x then x,y,label=body:match("^([%+%-]?[%d%.]+)%s+([%+%-]?[%d%.]+)(.*)$") end
+  if not x or label~="" and not label:match("^%s") then return nil end
+  return x,y,label
+end
+local function coordinatePair(body)
+  local x,y,label=coordinateTokens(body);if not x then return nil end
+  x,y=coordinate(x),coordinate(y)
   if x==nil or y==nil then return nil end
-  label=trim(label or "")
-  if label=="" then label="노트 위치" end
-  return x,y,label,map,selector
+  label=trim(label or "");if label=="" then label="노트 위치" end
+  return x,y,label
+end
+function FC:ParseTodoWaypoint(text,numericMapFirst)
+  if not N.IsText(text) or #text>2048 then return nil end
+  local body=text:match("^%s*/way%s+(.-)%s*$")
+  local explicitWay=body~=nil
+  local legacyLabel,legacyX,legacyY
+  if not body then
+    legacyLabel,legacyX,legacyY=text:match("^%s*(.-)%s*@([^,%s]+)%s*,%s*([^,%s]+)%s*$")
+    body=trim(text);numericMapFirst=true
+  end
+  local first,rest=body:match("^(%S+)%s+(.+)$")
+  if first and first:sub(1,1)=="#" then
+    local id=first:match("^#(%d+)$");id=id and tonumber(id)
+    if not self:GetTodoMapInfo(id) then return nil end
+    local x,y,label=coordinatePair(rest);if x==nil then return nil end
+    return x,y,label,id,"#"..id
+  end
+  -- Slash /nt way retains numeric-map priority when three numbers lead.
+  -- Inline /way retains current-map X Y + numeric memo priority.
+  if numericMapFirst and first and first:match("^%d+$") then
+    local raw=coordinateTokens(rest)
+    local x,y,label=coordinatePair(rest)
+    if raw then
+      if x==nil then return nil end
+      local id=tonumber(first);if not self:GetTodoMapInfo(id) then return nil end
+      return x,y,label,id,"#"..id
+    end
+  end
+  if explicitWay then
+    local x,y,label=coordinatePair(body);if x~=nil then return x,y,label end
+    if first and first:match("^%d+$") and coordinateTokens(rest) then
+      local id=tonumber(first);local px,py,memo=coordinatePair(rest)
+      if px==nil or not self:GetTodoMapInfo(id) then return nil end
+      return px,py,memo,id,"#"..id
+    end
+  end
+  -- Bare input requires a verified explicit region, never just arbitrary digits.
+  local starts={};local offset=1
+  while true do local a,b=body:find("%S+",offset);if not a then break end;starts[#starts+1]=a;offset=b+1 end
+  for i=#starts,2,-1 do
+    local x,y,label=coordinatePair(body:sub(starts[i]))
+    if x~=nil then
+      local name=mapName(body:sub(1,starts[i]-1));local id,reason=self:ResolveTodoMapName(name)
+      if reason=="ambiguous" then return nil end
+      if id then return x,y,label,id,name end
+    end
+  end
+  if legacyLabel then
+    local x,y=coordinate(legacyX),coordinate(legacyY);if x==nil or y==nil then return nil end
+    legacyLabel=trim(legacyLabel);return x,y,legacyLabel~="" and legacyLabel or "노트 위치"
+  end
 end
 function FC:EachTodoTask(callback)
   if not self.db or not self.db.todo then return end
@@ -152,7 +175,7 @@ function FC:UpdateTodoWaypoint(item,text,defer)
     local previous=item.waypoint
     local map=explicitMap or (type(previous)=="table" and not previous.mapSelector and previous.x==x and previous.y==y and previous.mapID) or
       N.Call(C_Map and C_Map.GetBestMapForUnit,"player")
-    if N.ValidPoint(map,x,y) then item.waypoint={mapID=map,x=x,y=y,label=label,mapSelector=selector}
+    if N.ValidPoint(map,x,y) and self:GetTodoMapInfo(map) then item.waypoint={mapID=map,x=x,y=y,label=label,mapSelector=selector}
     else item.waypoint=nil end
   else item.waypoint=nil end
   if not defer then self:RefreshTodoNavigation() end

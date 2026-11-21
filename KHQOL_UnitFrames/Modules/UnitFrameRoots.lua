@@ -166,13 +166,14 @@ function M:RootEditorTargets()
         local left,top=movable and (auxiliary and 4 or 16)*r or 0,movable and (auxiliary and -16 or -40)*r or 0
         local w,h=movable and width*r or rw,movable and (hh+(showPower and gap+ph or 0))*r or rh
         local vx,vy=rootX+left+w/2,rootY+top-h/2
-        local frame=K.PositionEditor:Virtual("unitRoots."..unit,{point="CENTER",relativePoint="BOTTOMLEFT",x=vx,y=vy},w,h)
+        local frame=K.PositionUtils:Preview("unitRoots."..unit,{point="CENTER",relativePoint="BOTTOMLEFT",x=vx,y=vy},w,h)
         local spec={id=unit=="targettarget" and "unitFrames.targettarget" or "unitFrames."..unit..".root",
-            key="unitFrames",name=names[unit].." · 전체 프레임",frame=frame,representative=true,exactBounds=movable,
+            key="unitFrames",entryMode="unitRoots",name=names[unit].." · 전체 프레임",frame=frame,representative=true,exactBounds=movable,
             linked=not movable,readOnly=not movable,settingsRoute={module="unitFrames",unit=unit,part="basic"},
             sample=names[unit]..(movable and " · 드래그 이동" or " · 간결한 프레임 OFF"),sampleSize=12,
             current=function() local now=M:UnitParts(unit);return M:GetDB()[unit]==d and d.compact==movable and (now and now.root)==root end,
             apply=function() M:ApplySettings() end}
+        spec.lock=function() d.positionLocks.basic=true end
         if movable then
             spec.rootVisual={unit=unit,parts=p,ratio=r,config=d,width=w,health=hh*r,power=ph*r,gap=gap*r,showPower=showPower,left=left,top=top}
             spec.render=function(handle) return M:RenderRootPreview(handle,spec) end
@@ -194,8 +195,8 @@ function M:RootEditorTargets()
             local record=owner and owner.rootPositionOwner
             local reset=record and record.original
             local rx,ry=vx,vy
-            if reset and root then
-                local original=K.PositionEditor:Virtual("unitRoots.reset."..unit,{x=0,y=0},rw/r,rh/r)
+            if reset and root and not K.PositionUtils.describing then
+                local original=K.PositionUtils:Preview("unitRoots.reset."..unit,{x=0,y=0},rw/r,rh/r)
                 original:SetScale(r);original:ClearAllPoints()
                 local ok=pcall(function() for _,point in ipairs(reset) do original:SetPoint(unpack(point)) end end)
                 if ok then local ox,oy=rect(original);if ox then rx=ox-rw/2+left+w/2;ry=oy+rh/2+top-h/2 end end

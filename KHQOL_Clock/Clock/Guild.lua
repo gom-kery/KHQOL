@@ -1,7 +1,7 @@
 local K=_G.KHQOL
 local FC=K.modules.clock
 local call=K.PublicCall
-local rosterEvents={"PLAYER_ENTERING_WORLD","PLAYER_GUILD_UPDATE","GUILD_ROSTER_UPDATE","CLUB_ADDED","CLUB_REMOVED",
+local rosterEvents={"PLAYER_ENTERING_WORLD","PLAYER_GUILD_UPDATE","GUILD_ROSTER_UPDATE","CLUB_ADDED","CLUB_REMOVED","ZONE_CHANGED_NEW_AREA",
   "CLUB_MEMBERS_UPDATED","CLUB_MEMBER_ADDED","CLUB_MEMBER_REMOVED","CLUB_MEMBER_UPDATED","CLUB_MEMBER_PRESENCE_UPDATED"}
 
 function FC:GuildTooltipLimit()
@@ -16,19 +16,23 @@ function FC:ShowGuildTooltip(frame,newLevel)
   tip.title:SetText("길드 접속 "..#roster.."명")
   local width=tip.title:GetStringWidth()
   local top=8+tip.title:GetStringHeight()+4
-  local levelWidth,nameWidth=0,0
+  local levelWidth,nameWidth,zoneWidth=0,0,0
   local count=0
   if #roster<self:GuildTooltipLimit() then
     count=#roster
     local playerLevel=K.IsPublicNumber(newLevel) and newLevel or call(UnitLevel,"player")
     if not K.IsPublicNumber(playerLevel) or playerLevel<1 then playerLevel=nil end
+    local playerZone=call(GetRealZoneText)
+    if type(playerZone)~="string" or playerZone=="" then playerZone=nil end
     for index,member in ipairs(roster) do
       local row=tip.rows[index]
       if not row then
         row={level=tip:CreateFontString(nil,"ARTWORK","GameTooltipText"),
-          name=tip:CreateFontString(nil,"ARTWORK","GameTooltipText")}
+          name=tip:CreateFontString(nil,"ARTWORK","GameTooltipText"),
+          zone=tip:CreateFontString(nil,"ARTWORK","GameTooltipText")}
         row.level:SetJustifyH("RIGHT")
         row.name:SetJustifyH("LEFT")
+        row.zone:SetJustifyH("LEFT");row.zone:SetTextColor(.82,.82,.82)
         tip.rows[index]=row
       end
       local color=member.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[member.class]
@@ -37,10 +41,12 @@ function FC:ShowGuildTooltip(frame,newLevel)
       local level=member.isSelf and playerLevel or member.level
       row.level:SetText(tostring(level or "?"));row.level:SetTextColor(r,g,b)
       row.name:SetText(member.name);row.name:SetTextColor(r,g,b)
+      row.zone:SetText((member.isSelf and playerZone or member.zone) or "—")
       levelWidth=math.max(levelWidth,row.level:GetStringWidth())
       nameWidth=math.max(nameWidth,row.name:GetStringWidth())
+      zoneWidth=math.max(zoneWidth,row.zone:GetStringWidth())
     end
-    width=math.max(width,levelWidth+8+nameWidth)
+    width=math.max(width,levelWidth+8+nameWidth+12+zoneWidth)
   else
     tip.hint:SetText(self.guildClickReady and "클릭하여 길드창에서 확인" or "기본 길드 버튼에서 확인")
     width=math.max(width,tip.hint:GetStringWidth())
@@ -50,11 +56,12 @@ function FC:ShowGuildTooltip(frame,newLevel)
   tip.hint:ClearAllPoints();tip.hint:SetPoint("TOPLEFT",tip.title,"BOTTOMLEFT",0,-4)
   for index,row in ipairs(tip.rows) do
     local shown=index<=count
-    row.level:SetShown(shown);row.name:SetShown(shown)
+    row.level:SetShown(shown);row.name:SetShown(shown);row.zone:SetShown(shown)
     if shown then
       row.level:ClearAllPoints();row.level:SetPoint("TOPRIGHT",tip,"TOPLEFT",8+levelWidth,-top)
       row.name:ClearAllPoints();row.name:SetPoint("TOPLEFT",tip,"TOPLEFT",16+levelWidth,-top)
-      top=top+math.max(row.level:GetStringHeight(),row.name:GetStringHeight())+1
+      row.zone:ClearAllPoints();row.zone:SetPoint("TOPLEFT",tip,"TOPLEFT",28+levelWidth+nameWidth,-top)
+      top=top+math.max(row.level:GetStringHeight(),row.name:GetStringHeight(),row.zone:GetStringHeight())+1
     end
   end
   tip:SetSize(width+16,top+8)
@@ -148,7 +155,9 @@ function FC:RefreshGuildRoster(eventClub)
         local classID=call(function() return info.classID end)
         local classInfo=classID and call(C_CreatureInfo and C_CreatureInfo.GetClassInfo,classID)
         local class=classInfo and call(function() return classInfo.classFile end)
-        roster[#roster+1]={name=type(name)=="string" and name or "이름 확인 중",level=level,class=class,isSelf=isSelf}
+        local zone=call(function() return info.zone end)
+        roster[#roster+1]={name=type(name)=="string" and name or "이름 확인 중",level=level,class=class,
+          isSelf=isSelf,zone=type(zone)=="string" and zone~="" and zone or nil}
       end
     end
   end
@@ -187,8 +196,8 @@ function FC:SetupGuildDisplay(frame)
 
   self.guildEvents=CreateFrame("Frame")
   self.guildEvents:SetScript("OnEvent",function(_,event,first)
-    if event=="PLAYER_LEVEL_UP" or event=="UNIT_LEVEL" then
-      if tip:IsShown() and (event=="PLAYER_LEVEL_UP" or first=="player") then
+    if event=="PLAYER_LEVEL_UP" or event=="UNIT_LEVEL" or event=="ZONE_CHANGED_NEW_AREA" then
+      if tip:IsShown() and (event~="UNIT_LEVEL" or first=="player") then
         self:ShowGuildTooltip(frame,event=="PLAYER_LEVEL_UP" and first or nil)
       end
       return

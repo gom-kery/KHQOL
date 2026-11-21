@@ -1,3 +1,7 @@
+# KHQOL 1.11.8.10 거리 검사 데이터
+
+`KHQOL_Range/Range/DistanceData.lua`의 Forever 아이템 거리 표는 첨부 RangeDisplay v6.3.7에 포함된 LibRangeCheck-3.0 minor 38에서 발췌했습니다. 저자는 mitch0 및 WoWUIDev Community이며 Copyright (c) 2023 The WoWUIDev Community, MIT License가 적용됩니다. 라이선스 전문은 `KHQOL_Range/LibRangeCheck-LICENSE.txt`에 포함했습니다. KHQOL은 해당 표와 기존 안전한 호출 경로를 사용합니다. [LibRangeCheck-3.0 프로젝트](https://github.com/WeakAuras/LibRangeCheck-3.0)
+
 # KHQOL 1.11.4.10 자산 보존
 
 기준 1.11.4.9의 미디어 32개를 바이트 동일하게 유지합니다. 새 외부 글꼴·이미지·라이브러리는 추가하지 않았습니다.

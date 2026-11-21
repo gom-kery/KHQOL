@@ -1,0 +1,68 @@
+[
+  {
+    "path": "캐릭터 > 버프·휴식 알림 > 버프 유지 알림 > 침낭·휴식 > 침낭 버프 만료 알림",
+    "route": {
+      "module": "buffReminder",
+      "screen": "buff",
+      "section": "충분한 휴식·침낭"
+    },
+    "origin": {
+      "file": "KHQOL_Convenience/BuffReminder/CommonBuffs.lua",
+      "fn": "BuildBedSettings",
+      "line": 151
+    },
+    "id": "buffReminder//////충분한 휴식·침낭/침낭 버프 만료 알림",
+    "logicalTitle": "침낭 버프 만료 알림",
+    "aliases": "",
+    "renderedTitle": "침낭 버프 만료 알림",
+    "title": "침낭 버프 만료 알림",
+    "control": true,
+    "kind": "CheckButton",
+    "description": " 충분한 휴식의 남은 시간을 확인할 수 있을 때 만료 2분 전 한 번 메시지를 표시합니다. 침낭 아이콘 사용과 별개로 동작합니다.",
+    "scope": "현재 전체 프로필"
+  },
+  {
+    "path": "퀘스트·지도 > 오브젝트 강조 > 공통 설정 > 강조 이미지 반짝임",
+    "route": {
+      "module": "objectHighlight",
+      "screen": "highlight",
+      "section": "공통 설정"
+    },
+    "origin": {
+      "file": "KHQOL_Labs/UI/LabSettings.lua",
+      "fn": "build",
+      "line": 258
+    },
+    "id": "objectHighlight//////공통 설정/강조 이미지 반짝임",
+    "logicalTitle": "강조 이미지 반짝임",
+    "aliases": "",
+    "renderedTitle": "강조 이미지 반짝임",
+    "title": "강조 이미지 반짝임",
+    "control": true,
+    "kind": "CheckButton",
+    "description": "",
+    "scope": "현재 전체 프로필"
+  },
+  {
+    "path": "퀘스트·지도 > 오브젝트 강조 > 공통 설정 > 반짝임 주기",
+    "route": {
+      "module": "objectHighlight",
+      "screen": "highlight",
+      "section": "공통 설정"
+    },
+    "origin": {
+      "file": "KHQOL_Labs/UI/LabSettings.lua",
+      "fn": "build",
+      "line": 259
+    },
+    "id": "objectHighlight//////공통 설정/반짝임 주기",
+    "logicalTitle": "반짝임 주기",
+    "aliases": "",
+    "renderedTitle": "반짝임 주기",
+    "title": "반짝임 주기",
+    "control": true,
+    "kind": "Slider",
+    "description": "어두워졌다가 다시 밝아지는 한 번의 주기입니다. 강조 투명도를 기준으로 점멸합니다.",
+    "scope": "현재 전체 프로필"
+  }
+]

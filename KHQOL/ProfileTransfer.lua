@@ -186,8 +186,17 @@ function T:Schema(includeLegacyProfessions)
   buff.classes={SHAMAN={specials={weapon={mainHand={enabled=false},offHand={enabled=false}},
     totems={FIRE={enabled=false},EARTH={enabled=false},WATER={enabled=false},AIR={enabled=false}}}}}
   for _,key in ipairs(ForeverBuffReminder and ForeverBuffReminder.CLASS_TOKENS or {}) do buff.classes[key]=buff.classes[key] or {} end
+  for _,data in pairs(buff.classes) do data.common={wellFed=true,rested=true} end
+  buff.food.placement="ABOVE"
+  buff.sleepingBag={enabled=true,placement="BELOW",expiryAlert=true}
   local env=schema.settings.modules.environmentTimer
-  if env then env.hudTextPositions={BREATH={x=0,y=0},EXHAUSTION={x=0,y=0},FEIGNDEATH={x=0,y=0}} end
+  if env then
+    env.hudTextPositions={}
+    env.hudTextColors={}
+    for _,key in ipairs(K.modules.environmentTimer and K.modules.environmentTimer.order or {"BREATH","EXHAUSTION","FEIGNDEATH"}) do
+      env.hudTextPositions[key]={x=0,y=0};env.hudTextColors[key]={1,1,1,1}
+    end
+  end
   if schema.settings.modules.questNavigator then schema.settings.modules.questNavigator.questTracker.fontSize=12 end
   schema.legacy.resourceSwing.comboLastColor={1,1,1,1}
   schema.legacy.campfire.completePosition=K.CopyProfileValue(point)
@@ -233,6 +242,12 @@ function T:Filter(source,includeLegacyProfessions)
   local function filter(value,schema,path,key)
     if schema==nil then reject(path,value,"현재 프로필 범위에서 제외");return end
     if type(value)~=type(schema) then reject(path,value,"타입 불일치");return end
+    if path=="profile.legacy.range.distance.colorRanges" then
+      local distance=K.modules.range and K.modules.range.Distance
+      local rows,message=distance and distance:ValidateColorRanges(value)
+      if not rows then reject(path,value,message or "거리 구간 검증 미지원");return end
+      report.normal=report.normal+leaves(rows);return rows
+    end
     if type(schema)=="table" then
       local result={}
       for k,v in pairs(value) do

@@ -17,14 +17,22 @@ function N:UnitRoute(unit,part,category)
     category=unit=="target" and part=="auras" and category or nil}
 end
 function N:Path(p,title)
-  local meta=p.tab and R.groups.quest[p.tab] and p.module=="questNavigator" and R.groups.quest[p.tab] or R.modules[p.module] or R.routes[p.module]
-  if p.tab and meta and meta.group and R.groups[meta.group] and R.groups[meta.group][p.tab] and R.groups[meta.group][p.tab].key==meta.key then meta=R.groups[meta.group][p.tab] end
-  local page=p.page or meta and meta.group or "general";local name=page
-  for _,v in ipairs(R.pages) do if v[1]==page then name=v[2];break end end
-  local path={name}
-  if meta and meta.family then path[#path+1]=meta.family end
-  local titleText=meta and (meta.tabTitle or meta.title)
-  if meta and page~="unitFrames" and (titleText~=name or p.tab and meta.sharedTabs) then path[#path+1]=titleText end
+  if R.screens then
+    local view=R:ScreenFor(p,title)
+    local path={R.pageNames[view.group]}
+    if view.family then path[#path+1]=view.family end
+    path[#path+1]=view.tabTitle or view.title
+    if p.castUnit then path[#path+1]=self.units[p.castUnit] or p.castUnit end
+    if p.unit then path[#path+1]=self.units[p.unit] or p.unit end
+    if p.part then path[#path+1]=self.parts[p.part] or p.part end
+    if p.category and p.part=="auras" then path[#path+1]=p.category=="attackableNPC" and "공격 가능한 NPC" or "아군 플레이어" end
+    if p.section and p.section~="" and p.section~=title then path[#path+1]=UI:DisplayRouteText(p,p.displaySection or p.section) end
+    if title then path[#path+1]=UI:DisplayRouteText(p,title) end
+    return table.concat(path," > ")
+  end
+  local meta=R.modules[p.module] or R.routes[p.module]
+  local page=p.page or meta and meta.group or "general"
+  local path={page}
   if p.castUnit then path[#path+1]=self.units[p.castUnit] or p.castUnit end
   if p.unit then path[#path+1]=self.units[p.unit] or p.unit end
   if p.part then path[#path+1]=self.parts[p.part] or p.part end
@@ -47,7 +55,8 @@ function N:Scope(p,title)
 end
 function N:ScrollID(route)
   local p={};for key,value in pairs(route or {}) do if key~="section" then p[key]=value end end
-  return self:ID(p,"@scroll")
+  local logical=self:ID(p,"@scroll")
+  return route and route.screen and route.screen.."/"..logical or logical
 end
 function N:RememberScroll(s)
   if not s or s.routeChanging or not s.scroll or not s.currentRoute then return end
@@ -64,7 +73,13 @@ function N:Register(p,title,description,aliases)
   if not title or title=="" then return end
   local id=p.id or self:ID(p,title);local item=self.items[id]
   if not item then item={id=id,route=p,title=title};self.items[id]=item end
-  item.description=description or item.description or "";item.aliases=aliases or item.aliases or ""
+  item.route=p;item.logicalTitle=title
+  item.title=UI:DisplayRouteText(p,title)
+  item.description=description or item.description or "";item.baseAliases=aliases or item.baseAliases or "";item.aliases=item.baseAliases
+  if R.screens then
+    local view=R:ScreenFor(p,title)
+    item.aliases=item.aliases.." "..title.." "..(view.aliases or "")
+  end
   item.path=self:Path(p,title);item.scope=self:Scope(p,title)
   item.words=token(item.path.." "..item.description.." "..item.aliases.." "..(p.module or ""))
   return item
@@ -88,6 +103,7 @@ function N:Attach(parent,control,title,get,set,enabled,description)
   item.control=control;item.read=get;item.write=set;item.available=enabled
   if UI.SettingsRegistry.positionModules[p.module] then item.aliases=(item.aliases or "").." "..p.module end
   control.settingsItemID=item.id;control.settingsRoute=p;self.controls[control]=item
+  K.UsageDiagnostics:Bind(control,title,get)
   UI:AttachTooltip(control,title,"저장: "..item.scope)
 end
 function N:Status(item)
@@ -139,13 +155,20 @@ function N:CancelSearch(settings)
   if self.highlight then self.highlight:Hide() end
 end
 function N:Open(route,itemID,restoreOnly)
+  local alias=itemID and self.itemAliases and self.itemAliases[itemID]
+  if alias then itemID=alias;route={module="general",screen="modules"} end
   if type(route)=="string" then route={module=route} end
   route=route or {module="general"}
   if K.PositionEditor and K.PositionEditor.active then return false end
   local s=K.settings;if not s then return false end
-  self:CancelSearch(s);s:Show();s:ShowPage(route.module or route.page or "general")
+  self:CancelSearch(s);s:Show();s:ShowPage(R.screens and R:NavigationRoute(route,itemID and self.items[itemID] and self.items[itemID].logicalTitle) or route.module or route.page or "general")
   local content=s.activeContent
-  if route.tab and content and content.SelectSettingsTab then content.SelectSettingsTab(route.tab) end
+  if route.tab and content and content.SelectSettingsTab and not R.screens then content.SelectSettingsTab(route.tab) end
+  if R.screens then
+    local view=R:ScreenFor(route,itemID and self.items[itemID] and self.items[itemID].logicalTitle)
+    route=R:NavigationRoute(route,itemID and self.items[itemID] and self.items[itemID].logicalTitle)
+    if view.id=="labs" and content and content.activePanel and content.activePanel.SelectLab then content.activePanel:SelectLab(route) end
+  end
   if route.module=="castBar" then
     local cast=content and content.tabPanels and content.tabPanels.cast
     if cast and cast.SelectCastUnit then cast:SelectCastUnit(route.castUnit or cast.selectedCastUnit) end
@@ -165,6 +188,7 @@ function N:Open(route,itemID,restoreOnly)
     if p then p.sideTargetKey=route.sideTarget;K.modules.clock:RefreshSettings() end
   end
   local function belongs(control)
+    if itemID and control.headerPositionLock then return true end
     local p=control
     for _=1,64 do if p==content then return true end;if not p or p==UIParent then return false end;p=p:GetParent() end
   end
@@ -192,7 +216,7 @@ function N:Open(route,itemID,restoreOnly)
     if s.scroll.UpdateScrollChildRect then s.scroll:UpdateScrollChildRect() end
     if control and control:IsVisible() then
       local top,bottom=s.child:GetTop(),control:GetTop()
-      if top and bottom then
+      if not control.headerPositionLock and top and bottom then
         s.scroll:SetVerticalScroll(math.max(0,math.min(math.max(0,s.child:GetHeight()-s.scroll:GetHeight()),top-bottom-12)))
       end
       local h=N.highlight
@@ -205,7 +229,7 @@ function N:Open(route,itemID,restoreOnly)
     elseif not itemID then N:RestoreScroll(s,route) end
   end
   if C_Timer and C_Timer.After then C_Timer.After(0,focus) else focus() end
-  s.currentRoute=route
+  s.currentRoute=route;s:RefreshPositionLocks();s:SetPageScrollLayout(s.page)
   return true
 end
 -- IDs are explicit for unit parts; all other registered editor IDs use their
@@ -215,7 +239,7 @@ function N:EditorRoute(t)
   local id=t.id or "";local u,part=id:match("^unitFrames%.([^%.]+)%.([^%.]+)")
   if id=="unitFrames.targettarget" then u="targettarget";part="basic" end
   if u then
-    local parts={name="labels",level="labels",status="status",rest="status",combat="status",marker="status",monster="status",buffs="auras",debuffs="auras",auras="auras",totems="class",basic="basic"}
+    local parts={name="labels",level="labels",status="status",rest="status",combat="status",marker="status",monster="status",happiness="status",buffs="auras",debuffs="auras",auras="auras",totems="class",basic="basic"}
     return {module="unitFrames",unit=u,part=parts[part] or "basic",category=id:match("%.auras%.([^%.]+)")}
   end
   if id=="settings.window" then return {module="general"} end
@@ -231,9 +255,15 @@ function N:EditorRoute(t)
 end
 function N:EditorMeta(t)
   t.settingsRoute=self:EditorRoute(t)
+  if R.screens then t.settingsRoute=R:NavigationRoute(t.settingsRoute) end
   local p=t.settingsRoute;local meta=R.modules[p.module]
   t.category=p.module=="unitFrames" and "유닛프레임" or meta and self:Path({page=meta.group}) or "기본창·도구창"
   t.group=p.unit and self.units[p.unit] or meta and meta.title or "도구창"
+  if R.screens then
+    local view=R:ScreenFor(p)
+    t.category=R.pageNames[view.group];t.group=p.unit and self.units[p.unit] or view.family or view.title
+    if t.id=="buffThanks" then t.name="버프 감사 알림" end
+  end
   t.groupID=(p.module or "general").."/"..(p.unit or "")
   t.largeWindow=t.id=="settings.window" or t.id:match("^basicUI%.")~=nil or t.id=="note" or t.id=="clock.tools" or t.id=="professions.panel"
   t.representative=t.representative or not t.largeWindow and (p.module~="unitFrames" and not t.parentID or t.id=="unitFrames.targettarget")

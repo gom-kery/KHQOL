@@ -444,11 +444,12 @@ function NS.modules.resourceSwing:BuildSettings(content,y)
         return function() return moduleEnabled() and (not condition or condition()) end
     end
     local function check(title, key, enabled, classCondition)
-        local control=b:Checkbox(title, function() return (not classCondition or classCondition()) and db[key] end, function(v) db[key]=v; applyLayout() end, available(enabled))
+        local method=(key=="locked" or key=="comboLocked") and b.PositionLock or b.Checkbox
+        local control=method(b,title, function() return (not classCondition or classCondition()) and db[key] end, function(v) db[key]=v; applyLayout() end, available(enabled),key=="locked" and "자원·스윙" or "콤보 포인트")
         if classCondition and control.disabledHint then
             control.disabledHint:SetScript("OnEnter",function(self)
                 GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(title)
-                GameTooltip:AddLine(not classCondition() and "현재 직업에서 지원하지 않는 옵션입니다. 저장한 선택은 보존됩니다." or "자원/스윙바 모듈 사용을 먼저 켜세요.",.8,.8,.8,true)
+                GameTooltip:AddLine(not classCondition() and "현재 직업에서 지원하지 않는 옵션입니다. 저장한 선택은 보존됩니다." or "자원·스윙바 모듈 사용을 먼저 켜세요.",.8,.8,.8,true)
                 GameTooltip:Show()
             end)
         end
@@ -545,7 +546,7 @@ local function createMinimapButton()
         if button == "LeftButton" then NS:ShowSettings("resourceSwing") end
     end)
     minimapButton:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_LEFT"); GameTooltip:SetText("KHQOL 자원 / 스윙 바"); GameTooltip:AddLine("좌클릭: 설정창 열기", 1, 1, 1); GameTooltip:Show()
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT"); GameTooltip:SetText("KHQOL 자원·스윙바"); GameTooltip:AddLine("좌클릭: 설정창 열기", 1, 1, 1); GameTooltip:Show()
     end)
     minimapButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
 end
@@ -604,7 +605,7 @@ function NS.modules.resourceSwing:SetEnabled(enabled)
 end
 SlashCmdList.KHQOLRESOURCESWING = function()
     local settings=NS.settings
-    if settings and settings:IsShown() and settings.page=="bars" and NS.BarsSettings.selected=="resource" then
+    if settings and settings:IsShown() and settings.page=="battle" and NS.BarsSettings.selected=="resource" then
         settings:Hide()
     else NS:ShowSettings("resourceSwing") end
 end

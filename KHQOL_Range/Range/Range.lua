@@ -57,6 +57,7 @@ local function protectedCall(fn, ...)
   if ok then return normalize(value) end
   return nil
 end
+Range.ReadBoolean=protectedCall
 
 function Range:GetSpellInfo(spellID)
   if secret(spellID) or not spellID then return nil end
@@ -216,6 +217,7 @@ end
 -- Independent 5-yard probes used by Classic/Forever range tools. These queries
 -- don't use/consume an item, require it on an action bar, or inspect tooltip text.
 local meleeItems={8149,15826,16308}
+Range.meleeItemIDs=meleeItems
 function Range:PrepareHunterRangeItems()
   if self.itemRequestsDone then return end
   local request=(C_Item and C_Item.RequestLoadItemDataByID) or GetItemInfo
@@ -254,10 +256,39 @@ function Range:CheckReferenceSpell(id,savedName,unit)
   if result==nil then return nil,"UNSUPPORTED" end
   return result
 end
+-- The classic ranged slot and the modern main-hand slot can both contain
+-- ranged weapons. Identify numeric item metadata, never localized type names.
+function Range:UsesRangedWeapon()
+  local uncertain=false
+  for _,slot in ipairs({18,16}) do
+    local status,id=KHQOL.ReadPublicAPI(GetInventoryItemID,"player",slot)
+    if status~="ok" then uncertain=true
+    elseif id~=nil then
+      if not KHQOL.IsPublicNumber(id) or id<=0 then uncertain=true
+      else
+        local _,_,_,_,_,classID,subclass=KHQOL.PublicCall(C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant,id)
+        if KHQOL.IsPublicNumber(classID) and KHQOL.IsPublicNumber(subclass) then
+          if classID==2 and (subclass==2 or subclass==3 or subclass==18) then return true end
+        else
+          uncertain=true;self.weaponRequested=self.weaponRequested or {}
+          if not self.weaponRequested[id] then self.weaponRequested[id]=true;KHQOL.PublicCall(C_Item and C_Item.RequestLoadItemDataByID,id) end
+        end
+      end
+    end
+  end
+  if uncertain then return nil end
+  return false
+end
+
+function Range:CheckWeaponMelee(unit)
+  if select(2,UnitClass("player"))=="HUNTER" then return self:CheckHunterMelee(unit) end
+  return self:CheckReferenceSpell(FR.db.meleeSpellID,FR.db.meleeSpellName,unit)
+end
+
 function Range:CheckConfiguredSpell(unit)
   local db=FR.db
   local ranged=db.rangedSpellID or db.rangeSpellID
-  if select(2,UnitClass("player"))=="HUNTER" then
+  if self:UsesRangedWeapon()==true then
     return self:CheckReferenceSpell(ranged,db.rangedSpellName or db.rangeSpellName,unit)
   end
   local configured,unknown=0,false
@@ -314,7 +345,7 @@ function Range:GetHunterState(rangedInRange, unit)
   if rangedInRange==nil and not meleeAsAttack then return nil, "RANGED_UNSUPPORTED" end
   if not meleeAsAttack and not FR.db.deadZoneEnabled then return "RED" end
 
-  local meleeInRange,meleeReason = self:CheckHunterMelee(unit)
+  local meleeInRange,meleeReason = self:CheckWeaponMelee(unit)
   if meleeInRange == true then return meleeAsAttack and "GREEN" or "RED" end
   if rangedInRange==nil then return nil, "RANGED_UNSUPPORTED" end
   if meleeInRange == nil then
@@ -335,7 +366,7 @@ end
 function Range:GetTargetState()
   if not self:IsValidHostileTarget() then return nil, "INVALID_TARGET" end
   local rangedInRange, reason = self:CheckConfiguredSpell()
-  if select(2, UnitClass("player")) == "HUNTER" then
+  if self:UsesRangedWeapon()==true then
     return self:GetHunterState(rangedInRange)
   end
   if rangedInRange == nil then return nil, reason end
@@ -344,6 +375,8 @@ end
 
 function Range:DescribeAPI()
   local api = {}
+  api[#api+1]="UnitDistanceSquared: "..(type(UnitDistanceSquared)=="function" and "available" or "unavailable")
+  api[#api+1]="UnitPosition: "..(type(UnitPosition)=="function" and "available" or "unavailable")
   api[#api + 1] = (C_Spell and type(C_Spell.IsSpellInRange) == "function") and "C_Spell.IsSpellInRange: available" or "C_Spell.IsSpellInRange: unavailable"
   api[#api + 1] = type(IsSpellInRange) == "function" and "IsSpellInRange: available" or "IsSpellInRange: unavailable"
   api[#api + 1] = type(IsActionInRange) == "function" and "IsActionInRange: available (not required)" or "IsActionInRange: unavailable"
@@ -351,12 +384,17 @@ function Range:DescribeAPI()
   api[#api + 1] = (C_SpellBook and type(C_SpellBook.IsSpellBookItemInRange)=="function") and "C_SpellBook range: available" or "C_SpellBook range: unavailable"
   api[#api + 1] = ((C_Item and type(C_Item.IsItemInRange)=="function") or type(IsItemInRange)=="function") and "5yd item range: available" or "5yd item range: unavailable"
   FR:Print(table.concat(api, " | "))
-  if select(2,UnitClass("player"))=="HUNTER" then
+  if FR.db.displayMode=="distance" then
+    local result=FR.distanceState
+    FR:Print("대상 거리 · "..(result and result.kind or "대상 없음").." · "..FR.Distance:Format(result)..
+      (result and result.source and (" · "..result.source) or ""))
+  end
+  if self:UsesRangedWeapon()==true then
     local function value(v) return v==true and "in" or v==false and "out" or "unknown" end
     for _,unit in ipairs({"target","mouseover"}) do
       if protectedCall(UnitExists,unit)==true then
         local ranged=self:CheckConfiguredSpell(unit)
-        local melee,reason,source=self:CheckHunterMelee(unit)
+        local melee,reason,source=self:CheckWeaponMelee(unit)
         local state,stateReason=self:GetHunterState(ranged,unit)
         FR:Print(unit..": ranged="..value(ranged)..", melee="..value(melee)..", probe="..tostring(source or reason or "none")..", close="..value(protectedCall(CheckInteractDistance,unit,3))..", state="..tostring(state or stateReason or "unknown"))
       end

@@ -1,10 +1,16 @@
 ## Interface: 16001
 ## Title: KHQOL DevTools
-## Notes: Standalone frame inspector and chat output collector for WoW Forever.
-## Notes-koKR: WoW Forever용 독립 프레임 검사 및 채팅 출력 수집 도구
+## Notes: Standalone frame, console, position tools and optional local usage analytics for WoW Forever.
+## Notes-koKR: WoW Forever용 독립 개발 도구 및 기본 OFF 로컬 사용 통계
 ## Author: KHQOL
-## Version: 1.11.8.3
-## SavedVariables: KHQOL_DevToolsDB
-## OptionalDeps: Blizzard_DebugTools
+## Version: 0.4.0
+## SavedVariables: KHQOL_DevToolsDB, KHQOLDevUsageDB
+## OptionalDeps: KHQOL
 
 KHQOL_DevTools.lua
+UsageControlIDs.lua
+UsageCatalog.lua
+UsageCore.lua
+UsageBridge.lua
+UsageObserve.lua
+UsageUI.lua

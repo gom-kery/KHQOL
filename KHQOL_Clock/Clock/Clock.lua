@@ -5,6 +5,68 @@ local FC = KHQOL.modules.clock
 local MakeBackdrop=KHQOL.HUDText.MakeBackdrop
 FC.MakeBackdrop=MakeBackdrop
 
+FC.clockActions={{"calendar","달력","OpenCalendar"},{"note","포에버 노트","ToggleTodo"},
+  {"tools","타이머·알람·스톱워치","ToggleClockTools"},{"reload","UI 새로고침"}}
+FC.clockModifiers={{value="none",text="없음"},{value="shift",text="Shift"},{value="ctrl",text="Ctrl"},{value="alt",text="Alt"}}
+FC.clockInputs={{value="LeftButton",text="좌클릭"},{value="RightButton",text="우클릭"},{value="Button4",text="마우스 4번"},
+  {value="WheelUp",text="휠 위"},{value="WheelDown",text="휠 아래"},{value="disabled",text="사용 안 함"}}
+local function labels(options)
+  local result={};for _,entry in ipairs(options) do result[entry.value]=entry.text end;return result
+end
+local modifierLabels,inputLabels=labels(FC.clockModifiers),labels(FC.clockInputs)
+
+function FC:GetClockShortcuts()
+  self.db.shortcuts=KHQOL.MergeDefaults(type(self.db.shortcuts)=="table" and self.db.shortcuts or {},self.DEFAULTS.shortcuts,"types")
+  return self.db.shortcuts
+end
+
+function FC:ClockShortcutAction(input)
+  if KHQOL.PositionEditor.active then return end
+  local shift,ctrl,alt=IsShiftKeyDown(),IsControlKeyDown(),IsAltKeyDown()
+  if (shift and 1 or 0)+(ctrl and 1 or 0)+(alt and 1 or 0)>1 then return end
+  local modifier=shift and "shift" or ctrl and "ctrl" or alt and "alt" or "none"
+  local choices=self:GetClockShortcuts()
+  for _,action in ipairs(self.clockActions) do
+    local key=choices[action[1]]
+    if key.modifier==modifier and key.input==input then return action end
+  end
+end
+
+function FC:SetClockShortcut(id,field,value)
+  local choices=self:GetClockShortcuts()
+  local key=choices[id]
+  local valid=field=="modifier" and modifierLabels[value] or field=="input" and inputLabels[value]
+  if not key or not valid then return end
+  local modifier=field=="modifier" and value or key.modifier
+  local input=field=="input" and value or key.input
+  for _,action in ipairs(self.clockActions) do
+    local other=choices[action[1]]
+    if action[1]~=id and input~="disabled" and other.modifier==modifier and other.input==input then
+      -- Exchanging the previous binding makes a conflicting choice reversible.
+      other.modifier,other.input=key.modifier,key.input
+      break
+    end
+  end
+  key[field]=value
+  self:ConfigureClockShortcut()
+end
+
+function FC:ConfigureClockShortcut()
+  local hint=self.clockFrame and self.clockFrame.hoverHint
+  if not hint then return end
+  local wheel=false
+  for _,binding in pairs(self:GetClockShortcuts()) do
+    if binding.input=="WheelUp" or binding.input=="WheelDown" then wheel=true;break end
+  end
+  hint:EnableMouseWheel(wheel)
+end
+
+function FC:RunClockShortcut(action)
+  if not action then return end
+  if action[3] then self[action[3]](self)
+  else KHQOL.PublicCall(ReloadUI) end
+end
+
 function FC:CreateClock()
   local frame = CreateFrame("Frame", "ForeverClockClockFrame", UIParent, "BackdropTemplate")
   -- Width grows to match the clock and money panel; the initial size stays compact.
@@ -16,7 +78,8 @@ function FC:CreateClock()
   local function ClockMouseDown(source, button)
     local f = source.clockOwner or source
     f.clockClickSource = source
-    if button == "LeftButton" and not FC.db.locked and not (IsAltKeyDown and IsAltKeyDown()) then
+    if button == "LeftButton" and not FC.db.locked and not KHQOL.PositionEditor.active
+      and not (source==f.hoverHint and (IsAltKeyDown() or IsShiftKeyDown() or IsControlKeyDown())) then
       local x, y = GetCursorPosition()
       f.dragStartX, f.dragStartY = x, y
       f:StartMoving()
@@ -30,14 +93,9 @@ function FC:CreateClock()
       elseif MouseIsOver then overDigits = MouseIsOver(f.hoverHint) end
     end
     f.clockClickSource = nil
-    if overDigits and IsAltKeyDown and IsAltKeyDown() then
-      if button == "RightButton" then ReloadUI(); return end
-      if button == "LeftButton" then f:StopMovingOrSizing(); FC:OpenCalendar(); return end
-    end
-    if button == "RightButton" and overDigits then FC:ToggleTodo() end
+    local moved=false
     if button == "LeftButton" then
-      local moved = false
-      if not FC.db.locked then
+      if f.dragStartX then
         local x, y = GetCursorPosition()
         moved = math.abs(x - (f.dragStartX or x)) > 5 or math.abs(y - (f.dragStartY or y)) > 5
         f:StopMovingOrSizing()
@@ -59,8 +117,8 @@ function FC:CreateClock()
         end
       end
       f.dragStartX, f.dragStartY = nil, nil
-      if not moved and overDigits then FC:ToggleClockTools() end
     end
+    if not moved and overDigits then FC:RunClockShortcut(FC:ClockShortcutAction(button)) end
   end
   frame:SetScript("OnMouseDown", ClockMouseDown)
   frame:SetScript("OnMouseUp", ClockMouseUp)
@@ -77,15 +135,21 @@ function FC:CreateClock()
   hint.clockOwner = frame
   hint:SetScript("OnMouseDown", ClockMouseDown)
   hint:SetScript("OnMouseUp", ClockMouseUp)
+  hint:SetScript("OnMouseWheel",function(_,delta)
+    if delta~=0 and not frame.dragStartX then FC:RunClockShortcut(FC:ClockShortcutAction(delta>0 and "WheelUp" or "WheelDown")) end
+  end)
   hint:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_NONE")
     GameTooltip:ClearAllPoints()
     -- Below the digits: the tooltip never covers the current time.
     GameTooltip:SetPoint("TOP", self, "BOTTOM", 0, -10)
     GameTooltip:SetText("ForeverClock", 1, .82, .18)
-    GameTooltip:AddLine("좌클릭: 알람/스톱워치/타이머  |  우클릭: Forever Note", 1, 1, 1)
-    GameTooltip:AddLine("Alt+좌클릭: 달력", 1, 1, 1)
-    GameTooltip:AddLine("Alt+우클릭: UI 새로고침", 1, 1, 1)
+    local choices=FC:GetClockShortcuts()
+    for _,action in ipairs(FC.clockActions) do
+      local key=choices[action[1]]
+      local label=key.modifier=="none" and "" or (modifierLabels[key.modifier] or "").."+"
+      if key.input~="disabled" and inputLabels[key.input] then GameTooltip:AddLine(label..inputLabels[key.input].." · "..action[2],1,1,1) end
+    end
     GameTooltip:Show()
   end)
   hint:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -97,6 +161,7 @@ function FC:CreateClock()
   local fadeIn = group:CreateAnimation("Alpha"); fadeIn:SetFromAlpha(0.35); fadeIn:SetToAlpha(1); fadeIn:SetDuration(0.6); fadeIn:SetSmoothing("IN_OUT")
   frame.timePulse = group
   self.clockFrame = frame
+  self:ConfigureClockShortcut()
 end
 
 function FC:UpdateClock()

@@ -79,6 +79,7 @@ function S:FinishFrameDrag(frame)
   end
 end
 function S:FinishDrags(key)
+  if KHQOL.PositionAnchors then KHQOL.PositionAnchors:FinishDrags(key) end
   local R=KHQOL.ModuleRegistry
   for _,id in ipairs(R.order) do
     if not key or key==id then

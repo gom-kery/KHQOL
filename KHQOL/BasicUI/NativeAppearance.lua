@@ -37,7 +37,11 @@ local function read(f,key)
   elseif key=="shadowOffset" then
     local status,x,y=KHQOL.ReadPublicAPI(f.GetShadowOffset,f)
     if status=="ok" and finite(x) and finite(y) then return {x,y} end
-  elseif key=="justify" then return call(f.GetJustifyH,f) end
+  elseif key=="justify" then return call(f.GetJustifyH,f)
+  elseif key=="scale" then
+    local scale=call(f.GetScale,f)
+    if finite(scale) and scale>0 then return scale end
+  end
 end
 local function set(f,key,v)
   if key=="texture" then
@@ -49,7 +53,8 @@ local function set(f,key,v)
   elseif key=="font" then return KHQOL.ReadPublicAPI(f.SetFont,f,unpack(v))=="ok"
   elseif key=="shadowColor" then return KHQOL.ReadPublicAPI(f.SetShadowColor,f,unpack(v))=="ok"
   elseif key=="shadowOffset" then return KHQOL.ReadPublicAPI(f.SetShadowOffset,f,unpack(v))=="ok"
-  elseif key=="justify" then return KHQOL.ReadPublicAPI(f.SetJustifyH,f,v)=="ok" end
+  elseif key=="justify" then return KHQOL.ReadPublicAPI(f.SetJustifyH,f,v)=="ok"
+  elseif key=="scale" then return KHQOL.ReadPublicAPI(f.SetScale,f,v)=="ok" end
 end
 function Native:Write(owner,f,key,value)
   if not f then return true end

@@ -1,3 +1,183 @@
+# 1.11.9.3 갱신·기본 버프 계약
+
+Range ItemEvents는 distanceItems/melee items/요청한 장비ID의 완료만 처리한다. 무관한 전역 이벤트는 표시/GUI/재배치로 전파하지 않는다. 관련 완료는0.1초 안에 하나로 합쳐 캐시 무효화·표시와 실제 의존 컨트롤만 갱신한다. 프로필 세대와 ticket identity를 확인한다. 새로운 반복 갱신기는 없다.
+
+SpellDetails는 같은 미로딩 numeric ID를 세션 중 중복 요청하지 않는다. 매 조회의 공개 API 결과는 계속 확인하므로 자료가 준비되면 사용한다. BuffReminder는 현재/선택 직업 및 자신이 대기 중인 주문의 알림만 처리한다. Food 재고 완료는 요약/아이콘만 갱신하며 전체 페이지 refresh를 하지 않는다.
+
+classes[token].common의 wellFed/rested는 지원9개 직업 각각 기본true다. 수동 buffs 배열은 보존하고 공통 효과가 켜졌을 때 같은 공개 이름/확인ID의 수동 표시를 중복하지 않는다. 포만감은 실제 공개 오라 이름/효과 관찰을 사용한다. 1249519는 실제 이름이 포만감/Well Fed로 확인된 경우에만 아이콘 후보로 쓰며 보지 못한 주문ID를 실제 효과라고 단정하지 않는다. 실제 관찰한 오라 아이콘을 우선한다. 충분한 휴식/침낭은 사용자가 제공한429959/211527/133662다.
+
+음식과 침낭은 utility band에 배치한다. food.placement와 sleepingBag.placement는 ABOVE/BELOW다. 기본 버프 줄의 실제 범위 밖에 배치하며 기존 네 정렬 방향을 유지한다. 식사 진행은 실제 eating timestamp와 검증 필요 초를 사용하고 기본 포만감 아이콘에 표시한다. 직접 요청/섭취/포만감 계측 의미는 보존한다. 침낭은 별도 음식 요청 지표로 집계하지 않는다. secure item action은 비전투 직접 클릭만 가능하고 전투에서는 기존 action identity/좌표를 유지·가림 처리한다.
+
+휴지통 집중 진입은 자체 commonSections의 펼침 상태만 변경한다. 슬라이더의 자체 FitSlider/AnchorToSlider 계약을 사용하고 현재 값 레이어를 유지한다. 전문기술 notes 저장값/과거 통계 정의는 보존하되 런타임 등록 게이트와 UI 토글은 제거한다. 설정 프리뷰 선택 대신 아이콘 자체의 기술ID를 사용한다. 현재 단계/진영/프로필 ticket과 지도 검증은 같다.
+
+전문화 조회는 기존 INSPECT_READY·GUID 소유권·간격/timeout·수동 살펴보기 버퍼 보호를 유지한다. 공개 GetSpecializationInfo 포인트, 레거시 탭/랭크 및 구조화된 GetTalentInfo, 살펴보기 선택ID/인덱스를 대조한다. 분포를 완전히 읽지 못하면 이름만 사용하고 0값을 특정 전문화로 추측하지 않는다. 검증된 대상 configID 없이 C_Traits의 플레이어 config를 상대 자료로 쓰지 않는다. /khqolspec은 지원 유무·최근 경로만 출력한다.
+
+---
+
+아래는 이전 버전 기록입니다. 현재 사용법은 위 안내를 따릅니다.
+
+# 1.11.9.2 거리·HUD 계약
+
+distance.measurement는 auto(이전값 기본)/exact. exact 선택은 format=single, singleStep=1로 전환한다. UnitDistanceSquared의 checked=true 공개 값 또는 같은 지도 UnitPosition 공개 좌표만 실제 거리로 사용한다. 미지원 exact는 unknown/exact-unavailable이며 item/spell 구간을 정확한1단위로 보간하지 않는다. auto는 기존 item/spell Bounds를 유지한다. 가장 가까운 동종 NPC와 선택 대상의 동일성을 보장할 수 없는 ClosestUnitPosition 등은 사용하지 않는다.
+
+maxMeters 저장 경로를 유지하며 UI 단위별45~80/step5로 정규화한다. 초과가 확인된 원본 값은 상한+와 far색이다. upper만 상한을 넘어서는 걸침 구간은 확정 far로 만들지 않으며 ~상한+로 구분한다. custom colour보다 확인된 cap 초과의 far색을 우선한다. 범위 표시 bucketSize와 단일 표시 singleStep은 독립이다. 옛 custom yd 경계의 소수는 보존하고 UI만 정수, 새 직접 편집은 정수로 제한한다. 기존 거리0.08초 갱신을 유지한다.
+
+HUD.lua는 shieldHUDSide/기본true shieldCombat/hudTextColors를 보충한다. 타이머 identity별 측면/칸을 고정하고 우선순위 정렬로 행이 바뀌면 레이아웃 키를 갱신한다. 같은 측면의 보호막은 별도 외측 칸이며 텍스트도 분리한다. hudTextPositions/colors는 타이머별 프로필 저장값이다. 설정의 편집 대상 선택은 보기 상태이며 통계에 저장하지 않는다. 고정 색상 없음은 기존 상태색을 의미하고 취소는 없음 상태까지 복원한다. 전투 중에는 편집/예시를 중지하고 public 실제 데이터의 HUD만 유지한다.
+
+ReadNamed는 공개 이름 API가 있으면 그 경로로 보호막 계열을 읽고 반환된 실제 랭크 ID와 숫자도 공개/분류를 확인한다. 실패/비공개는 UNKNOWN이며 다른 API로 우회하지 않는다. API 부재 또는 이름 데이터 미로딩만 기존 Read 경로를 사용한다. 전체 흡수 합계와 개별 지속 시간은 기존 의미를 유지하며 비공개 값을 읽거나 캐시된 과거 보호막을 현재값으로 위장하지 않는다. 활성 렌더는 시간만 줄이고 새로운 오라 반복 조회기는 없다.
+
+PositionAnchors에 환경 타이머 headless 항목을 연결하여 설정창을 닫아도 그룹·텍스트 핸들을 유지한다. 좌표 변경은 기존 위치 저장/프로필 세대/전투 취소를 사용한다. 카탈로그10은 이전1,716행과 최대 거리 ID를 보존하고 설정7개만 추가한다. 프로토콜/스키마/기록OFF 의미는 같다.
+
+---
+
+아래는 이전 버전의 기록입니다. 현재 사용법은 위 안내를 따릅니다.
+
+# 1.11.9.1 설계·호환 계약
+
+AuraSnapshot은 Core AuraReader의 공개 값/읽기 가능 정책으로 player HELPFUL 목록을 완전하게 읽은 경우에만 배열을 반환한다. 현대 API의 오류/비공개 값을 레거시 API로 우회하지 않으며 불완전한 결과는 부재가 아니다. 자체 반복 조회기는 없다.
+
+FoodEvidence는 아이템 분류와 공개 tooltip의 비창조/처치 경험치 5%/필요 초를 근거로 후보를 만든다. 4592는 사용자 원본 툴팁 근거다. 다른 고정 ID를 추측해 넣지 않는다. ko/en만 해석하며 미확인 자료는 자동 후보에서 제외한다. 후보·재고를 한 번의 가방 순회로 수집하고 아이템 로딩 요청은 가방 상태당 중복하지 않는다. 포만감/식사 관찰은 오라 이벤트 전까지 캐시한다. 미확인 포만감은 아이콘을 숨긴다. 실제 식사 시작 timestamp와 선택 음식의 검증 초로 시각 진행을 만든다. 직접 요청이 없는 가방 사용/리로드의 공용 식사 오라를 특정 음식 사용 통계로 귀속하지 않는다. 요청·섭취 확인·포만감 확인은 기존 세 단계 ID를 유지한다. 시간 경과만으로 성공을 생성하지 않는다. 마지막 재고 소모 시 실제 진행/귀속을 보존하되 재고 없는 secure item action은 비운다.
+
+Range singleStep은 정확한/추정 단일 값에 사용하며 bucketSize는 범위 표시용이다. 원본 측정은 그대로이며 추정 단일 값에 ~를 유지한다. 현재 측정 상태 표시는 기존 결과를 사용하고 추가 측정하지 않는다. colorRanges[].after는 start/near/dead/ranged/far/neutral 중 하나다. 기존 값이 없으면 neutral로 채워 과거 기본 행 아래 배치를 유지한다. 기본 행끼리의 순서는 고정하고 사용자 행을 삽입한다. 실제 색 판정 우선순위는 기존대로 사용자 행 순서 후 기본 구간이다. 5글자 제한은 새 UI 입력에만 적용하며 과거 이름/원본 yd 값을 읽기만 해도 고쳐 쓰지 않는다. 배열 identity/profile generation/revision의 기존 stale callback 방어와 최대 3개 제한을 유지한다.
+
+UnitFrames markOffsets는 player/target 각각 faction/skull의 x/y를 프로필에 보충한다. native 마크 위치는 기존 Write/Release가 소유하며 badge가 circle을 따를 때 보정을 중복 적용하지 않는다. target custom/native skull은 같은 보정값을 사용한다. 전투 중 geometry 변경을 보류하고 전투 종료 후 최신 상태를 적용한다. 마크 프리뷰는 기존 status 잠금·공통 PositionAnchors writer로 연결하며 전역 편집 시작으로 계측하지 않는다. native 플레이어 해골이 없으면 임의 해골을 만들지 않는다.
+
+ShieldTimers는 환경 타이머의 active/rows/render 경로를 재사용한다. 기본 OFF이며 enabled 동안에만 오라/흡수 이벤트를 등록한다. base spell의 공개 현지화 이름으로 같은 계열의 랭크를 대응한다. 개별 지속 시간은 오라의 duration/expirationTime이며 전체 흡수량은 UnitGetTotalAbsorbs 결과다. 합계를 개별 오라 잔량으로 복제하지 않는다. 값을 읽을 수 없으면 -이며 지속 시간을 읽을 수 없으면 불확실한 타이머를 제거한다. 기존 활성 프레임 갱신기는 시간만 줄이고 오라/흡수 API를 매 프레임 조회하지 않는다. 보호막은 기존 중앙/소리 긴급 경고를 발생시키지 않는다. HUD 텍스트 위치와 새 타이머 필드는 프로필 전송에 보존한다.
+
+catalog9는 기존 1,680개 고정 행을 보존하고 고정 설정 18개만 추가한다. schema1/protocol1, 사용자 입력값·좌표·이름 미수집, DevTools OFF 안전 동작을 유지한다. 실제 1.60.1/70959의 API 공개 범위와 보호 동작은 정적·모의 검사로 보장하지 않는다.
+
+---
+
+아래는 이전 버전의 기록입니다. 현재 사용법과 제한은 위 안내를 따릅니다.
+
+# 1.11.9.0 설계·호환 계약
+
+SettingsUI의 좌측 두 Slider 객체/숫자 입력/공통 commit·cancel·diagnostics 계약을 유지하되 해당 track/thumbnail만 숨기고 정수 normalizer+step5를 준다. 다른 CreateSlider는 변경하지 않는다. general.windowOverlap의 BLIZZARD/KHQOL 의미·프로필 범위는 유지하며 WindowLayers의 기존 모달/책/전투 정책에 연결한다. 실제 구분 근거 없는 3번째 레이어는 추가하지 않는다.
+
+NativeAlerts는 기존 account alerts.recipeScale/position/locked/enabled를 유지한다. 알려진 NewRecipeLearnedAlertSystem/LootAlertSystem/LootUpgradeAlertSystem의 실제 pool/container 계약을 검사한다. active banner별 native base scale×공통 배율을 tracked appearance로 소유하고 부모 scale은 바꾸지 않는다. known pools를 함께 보아 stack head를 판별하며 native queue/filter/scripts를 대체하지 않는다. 접근 실패·전투·편집 모드는 기존 보류/복원 경로다. GroupLootContainer는 별도 계정 좌표/scale이다.
+
+FBR의 파일·TOC·소유자/검색/위치는 Convenience로 이동하나 buffReminder/ForeverBuffReminder/ForeverBuffReminderDB 및 계정 classes[].buffs는 그대로다. Core SpellDetails helper가 FBR와 Labs ProcAlert의 독립 조회를 담당한다. profile 외형 glowType/glowColor/food는 추가 default만 보충한다. Pixel은 plain textures를 재사용하고 active icon에만 updater가 있으며 EXPIRING Alpha 효과와 동시에 돌지 않는다. 외부 Glow library는 배포하지 않는다.
+
+Food는 itemID와 eatingSpell/wellFedSpell을 구분한다. 배포 verified whitelist는 의도적으로 비어 있다. 자동 후보는 versioned source/nonConjured/killXP=5/주문 대응/seconds가 모두 있는 데이터만 허용하며 유효한 현재 후보→ID순으로 선택한다. 수동 음식은 공개 Food&Drink 분류와 가방 재고·잠금·사용 가능을 확인한다. secure action은 OOC에 item:itemID로만 설정한다. 전투 cover·편집 차단을 재사용한다. 요청, 실제 섭취 오라의 시작, 실제 포만감 오라는 별개 계측이다. 후자의 검증 데이터가 없으면 진행/성공을 만들지 않는다. 시간 경과는 성공이 아니다. 공유 식사 오라만 있는 /reload는 선택 음식으로 귀속시키지 않는다. 이벤트는 enabled 상태와 pending generation을 확인하며 가방/오라 상시 scan을 새로 만들지 않는다.
+
+Range는 새 singleStep(1–5)/colorRanges(0–3)/nextColorRangeID를 기존 distance profile 경로에 저장한다. 측정값·구간·사용자 경계는 yd이며 UI 변환은 .9144이다. 사용자 경계는 단위 정규화에서 제외한다. 실제 원 값으로 위쪽 inclusive 일치, 추정은 finite 전체 포함에만 색상을 적용한다. default/deadzone/unknown 판정은 fallback이다. 고정3개 UI slot은 개별 search/getter 문맥을 가지나 데이터 ID는 저장 row.id이고 통계는 동일한 고정 필드 ID다. revision+배열+profile generation으로 stale callback을 거부한다. 동적 배열은 ProfileTransfer에서 별도 검증/복사한다.
+
+대상 해골은 간결한 frame에서만 숫자를 대체한다. native shown이 확정되면 추가 skull은 숨긴다. 숫자 alpha는 독립 decoration owner로 복원하고 PvP/진영 위치는 기존 Write/Release가 소유한다. 비밀 문자열 폭 대신 글꼴3글자 예약폭·공개 아이콘 크기·간격으로 계산한다. 전투 배치는 현재 target 상태로 재평가한다. 새 위치 설정/함수 교체/보호 우회는 없다.
+
+진단 protocol1/schema1은 그대로다. 새로운 설정18개는 정적 alias/definition만 추가했다. 음식 feature3개도 값 없는 고정 ID다. 기존 menu.labs.buff는 새 편의 메뉴 방문을 alias하여 이력을 보존한다. 모의 검증은 실기/taint 검증과 구분한다.
+
+---
+
+# 1.11.8.24 입력·휠·세션 잠금
+
+ParseTodoWaypoint는 X/Y 토큰과 뒤 메모를 분리하고 기존 반환 순서 x,y,label,map,selector를 유지합니다. 공백/쉼표는 좌표 사이에만 처리합니다. 명령의 숫자 지도 우선순위와 노트 내부 /way의 현재 지도 + 숫자 메모 우선순위를 구분합니다. 기존 노트 문자열을 일괄 재작성하지 않습니다. AddTodoCoordinate는 정규화 좌표 API이며 같은 지도·기존 소수점 5자리 백분율·같은 label을 재사용하고 두 번째 반환값 duplicate로 구분합니다. 전문기술은 이 결과에서만 새 항목 완료를 판정합니다.
+
+캐릭터 변수 KHQOLPartyCharDB의 wheelEnabled/up/down을 유지하고 누락된 shiftUp/shiftDown만 0으로 보충합니다. 편집 보조키는 모듈 메모리의 UI 선택입니다. 네 조합은 개별 검증/자식 SecureActionButton을 사용합니다. 하나의 SecureHandlerStateTemplate controller가 기존 RegisterStateDriver로 수정키를 감지해 현재 마우스 진입 버튼의 임시 바인딩만 갱신합니다. Ctrl/Alt 또는 미등록 Shift에는 일반 휠을 대신 걸지 않습니다. 일반 Lua의 전투 중 protected attribute 변경은 기존 RequestApply/Defer 경로로 보류합니다.
+
+clockWindowLocks.tools/timerBar는 SavedVariables 밖의 세션 값입니다. 처음 읽을 때 false이고 숨김/프로필 전환으로 초기화하지 않습니다. 자물쇠는 드래그를 끝내고 기존 SaveClockTool을 호출합니다. 기존 positionLocked/timerBarLocked는 삭제하지 않으며 스톱워치/중앙 알림의 기존 조건과 전역 편집의 기존 잠금 동작에 남깁니다. 창별 아이콘은 기존 toolsLocked/timerBarLocked 설정 변경 ID를 사용하고 Position Editor start를 발생시키지 않습니다.
+
+---
+
+# 1.11.8.23 공통 확장 레벨 정책
+
+정적 rankCatalog.expansionLevels의 [150]=10, [225]=20, [300]=35를 모든 전문기술 rank.maximum에 적용합니다. 사용자 제공 서버 공통 규칙이며 웹에서 새로 검증한 값으로 표시하지 않습니다. levelStatus는 기존 판정 계층이 읽는 VERIFIED, levelSourceType은 USER_CONFIRMED이고 출처/확인일을 기록합니다. 이전 필드 값·상태·출처는 levelReference에 보존합니다. 새 프로필/SavedVariables 키나 반복 조회는 없습니다. 75·미지원 상한·읽기 불가 현재 값에는 임의 수치를 넣지 않습니다.
+
+ShowNoteResult는 기존 동일 노트/핀 티켓으로 길 안내 메뉴 한 개만 생성합니다. note 선택지와 ToggleTodo 분기를 제거했습니다. 이전 후보 선택 메뉴의 두 번째 행은 숨겨집니다. 등록의 원래 조건·안전 제한·중복/메모 정책과 조회/요청/완료 계측은 그대로 사용합니다.
+
+---
+
+# 1.11.8.22 보완 설계
+
+PositionAnchors는 소유 테두리에만 가로 caption을 표시합니다. 내부 sample FontString을 만들지 않습니다. caption은 앵커 폭 대신 자체 글자 폭과 최소 폭으로 배치하고 word wrap을 끕니다. UnitFramePositions의 공통 ‘위치 미리보기’ sample도 제거했습니다.
+
+파티 프레임 프로필 positionLocks.party/raid는 기본 true입니다. 공통 앵커용 PositionTargets focus만 선택한 공격대 배치를 지정하며 기존 전역 편집의 두 target ID와 현재 인원 기반 동작은 유지합니다. writer는 캡처한 계정 프레임 프로필에 쓰고 current predicate가 프로필/선택 변경을 거부합니다. 수동 프로필·배치 전환 전 진행 중인 드래그를 확정하고 자동 역할/인원 변경 시 재검증합니다.
+
+ProfessionGuidePolicy는 조건/후보 완전성/장소 수의 공통 판정을 유지하며 4곳 이상의 일반 교관만 요약합니다. 요약은 등록 대상이 아니고 1~2곳만 기존 Ticket/Register 경로를 사용합니다. 낚시 레벨 보완은 정적 카탈로그에 field source/check date를 붙여 기록합니다. 그 외 자료 미표기는 UNKNOWN이며 0/조건 없음으로 바꾸지 않습니다. 새 조회 타이머나 매 프레임 갱신은 추가하지 않았습니다.
+
+---
+
+# 1.11.8.21 위치 잠금·이동 테두리
+
+PositionLocks는 원래 설정 getter/setter/활성 조건과 통계 ID를 유지한 체크박스를 탭 아래 positionLockHeader에 배치합니다. 모듈 헤더에는 설명과 모듈 사용만 있습니다. 잠금 행 높이는 본문 스크롤과 대상/부품 탭의 가용 높이 계산에 반영합니다.
+
+PositionAnchors는 잠금 OFF인 대상에만 기존 ModuleRegistry PositionTargets를 요청하고, 공개 rect로 KHQOL 소유 프레임을 배치합니다. 이동 종료 시 기존 target.write와 PositionStore.Committed를 사용합니다. 저장된 잠금 OFF는 페이지를 방문하기 전에도 주요 대상별 descriptor로 복원합니다. 프로필 세대·대상 유효성·전투·전역/기본 UI 편집 상태를 검증합니다. 매 프레임 조회나 반복 타이머는 추가하지 않았습니다.
+
+NPC 배너에는 bannerPosition과 locked를 추가했습니다. NativeAlerts는 기존 계정 범위 roll/alerts 저장 구조에 locked만 추가했습니다. 유닛 프레임의 positionLocks와 선택적 simpleAuras는 현재 전체 프로필에 저장합니다. 시계 공유 잠금은 기존 positionLocked와 timerBarLocked를 동시에 기록합니다. 기존 값이 서로 다르면 둘 중 하나가 OFF일 때 통합 상태는 OFF이며, 다음 명시적 조작에서 두 값을 맞춥니다.
+
+버프 감사 알림의 기존 전용 preview·클릭/감사 인사·우클릭 닫기·드래그 경로는 유지하며 공통 프록시로 덮지 않습니다. 보호된 Blizzard UI는 소유 프록시를 이동하고 기존 안전한 위치 적용/복구 계층을 사용합니다. 전문기술 표시 정책·데이터·등록과 공통 슬라이더 구현은 .20과 동일합니다.
+
+---
+
+# 1.11.8.20 전문기술 안내 표시·등록 정책
+
+ProfessionGuidePolicy의 Presentation이 툴팁과 등록의 공통 기준입니다. 기본 숙련과 상한·레벨을 독립적으로 공개 조회하며, 상한으로 배운 단계를 판별합니다. 읽기 불가 기본 숙련을 오래된 캐시로 대체하지 않습니다. 조건은 VERIFIED 임계값, 명시적 NONE, UNKNOWN을 구분하고 UNKNOWN을 0/없음으로 해석하지 않습니다.
+
+ProfessionSites는 기존 정적 단계 카탈로그와 별개로 보존된 WOWF 원문 목록의 구성 서명/수를 기록합니다. 목록·필수 필드·장소 식별 근거가 불완전하면 적은 NPC 수로 희소 장소를 추론하지 않습니다. 등록 가능 좌표 수와 장소 수는 별개입니다. 명시된 마을/습득처나 동일 지도·동일 원문 좌표만 합치고 도시 전체/근접 거리로 합치지 않습니다.
+
+선택 티켓은 실제 표시한 장소의 대표 후보, 현재 진영/상한/다음 단계/프로필 세대/owner를 검증합니다. 레벨·기본 숙련 조건도 선택 시 다시 판정합니다. 기존 AddTodoCoordinate·지도 핀·중복/안내 엔진을 재사용합니다. 정적 데이터와 티켓/캐시는 SavedVariables에 복사하지 않습니다.
+
+---
+
+# 1.11.8.19 위치 잠금 UI 결정
+
+PositionLocks가 공통 고정 헤더 레이아웃을 소유합니다. PositionEntry와 모듈별 선택 메뉴는 제거했습니다. 페이지·탭·유닛·부품에 일치하는 실제 잠금만 직접 표시하며 기능 사용 설정은 본문에 남습니다. 설명 줄바꿈과 잠금 행 수/이름 높이를 본문 시작 위치 계산에 반영합니다.
+
+기존 22개 잠금의 저장값·callback·가용성·범위는 유지합니다. 추가한 버프 알림 잠금만 새 프로필 값이며, 이동 좌표는 기존 buffThanks.position 테이블을 사용합니다. 실제 알림의 원점과 인덱스 오프셋을 분리하여 어느 아이콘을 끌어도 같은 묶음을 이동합니다. 다른 아이콘은 이동 중인 소유 프레임을 기준으로 붙여 OnUpdate를 추가하지 않습니다.
+
+잠금 OFF는 설정 변경입니다. 전역 Position Editor Enter와 구분하며, 클릭/드래그는 같은 마우스 해제를 두 번 해석하지 않습니다. 전역 편집/전용 보호 대상의 안전 정책과 기존 위치/크기/초기화 기능을 보존합니다.
+
+---
+
+# 1.11.8.18 — 상단 잠금·숙련 안내 계약
+
+PositionLocks는 기존 컨트롤 선언을 PositionLock으로 옮깁니다. 저장값을 새로 만들지 않고 원래 route/section/title/getter/setter/predicate를 유지한 Checkbox를 고정 헤더 holder에 생성합니다. 표시 문구만 ‘위치 잠금’으로 통일하며 검색/통계는 원래 제목을 사용합니다. availabilityParent가 원래 소유 패널의 모듈/Labs 조건을 읽습니다. 같은 route/title은 한 컨트롤로 재사용하고 새 패널로 교체된 경우 이전 검색 컨트롤을 정리합니다. Header Refresh는 setter나 Changed를 호출하지 않습니다.
+
+모듈 사용 X와 잠금 X를 일치시키고 복수 이름을 왼쪽에 둡니다. 각 이름 높이·행 간격·설명 줄바꿈·편집 버튼을 합산합니다. 본문 폭 600 미만에서는 설명 아래 조작 영역을 둡니다. 전체 편집기와 기존 좌표/크기/초기화 동작은 유지합니다. 세션 상태 잠금과 프로필 좌표를 구별합니다.
+
+ProfessionRanks는 제공 문서와 WOWF 원문의 사실 데이터입니다. 기존 recipeCatalog와 분리되고 SavedVariables에 저장하지 않습니다. 레벨/숙련/비용의 미표기는 nil+UNKNOWN입니다. 현재 tier는 공개 base rank/maxRank의 maxRank가 알려진 75/150/225/300과 정확히 일치할 때만 확인합니다. 장비/종족/임시 보정은 더하지 않습니다. 다른 상한이나 unreadable/secret 값은 최종 단계로 간주하지 않습니다.
+
+Native RankBar는 BACKGROUND 비입력 템플릿이므로 마우스를 강제로 켜지 않습니다. KHQOL 소유 UIParent 자식 i를 공개 RankBar의 오른쪽에 앵커하고 원래 바를 수정하지 않습니다. 늦은 로드/전환/레벨/숙련 이벤트에 제한된 갱신을 합칩니다. 전투 중 앵커 생성/변경은 미루며 OFF는 이벤트·예약·툴팁·메뉴를 정리합니다. 새 OnUpdate나 전체 기술 목록 폴링은 없습니다.
+
+등록은 현재 기술/상한/다음 tier/owner/profile generation/epoch를 다시 확인합니다. 원문 uiMap 숫자만으로 허용하지 않고 현재 C_Map.GetMapInfo의 ID/이름/Zone·City 종류를 대조한 뒤 0~100 좌표를 한 번 0~1로 바꿉니다. 다른 지역 ID를 추측해 대체하지 않습니다. 기존 AddTodoCoordinate/EachTodoTask와 노트 pin route ticket/StartTodoPinGuidance를 사용합니다. 메모 저장소·안내 엔진을 추가하지 않습니다.
+
+새 기능은 정적 진단 ID만 Emit합니다. NPC/좌표/캐릭터/숙련값/본문을 전달하지 않습니다. 실제 tooltip 표시 구간에만 guide 1회, Refresh 0회입니다. 우클릭 요청과 실제 새 노트 항목 생성, 명시적 안내 true 반환을 구별합니다. 기존 통계 ID·schema·protocol과 슬라이더 입력/정규화 계약은 유지합니다.
+
+---
+
+# 1.11.8.17 — 모듈 헤더 위치 편집 계약
+
+UI/PositionEntry.lua는 기존 SettingsRegistry.positionModules와 ModuleRegistry의 소유자 연결을 사용합니다. 대상 ID/이름의 병렬 카탈로그를 만들지 않습니다. DescribePositionTargets의 동기 조회 동안 PositionUtils.describing을 설정하고 성공/실패 모두 복원합니다. Preview는 이때 false(유효한 가상 예시)를 반환하며 nil(실제 대상 부재)과 구별합니다. 직접 프레임이 없는 항목은 등록하지 않습니다. 실제 Virtual 생성/앵커·크기·쓰기·apply·reset·lock은 조회에서 실행하지 않습니다. 소유자의 기존 조건은 유지하며 반환 후 헤더에는 ID/이름/경로/진입 모드만 남깁니다.
+
+기존 Navigation.EditorMeta의 경로로 현재 페이지·유닛·부품·분류를 필터하고 ID로 중복을 제거합니다. 연결/읽기 전용 대상은 독립 선택에서 제외합니다. 공유 Navigation HUD는 quest 한 ID를 두 사용 페이지에서 연결합니다. 기본 UI의 frameMover/nativeAlerts와 파티 편의의 generalConvenience 소유자만 별도 연결합니다.
+
+공통 CreateDropdown에 opt-in beforeOpen/menuNavigation/dropdownLabel을 추가합니다. 기존 설정 드롭다운의 저장 경로는 그대로입니다. 탐색 메뉴는 CommitSetting/Changed/진단 Begin·Finish 없이 기존 편집 엔진으로 진입합니다. 바깥 클릭 이벤트는 탐색 메뉴가 보이는 동안만 등록하고 닫힐 때 해제합니다. 기본 UI나 보호 함수의 스크립트를 교체하지 않습니다. 새 상시 검사·OnUpdate·타이머는 없습니다.
+
+새 진입만 E:Enter(id,mode,true)의 엄격 검증을 사용합니다. 실제 대상/핸들이 확인되지 않으면 편집 시작/숨김/통계 시작 없이 거부합니다. 전체 편집기의 기존 호출·첫 대상 대체·Suspend/대상 생성 순서는 보존합니다. unitRoots 모드, 저장·취소·reset·부모/자식 연결·전투/프로필 종료·UsageDiagnostics 결과 전달은 기존 구현입니다.
+
+헤더 버튼은 테마 버튼 132px, 기존 ButtonHeight와 스킨을 사용합니다. 설명+버튼+모듈 토글이 들어가는 폭을 계산하고 본문 폭 600px 미만은 설명 아래에 조작을 둡니다. SetPageScrollLayout에 실제 헤더 높이를 전달합니다. 슬라이더 레이아웃·정규화·입력·화살표 계약은 변경하지 않습니다. 저장 키/스키마/새 위치값은 추가하지 않습니다.
+
+---
+
+# 1.11.8.16 — 기본 도안 알림 위치
+
+원래 AlertFrame 루트와의 공개 앵커 연결이 정상이라면 도안의 native 스택을 유지합니다. 그 연결이 저장 위치를 전달하지 못할 때만 활성 도안 풀의 선두에 저장된 공통 위치 기준점을 적용합니다. 기준점은 UIParent의 KHQOL 소유 숨김 프레임이며 저장 원점 + 기존 10 UI px 간격을 사용합니다. 도안 크기와 별개로 원점이 유지됩니다.
+
+native UpdateAnchors의 후속 관찰과 기존 병합 Queue를 사용합니다. 생성·표시·클릭·대기열·해제 함수를 교체하지 않고, 다른 알림 크기나 외부 프레임 위치를 수정하지 않습니다. 후속 도안은 native 선두 연결을 유지합니다. NativePosition 추적을 재사용하고 pool이 비운 프레임에 이전 앵커를 다시 쓰지 않습니다. 전투·편집 모드·접근/보호/secret 조건을 유지하며 저장 데이터에는 새 필드를 넣지 않습니다.
+
+---
+
+# 1.11.8.15 — 공통 슬라이더 계약
+
+CreateSlider의 반환값은 기존 Slider와 EditBox이며 부모·numberBox·tooltipLabel·inputFeedback 계약을 유지합니다. 화살표는 Slider 소유 자식이고 별도 검색/설정/통계 항목으로 등록하지 않습니다. SkinButton만 재사용하며 CreateButton의 자동 Changed를 중복 호출하지 않습니다.
+
+SliderArrowSize=22, ArrowGap=4, ValueGap=8. 기본 트랙 110·숫자 86, 셀 폭이 줄면 FitSlider가 트랙/입력 폭을 조절합니다. 설정창 왼쪽의 164px 영역은 숫자 62·트랙 42로 맞춥니다. 숫자 입력은 AnchorToSlider로 트랙/오른쪽 버튼 뒤를 따르며 generic/detail/compact reflow가 이 계약을 사용합니다. 숫자 idle FontString과 native focus 편집은 보존합니다.
+
+세 입력은 동일한 normalize/CommitSetting 경로를 사용합니다. 실제 값이 같으면 setter를 호출하지 않습니다. 화살표는 focus-loss 확정 이후 현재 getter를 읽고 D:Begin(...,"arrow")→적용→D:Finish로 한 조작을 기록합니다. Refresh의 SetValue는 setting guard로 입력이 되지 않습니다. 프로필 세대가 바뀐 활성 초안은 취소합니다.
+
+읽기·배치·창 열기는 저장값을 정규화하지 않습니다. 실제 클릭 시 기존 min 기준 격자를 적용하고 custom normalize가 있으면 그대로 호출합니다. 기존 전투/활성 predicate, module 및 LabLock을 소유 Slider에서 판정합니다. 새로운 타이머·OnUpdate·기본 게임 UI 변경·공용 팝업 등록은 없습니다.
+
+---
+
 # KHQOL 1.11.6.5 — 이미지 조준선 계약
 
 사용자 제공 TGA 5개는 KH QOL Labs의 Media/ObjectReticles에서 경로로 로드합니다. 변환·생성하지 않고 원본 해시와 PNG 픽셀을 검증합니다. effect 키에 imageCross/imageDiamond/imageRing/imageSwirl/imageOrbit를 추가하며 기존 키를 변경하지 않습니다.
@@ -481,3 +661,42 @@ PartyFrames.OnCombatEnd는 공용 보류 처리기에 등록된 작업을 중복
 UnitFrames.WithResolvedDB는 동기 적용 도중에만 한 번 정규화한 설정을 재사용합니다. 종료/예외 시 해제하고 프로필 세대·루트 DB·유닛 설정 테이블이 바뀌면 재사용하지 않습니다. 단순 체력 표시/글자 스타일의 전투 보류는 각 표시의 플래그로 관리하고 전투 종료에 RefreshCombatDisplays로 복원합니다. 실제 배치·공개 속성 읽기 실패·모듈 OFF·토템 보호 위치 변경은 기존 전체 적용을 유지합니다. 토템/포만감과 상태 표시 복원은 가벼운 경로에도 포함됩니다.
 
 잡템 판매는 IsSellAllJunkEnabled가 참이고 GetNumJunkItems/SellAllJunkItems가 있는 경우 기본 C_MerchantFrame 일괄 판매를 방문당 한 번 요청합니다. 엔진의 대상 판정을 사용하며 애드온이 슬롯별 판매를 함께 보내지 않습니다. 완료는 남은 잡템 수와 이벤트/0.05초 확인으로 처리하고 2초 응답 기한 뒤 중단합니다. 요청 이후 오류/응답 지연에는 개별 판매로 전환하거나 재요청하지 않습니다. API/기능이 미지원인 경우에만 기존 검사 기반 개별 큐를 사용합니다. 자동 수리는 확인된 완료 뒤 기존 한 번의 판단을 사용합니다. [클라이언트 API](https://raw.githubusercontent.com/Gethe/wow-ui-source/forever/Interface/AddOns/Blizzard_APIDocumentationGenerated/MerchantFrameDocumentation.lua).
+
+
+## 1.12.0 설정 탐색 구조 계약
+
+SettingsScreens.lua는 FinalizeInstallation의 기존 모듈 연결·설치 정리 뒤 표시 그룹을 한 번 구성합니다. SettingsRegistry.pages의 테이블 정체성을 유지하며 최상위 5개를 고정합니다. 기존 groups/modules/routes는 논리 소유권·옛 진입·통계 식별을 위한 원본 메타데이터입니다. 이들을 새 UI 모듈로 중복 등록하지 않습니다.
+
+표시 screen ID와 logicalRoute를 분리합니다. 기존 tab/section/unit/part/category/castUnit/sideTarget은 실제 빌더·컨트롤에 전달합니다. 일반/프로필/옛 카테고리와 frameMover·questTracker 등의 별칭은 한 번 정규화합니다. 미설치/잘못된 경로는 공통 설정으로 복귀합니다. 빈 카테고리는 기능을 켜거나 가짜 컨트롤을 만들지 않습니다.
+
+SettingsText.lua는 고정 UI 이름의 표시 변환만 수행합니다. N:ID, 진단 binding, 잠금·아코디언 판정에는 기존 원문·논리 경로를 사용합니다. 사용자 입력이나 등록 이름을 저장/치환하지 않습니다. 관리 화면의 중복 사용 토글은 실제 소유자별 대표 항목으로 정리하고 옛 두 항목 ID는 별칭으로 연결합니다.
+
+공유 초기화는 원래 범위이며 화면별 축소 초기화를 추가하지 않습니다. nativeAlerts/frameMover 등 독립 구현은 기존 페이지 안의 독립 제어를 유지합니다. 실험실은 단일 하위 진입 안에서 기존 잠금 화면과 해제 후 빌더를 재사용합니다. 잠금 전 요청 모듈을 해제 후 선택하며 재잠금 시 보호 조작부를 숨깁니다.
+
+기존 캐시·갱신 수명을 사용합니다. 숨겨진 설정창을 프로필 Refresh로 열지 않고, 화면 전환 시 입력/색상/드롭다운을 기존 정리 경로로 닫습니다. 새 화면별 런타임 스크롤 키만 분리합니다. 상시 폴링·전체 설정 매 프레임 검색은 추가하지 않습니다.
+
+TOC의 SettingsGroups.lua 다음에 SettingsScreens.lua와 SettingsText.lua를 로드합니다. 두 파일은 공통 표시/탐색 helper이며 새 게임 모듈·패키지·SavedVariables가 아닙니다. DevTools 0.4.0은 새 화면을 기존 메뉴 leaf ID와 기존 설정 ID로 연결합니다. UsageControlIDs 두 사본은 기준본과 바이트 단위로 동일합니다.
+
+
+## 1.12.0.1 카테고리 6개와 family 탐색 영역
+
+최신 사용자 결정에 따라 1.12.0의 최상위 5개 계약을 6개로 대체합니다. character ID는 캐릭터에 유지하고 전투 표시 페이지는 battle ID를 사용합니다. 기존 combat 화면/명령 별칭과 충돌하지 않습니다. 기존 character + screen/tab 요청은 이전 소속 화면 집합을 통해 정규화하여 유닛·부품·대상 선택을 유지합니다.
+
+SettingsPresenter는 각 표시 카테고리의 family 버튼을 독립 familyHost에 한 번 생성합니다. SettingsUI의 familyHeaderViewport가 이를 표시하며 상단 groupHeader에는 2Depth 버튼만 둡니다. 기존 moduleDivider는 카테고리 구분선으로 배치하고 family 영역, 실제 소유자 모듈 상태, 기존 유닛/부품 고정 헤더, 위치 잠금, 본문 순으로 공간을 계산합니다. 별도 게임 모듈·저장 상태·폴링은 추가하지 않습니다.
+
+familyHost는 카테고리 캐시에 속하며 창을 다시 열거나 family를 바꿔도 버튼·빌더를 복제하지 않습니다. 페이지 전환 때 이전 family 영역을 숨기고, 좁은 창에서는 해당 영역의 기존 방식 줄바꿈·선택 위치 보정·마우스 휠을 사용합니다. 공유 소유자의 토글·초기화 범위는 그대로이며 전투/위협 등 다른 소유자는 선택한 실제 owner를 사용합니다.
+
+새 런타임 Lua/TOC 로드 항목은 없습니다. Reports/1.12.0.1의 문서·JSON은 배포 증거이며 TOC에 등록하지 않습니다. DevTools 0.4.0과 진단 카탈로그 두 파일은 기준본 그대로입니다.
+
+
+## 1.12.0.2 오브젝트 강조·침낭 만료 안내
+
+오브젝트 강조는 기존 objectHighlight 소유자와 프로필 저장 범위를 사용한다. imageDownArrow를 네 번째 선택으로 등록하고 예전 imageSwirl만 명시적으로 이관한다. 다른 설정을 초기화하지 않는다. 납작한 회오리 리소스는 이번 설치본에서 제거하고 256×256 RGBA 하단 화살표를 기존 Media/ObjectReticles에 추가한다. 미디어는 TOC에 로드 항목을 추가하지 않는다.
+
+blink(false), blinkPeriod(1.0)를 기존 objectHighlight 설정에 추가한다. 주기는 0.5~2.0초, 0.5초 단위로 정규화한다. 강조 프레임에 Alpha AnimationGroup 하나를 캐시하여 0~1 승수를 반복한다. 텍스처의 사용자 alpha와 상호작용 상태 감쇠는 별개로 보존한다. .2초 기존 대상 갱신에서 같은 애니메이션을 재시작하지 않는다. 숨김, 대상 교체, 모듈 OFF 시 기존 Stop 경로에서 중지하고 승수를 1로 복원한다. 새 OnUpdate/상시 폴링은 없다.
+
+sleepingBag.expiryAlert(true)는 기존 버프 유지 알림 프로필 설정에 추가한다. 1331671 휴식 진행 추정과 달리 실제 충분한 휴식(429959)의 공개 expirationTime만 사용한다. 기존 FBR 최소 기한 스케줄러에 remaining-120을 전달하므로 추가 반복 타이머가 없다. 정상 관측 시 0<remaining<=120이면 주황색 메시지를 3초 표시한다. UNKNOWN/무기한/지난 만료에는 새 메시지를 만들지 않는다. 일시적 읽기 실패 후 같은 기한을 다시 확인해도 중복 표시하지 않는다. 실제 연장(1초 초과), 확인된 제거 후 재획득, 새 프로필은 새 관측 기간이다. 런타임 중복 방지 상태는 저장하지 않으며 로그인/리로드 때 이미 2분 이내이면 한 번 표시할 수 있다. 침낭 아이콘 사용과 독립이며 buffReminder 및 현재 직업의 common.rested, expiryAlert가 모두 켜져 있어야 한다. 전투 중 읽을 수 없는 시간을 추정하지 않는다.
+
+침낭 획득 알림과 만료 알림은 공통 메시지 빌더를 재사용하되 별도 프레임·숨김 타이머를 사용한다. 기존 획득 알림의 문구·색상·3중첩 조건은 보존한다. 프로필 적용과 모듈 OFF에서 알림 UI/타이머를 정리한다. 새 설정은 ProfileTransfer의 기존 스키마에 포함한다. 등록 버프·사용자 문구·음식·침낭 진행 값의 별도 이관은 없다.
+
+DevTools 0.4.0과 양쪽 진단 카탈로그는 변경하지 않는다. 기존 컨트롤 1,037개의 논리 ID/진단 연결을 비교한다. 새 3개 컨트롤은 설정 검색에 등록되며 이번 고정 진단 카탈로그의 개별 집계 항목은 추가하지 않는다. 새 기능 실행 집계도 추가하지 않는다. 최상위 6개와 소유자·탐색 계약은 1.12.0.1 그대로다.

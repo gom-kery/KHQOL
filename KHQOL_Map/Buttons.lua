@@ -117,7 +117,12 @@ function B:Initialize()
     toggle:SetScript("OnMouseDown", function() self.dragged = nil end)
     toggle:SetScript("OnClick", function(_, button)
         if self.dragged then self.dragged = nil; return end
-        if button == "RightButton" then A:OpenSettings(); return end
+        if button == "RightButton" then
+            local settings=K.settings
+            local route=settings and settings.currentRoute
+            if route then K.UI.SettingsNavigation:Open(route) else K:ShowSettings("general") end
+            return
+        end
         self.open = not self.open
         A:Request(true)
     end)
@@ -630,11 +635,12 @@ function B:Layout()
             else r.status = "원래 애드온에서 숨김" end
         end
     end
-    local size, gap, pad = A.db.iconSize, 8, 10
-    local maxCols=math.max(1,math.floor((w-2*pad-16)/(size+gap)))
+    local size, slotSize, gap, pad = A.db.iconSize, 24, 8, 10
+    local cell=slotSize+gap
+    local maxCols=math.max(1,math.floor((w-2*pad-16)/cell))
     local vertical=A.db.drawerLayout=="VERTICAL"
     local cols = math.min(6,maxCols)
-    local maxRows = math.max(1, math.floor((h - 2*pad - 40) / (size + gap)))
+    local maxRows = math.max(1, math.floor((h - 2*pad - 40) / cell))
     local baseRows=math.min(6,maxRows)
     local capacity = vertical and maxCols*baseRows or cols*maxRows
     local pages = math.max(1, math.ceil(#visible / capacity))
@@ -644,7 +650,7 @@ function B:Layout()
     if vertical then rows=math.max(1,math.min(baseRows,count));cols=math.max(1,math.ceil(count/rows))
     else cols=math.max(1,math.min(cols,count));rows=math.max(1,math.ceil(count/cols)) end
     local footer = pages > 1 and 26 or 0
-    local dw, dh = 2*pad + cols*(size+gap)-gap, 2*pad + rows*(size+gap)-gap + footer
+    local dw, dh = 2*pad + cols*cell-gap, 2*pad + rows*cell-gap + footer
     if count == 0 then dw, dh = math.min(260, w - 16), 72 end
     self.drawer:SetSize(dw, dh)
     local tx, ty = self.toggle:GetCenter()
@@ -666,10 +672,11 @@ function B:Layout()
         local col,row
         if vertical then col,row=math.floor((index-1)/rows),(index-1)%rows
         else col,row=(index-1)%cols,math.floor((index-1)/cols) end
-        r.slot:SetSize(size, size); r.slot:ClearAllPoints()
-        r.slot:SetPoint("TOPLEFT", self.drawer, "TOPLEFT", pad + col*(size+gap), -pad - row*(size+gap))
-        local width = r.frame:GetWidth()
-        if A:Number(width) and width > 0 and r.journal:Set(r.frame, "scale", size / width) then
+        r.slot:SetSize(slotSize, slotSize); r.slot:ClearAllPoints()
+        r.slot:SetPoint("TOPLEFT", self.drawer, "TOPLEFT", pad + col*cell, -pad - row*cell)
+        local width,height = r.frame:GetSize()
+        if A:Number(width) and A:Number(height) and width>0 and height>0
+            and r.journal:Set(r.frame, "scale", size / math.max(width,height)) then
             onPage[r] = true
         else r.yielded = true; A:Request() end
     end

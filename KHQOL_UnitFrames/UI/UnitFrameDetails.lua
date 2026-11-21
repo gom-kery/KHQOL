@@ -20,7 +20,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
   local l=layout(parent,y,"unitFrames");local selected=prefs.unit or "player";local selectedPart=prefs.part or "basic"
   if not M.defaults[selected] then selected="player" end
   local auraCategory=prefs.auraCategory or "friendlyPlayer"
-  local supports={basic=true,bars=true,labels=true,status=true}
+  local supports={basic=true,bars=true,labels=true,status=true,auras=true}
   local function supportedPart(part,unit) return supports[part] or part=="auras" and (unit=="player" or unit=="target") or part=="class" and unit=="player" end
   if not supportedPart(selectedPart,selected) then selectedPart="basic" end
   parent.selectedUnit=selected;parent.selectedPart=selectedPart;parent.selectedAuraCategory=auraCategory
@@ -63,14 +63,14 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
   local function selectUnit(v,quiet)
     if not M.defaults[v] then return end
     N:RememberScroll(KHQOL.settings)
-    UI:CancelInputs(parent);UI:CloseColorPicker();M:StopBottomPreview();selected=v
+    UI:CancelInputs(parent);UI:CloseDropdown();UI:CloseColorPicker();M:StopBottomPreview();selected=v
     if not supportedPart(selectedPart,v) then selectedPart="basic" end
     prefs.unit=selected;prefs.part=selectedPart;parent.selectedUnit=selected;parent.selectedPart=selectedPart
     if KHQOL.settings then KHQOL.settings.currentRoute=N:UnitRoute(selected,selectedPart,auraCategory) end
     if KHQOL.settings then KHQOL.settings.pageTitle:SetText(N:Path(N:UnitRoute(selected,selectedPart,auraCategory))) end
     if quiet then return end
     UI:Refresh(parent);UI:Refresh(header);UI:QueueDisplayRefresh(parent)
-    if KHQOL.settings and KHQOL.settings.moduleSubHeader==header then N:RestoreScroll(KHQOL.settings) end
+    if KHQOL.settings and KHQOL.settings.moduleSubHeader==header then KHQOL.settings:RefreshPositionLocks();KHQOL.settings:SetPageScrollLayout("unitFrames");N:RestoreScroll(KHQOL.settings) end
   end
   parent.SelectUnitTab=selectUnit
   function parent:SelectUnitPart(unit,part,category)
@@ -79,15 +79,15 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     if part and supportedPart(part,selected) then selectedPart=part end
     if category=="friendlyPlayer" or category=="attackableNPC" then auraCategory=category;prefs.auraCategory=category end
     prefs.part=selectedPart;self.selectedPart=selectedPart;self.selectedAuraCategory=auraCategory
-    UI:CancelInputs(parent);UI:CloseColorPicker();M:StopBottomPreview();UI:Refresh(parent);UI:Refresh(header)
+    UI:CancelInputs(parent);UI:CloseDropdown();UI:CloseColorPicker();M:StopBottomPreview();UI:Refresh(parent);UI:Refresh(header)
     UI:QueueDisplayRefresh(parent)
-    if KHQOL.settings then KHQOL.settings.currentRoute=N:UnitRoute(selected,selectedPart,auraCategory);KHQOL.settings.pageTitle:SetText(N:Path(N:UnitRoute(selected,selectedPart,auraCategory)));KHQOL.settings:SetPageScrollLayout("unitFrames");N:RestoreScroll(KHQOL.settings) end
+    if KHQOL.settings then KHQOL.settings.currentRoute=N:UnitRoute(selected,selectedPart,auraCategory);KHQOL.settings.pageTitle:SetText(N:Path(N:UnitRoute(selected,selectedPart,auraCategory)));KHQOL.settings:SetPageScrollLayout("unitFrames");KHQOL.settings:RefreshPositionLocks();KHQOL.settings:SetPageScrollLayout("unitFrames");N:RestoreScroll(KHQOL.settings) end
   end
   parent.SelectAuraCategory=function(category)
     if category~="friendlyPlayer" and category~="attackableNPC" then return end
     N:RememberScroll(KHQOL.settings)
-    UI:CancelInputs(parent);UI:CloseColorPicker();auraCategory=category;prefs.auraCategory=category;parent.selectedAuraCategory=category;UI:Refresh(parent);UI:QueueDisplayRefresh(parent)
-    if KHQOL.settings then KHQOL.settings.currentRoute=N:UnitRoute(selected,selectedPart,auraCategory);KHQOL.settings.pageTitle:SetText(N:Path(N:UnitRoute(selected,selectedPart,auraCategory)));N:RestoreScroll(KHQOL.settings) end
+    UI:CancelInputs(parent);UI:CloseDropdown();UI:CloseColorPicker();auraCategory=category;prefs.auraCategory=category;parent.selectedAuraCategory=category;UI:Refresh(parent);UI:QueueDisplayRefresh(parent)
+    if KHQOL.settings then KHQOL.settings.currentRoute=N:UnitRoute(selected,selectedPart,auraCategory);KHQOL.settings.pageTitle:SetText(N:Path(N:UnitRoute(selected,selectedPart,auraCategory)));KHQOL.settings:RefreshPositionLocks();KHQOL.settings:SetPageScrollLayout("unitFrames");N:RestoreScroll(KHQOL.settings) end
   end
   local x=0
   local measure=header:CreateFontString(nil,"OVERLAY");measure:SetFont(UI:Font(),T.LabelFontSize,"")
@@ -145,6 +145,28 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     local function available() return parts()~=nil end
     local function compact() return available() and db()[u].compact end
     local function has(kind) local p=parts();return compact() and p[kind]~=nil end
+    for _,partID in ipairs({"basic","labels","status","auras"}) do
+      local key=partID
+      local source=CreateFrame("Frame",nil,l.page);source:SetSize(1,1);source:Hide()
+      source.settingsRoute={module="unitFrames",unit=u,part=key,section="위치"}
+      UI:CreatePositionLock(source,"위치 잠금",function() return M:GetDB()[u].positionLocks[key] end,
+        function(v) if KHQOL.PositionAnchors then KHQOL.PositionAnchors:FinishDrags("unitFrames") end;M:GetDB()[u].positionLocks[key]=v end,
+        function() return M:PositionPartAvailable(u,key) end)
+    end
+    if u~="player" and u~="target" then
+      local source=CreateFrame("Frame",nil,l.page);source:SetWidth(parent:GetWidth());source.settingsRoute={module="unitFrames",unit=u,part="auras"}
+      local builder=UI:CreateBuilder(source,0)
+      local function cfg() return M:GetDB()[u].simpleAuras end
+      local function supported() return M:SimpleAuraFrame(u)~=nil end
+      builder:Section("버프·디버프 위치")
+      builder:Checkbox("버프·디버프 위치 설정 사용",function() return cfg().enabled end,function(v) cfg().enabled=v;M:ApplySettings() end,supported)
+      builder:Description("공개된 기본 버프·디버프 영역을 확인한 경우에만 이동합니다. 지원하지 않는 프레임에는 적용하지 않습니다.",true)
+      for _,axis in ipairs({"x","y"}) do local a=axis
+        builder:Slider("버프·디버프 "..a:upper().." 위치 보정",-300,300,1,function() return cfg()[a] end,function(v) cfg()[a]=v;M:ApplySettings() end,function(v) return v.." px" end,function() return supported() and cfg().enabled end)
+      end
+      builder:Button("버프·디버프 위치 초기화",function() cfg().x=0;cfg().y=0;M:ApplySettings() end,nil,supported)
+      builder:Flush();l:Fields(source,-builder.y,function() return visible() and selectedPart=="auras" end)
+    end
     local part="basic";local category
     local function field()
       local f=CreateFrame("Frame",nil,l.page);f:SetWidth(parent:GetWidth());f.settingsRoute={module="unitFrames",unit=u,part=part,category=category};return f,UI:CreateBuilder(f,0)
@@ -161,7 +183,6 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     do
       local row,builder=field()
       builder:Section("프레임 위치")
-      builder:Button("유닛 프레임 위치 이동",function() M:OpenUnitPositionEditor(u) end,nil,function() return M:IsEnabled() end)
       builder:Button("프레임 위치 초기화",function() M:ResetRootPosition(u) end,nil,function() return M:IsEnabled() end)
       builder:Description("플레이어·대상·소환수·대상의 대상·주시대상만 표시합니다. 없는 유닛은 예시 테두리로 이동하며, 완료 시 현재 프로필에 저장합니다. 전투 중에는 편집할 수 없습니다.",true)
       finish(row,builder)
@@ -205,10 +226,10 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
             local a=axis
             builder:Slider(title.." "..a.." 위치 보정",-400,400,1,function() return M:StatusOffset(u,kind,a) end,function(v) M:SetStatusOffset(u,kind,a,v) end,function(v) return v.." px" end,compact)
           end
-          builder:Button(title.." 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames."..u.."."..kind) end,nil,compact)
           builder:Button(title.." 위치 초기화",function() M:ResetStatusOffset(u,kind) end,nil,compact)
           builder:Flush()
         end
+        M:BuildMarkSettings(builder,u,compact)
         builder:Description(u=="player" and "휴식·전투·징표를 각각 이동합니다. 표시 조건은 기본 게임이 유지합니다." or "대상 징표를 개별 이동합니다. 이 기본 대상 프레임에는 플레이어의 휴식·전투 아이콘이 없습니다.",true)
       else
         builder:Section("상태·징표 · 대상 표시기")
@@ -216,7 +237,6 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
           local a=axis
           builder:Slider("상태·징표 "..a.." 위치 보정",-200,200,1,function() return db()[u]["status"..a] end,function(v) db()[u]["status"..a]=v;M:ApplySettings() end,function(v) return v.." px" end,compact)
         end
-        builder:Button("상태·징표 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames."..u..".status") end,nil,compact)
       end
       builder:Button("상태·징표 위치 초기화",function()
         for _,key in ipairs({"status","rest","combat","marker"}) do if db()[u][key.."X"]~=nil then db()[u][key.."X"]=0;db()[u][key.."Y"]=0 end end
@@ -229,7 +249,6 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
           local a=axis
           builder:Slider("포만감 아이콘 "..a.." 위치 보정",-400,400,1,function() return db().pet["happiness"..a] end,function(v) db().pet["happiness"..a]=v;M:ApplySettings() end,function(v) return v.." px" end,happinessAvailable)
         end
-        builder:Button("포만감 아이콘 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.pet.happiness") end,nil,happinessAvailable)
         builder:Button("포만감 아이콘 위치 초기화",function() db().pet.happinessX=0;db().pet.happinessY=0;M:ApplySettings() end,nil,happinessAvailable)
       end
       finish(row,builder)
@@ -245,7 +264,6 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
       for _,axis in ipairs({"x","y"}) do local a=axis
         builder:Slider("몬스터 마크 "..a:upper().." 위치 보정",-400,400,1,function() return marks()[a] end,function(v) marks()[a]=v;M:ApplySettings() end,function(v) return v.." px" end,compact)
       end
-      builder:Button("몬스터 마크 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.target.monster") end,nil,compact)
       builder:Button("몬스터 마크 위치 초기화",function() marks().x=0;marks().y=0;M:ApplySettings() end,nil,compact)
       builder:Description("간결한 대상 프레임 왼쪽에 표시합니다. 퀘스트 대상은 게임의 공개 판정을 따르며 정예는 금색, 희귀·희귀 정예는 은색 용 마크입니다. 판정·아이콘 API 미지원/접근 제한 시 해당 마크를 생략합니다.",true)
       finish(row,builder)
@@ -262,9 +280,11 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
       end)
       builder:Slider(title.." 글자 크기",8,30,1,function() return M:LabelSize(u,k) end,function(v) db()[u][k.."Size"]=v;M:ApplySettings() end,function(v) return v.." px" end,enabled,"기존 폰트 경로·효과를 유지하며 수치 글자와 독립적으로 조정합니다. 기본 부품이 없으면 사용하지 않습니다.")
       builder:Button(title.." 위치·글자 초기화",function() M:ResetLabel(k,u) end,nil,enabled)
-      builder:Button(title.." 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames."..u.."."..k) end,nil,enabled)
       if u=="player" or u=="target" then
-        builder:Dropdown(title.." 색상",{{value="default",text="기본색"},{value="custom",text="사용자 지정색"}},function() return db()[u][k.."ColorMode"] end,function(v) db()[u][k.."ColorMode"]=v;M:ApplySettings() end,available)
+        local modes={{value="default",text="기본값"}}
+        if u=="target" then modes[#modes+1]={value="class",text="직업 색상"} end
+        modes[#modes+1]={value="custom",text="사용자 지정 색"}
+        builder:Dropdown(title.." 색상",modes,function() return db()[u][k.."ColorMode"] end,function(v) db()[u][k.."ColorMode"]=v;M:ApplySettings() end,available)
         builder:Color(title.." 색 선택",function() local c=db()[u][k.."Color"];return c.r,c.g,c.b,1 end,function(r,g,bl) db()[u][k.."Color"]={r=r,g=g,b=bl};M:ApplySettings() end,function() return available() and db()[u][k.."ColorMode"]=="custom" end)
       end
       for _,axis in ipairs({"X","Y"}) do
@@ -313,7 +333,6 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
         for _,axis in ipairs({"x","y"}) do local a=axis
           builder:Slider(title.." "..a:upper().." 위치 보정",-300,300,1,function() return cfg()[a] end,function(v) cfg()[a]=v;M:ApplySettings() end,function(v) return v.." px" end,on)
         end
-        builder:Button(title.." 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.player."..k) end,nil,on)
         builder:Button(title.." 설정 초기화",function() db().player.auras[k]=KHQOL.MergeDefaults({},M.defaults.player.auras[k],"tables");M:ApplySettings() end,nil,supported)
         finish(row,builder)
       end
@@ -341,7 +360,7 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
     elseif u=="target" then
       part="status"
       l.controlRoute={module="unitFrames",unit=u,part="status"}
-      l:Check("기본 대상 콤보 포인트 숨김",function() return db().target.hideDefaultCombo end,function(v) db().target.hideDefaultCombo=v;M:ApplySettings() end,shown("status"),"간결한 대상 프레임에서 기본 ComboFrame의 화면 표시만 숨깁니다. KHQOL 자원/스윙바 콤보와 독립적입니다.",nil,compact)
+      l:Check("기본 대상 콤보 포인트 숨김",function() return db().target.hideDefaultCombo end,function(v) db().target.hideDefaultCombo=v;M:ApplySettings() end,shown("status"),"간결한 대상 프레임에서 기본 ComboFrame의 화면 표시만 숨깁니다. KHQOL 자원·스윙바 콤보와 독립적입니다.",nil,compact)
       part="auras"
       local row,builder=field()
       builder:Dropdown("대상 버프·디버프 적용 유형",{{value="friendlyPlayer",text="선택한 아군 플레이어"},{value="attackableNPC",text="선택한 공격 가능한 NPC"}},function() return auraCategory end,parent.SelectAuraCategory,available)
@@ -377,7 +396,6 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
           local a=axis
           builder:Slider("버프·디버프 공통 "..a:upper().." 위치 보정",-300,300,1,function() return cfg()[a] end,function(v) cfg()[a]=v;M:ApplySettings() end,function(v) return v.." px" end,function() return on() and not cfg().separatePositions end)
         end
-        builder:Button("버프·디버프 공통 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.target.auras."..category) end,nil,function() return on() and not cfg().separatePositions end)
         local function separate() return on() and cfg().separatePositions end
         for _,kind in ipairs({"buffs","debuffs"}) do
           local k=kind;local title=k=="buffs" and "대상 버프" or "대상 디버프"
@@ -386,7 +404,6 @@ function KHQOL.modules.unitFrames:BuildSettings(parent,y)
           for index,axis in ipairs({"x","y"}) do local a,i=axis,index
             builder:Slider(title.." "..a:upper().." 위치 보정",-300,300,1,function() return select(i+1,M:TargetAuraPosition(cfg(),k)) end,function(v) M:SetTargetAuraPosition(category,k,a,v) end,function(v) return v.." px" end,separate)
           end
-          builder:Button(title.." 드래그 이동",function() KHQOL.PositionEditor:Enter("unitFrames.target.auras."..category.."."..k) end,nil,separate)
           builder:Button(title.." 위치 초기화",function() local item=cfg()[k];item.position="below";item.x=0;item.y=k=="debuffs" and -23 or 0;M:ApplySettings() end,nil,separate)
         end
         builder:EndSection()

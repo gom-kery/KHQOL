@@ -1,0 +1,44 @@
+[
+  {
+    "mode": "without_devtools",
+    "checks": 47,
+    "status": "PASS",
+    "method": "Lua 5.1 WoW mock + fresh SavedVariables runtime where installed",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "full",
+    "checks": 51,
+    "status": "PASS",
+    "method": "Lua 5.1 WoW mock + fresh SavedVariables runtime where installed",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_unitframes",
+    "checks": 51,
+    "status": "PASS",
+    "method": "Lua 5.1 WoW mock + fresh SavedVariables runtime where installed",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_labs",
+    "checks": 27,
+    "status": "PASS",
+    "method": "Lua 5.1 WoW mock + fresh SavedVariables runtime where installed",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "without_convenience",
+    "checks": 24,
+    "status": "PASS",
+    "method": "Lua 5.1 WoW mock + fresh SavedVariables runtime where installed",
+    "inGame": "NOT TESTED"
+  },
+  {
+    "mode": "core_only",
+    "checks": 2,
+    "status": "PASS",
+    "method": "Lua 5.1 WoW mock + fresh SavedVariables runtime where installed",
+    "inGame": "NOT TESTED"
+  }
+]

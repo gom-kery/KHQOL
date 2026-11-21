@@ -91,7 +91,7 @@ function CombatStatus:CreateFrames()
   anchor:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",edgeSize=12})
   anchor:SetBackdropColor(.05,.12,.2,.75)
   local label=anchor:CreateFontString(nil,"OVERLAY","GameFontHighlight")
-  label:SetPoint("CENTER"); label:SetFont(KHQOL.UI:Font(),13,""); label:SetText("전투 상태 알림 · 드래그 이동")
+  label:SetPoint("CENTER"); label:SetFont(KHQOL.UI:Font(),13,""); label:SetText("전투 시작·종료 알림 · 드래그 이동")
   root:SetMovable(true); root:SetClampedToScreen(true)
   anchor:SetScript("OnDragStart",function()
     if self:IsEnabled() and not self.db.locked then self.dragging=true; root:StartMoving() end
@@ -315,7 +315,8 @@ end
 function CombatStatus:BuildSettings(content,y)
   local db=self:GetDB(); local b=KHQOL.UI:CreateBuilder(content,y)
   local function check(title,key)
-    return b:Checkbox(title,function() return db[key] end,function(v) db[key]=v; self:Changed(key) end)
+    local method=key=="locked" and b.PositionLock or b.Checkbox
+    return method(b,title,function() return db[key] end,function(v) db[key]=v; self:Changed(key) end)
   end
   local function message(section,key,colorKey,flag)
     local UI,T=KHQOL.UI,KHQOL.UI.Theme

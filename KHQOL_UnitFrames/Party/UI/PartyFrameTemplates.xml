@@ -17,6 +17,8 @@
     <Frames>
       <Button name="$parentWheelUp" parentKey="WheelUp" inherits="KHQOLUnitFramesPartyWheelActionTemplate"/>
       <Button name="$parentWheelDown" parentKey="WheelDown" inherits="KHQOLUnitFramesPartyWheelActionTemplate"/>
+      <Button name="$parentShiftWheelUp" parentKey="ShiftWheelUp" inherits="KHQOLUnitFramesPartyWheelActionTemplate"/>
+      <Button name="$parentShiftWheelDown" parentKey="ShiftWheelDown" inherits="KHQOLUnitFramesPartyWheelActionTemplate"/>
     </Frames>
     <Scripts>
       <OnLoad>

@@ -7,7 +7,7 @@ local function campfireSettings(content,y)
   b:Slider("야영 효과 획득 후 재알림 지연",0,300,5,function() return cfa.db.rediscoveryDelay or 30 end,function(v) cfa.db.rediscoveryDelay=v; if cfa.benefitAcquiredAt then cfa:ScheduleRediscovery() end end,function(v) return v.."초" end)
   b:Description("야영 효과를 얻은 뒤 이 시간 동안 모닥불 발견 알림을 숨깁니다. 기본값 30초이며, 0초에서도 획득 메시지는 3초간 유지합니다.")
   b:Section("위치")
-  b:Checkbox("위치 잠금",function() return cfa.db.locked end,function(on)
+  b:PositionLock("위치 잠금",function() return cfa.db.locked end,function(on)
     cfa.db.locked=on
     if on then cfa:HideDiscovery()
     else cfa.ui.discovery:Show(); cfa.ui.complete:Hide(); cfa:ApplyLayout() end

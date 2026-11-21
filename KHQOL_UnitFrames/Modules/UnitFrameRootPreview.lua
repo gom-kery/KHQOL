@@ -122,6 +122,11 @@ function M:RenderRootPreview(handle,spec)
     local level=actual and call(UnitLevel,unit)
     f.level:SetText(K.IsPublicNumber(level) and tostring(level) or "30");f.level:SetShown(hasLevel and true or false)
     local layout=K.CopyProfileValue(d);layout.previewUnit=unit
+    local cr,cg,cb,skull
+    if unit=="target" and (d.nameColorMode=="class" or d.levelColorMode=="class") then
+        if actual then cr,cg,cb,skull=self:TargetLabelColor()
+        else cr,cg,cb=self:ClassColor("player") end
+    end
     for _,kind in ipairs({"name","level"}) do
         local label=f[kind];local size=self:LabelSize(unit,kind)*r
         label:SetFont(K.UI:Font(),size,"OUTLINE");label:SetHeight(size+4*r)
@@ -130,6 +135,8 @@ function M:RenderRootPreview(handle,spec)
         local color=d[kind.."Color"]
         if d[kind.."ColorMode"]=="custom" and type(color)=="table" then
             label:SetTextColor(bounded(color.r,1,0,1),bounded(color.g,1,0,1),bounded(color.b,1,0,1),1)
+        elseif d[kind.."ColorMode"]=="class" and cr then
+            label:SetTextColor(cr,cg,cb,1)
         else
             local source=p and p[kind]
             local rr,gg,bb,aa=call(source and source.GetTextColor,source)
@@ -137,6 +144,11 @@ function M:RenderRootPreview(handle,spec)
             else label:SetTextColor(1,kind=="name" and .82 or 1,kind=="name" and 0 or 1,1) end
         end
     end
+    if skull and d.levelColorMode=="class" then
+        if not f.skull then f.skull=self:CreateTargetSkull(f,f.level,p and p.context and p.context.HighLevelTexture) end
+        local side=(self:LabelSize(unit,"level")+3)*r
+        f.skull:SetSize(side,side);f.skull:Show();f.level:Hide()
+    elseif f.skull then f.skull:Hide() end
     -- The hit outline hugs the bars, while labels remain at their configured
     -- positions outside/inside them. Captions sit clear of the real name row.
     handle.caption:ClearAllPoints();handle.caption:SetPoint("BOTTOMLEFT",handle,"TOPLEFT",0,math.max(self:LabelSize(unit,"name"),self:LabelSize(unit,"level"))*r+10)

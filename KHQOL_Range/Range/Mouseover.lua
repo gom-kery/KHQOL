@@ -22,9 +22,10 @@ function Mouseover:Hide()
   if self.frame then self.frame:Hide() end
   self.lastLayout=nil
   self.lastColor=nil
+  self.distanceState=nil
 end
 
-function Mouseover:GetState()
+function Mouseover:HasTooltipUnit()
   local tooltip=GameTooltip
   if not tooltip or (tooltip.IsForbidden and tooltip:IsForbidden()) or not tooltip:IsShown() then return end
   -- Read only the public token. Secret tooltip names/lines are not inspected.
@@ -33,6 +34,11 @@ function Mouseover:GetState()
   if not ok or secret(unit) or type(unit)~="string" or unit=="" then return end
   if publicCall(UnitExists,"mouseover")~=true then return end
   if unit~="mouseover" and publicCall(UnitIsUnit,unit,"mouseover")~=true then return end
+  return true
+end
+
+function Mouseover:GetState()
+  if not self:HasTooltipUnit() then return end
   local attackable=publicCall(UnitCanAttack,"player","mouseover")
   local enemy=publicCall(UnitIsEnemy,"player","mouseover")
   -- Neutral, attackable creatures count; friendly NPC/item tooltips do not.
@@ -43,8 +49,7 @@ function Mouseover:GetState()
   if dead==nil or attackable~=true then return "UNKNOWN" end
   local checked,inRange=pcall(FR.Range.CheckConfiguredSpell,FR.Range,"mouseover")
   if not checked or secret(inRange) then return "UNKNOWN" end
-  local _,class=publicCall(UnitClass,"player")
-  if class=="HUNTER" then
+  if FR.Range:UsesRangedWeapon()==true then
     local checked,state=pcall(FR.Range.GetHunterState,FR.Range,inRange,"mouseover")
     if not checked or secret(state) then return "UNKNOWN" end
     return state or "UNKNOWN"
@@ -53,27 +58,58 @@ function Mouseover:GetState()
   return inRange and "GREEN" or "RED"
 end
 
+function Mouseover:FollowCursor(force)
+  local options=FR.db and FR.db.mouseover
+  local frame=self.frame
+  if not frame or not options or options.position~="CURSOR" or not force and not frame:IsShown() then return true end
+  local cx,cy=publicCall(GetCursorPosition)
+  local scale=publicCall(UIParent.GetEffectiveScale,UIParent)
+  if not KHQOL.IsPublicNumber(cx) or not KHQOL.IsPublicNumber(cy) or not KHQOL.IsPublicNumber(scale) or scale<=0 then self:Hide();return false end
+  cx,cy=cx/scale+18+(options.x or 0),cy/scale-18+(options.y or 0)
+  if force or self.cursorX~=cx or self.cursorY~=cy then
+    frame:ClearAllPoints();frame:SetPoint("TOPLEFT",UIParent,"BOTTOMLEFT",cx,cy)
+    self.cursorX,self.cursorY=cx,cy
+  end
+  return true
+end
+
 function Mouseover:Update()
   if not self.frame then return end
   local options=FR.db and FR.db.mouseover
   if not options or not options.enabled or not KHQOL.db or not KHQOL:GetEnabled("range") then self:Hide(); return end
-  local state=self:GetState()
-  if not state then self:Hide(); return end
+  local numeric=options.mode=="distance"
+  local state,result
+  if numeric then
+    if options.position~="CURSOR" and not self:HasTooltipUnit() then self:Hide();return end
+    result=FR.Distance:Measure("mouseover")
+    if not result then self:Hide();return end
+  else
+    state=self:GetState()
+    if not state then self:Hide(); return end
+  end
+  self.distanceState=result
   local frame=self.frame
+  local parent=options.position=="CURSOR" and UIParent or GameTooltip
+  if frame:GetParent()~=parent then frame:SetParent(parent);self.lastLayout=nil end
   local font=KHQOL.FONT_PATH or STANDARD_TEXT_FONT
   local x,y=options.x or 0,options.y or 0
   local layout=self.lastLayout
   local layoutChanged=not layout or layout.position~=options.position
-    or layout.fontSize~=options.fontSize or layout.x~=x or layout.y~=y or layout.font~=font
+    or layout.fontSize~=options.fontSize or layout.x~=x or layout.y~=y or layout.font~=font or layout.numeric~=numeric
   if layoutChanged then
     frame.text:SetFont(font,options.fontSize,"OUTLINE")
+    frame.text:ClearAllPoints()
+    frame.text:SetPoint("CENTER")
     frame:ClearAllPoints()
-    if options.position=="LEFT" then frame:SetPoint("RIGHT",GameTooltip,"LEFT",x,y)
+    if options.position=="CURSOR" then frame:SetPoint("TOPLEFT",UIParent,"BOTTOMLEFT",0,0)
+    elseif options.position=="LEFT" then frame:SetPoint("RIGHT",GameTooltip,"LEFT",x,y)
     else frame:SetPoint("TOPLEFT",GameTooltip,"BOTTOMLEFT",x,y) end
-    self.lastLayout={position=options.position,fontSize=options.fontSize,x=x,y=y,font=font}
+    self.lastLayout={position=options.position,fontSize=options.fontSize,x=x,y=y,font=font,numeric=numeric}
   end
+  if not self:FollowCursor(layoutChanged) then return end
   local text,color
-  if state=="GREEN" then text=options.availableText or "공격 가능"; color=FR.db.colors.GREEN
+  if numeric then text=FR.Distance:Format(result,"mouseover");color=FR.Distance:Color(result,"mouseover")
+  elseif state=="GREEN" then text=options.availableText or "공격 가능"; color=FR.db.colors.GREEN
   elseif state=="RED" or state=="ORANGE" then text=options.unavailableText or "공격 불가"; color=FR.db.colors.RED
   else text="판정 불가"; color=UNKNOWN_COLOR end
   local textChanged=frame.text:GetText()~=text
@@ -82,16 +118,19 @@ function Mouseover:Update()
   if not old or old[1]~=color[1] or old[2]~=color[2] or old[3]~=color[3] or old[4]~=color[4] then
     frame.text:SetTextColor(unpack(color)); self.lastColor={unpack(color)}
   end
-  if textChanged or layoutChanged then frame:SetSize(frame.text:GetStringWidth()+8,frame.text:GetStringHeight()+6) end
+  if textChanged or layoutChanged then
+    frame:SetSize(frame.text:GetStringWidth()+8,frame.text:GetStringHeight()+6)
+  end
   if not frame:IsShown() then frame:Show() end
 end
 
 function Mouseover:Initialize()
   if self.frame then return end
-  -- A noninteractive child follows tooltip motion/fade without touching its
-  -- contents, owner, anchors or native lifecycle. Tooltip module can be OFF.
+  -- Tooltip-relative modes follow the native tooltip; cursor mode reparents
+  -- this noninteractive frame to UIParent. The native tooltip is untouched.
   local frame=CreateFrame("Frame","KHQOLRangeMouseover",GameTooltip)
   frame:SetFrameLevel(GameTooltip:GetFrameLevel()+1)
+  frame:SetFrameStrata("TOOLTIP")
   frame:EnableMouse(false)
   frame.text=frame:CreateFontString(nil,"OVERLAY")
   frame.text:SetPoint("CENTER"); frame.text:SetJustifyH("CENTER")

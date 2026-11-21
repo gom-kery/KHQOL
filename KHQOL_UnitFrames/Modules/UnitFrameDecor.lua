@@ -523,10 +523,124 @@ function M:LabelSize(unit,kind)
   local _,size=call(f and f.GetFont,f)
   return finite(size) and number(size,12,8,30) or 12
 end
+function M:TargetLabelColor()
+  local player=call(UnitIsPlayer,"target")
+  if player==true then return self:ClassColor("target") end
+  if player~=false then return end
+  local reaction=call(UnitReaction,"target","player")
+  if not finite(reaction) then return end
+  if reaction>=5 then return 0,1,0 end
+  if reaction==4 then return 1,1,0 end
+  if call(UnitCanAttack,"player","target")~=true then return end
+  local level,myLevel=call(UnitLevel,"target"),call(UnitLevel,"player")
+  if not finite(level) or level==0 or level<-1 or not finite(myLevel) or myLevel<1 then return end
+  local difference=level-myLevel
+  local skull=level==-1 or difference>=10
+  local key
+  if skull or difference>=5 then key="impossible"
+  elseif difference>=3 then key="verydifficult"
+  elseif difference>=-2 then return 1,209/255,0
+  else
+    local range=call(UnitQuestTrivialLevelRange,"player")
+    if not finite(range) then return end
+    key=-difference>range and "trivial" or "standard"
+  end
+  local c=QuestDifficultyColors and QuestDifficultyColors[key]
+  if c then return c.r,c.g,c.b,skull end
+end
+
+function M:CreateTargetSkull(parent,label,source)
+  local icon=parent:CreateTexture(nil,"OVERLAY",nil,7)
+  local atlas=call(source and source.GetAtlas,source)
+  if type(atlas)=="string" then icon:SetAtlas(atlas)
+  else
+    local texture=call(source and source.GetTexture,source)
+    icon:SetTexture(texture or "Interface\\TargetingFrame\\UI-TargetingFrame-Skull")
+    local nativeTexture=source and read(source,"texture")
+    if nativeTexture then icon:SetTexCoord(unpack(nativeTexture[3])) end
+  end
+  icon:SetPoint("CENTER",label,"CENTER")
+  icon:Hide()
+  return icon
+end
+
+function M:ReleaseTargetSkull(owner)
+  if owner.levelSkull then owner.levelSkull:Hide() end
+  if owner.levelIndicator then
+    owner.levelIndicator.compactActive=false
+    self:ReleaseNativeDecorations(owner.levelIndicator)
+  end
+end
+
+function M:PositionTargetIndicators(owner,p)
+  if not owner.compactActive or not p.level or not p.context then return end
+  if combat() then self.pending=true;return end
+  local db=self:GetDB().target
+  local side=(db.levelPosition=="left" or db.levelPosition~="right" and db.levelSide~="RIGHT") and -1 or 1
+  -- Reserve three glyphs at the configured font size, not secret text width.
+  local reserve=(self:LabelSize("target","level")*3+6)/2
+  local context=p.context
+  local circle=context.PvpBackgroundCircle or p.main and p.main.PvpBackgroundCircle
+  local badge=context.PvpBackgroundIcon or p.main and p.main.PvpBackgroundIcon
+  local flag=context.PvpIcon
+  local width=32
+  for _,region in pairs({circle=circle,badge=badge,flag=flag}) do
+    local w=call(region.GetWidth,region)
+    if public(w) and finite(w) and w>0 and w<256 then width=math.max(width,w) end
+  end
+  local offset=reserve+width/2+6
+  local cfg=self:MarkSettings("target","faction")
+  if circle then self:Write(owner,circle,"points",{{"CENTER",p.level,"CENTER",side*offset+cfg.x,cfg.y}}) end
+  if badge then self:Write(owner,badge,"points",{{"CENTER",circle or p.level,"CENTER",circle and 0 or side*offset+cfg.x,circle and 0 or cfg.y}}) end
+  if flag then
+    local circleShown=circle and call(circle.IsShown,circle)==true or badge and call(badge.IsShown,badge)==true
+    self:Write(owner,flag,"points",{{"CENTER",p.level,"CENTER",side*(offset+(circleShown and width+6 or 0))+cfg.x,cfg.y}})
+  end
+end
+
+function M:ApplyTargetSkull(owner,p,wanted)
+  local level=p.level
+  local active=self:IsEnabled() and owner.compactActive and not editing() and call(UnitExists,"target")==true
+  if not level or not active then self:ReleaseTargetSkull(owner);return end
+  local stock=p.context and p.context.HighLevelTexture
+  local shown=stock and call(stock.IsShown,stock)
+  local custom=wanted and (not stock or shown==false)
+  local visible=shown==true
+  if custom then
+    if not owner.levelSkull then
+      if combat() then self.pending=true;return end
+      owner.levelSkull=self:CreateTargetSkull(p.root,level,stock)
+    end
+    local size=self:LabelSize("target","level")+3
+    if not combat() then
+      local cfg=self:MarkSettings("target","skull")
+      owner.levelSkull:ClearAllPoints();owner.levelSkull:SetPoint("CENTER",level,"CENTER",cfg.x,cfg.y)
+      if KHQOL.ReadPublicAPI(owner.levelSkull.SetSize,owner.levelSkull,size,size)~="ok" then self.pending=true;return end
+    else self.pending=true end
+    visible=true
+  end
+  local state=owner.levelIndicator
+  if visible then
+    if not state then state={};owner.levelIndicator=state end
+    state.compactActive=true
+    self:HideNativeDecoration(state,level)
+    -- Publish our replacement only after the original text was safely hidden.
+    local alpha=call(level.GetAlpha,level)
+    if owner.levelSkull then owner.levelSkull:SetShown(custom and public(alpha) and alpha==0 or false) end
+  else self:ReleaseTargetSkull(owner) end
+  if not custom and owner.levelSkull then owner.levelSkull:Hide() end
+  self:PositionTargetIndicators(owner,p)
+end
+
 function M:ApplyLabelColors(owner,p,unit)
   if unit~="player" and unit~="target" then return end
   owner.labelColors=owner.labelColors or {}
   local db=self:GetDB()[unit]
+  local enabled=self:IsEnabled() and not editing()
+  local r,g,b,skull
+  if enabled and unit=="target" and (db.nameColorMode=="class" or db.levelColorMode=="class") then
+    r,g,b,skull=self:TargetLabelColor()
+  end
   for _,kind in ipairs({"name","level"}) do
     local f=p[kind]
     if f and type(f.SetTextColor)=="function" then
@@ -539,18 +653,24 @@ function M:ApplyLabelColors(owner,p,unit)
           M:ApplyLabelColors(owner,owner.parts,unit)
         end)
       end
-      local active=self:IsEnabled() and not editing() and db[kind.."ColorMode"]=="custom"
+      local mode=db[kind.."ColorMode"]
+      local custom=mode=="custom"
+      local active=enabled and (custom or (mode=="class" and r~=nil))
       if active and not state.active then state.original=packet(f.GetTextColor,f);active=state.original~=nil end
       state.writing=true
       if active then
-        local c=db[kind.."Color"] or {};state.active=true
-        pcall(f.SetTextColor,f,number(c.r,1,0,1),number(c.g,1,0,1),number(c.b,1,0,1),1)
+        state.active=true
+        if custom then
+          local c=db[kind.."Color"] or {}
+          pcall(f.SetTextColor,f,number(c.r,1,0,1),number(c.g,1,0,1),number(c.b,1,0,1),1)
+        else pcall(f.SetTextColor,f,r,g,b,1) end
       elseif state.active then
         if pcall(f.SetTextColor,f,unpack(state.original,1,state.original.n)) then state.active=false;state.original=nil end
       end
       state.writing=false
     end
   end
+  if unit=="target" then self:ApplyTargetSkull(owner,p,skull and db.levelColorMode=="class") end
 end
 function M:ApplyLabels(owner,p,unit,width,showPower)
   if owner.labelWriting then return end
@@ -614,8 +734,10 @@ function M:ApplyLabelsNow(owner,p,unit,width,showPower)
       else self:ReleaseFont(owner,f) end
     end
   end
+  if unit=="target" then self:PositionTargetIndicators(owner,p) end
   if p.context and p.context.HighLevelTexture and p.level then
-    self:Write(owner,p.context.HighLevelTexture,"points",{{"CENTER",p.level,"CENTER",0,0}})
+    local cfg=(unit=="target" or unit=="player") and self:MarkSettings(unit,"skull") or {x=0,y=0}
+    self:Write(owner,p.context.HighLevelTexture,"points",{{"CENTER",p.level,"CENTER",cfg.x,cfg.y}})
   end
 end
 function M:ApplyOutline(owner,p,width,hh,ph,gap,showPower)
@@ -693,6 +815,7 @@ function M:ApplyStateDecorations(owner,p,unit)
     self:HideNativeDecoration(owner,p.context.QuestIcon)
     self:HideNativeDecoration(owner,p.context.RareIcon)
   end
+  if unit=="player" then self:PositionPlayerFaction(owner,p) end
   if owner.raidMarker then self:UpdatePlayerMarker(owner,p) end
 end
 function M:ApplyCombo(owner,p,unit)
@@ -717,6 +840,7 @@ function M:ApplyCompactLayout(owner,p,unit,on)
   p.unit=unit
   if not on then
     owner.compactActive=false
+    if unit=="target" then self:ReleaseTargetSkull(owner) end
     if owner.healDisplay then owner.healDisplay:SetValue(0) end
     self:CompactThreat(owner,p,false)
     self:ReleaseNativeDecorations(owner)
@@ -753,7 +877,7 @@ function M:ApplyCompactLayout(owner,p,unit,on)
   if p.main then
     self:Write(owner,p.main.LevelBackgroundCircle,"alpha",0)
     self:HideNativeDecoration(owner,p.main.ReputationColor)
-    self:Write(owner,p.main.PvpBackgroundCircle,"points",{{"CENTER",p.root,"TOPLEFT",3,-30}})
+    if unit~="target" then self:Write(owner,p.main.PvpBackgroundCircle,"points",{{"CENTER",p.root,"TOPLEFT",3,-30}}) end
   end
   if not mirrored then
     self:Write(owner,p.healthContainer,"points",{{"TOPLEFT",p.root,"TOPLEFT",left,top}})
@@ -775,6 +899,7 @@ function M:ApplyCompactLayout(owner,p,unit,on)
   self:CropNativeFill(owner,p.power,"power")
   self:ApplyStateDecorations(owner,p,unit)
   self:ApplyStatusPositions(owner,p,unit)
+  if unit=="player" then self:PositionPlayerFaction(owner,p) end
   self:CompactThreat(owner,p,false)
   self:ApplyCombo(owner,p,unit)
 end

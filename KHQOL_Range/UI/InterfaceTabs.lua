@@ -1,5 +1,6 @@
 local KHQOL=_G.KHQOL
 local UI=KHQOL.UI
+UI.SettingsRegistry.modules.range.compactDescriptions=true
 local Interface,Units,Quest=KHQOL.InterfaceSettings,KHQOL.UnitFrameSettings,KHQOL.QuestSettings
 Interface:RegisterTab("range",nil,function(content,y)
   local fr=KHQOL.modules.range

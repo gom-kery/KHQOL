@@ -4,7 +4,7 @@ local call=K.PublicCall
 local PU=K.PositionUtils
 local qualities={{"poor","하급"},{"common","일반"},{"uncommon","고급"},{"rare","희귀"},{"epic","영웅"}}
 M.bagTrashQualities=qualities
-local defaults={enabled=false,locked=true,size=32,mode="attached",allowInactiveQuestItems=false,
+local defaults={enabled=false,locked=true,size=60,mode="attached",allowInactiveQuestItems=false,
   position={point="CENTER",relativePoint="CENTER",x=220,y=-100},
   qualities={}}
 for _,quality in ipairs(qualities) do defaults.qualities[quality[1]]=false end
@@ -93,6 +93,10 @@ function M:ReadTrashCursor()
     or (isQuest and isActive==nil))
   held.questRelated=held.quest or isQuest or linkedQuest or classID==12 or bind==4 or not validQuestID or isActive==true
   held.inactiveQuest=validQuestID and isActive==false and onQuest==false
+  -- The default Hearthstone can be quest-classified without belonging to a
+  -- quest. Only allow the ordinary path when the bag reports no quest link.
+  held.hearthstone=held.id==6948 and validQuestID and not linkedQuest and
+    (isActive==false or (isQuest==false and isActive==nil))
   held.quality=quality
   return held
 end
@@ -190,7 +194,7 @@ function M:ReceiveTrashDrop(dragged)
   if not held then self:NotifyBagItem("가방 아이템 또는 집은 수량을 확인할 수 없어 보존했습니다.");return end
   if visibleTrashDialog() then return end
   local grade=qualities[held.quality+1]
-  local canSkip=not held.questRelated or (held.inactiveQuest and cfg.allowInactiveQuestItems==true)
+  local canSkip=not held.questRelated or held.hearthstone or (held.inactiveQuest and cfg.allowInactiveQuestItems==true)
   -- Combat drag-to-delete has not been verified on Forever. Use the native
   -- confirmation button for all combat drops, including the selected grades.
   if K.WindowLayers:OutsideCombat() and dragged and canSkip and grade
@@ -207,13 +211,23 @@ end
 
 function M:MakeTrashButton(parent)
   local b=CreateFrame("Button",nil,parent,"BackdropTemplate")
+  b:EnableMouse(true)
+  if type(b.SetPropagateMouseClicks)=="function" then b:SetPropagateMouseClicks(false) end
   K.HUDText.MakeBackdrop(b,.75,.57,.2,.9)
   b.icon=b:CreateTexture(nil,"ARTWORK")
   b.icon:SetTexture("Interface\\AddOns\\KHQOL_Convenience\\Media\\BagTrash.tga")
   b.icon:SetPoint("TOPLEFT",3,-3);b.icon:SetPoint("BOTTOMRIGHT",-3,3)
-  b:RegisterForClicks("LeftButtonUp")
+  b:RegisterForClicks("LeftButtonUp","RightButtonUp")
   b:SetScript("OnReceiveDrag",function() M:ReceiveTrashDrop(true) end)
-  b:SetScript("OnClick",function(_,button) if button=="LeftButton" then M:ReceiveTrashDrop() end end)
+  b:SetScript("OnClick",function(_,button)
+    if button=="RightButton" then
+      -- Finish this bag mouse event before building/reflowing the settings UI.
+      if not M.trashSettingsQueued then
+        M.trashSettingsQueued=true
+        C_Timer.After(0,function() M.trashSettingsQueued=nil;M:OpenTrashSettings() end)
+      end
+    elseif button=="LeftButton" then M:ReceiveTrashDrop() end
+  end)
   b:SetScript("OnEnter",function(frame)
     if K.PositionEditor.active then return end
     GameTooltip:SetOwner(frame,"ANCHOR_LEFT");GameTooltip:SetText("가방 휴지통")
@@ -293,7 +307,8 @@ function M:RefreshBagTrash()
   if not self.trashButton then return end
   local cfg=self:GetDB().bagTrash
   self:ValidateTrashDialog()
-  local size=K.IsPublicNumber(cfg.size) and math.max(20,math.min(64,cfg.size)) or defaults.size
+  local size=K.IsPublicNumber(cfg.size) and math.max(50,math.min(80,math.floor(cfg.size+.5))) or defaults.size
+  cfg.size=size
   local button,region=self.trashButton,self.trashRegion
   local editing=K.PositionEditor.active
   local attached=cfg.enabled and cfg.mode~="free"
@@ -330,7 +345,7 @@ function M:BagTrashPositionTarget()
   local cfg=self:GetDB().bagTrash
   if not cfg.enabled or cfg.mode~="free" then return list end
   PU:Add(list,"bagTrash","generalConvenience","가방 휴지통",self.trashButton,PU:PointWriter(cfg.position),
-    PU:Lock(cfg),function() self:RefreshBagTrash() end,{sample="가방 휴지통",settingsRoute={module="generalConvenience",section="아이템"}})
+    PU:Lock(cfg),function() self:RefreshBagTrash() end,{sample="가방 휴지통",settingsRoute={module="generalConvenience",section="가방 휴지통"}})
   PU:ConfigureResets(list,function(target,point) point(target,function() return cfg.position end,defaults.position) end)
   return list
 end

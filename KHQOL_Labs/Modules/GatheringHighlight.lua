@@ -3,12 +3,20 @@ local H,J=K.modules.objectHighlight,K.SoftTargetJournal
 local G={unit="softinteract",cursorIDs={}}
 H.gathering=G
 local call,public=K.PublicCall,K.IsPublicValue
-local defaults={questSparkles=true,gatherEnabled=false,size=100,alpha=.8,offsetX=0,offsetY=-60,showInCombat=false,
+local defaults={questSparkles=true,gatherEnabled=false,size=100,alpha=.8,offsetX=0,offsetY=-60,showInCombat=false,blink=false,blinkPeriod=1,
   categories={herb={enabled=true,effect="imageCross",color={.55,1,.65}},ore={enabled=true,effect="imageCross",color={1,.75,.25}},chest={enabled=true,effect="imageCross",color={.4,.8,1}}}}
 H.defaults=defaults
 function H:GetDB()
   K.db.modules.objectHighlight=K.MergeDefaults(K.db.modules.objectHighlight or {},defaults,"tables")
   local db=K.db.modules.objectHighlight
+  db.questSparkles=true
+  for _,category in pairs(db.categories) do
+    if type(category)=="table" and category.effect=="imageSwirl" then category.effect="imageDownArrow" end
+    if type(category)=="table" and not K.ObjectHighlightEffects.imageStyles[category.effect] then category.effect="imageCross" end
+  end
+  db.blink=db.blink==true
+  local period=K.IsPublicNumber(db.blinkPeriod) and db.blinkPeriod or defaults.blinkPeriod
+  db.blinkPeriod=math.max(.5,math.min(2,math.floor(period*2+.5)/2))
   db.offsetX=math.max(-200,math.min(200,K.IsPublicNumber(db.offsetX) and db.offsetX or defaults.offsetX))
   db.offsetY=math.max(-200,math.min(100,K.IsPublicNumber(db.offsetY) and db.offsetY or defaults.offsetY))
   return db
@@ -154,7 +162,7 @@ function G:Present(plate,kind,blocked)
   local ok,shown=pcall(function()
     if self.plate and self.plate~=plate then K.ObjectHighlightEffects:Stop(self.frame) end
     self.frame:ClearAllPoints();self.frame:SetPoint("CENTER",plate,"CENTER",db.offsetX,db.offsetY)
-    return K.ObjectHighlightEffects:Render(self.frame,config.effect,size,color,alpha)
+    return K.ObjectHighlightEffects:Render(self.frame,config.effect,size,color,alpha,db.blink,db.blinkPeriod)
   end)
   if not ok or shown~=true then
     self:Hide();self.stage="render";self.status="효과 API 호출 실패 또는 미지원 효과 설정"

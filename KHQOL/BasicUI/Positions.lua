@@ -12,9 +12,9 @@ KHQOL.PositionProviders.castBar=function(focus)
   local cb=m.castBar
   if cb.db then
     local t=cb:TargetPositionPreview()
-    if t then add(t.id,"castBar",t.name,t.frame,t.write,nil,t.apply,t) end
+    if t then add(t.id,"castBar",t.name,t.frame,t.write,t.lock,t.apply,t) end
     local linked=cb.linked and true or false
-    add("cast","castBar","Cast Bar"..(linked and " · 자원바 연결" or " · 자유 위치"),cb.frame,not linked and pointWriter(cb.db.position.free) or nil,lock(cb.db.position),function() cb:ApplyLayout() end,{parentID=linked and "resource" or nil,linked=linked,sample="주문 시전 · 2.0초"})
+    add("cast","castBar","Cast Bar"..(linked and " · 자원바 연결" or " · 자유 위치"),cb.frame,not linked and pointWriter(cb.db.position.free) or nil,lock(cb.db.position),function() cb:ApplyLayout() end,{settingsRoute={module="castBar",castUnit="player"},parentID=linked and "resource" or nil,linked=linked,sample="주문 시전 · 2.0초"})
   end
   PU:ConfigureResets(list,function(t,point)
     if t.id=="cast" and not t.linked then point(t,function() return m.castBar.db.position.free end,m.castBar.defaults.position.free) end
@@ -38,11 +38,11 @@ KHQOL.PositionProviders.frameMover=function()
       if saved then x,y=saved.x,saved.y end
       x,y,w,h=x or cx,y or cy,w or 380,h or 270
       local record=native and mover.byFrame[native]
-      if record and record.original then
+      if record and record.original and not PU.describing then
         local readable=true
         for _,point in ipairs(record.original) do for i=1,5 do if not KHQOL.IsPublicValue(point[i]) then readable=false end end end
         if readable then
-          local reset=E:Virtual("basicUI.reset."..k,{x=0,y=0},call(native.GetWidth,native) or 380,call(native.GetHeight,native) or 270)
+          local reset=PU:Preview("basicUI.reset."..k,{x=0,y=0},call(native.GetWidth,native) or 380,call(native.GetHeight,native) or 270)
           local scale=call(native.GetEffectiveScale,native);local ps=call(UIParent.GetEffectiveScale,UIParent)
           if finite(scale) and finite(ps) and ps>0 then
             local ok=pcall(function() reset:SetScale(scale/ps);reset:ClearAllPoints();for _,point in ipairs(record.original) do reset:SetPoint(unpack(point)) end end)
@@ -50,7 +50,7 @@ KHQOL.PositionProviders.frameMover=function()
           end
         end
       end
-      local t=sample("basicUI."..k,nil,"기본창 · "..titles[k],x,y,w,h,nil,function() mover:Refresh() end,{settingsKey="basicUI",sample="기본창 · "..titles[k].."\n닫힌 창도 위치 예시로 이동",resetPhysical=true,
+      local t=sample("basicUI."..k,nil,"기본창 · "..titles[k],x,y,w,h,nil,function() mover:Refresh() end,{settingsKey="basicUI",settingsRoute={module="basicUI",section="기본창 이동",scope="계정 공용"},sample="기본창 · "..titles[k].."\n닫힌 창도 위치 예시로 이동",resetPhysical=true,
         resetPoint={point="CENTER",relativePoint="BOTTOMLEFT",x=originalX,y=originalY},
         resetWrite=function() db.positions[k]=nil;if record then mover:Restore(record) end end})
       t.write=function()
